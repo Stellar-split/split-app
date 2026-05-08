@@ -1,22 +1,26 @@
 /**
- * Initialises the StellarSplitClient singleton from environment variables.
- * Import `splitClient` wherever you need to call the contract.
+ * Lazy-initialised StellarSplitClient.
+ * The client is only constructed on first use, not at module load time.
+ * This prevents build-time errors when env vars are placeholders.
  */
 
 import { StellarSplitClient } from "@stellar-split/sdk";
 import { NETWORK_PASSPHRASE } from "./freighter";
 
-const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL!;
-const contractId = process.env.NEXT_PUBLIC_CONTRACT_ID!;
+let _client: StellarSplitClient | null = null;
 
-if (!rpcUrl || !contractId) {
-  throw new Error(
-    "Missing NEXT_PUBLIC_RPC_URL or NEXT_PUBLIC_CONTRACT_ID environment variables."
-  );
+export function getSplitClient(): StellarSplitClient {
+  if (!_client) {
+    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
+    const contractId = process.env.NEXT_PUBLIC_CONTRACT_ID ?? "";
+    _client = new StellarSplitClient({ rpcUrl, networkPassphrase: NETWORK_PASSPHRASE, contractId });
+  }
+  return _client;
 }
 
-export const splitClient = new StellarSplitClient({
-  rpcUrl,
-  networkPassphrase: NETWORK_PASSPHRASE,
-  contractId,
+// Convenience re-export for components that use it directly
+export const splitClient = new Proxy({} as StellarSplitClient, {
+  get(_target, prop) {
+    return (getSplitClient() as never)[prop as keyof StellarSplitClient];
+  },
 });

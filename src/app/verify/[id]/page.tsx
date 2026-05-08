@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { splitClient } from "@/lib/stellar";
 import { formatAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
@@ -6,11 +7,15 @@ interface Props {
   params: { id: string };
 }
 
+// Force dynamic rendering — this page fetches live on-chain data
+export const dynamic = "force-dynamic";
+
 /**
  * Public verification page — verifies an invoice on-chain via Stellar RPC.
  * No wallet connection required.
  */
 export default async function VerifyPage({ params }: Props) {
+  noStore();
   const { id } = params;
 
   let invoice;
