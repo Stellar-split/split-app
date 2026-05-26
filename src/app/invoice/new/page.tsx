@@ -64,14 +64,18 @@ export default function NewInvoicePage() {
     <main className="max-w-xl mx-auto px-6 py-16">
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">
         {/* Equal Split toggle */}
         <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
-          <span className="text-sm font-medium text-gray-300">Equal Split</span>
+          <label htmlFor="equal-split-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
+            Equal Split
+          </label>
           <button
+            id="equal-split-toggle"
             type="button"
             role="switch"
             aria-checked={equalSplit}
+            aria-label="Toggle equal split mode"
             onClick={() => setEqualSplit((v) => !v)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
               equalSplit ? "bg-indigo-600" : "bg-gray-600"
@@ -88,10 +92,11 @@ export default function NewInvoicePage() {
         {/* Total amount input (equal split mode) */}
         {equalSplit && (
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label htmlFor="total-amount" className="block text-sm font-medium text-gray-300 mb-1">
               Total Amount (USDC)
             </label>
             <input
+              id="total-amount"
               type="number"
               placeholder="0.00"
               step="0.0000001"
@@ -124,10 +129,11 @@ export default function NewInvoicePage() {
 
         {/* Token address */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="token-address" className="block text-sm font-medium text-gray-300 mb-1">
             USDC Token Contract Address
           </label>
           <input
+            id="token-address"
             type="text"
             value={token}
             onChange={(e) => setToken(e.target.value)}
@@ -139,10 +145,11 @@ export default function NewInvoicePage() {
 
         {/* Deadline */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="deadline-days" className="block text-sm font-medium text-gray-300 mb-1">
             Deadline (days from now)
           </label>
           <input
+            id="deadline-days"
             type="number"
             min={1}
             max={365}
@@ -153,7 +160,7 @@ export default function NewInvoicePage() {
           />
         </div>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
 
         <button
           type="submit"
