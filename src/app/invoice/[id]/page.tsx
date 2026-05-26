@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
+import {
+  isSubscribedToInvoice,
+  notifyInvoiceReleased,
+  requestNotificationPermission,
+  subscribeToInvoice,
+} from "@/lib/notifications";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import type { Invoice } from "@stellar-split/sdk";
@@ -22,16 +28,57 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [notifySubscribed, setNotifySubscribed] = useState(false);
+  const [notifyDenied, setNotifyDenied] = useState(false);
+  const prevStatusRef = useRef<Invoice["status"] | null>(null);
 
   const load = async () => {
     const inv = await splitClient.getInvoice(id);
     setInvoice(inv);
+    prevStatusRef.current = inv.status;
   };
 
   useEffect(() => {
     load().catch((e) => setError(String(e)));
     getFreighterPublicKey().then(setPublicKey).catch(() => null);
+    setNotifySubscribed(isSubscribedToInvoice(id));
   }, [id]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      splitClient
+        .getInvoice(id)
+        .then((inv) => {
+          const prev = prevStatusRef.current;
+          if (
+            prev === "Pending" &&
+            inv.status === "Released" &&
+            isSubscribedToInvoice(id)
+          ) {
+            notifyInvoiceReleased(id, formatAmount(inv.funded));
+          }
+          prevStatusRef.current = inv.status;
+          setInvoice(inv);
+        })
+        .catch(() => undefined);
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [id]);
+
+  const handleNotifyMe = async () => {
+    setNotifyDenied(false);
+    try {
+      const permission = await requestNotificationPermission();
+      if (permission === "granted") {
+        subscribeToInvoice(id);
+        setNotifySubscribed(true);
+      } else {
+        setNotifyDenied(true);
+      }
+    } catch {
+      setNotifyDenied(true);
+    }
+  };
 
   const total = invoice
     ? invoice.recipients.reduce((s, r) => s + r.amount, 0n)
@@ -97,6 +144,24 @@ export default function InvoiceDetailPage({ params }: Props) {
           {formatAmount(invoice.funded)} / {formatAmount(total)} USDC funded
         </p>
       </div>
+
+      {/* Release notifications */}
+      <section className="mb-8">
+        <button
+          type="button"
+          onClick={handleNotifyMe}
+          disabled={notifySubscribed}
+          className="w-full sm:w-auto px-4 py-2 rounded-lg border border-gray-700 hover:border-indigo-500 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-default"
+        >
+          {notifySubscribed ? "Notifications enabled" : "Notify me"}
+        </button>
+        {notifyDenied && (
+          <p className="text-gray-400 text-sm mt-2">
+            Notifications are blocked. Enable them in your browser settings to get
+            alerts when this invoice is released.
+          </p>
+        )}
+      </section>
 
       {/* Recipients */}
       <section className="mb-8">
