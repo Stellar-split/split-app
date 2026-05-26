@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ReminderChecker from "@/components/ReminderChecker";
 
 export const metadata: Metadata = {
   title: "StellarSplit — On-chain Invoice Splitting",
@@ -11,6 +12,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-950 text-gray-100 antialiased">
+        {/* Fires browser notifications for past-due reminders on every page load */}
+        <ReminderChecker />
         {children}
       </body>
     </html>
