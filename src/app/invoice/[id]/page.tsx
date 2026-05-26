@@ -11,10 +11,27 @@ import {
 } from "@/lib/notifications";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
-import type { Invoice } from "@stellar-split/sdk";
+import type { Invoice, Payment } from "@stellar-split/sdk";
 
 interface Props {
   params: { id: string };
+}
+
+type InvoicePayment = Payment & { pending?: boolean; clientKey?: string };
+type InvoiceView = Omit<Invoice, "payments"> & { payments: InvoicePayment[] };
+
+function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceView {
+  const pending = (local?.payments ?? []).filter((p) => p.pending);
+  const unmatchedPending = pending.filter(
+    (p) =>
+      !server.payments.some((sp) => sp.payer === p.payer && sp.amount === p.amount)
+  );
+  return {
+    ...server,
+    payments: [...server.payments, ...unmatchedPending],
+    funded:
+      server.funded + unmatchedPending.reduce((sum, p) => sum + p.amount, 0n),
+  };
 }
 
 /**
@@ -22,7 +39,7 @@ interface Props {
  */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [invoice, setInvoice] = useState<InvoiceView | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [paying, setPaying] = useState(false);
@@ -34,7 +51,7 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   const load = async () => {
     const inv = await splitClient.getInvoice(id);
-    setInvoice(inv);
+    setInvoice((prev) => mergeWithServer(inv, prev));
     prevStatusRef.current = inv.status;
   };
 
@@ -58,7 +75,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             notifyInvoiceReleased(id, formatAmount(inv.funded));
           }
           prevStatusRef.current = inv.status;
-          setInvoice(inv);
+          setInvoice((prev) => mergeWithServer(inv, prev));
         })
         .catch(() => undefined);
     }, 10_000);
@@ -87,17 +104,40 @@ export default function InvoiceDetailPage({ params }: Props) {
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!publicKey || !invoice) return;
+    const amount = parseAmount(payAmount);
+    const clientKey = `opt-${Date.now()}`;
     setError(null);
+    setInvoice((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        funded: prev.funded + amount,
+        payments: [
+          ...prev.payments,
+          { payer: publicKey, amount, pending: true, clientKey },
+        ],
+      };
+    });
     setPaying(true);
     try {
       const result = await splitClient.pay({
         payer: publicKey,
         invoiceId: id,
-        amount: parseAmount(payAmount),
+        amount,
       });
       setTxHash(result.txHash);
       await load();
     } catch (err) {
+      setInvoice((prev) => {
+        if (!prev) return prev;
+        const pending = prev.payments.find((p) => p.clientKey === clientKey);
+        if (!pending?.pending) return prev;
+        return {
+          ...prev,
+          funded: prev.funded - pending.amount,
+          payments: prev.payments.filter((p) => p.clientKey !== clientKey),
+        };
+      });
       setError(String(err));
     } finally {
       setPaying(false);
@@ -160,6 +200,41 @@ export default function InvoiceDetailPage({ params }: Props) {
             Notifications are blocked. Enable them in your browser settings to get
             alerts when this invoice is released.
           </p>
+        )}
+      </section>
+
+      {/* Payments */}
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold mb-3">
+          Payments ({invoice.payments.length})
+        </h2>
+        {invoice.payments.length === 0 ? (
+          <p className="text-gray-500 text-sm">No payments yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {invoice.payments.map((p, i) => (
+              <li
+                key={p.clientKey ?? `${p.payer}-${i}`}
+                className="flex flex-wrap items-center justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm"
+              >
+                <span className="font-mono text-gray-300 truncate max-w-[55%]">
+                  {p.payer}
+                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-indigo-300">{formatAmount(p.amount)} USDC</span>
+                  {p.pending && (
+                    <span className="inline-flex items-center gap-1 text-xs text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full">
+                      <span
+                        className="inline-block h-3 w-3 rounded-full border-2 border-amber-300 border-t-transparent animate-spin"
+                        aria-hidden
+                      />
+                      Confirming…
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 
