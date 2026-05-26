@@ -8,12 +8,19 @@ interface RecipientRow {
 interface Props {
   recipients: RecipientRow[];
   onChange: (rows: RecipientRow[]) => void;
+  equalSplit?: boolean;
+  amountOverride?: string;
 }
 
 /**
  * RecipientForm — dynamic add/remove rows for recipients and split amounts.
  */
-export default function RecipientForm({ recipients, onChange }: Props) {
+export default function RecipientForm({
+  recipients,
+  onChange,
+  equalSplit = false,
+  amountOverride,
+}: Props) {
   const update = (index: number, field: keyof RecipientRow, value: string) => {
     const next = recipients.map((r, i) =>
       i === index ? { ...r, [field]: value } : r
@@ -37,18 +44,25 @@ export default function RecipientForm({ recipients, onChange }: Props) {
             onChange={(e) => update(i, "address", e.target.value)}
             required
             aria-label={`Recipient ${i + 1} address`}
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono min-w-0"
           />
           <input
             type="number"
             placeholder="USDC"
             step="0.0000001"
             min="0.0000001"
-            value={row.amount}
-            onChange={(e) => update(i, "amount", e.target.value)}
+            value={equalSplit ? (amountOverride ?? "") : row.amount}
+            onChange={
+              equalSplit ? undefined : (e) => update(i, "amount", e.target.value)
+            }
+            readOnly={equalSplit}
             required
             aria-label={`Recipient ${i + 1} amount`}
-            className="w-28 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className={`w-28 bg-gray-800 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              equalSplit
+                ? "border-gray-600 text-gray-400 cursor-not-allowed"
+                : "border-gray-700"
+            }`}
           />
           {recipients.length > 1 && (
             <button
