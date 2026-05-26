@@ -26,6 +26,13 @@ export default function NewInvoicePage() {
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [equalSplit, setEqualSplit] = useState(false);
+  const [totalAmount, setTotalAmount] = useState("");
+
+  const perRecipientAmount =
+    equalSplit && totalAmount && recipients.length > 0
+      ? (parseFloat(totalAmount) / recipients.length).toFixed(7)
+      : undefined;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +46,7 @@ export default function NewInvoicePage() {
         creator,
         recipients: recipients.map((r) => ({
           address: r.address,
-          amount: parseAmount(r.amount),
+          amount: parseAmount(equalSplit ? (perRecipientAmount ?? "0") : r.amount),
         })),
         token,
         deadline: deadlineFromDays(deadlineDays),
@@ -58,12 +65,61 @@ export default function NewInvoicePage() {
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {/* Equal Split toggle */}
+        <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
+          <span className="text-sm font-medium text-gray-300">Equal Split</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={equalSplit}
+            onClick={() => setEqualSplit((v) => !v)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              equalSplit ? "bg-indigo-600" : "bg-gray-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                equalSplit ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Total amount input (equal split mode) */}
+        {equalSplit && (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Total Amount (USDC)
+            </label>
+            <input
+              type="number"
+              placeholder="0.00"
+              step="0.0000001"
+              min="0.0000001"
+              value={totalAmount}
+              onChange={(e) => setTotalAmount(e.target.value)}
+              required
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            {perRecipientAmount && (
+              <p className="mt-1 text-xs text-gray-400">
+                {perRecipientAmount} USDC per recipient
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Recipients */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Recipients &amp; Amounts (USDC)
+            Recipients {equalSplit ? "" : "& Amounts (USDC)"}
           </label>
-          <RecipientForm recipients={recipients} onChange={setRecipients} />
+          <RecipientForm
+            recipients={recipients}
+            onChange={setRecipients}
+            equalSplit={equalSplit}
+            amountOverride={perRecipientAmount}
+          />
         </div>
 
         {/* Token address */}
