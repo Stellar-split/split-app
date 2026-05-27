@@ -28,6 +28,13 @@ export default function NewInvoicePage() {
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [equalSplit, setEqualSplit] = useState(false);
+  const [totalAmount, setTotalAmount] = useState("");
+
+  const perRecipientAmount =
+    equalSplit && totalAmount && recipients.length > 0
+      ? (parseFloat(totalAmount) / recipients.length).toFixed(7)
+      : undefined;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +48,7 @@ export default function NewInvoicePage() {
         creator,
         recipients: recipients.map((r) => ({
           address: r.address,
-          amount: parseAmount(r.amount),
+          amount: parseAmount(equalSplit ? (perRecipientAmount ?? "0") : r.amount),
         })),
         token,
         deadline: deadlineFromDays(deadlineDays),
@@ -60,21 +67,76 @@ export default function NewInvoicePage() {
     <main className="max-w-xl mx-auto px-6 py-16">
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">
+        {/* Equal Split toggle */}
+        <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
+          <label htmlFor="equal-split-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
+            Equal Split
+          </label>
+          <button
+            id="equal-split-toggle"
+            type="button"
+            role="switch"
+            aria-checked={equalSplit}
+            aria-label="Toggle equal split mode"
+            onClick={() => setEqualSplit((v) => !v)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              equalSplit ? "bg-indigo-600" : "bg-gray-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                equalSplit ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Total amount input (equal split mode) */}
+        {equalSplit && (
+          <div>
+            <label htmlFor="total-amount" className="block text-sm font-medium text-gray-300 mb-1">
+              Total Amount (USDC)
+            </label>
+            <input
+              id="total-amount"
+              type="number"
+              placeholder="0.00"
+              step="0.0000001"
+              min="0.0000001"
+              value={totalAmount}
+              onChange={(e) => setTotalAmount(e.target.value)}
+              required
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            {perRecipientAmount && (
+              <p className="mt-1 text-xs text-gray-400">
+                {perRecipientAmount} USDC per recipient
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Recipients */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Recipients &amp; Amounts (USDC)
+            Recipients {equalSplit ? "" : "& Amounts (USDC)"}
           </label>
-          <RecipientForm recipients={recipients} onChange={setRecipients} />
+          <RecipientForm
+            recipients={recipients}
+            onChange={setRecipients}
+            equalSplit={equalSplit}
+            amountOverride={perRecipientAmount}
+          />
         </div>
 
         {/* Token address */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="token-address" className="block text-sm font-medium text-gray-300 mb-1">
             USDC Token Contract Address
           </label>
           <input
+            id="token-address"
             type="text"
             value={token}
             onChange={(e) => setToken(e.target.value)}
@@ -86,10 +148,11 @@ export default function NewInvoicePage() {
 
         {/* Deadline */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="deadline-days" className="block text-sm font-medium text-gray-300 mb-1">
             Deadline (days from now)
           </label>
           <input
+            id="deadline-days"
             type="number"
             min={1}
             max={365}
@@ -100,40 +163,7 @@ export default function NewInvoicePage() {
           />
         </div>
 
-        {/* Recurring */}
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={recurring}
-              onChange={(e) => setRecurring(e.target.checked)}
-              className="w-4 h-4 accent-indigo-500"
-            />
-            <span className="text-sm font-medium text-gray-300">Recurring invoice</span>
-          </label>
-
-          {recurring && (
-            <div className="flex flex-col gap-2 pl-6">
-              <label className="block text-sm font-medium text-gray-300">Interval</label>
-              <select
-                value={intervalDays}
-                onChange={(e) => setIntervalDays(Number(e.target.value) as 7 | 30)}
-                className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value={7}>Weekly (every 7 days)</option>
-                <option value={30}>Monthly (every 30 days)</option>
-              </select>
-              <p className="text-xs text-indigo-300">
-                Next invoice:{" "}
-                {new Date(
-                  Date.now() + (deadlineDays + intervalDays) * 86400_000
-                ).toLocaleDateString()}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
 
         <button
           type="submit"
