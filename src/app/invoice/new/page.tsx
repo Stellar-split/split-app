@@ -24,6 +24,8 @@ export default function NewInvoicePage() {
   const [token, setToken] = useState(
     process.env.NEXT_PUBLIC_USDC_ADDRESS ?? ""
   );
+  const [recurring, setRecurring] = useState(false);
+  const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [equalSplit, setEqualSplit] = useState(false);
@@ -50,6 +52,7 @@ export default function NewInvoicePage() {
         })),
         token,
         deadline: deadlineFromDays(deadlineDays),
+        ...(recurring && { recurring, intervalDays }),
       });
 
       router.push(`/invoice/${invoiceId}`);

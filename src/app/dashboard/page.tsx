@@ -4,9 +4,29 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
+import { formatAmount } from "@stellar-split/sdk";
 import InvoiceCard from "@/components/InvoiceCard";
 import BatchPayModal from "@/components/BatchPayModal";
 import type { Invoice } from "@stellar-split/sdk";
+
+function exportCSV(invoices: Invoice[], from: string, to: string) {
+  const fromTs = from ? new Date(from).getTime() / 1000 : 0;
+  const toTs = to ? new Date(to).getTime() / 1000 : Infinity;
+  const rows = invoices.filter((inv) => inv.deadline >= fromTs && inv.deadline <= toTs);
+  const header = "ID,Status,Total (USDC),Funded (USDC),Deadline,Recipient Count";
+  const lines = rows.map((inv) => {
+    const total = inv.recipients.reduce((s, r) => s + r.amount, 0n);
+    const deadline = new Date(inv.deadline * 1000).toISOString().slice(0, 10);
+    return [inv.id, inv.status, formatAmount(total), formatAmount(inv.funded), deadline, inv.recipients.length].join(",");
+  });
+  const csv = [header, ...lines].join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "invoices.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 /**
  * Dashboard — lists invoices where the connected wallet is creator or recipient.
@@ -17,10 +37,8 @@ export default function DashboardPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusTab, setStatusTab] = useState<StatusTab>("All");
-  const [sortKey, setSortKey] = useState<SortKey>("date");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [search, setSearch] = useState("");
+  const [exportFrom, setExportFrom] = useState("");
+  const [exportTo, setExportTo] = useState("");
 
   // Multi-select state
   const [multiSelect, setMultiSelect] = useState(false);
@@ -132,13 +150,11 @@ export default function DashboardPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-400">Loading invoices…</p>
-      ) : filteredInvoices.length === 0 ? (
-        <p className="text-gray-400">
-          {invoices.length === 0
-            ? "No invoices found. Create your first one!"
-            : "No invoices match your filters."}
-        </p>
+        <div className="flex flex-col gap-4">
+          {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      ) : invoices.length === 0 ? (
+        <p className="text-gray-400">No invoices found. Create your first one!</p>
       ) : (
         <ul className="flex flex-col gap-4" aria-label="Invoice list">
           {invoices.map((inv) => {
