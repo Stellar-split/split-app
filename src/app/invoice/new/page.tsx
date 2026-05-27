@@ -6,6 +6,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
+import TxConfirmModal from "@/components/TxConfirmModal";
 
 interface RecipientRow {
   address: string;
@@ -28,6 +29,7 @@ export default function NewInvoicePage() {
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [txModal, setTxModal] = useState<{ txHash: string; invoiceId: string } | null>(null);
   const [equalSplit, setEqualSplit] = useState(false);
   const [totalAmount, setTotalAmount] = useState("");
 
@@ -44,7 +46,7 @@ export default function NewInvoicePage() {
     try {
       const creator = await getFreighterPublicKey();
 
-      const { invoiceId } = await splitClient.createInvoice({
+      const { invoiceId, txHash } = await splitClient.createInvoice({
         creator,
         recipients: recipients.map((r) => ({
           address: r.address,
@@ -55,7 +57,7 @@ export default function NewInvoicePage() {
         ...(recurring && { recurring, intervalDays }),
       });
 
-      router.push(`/invoice/${invoiceId}`);
+      setTxModal({ txHash, invoiceId });
     } catch (err) {
       setError(String(err));
     } finally {
@@ -65,6 +67,13 @@ export default function NewInvoicePage() {
 
   return (
     <main className="max-w-xl mx-auto px-6 py-16">
+      {txModal && (
+        <TxConfirmModal
+          txHash={txModal.txHash}
+          action="Invoice created"
+          onClose={() => router.push(`/invoice/${txModal.invoiceId}`)}
+        />
+      )}
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">

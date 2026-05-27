@@ -11,6 +11,7 @@ import StatusTimeline from "@/components/StatusTimeline";
 import VestingTimeline from "@/components/VestingTimeline";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
+import TxConfirmModal from "@/components/TxConfirmModal";
 import type { Invoice } from "@stellar-split/sdk";
 
 // Extend the SDK Invoice type with vesting fields (not yet in published SDK)
