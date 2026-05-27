@@ -5,6 +5,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
+import CountdownTimer from "@/components/CountdownTimer";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
@@ -187,6 +188,12 @@ export default function InvoiceDetailPage({ params }: Props) {
         <p className="text-sm text-gray-400 mt-1">
           {formatAmount(invoice.funded)} / {formatAmount(total)} USDC funded
         </p>
+        {invoice.deadline > 0 && (
+          <div className="flex items-center gap-2 mt-3">
+            <span className="text-sm text-gray-400">Time remaining:</span>
+            <CountdownTimer deadline={invoice.deadline} />
+          </div>
+        )}
       </section>
 
       {/* Recipients */}
