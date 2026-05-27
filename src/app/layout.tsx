@@ -8,7 +8,11 @@ export const metadata: Metadata = {
     "Create on-chain invoices on Stellar where multiple payers each owe a share. USDC auto-routes to recipients when fully funded.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-950 text-gray-100 antialiased">
@@ -22,6 +26,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 py-1"
             >
               Address Book
+            </a>
+            <a
+              href="/leaderboard"
+              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 py-1"
+            >
+              Leaderboard
             </a>
             <NotificationCenter />
           </div>
