@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { searchEntries, addEntry, type AddressEntry } from "@/lib/addressBook";)
+import { searchEntries, addEntry, type AddressEntry } from "@/lib/addressBook";
 
 interface RecipientRow {
   address: string;

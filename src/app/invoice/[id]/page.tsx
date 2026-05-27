@@ -33,7 +33,7 @@ interface Props {
 }
 
 type InvoicePayment = Payment & { pending?: boolean; clientKey?: string };
-type InvoiceView = Omit<Invoice, "payments"> & { payments: InvoicePayment[] };
+type InvoiceView = Omit<InvoiceWithVesting, "payments"> & { payments: InvoicePayment[] };
 
 function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceView {
   const pending = (local?.payments ?? []).filter((p) => p.pending);

@@ -10,7 +10,6 @@ import { formatAmount } from "@stellar-split/sdk";
 import InvoiceCard from "@/components/InvoiceCard";
 import { SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
-import { SkeletonCard } from "@/components/Skeleton";
 import type { Invoice } from "@stellar-split/sdk";
 
 function exportCSV(invoices: Invoice[], from: string, to: string) {
