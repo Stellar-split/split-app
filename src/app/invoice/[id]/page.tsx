@@ -22,6 +22,8 @@ import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -257,6 +259,16 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           {invoice.status}
         </span>
+        <div className="ml-auto flex items-center gap-2 print:hidden">
+          <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+          >
+            Print Invoice
+          </button>
+        </div>
         <button
           type="button"
           onClick={() => window.print()}
