@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { connectFreighter, getFreighterPublicKey } from "@/lib/freighter";
 import { truncateAddress } from "@stellar-split/sdk";
+import { fetchUsdcBalance } from "@/lib/stellar";
 import QRModal from "@/components/QRModal";
 
 /**
@@ -15,6 +16,8 @@ export default function WalletConnect() {
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<bigint | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
+
+  const USDC_CONTRACT_ID = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "";
 
   const loadBalance = async (addr: string) => {
     setBalanceLoading(true);

@@ -78,7 +78,7 @@ export default function NewInvoicePage() {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-6 py-16">
+    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       {txModal && (
         <TxConfirmModal
           txHash={txModal.txHash}
@@ -86,7 +86,6 @@ export default function NewInvoicePage() {
           onClose={() => router.push(`/invoice/${txModal.invoiceId}`)}
         />
       )}
-    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Create Invoice</h1>
         <a

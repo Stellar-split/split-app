@@ -22,12 +22,12 @@ import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
 import PresenceIndicators from "@/components/PresenceIndicators";
 import SplitCalculator from "@/components/SplitCalculator";
+import InvoiceQR from "@/components/InvoiceQR";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -231,7 +231,6 @@ export default function InvoiceDetailPage({ params }: Props) {
   };
 
   const handleCancelInvoice = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (splitClient as any).cancelInvoice(id);
     await load();
     setShowCancelModal(false);
@@ -327,6 +326,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           </div>
         )}
       </section>
+
+      {/* QR Code */}
+      <InvoiceQR invoiceId={id} />
 
       {/* Release notifications */}
       <section className="mb-8">
