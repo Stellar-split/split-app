@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { truncateAddress } from "@stellar-split/sdk";
 import {
   getAddressBook,
   addEntry,
@@ -50,7 +51,7 @@ export default function AddressBookPage() {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-6 py-16">
+    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <h1 className="text-3xl font-bold mb-8">Address Book</h1>
 
       {/* Add new entry */}
@@ -62,7 +63,7 @@ export default function AddressBookPage() {
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
           required
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         <input
           type="text"
@@ -70,12 +71,12 @@ export default function AddressBookPage() {
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           required
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         <button
           type="submit"
           disabled={entries.length >= 50}
-          className="self-start px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-40"
+          className="self-start min-h-11 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-40"
         >
           {entries.length >= 50 ? "Limit reached (50)" : "Save Address"}
         </button>
@@ -89,10 +90,10 @@ export default function AddressBookPage() {
           {entries.map((entry) => (
             <li
               key={entry.address}
-              className="flex items-center gap-3 bg-gray-900 rounded-lg px-4 py-3"
+              className="flex flex-wrap items-center gap-3 bg-gray-900 rounded-lg px-4 py-3 min-w-0"
             >
               {editAddress === entry.address ? (
-                <div className="flex flex-1 gap-2 items-center">
+                <div className="flex flex-1 flex-wrap gap-2 items-center min-w-0 w-full">
                   <input
                     type="text"
                     value={editNickname}
@@ -102,13 +103,13 @@ export default function AddressBookPage() {
                   />
                   <button
                     onClick={() => handleSaveEdit(entry.address)}
-                    className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold transition-colors"
+                    className="min-h-11 px-3 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold transition-colors"
                   >
                     Save
                   </button>
                   <button
                     onClick={() => setEditAddress(null)}
-                    className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs transition-colors"
+                    className="min-h-11 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-xs transition-colors"
                   >
                     Cancel
                   </button>
@@ -117,19 +118,22 @@ export default function AddressBookPage() {
                 <>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-200">{entry.nickname}</p>
-                    <p className="text-xs text-gray-400 font-mono truncate">{entry.address}</p>
+                    <p className="text-xs text-gray-400 font-mono truncate" title={entry.address}>
+                      <span className="sm:hidden">{truncateAddress(entry.address)}</span>
+                      <span className="hidden sm:inline">{entry.address}</span>
+                    </p>
                   </div>
                   <button
                     onClick={() => handleEdit(entry.address)}
                     aria-label={`Edit ${entry.nickname}`}
-                    className="text-xs text-gray-400 hover:text-indigo-300 transition-colors"
+                    className="min-h-11 px-2 text-xs text-gray-400 hover:text-indigo-300 transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleRemove(entry.address)}
                     aria-label={`Remove ${entry.nickname}`}
-                    className="text-xs text-gray-400 hover:text-red-400 transition-colors"
+                    className="min-h-11 px-2 text-xs text-gray-400 hover:text-red-400 transition-colors"
                   >
                     Remove
                   </button>

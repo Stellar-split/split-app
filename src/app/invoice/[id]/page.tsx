@@ -9,7 +9,7 @@ import {
   requestNotificationPermission,
   subscribeToInvoice,
 } from "@/lib/notifications";
-import { formatAmount, parseAmount } from "@stellar-split/sdk";
+import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
@@ -17,10 +17,13 @@ import InvoicePDF from "@/components/InvoicePDF";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
+import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
-import type { Invoice } from "@stellar-split/sdk";
+import type { Invoice, Payment } from "@stellar-split/sdk";
+
+const POLL_MS = 10_000;
 
 // Extend the SDK Invoice type with vesting fields (not yet in published SDK)
 type InvoiceWithVesting = Invoice & {
@@ -33,7 +36,7 @@ interface Props {
 }
 
 type InvoicePayment = Payment & { pending?: boolean; clientKey?: string };
-type InvoiceView = Omit<Invoice, "payments"> & { payments: InvoicePayment[] };
+type InvoiceView = Omit<InvoiceWithVesting, "payments"> & { payments: InvoicePayment[] };
 
 function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceView {
   const pending = (local?.payments ?? []).filter((p) => p.pending);
@@ -55,7 +58,8 @@ function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceVie
  */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
-  const [invoice, setInvoice] = useState<InvoiceWithVesting | null>(null);
+  const [invoice, setInvoice] = useState<InvoiceView | null>(null);
+  const [previousInvoice, setPreviousInvoice] = useState<Invoice | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [paying, setPaying] = useState(false);
@@ -69,8 +73,25 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [reminderMsg, setReminderMsg] = useState("");
   const [reminderSaved, setReminderSaved] = useState(false);
   const [hasReminder, setHasReminder] = useState(false);
+  const [notifySubscribed, setNotifySubscribed] = useState(false);
+  const [notifyDenied, setNotifyDenied] = useState(false);
 
   const prevStatusRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setNotifySubscribed(isSubscribedToInvoice(id));
+  }, [id]);
+
+  const handleNotifyMe = async () => {
+    const permission = await requestNotificationPermission();
+    if (permission !== "granted") {
+      setNotifyDenied(true);
+      return;
+    }
+    subscribeToInvoice(id);
+    setNotifySubscribed(true);
+    setNotifyDenied(false);
+  };
 
   const load = async () => {
     const inv = await splitClient.getInvoice(id);
@@ -86,7 +107,21 @@ export default function InvoiceDetailPage({ params }: Props) {
     }
     prevStatusRef.current = inv.status;
 
-    setInvoice(inv);
+    setInvoice((current) => {
+      if (current) {
+        setPreviousInvoice({
+          id: current.id,
+          creator: current.creator,
+          recipients: current.recipients,
+          token: current.token,
+          deadline: current.deadline,
+          funded: current.funded,
+          status: current.status,
+          payments: current.payments.filter((p) => !p.pending),
+        });
+      }
+      return mergeWithServer(inv, current);
+    });
   };
 
   useEffect(() => {
@@ -107,14 +142,11 @@ export default function InvoiceDetailPage({ params }: Props) {
       return;
     }
 
-    const interval = setInterval(() => {
-      splitClient
-        .getInvoice(id)
-        .then(setInvoice)
-        .catch(() => {});
-    }, 10_000);
+    const pollId = setInterval(() => {
+      load().catch((e) => setError(String(e)));
+    }, POLL_MS);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(pollId);
   }, [id, invoice?.status]);
 
   const total = invoice
@@ -146,6 +178,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         amount,
       });
       setTxHash(result.txHash);
+      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
       await load();
     } catch (err) {
       setInvoice((prev) => {
@@ -190,7 +223,7 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (error && !invoice) {
     return (
-      <main className="max-w-xl mx-auto px-6 py-20 text-center">
+      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
         <p className="text-red-400" role="alert">{error}</p>
       </main>
     );
@@ -198,7 +231,7 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (!invoice) {
     return (
-      <main className="max-w-xl mx-auto px-6 py-20 text-center">
+      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
         <p className="text-gray-400" aria-live="polite">Loading invoice…</p>
       </main>
     );
@@ -213,18 +246,28 @@ export default function InvoiceDetailPage({ params }: Props) {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-6 py-16">
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <h1 className="text-3xl font-bold">Invoice #{id}</h1>
+    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">Invoice #{id}</h1>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
           aria-label={`Status: ${invoice.status}`}
         >
           {invoice.status}
         </span>
+<<<<<<< feature/issue-19-implement-invoice
         <div className="ml-auto print:hidden">
           <InvoicePDF invoice={invoice} total={total} />
         </div>
+=======
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="sm:ml-auto min-h-11 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors print:hidden self-start sm:self-auto"
+        >
+          Print Invoice
+        </button>
+>>>>>>> main
       </div>
 
       {/* Status Timeline */}
@@ -316,16 +359,25 @@ export default function InvoiceDetailPage({ params }: Props) {
           {invoice.recipients.map((r, i) => (
             <li
               key={i}
-              className="flex justify-between bg-gray-900 rounded-lg px-4 py-2 text-sm"
+              className="flex justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm min-w-0"
             >
-              <span className="font-mono text-gray-300 truncate max-w-[60%]" title={r.address}>
-                {r.address}
+              <span className="font-mono text-gray-300 min-w-0 shrink" title={r.address}>
+                <span className="sm:hidden">{truncateAddress(r.address)}</span>
+                <span className="hidden sm:inline truncate">{r.address}</span>
               </span>
               <span className="text-indigo-300">{formatAmount(r.amount)} USDC</span>
             </li>
           ))}
         </ul>
       </section>
+
+      <ActivityFeed
+        invoice={{
+          ...invoice,
+          payments: invoice.payments.filter((p) => !p.pending),
+        }}
+        previousInvoice={previousInvoice}
+      />
 
       {/* Installment schedule — only shown to payers with a registered plan */}
       {publicKey && (
@@ -350,7 +402,7 @@ export default function InvoiceDetailPage({ params }: Props) {
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
                 required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 aria-describedby={error ? "pay-error" : undefined}
               />
             </div>
@@ -363,7 +415,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             <button
               type="submit"
               disabled={paying}
-              className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+              className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
             >
               {paying ? "Sending…" : "Pay"}
             </button>

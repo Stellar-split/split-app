@@ -7,12 +7,26 @@ import QRModal from "@/components/QRModal";
 
 /**
  * WalletConnect — Freighter connect/disconnect button.
- * Shows truncated address when connected.
+ * Shows truncated address and USDC balance when connected.
  */
 export default function WalletConnect() {
   const [address, setAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [balance, setBalance] = useState<bigint | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
+  const loadBalance = async (addr: string) => {
+    setBalanceLoading(true);
+    try {
+      const bal = await fetchUsdcBalance(addr, USDC_CONTRACT_ID);
+      setBalance(bal);
+    } catch {
+      setBalance(null);
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
 
   const [qrOpen, setQrOpen] = useState(false);
   const [qrUri, setQrUri] = useState<string>("");
@@ -53,7 +67,18 @@ export default function WalletConnect() {
     }
   };
 
-  const handleDisconnect = () => setAddress(null);
+  const handleDisconnect = () => {
+    setAddress(null);
+    setBalance(null);
+  };
+
+  // Re-fetch balance after a successful payment
+  useEffect(() => {
+    if (!address) return;
+    const handler = () => loadBalance(address);
+    window.addEventListener("usdc-balance-refresh", handler);
+    return () => window.removeEventListener("usdc-balance-refresh", handler);
+  }, [address]);
 
   const handleWalletConnectOption = () => {
     // Open QR modal with an encoded URI. If the app has not connected yet,
@@ -66,12 +91,12 @@ export default function WalletConnect() {
   if (address) {
     return (
       <div className="flex items-center gap-2">
-        <span className="px-4 py-2 rounded-lg bg-gray-800 text-sm font-mono text-gray-300">
+        <span className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-gray-800 text-sm font-mono text-gray-300">
           {truncateAddress(address)}
         </span>
         <button
           onClick={handleDisconnect}
-          className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+          className="min-h-11 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
           aria-label="Disconnect wallet"
         >
           Disconnect
@@ -86,7 +111,7 @@ export default function WalletConnect() {
         <button
           onClick={handleWalletConnectOption}
           disabled={loading}
-          className="px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 font-semibold transition-colors disabled:opacity-50"
+          className="min-h-11 px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 font-semibold transition-colors disabled:opacity-50"
           aria-label="Connect Wallet via QR"
         >
           WalletConnect
@@ -95,13 +120,12 @@ export default function WalletConnect() {
         <button
           onClick={handleConnect}
           disabled={loading}
-          className="px-6 py-3 rounded-lg bg-gray-900 hover:bg-gray-800 font-semibold transition-colors disabled:opacity-50 border border-gray-800"
+          className="min-h-11 px-6 py-3 rounded-lg bg-gray-900 hover:bg-gray-800 font-semibold transition-colors disabled:opacity-50 border border-gray-800"
           aria-label="Connect Freighter wallet"
         >
           {loading ? "Connecting…" : "Connect Wallet"}
         </button>
       </div>
-
       {error && <p className="text-red-400 text-xs">{error}</p>}
 
       <QRModal
