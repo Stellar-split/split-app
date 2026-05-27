@@ -1,7 +1,8 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { splitClient } from "@/lib/stellar";
-import { formatAmount } from "@stellar-split/sdk";
+import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
+import VerifyPayButton from "./VerifyPayButton";
 
 interface Props {
   params: { id: string };
@@ -28,7 +29,7 @@ export default async function VerifyPage({ params }: Props) {
 
   if (fetchError || !invoice) {
     return (
-      <main className="max-w-xl mx-auto px-6 py-20 text-center">
+      <main className="max-w-xl mx-auto px-4 sm:px-6 py-20 text-center">
         <h1 className="text-2xl font-bold mb-4">Invoice Verification</h1>
         <p className="text-red-400" role="alert">{fetchError}</p>
       </main>
@@ -36,6 +37,9 @@ export default async function VerifyPage({ params }: Props) {
   }
 
   const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
+  const fundedPct =
+    total === 0n ? 0 : Number((invoice.funded * 100n) / total);
+  const fundedBadge = Math.min(100, Math.max(0, fundedPct));
 
   const statusColor: Record<string, string> = {
     Pending: "text-yellow-400",
@@ -44,10 +48,13 @@ export default async function VerifyPage({ params }: Props) {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-6 py-16">
-      <div className="flex items-center gap-2 mb-2">
+    <main className="max-w-xl mx-auto px-4 sm:px-6 py-16">
+      <div className="flex flex-wrap items-center gap-2 mb-2">
         <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded-full font-semibold">
           ✓ Verified on-chain
+        </span>
+        <span className="text-xs bg-indigo-900 text-indigo-300 px-2 py-0.5 rounded-full font-semibold">
+          {fundedBadge}% funded
         </span>
       </div>
 
@@ -100,17 +107,25 @@ export default async function VerifyPage({ params }: Props) {
             {invoice.payments.map((p, i) => (
               <li
                 key={i}
-                className="flex justify-between bg-gray-900 rounded-lg px-4 py-2 text-sm"
+                className="flex justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm"
               >
                 <span className="font-mono text-gray-300 truncate max-w-[60%]" title={p.payer}>
                   {p.payer}
                 </span>
-                <span className="text-indigo-300">{formatAmount(p.amount)} USDC</span>
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      <section className="mb-6">
+        <h2 className="text-base font-semibold mb-2 text-gray-300">Creator</h2>
+        <p className="font-mono text-sm text-gray-400 break-all">
+          {truncateAddress(invoice.creator)}
+        </p>
+      </section>
+
+      <VerifyPayButton invoiceId={id} status={invoice.status} />
     </main>
   );
 }

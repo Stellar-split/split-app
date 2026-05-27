@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount } from "@stellar-split/sdk";
 import InvoiceCard from "@/components/InvoiceCard";
 import BatchPayModal from "@/components/BatchPayModal";
+import { SkeletonCard } from "@/components/Skeleton";
 import type { Invoice } from "@stellar-split/sdk";
 
 function exportCSV(invoices: Invoice[], from: string, to: string) {
@@ -96,7 +97,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <main className="max-w-2xl mx-auto px-6 py-20 text-center">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
         <p className="text-red-400">{error}</p>
       </main>
     );

@@ -24,7 +24,7 @@ export default function InstallmentPanel({ invoiceId, publicKey }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    /* eslint-disable-next-line */
     (splitClient as any)
       .getInstallmentPlan(invoiceId, publicKey)
       .then((plan: Installment[] | null) => setInstallments(plan ?? []))
