@@ -5,6 +5,7 @@ import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import InvoiceSearch from "@/components/InvoiceSearch";
+import AnalyticsPanel from "@/components/AnalyticsPanel";
 
 import { formatAmount } from "@stellar-split/sdk";
 import InvoiceCard from "@/components/InvoiceCard";
@@ -203,6 +204,8 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {!loading && invoices.length > 0 && <AnalyticsPanel invoices={invoices} />}
 
       <InvoiceSearch
         invoices={invoices}
