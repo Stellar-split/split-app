@@ -7,7 +7,17 @@ import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
+import StatusTimeline from "@/components/StatusTimeline";
+import VestingTimeline from "@/components/VestingTimeline";
+import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
+import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import type { Invoice } from "@stellar-split/sdk";
+
+// Extend the SDK Invoice type with vesting fields (not yet in published SDK)
+type InvoiceWithVesting = Invoice & {
+  vestingCliff?: number; // unix timestamp (seconds)
+  claimed?: string[];    // addresses that have claimed
+};
 
 interface Props {
   params: { id: string };
@@ -19,7 +29,7 @@ interface Props {
  */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [invoice, setInvoice] = useState<InvoiceWithVesting | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [paying, setPaying] = useState(false);
@@ -159,6 +169,16 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Status Timeline */}
       <StatusTimeline invoice={invoice} total={total} />
+
+      {/* Vesting Timeline — only shown when vestingCliff is set */}
+      {invoice.vestingCliff && (
+        <VestingTimeline
+          invoiceId={id}
+          vestingCliff={invoice.vestingCliff}
+          claimed={invoice.claimed ?? []}
+          publicKey={publicKey}
+        />
+      )}
 
       {/* Progress */}
       <section aria-labelledby="progress-heading" className="mb-8">
