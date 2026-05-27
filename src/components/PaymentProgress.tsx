@@ -19,10 +19,10 @@ export default function PaymentProgress({ funded, total }: Props) {
       aria-valuemin={0}
       aria-valuemax={100}
       aria-label={`${clamped}% funded`}
-      className="w-full bg-gray-700 rounded-full h-2 overflow-hidden"
+      className="w-full bg-gray-300 dark:bg-gray-700 rounded-full h-2 overflow-hidden"
     >
       <div
-        className="h-full bg-indigo-500 rounded-full transition-all duration-500 ease-out"
+        className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full transition-all duration-500 ease-out"
         style={{ width: `${clamped}%` }}
       />
     </div>

@@ -10,9 +10,9 @@ export default function HomePage() {
       {/* Hero */}
       <h1 className="text-5xl font-bold tracking-tight mb-4">
         Split invoices on-chain.{" "}
-        <span className="text-indigo-400">Instantly.</span>
+        <span className="text-indigo-600 dark:text-indigo-400">Instantly.</span>
       </h1>
-      <p className="max-w-xl text-lg text-gray-400 mb-10">
+      <p className="max-w-xl text-lg text-gray-600 dark:text-gray-400 mb-10">
         StellarSplit lets you create on-chain invoices on Stellar where multiple
         payers each owe a share. USDC auto-routes to every recipient the moment
         the invoice is fully funded. Missed the deadline? Everyone gets refunded.
@@ -23,7 +23,7 @@ export default function HomePage() {
         <WalletConnect />
         <Link
           href="/invoice/new"
-          className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors"
+          className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors text-white"
         >
           Create Invoice
         </Link>
@@ -48,10 +48,10 @@ export default function HomePage() {
             body: "If the deadline passes unfunded, every contributor is refunded.",
           },
         ].map((f) => (
-          <div key={f.title} className="bg-gray-900 rounded-xl p-6">
+          <div key={f.title} className="bg-gray-100 dark:bg-gray-900 rounded-xl p-6">
             <div className="text-3xl mb-3">{f.icon}</div>
-            <h3 className="font-semibold text-lg mb-1">{f.title}</h3>
-            <p className="text-gray-400 text-sm">{f.body}</p>
+            <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-white">{f.title}</h3>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">{f.body}</p>
           </div>
         ))}
       </div>
