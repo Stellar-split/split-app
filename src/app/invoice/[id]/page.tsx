@@ -11,6 +11,7 @@ import StatusTimeline from "@/components/StatusTimeline";
 import VestingTimeline from "@/components/VestingTimeline";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import type { Invoice } from "@stellar-split/sdk";
 
 // Extend the SDK Invoice type with vesting fields (not yet in published SDK)
@@ -173,13 +174,16 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           {invoice.status}
         </span>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="ml-auto px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors print:hidden"
-        >
-          Print Invoice
-        </button>
+        <div className="ml-auto flex items-center gap-2 print:hidden">
+          <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+          >
+            Print Invoice
+          </button>
+        </div>
       </div>
 
       {/* Status Timeline */}
