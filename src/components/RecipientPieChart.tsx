@@ -15,6 +15,7 @@ export default function RecipientPieChart({ recipients, total }: Props) {
   const data = recipients.map((r) => ({
     address: r.address,
     name: truncateAddress(r.address),
+    label: truncateAddress(r.address),
     amount: r.amount,
     value: Number((r.amount * 10000n) / total) / 100,
   }));
@@ -23,12 +24,22 @@ export default function RecipientPieChart({ recipients, total }: Props) {
     <ResponsiveContainer width="100%" height={260}>
       <PieChart>
         <Pie dataKey="value" data={data} cx="50%" cy="45%" outerRadius="60%" isAnimationActive={false}>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="label"
+          cx="50%"
+          cy="45%"
+          outerRadius="60%"
+          isAnimationActive={false}
+        >
           {data.map((_, i) => (
             <Cell key={i} fill={COLORS[i % COLORS.length]} />
           ))}
         </Pie>
         <Tooltip
           formatter={(value: number, _: string, props: { payload?: { address: string; amount: bigint } }) => [
+          formatter={(value: number, _name: string, props: { payload?: { address: string; amount: bigint } }) => [
             `${formatAmount(props.payload?.amount ?? 0n)} USDC (${value.toFixed(2)}%)`,
             props.payload?.address ?? "",
           ]}
@@ -42,6 +53,10 @@ export default function RecipientPieChart({ recipients, total }: Props) {
             const amount = (entry.payload?.amount as bigint | undefined) ?? 0n;
             return `${value} — ${formatAmount(amount)} USDC`;
           }}
+          formatter={(value: string, entry: { payload?: { amount: bigint } }) =>
+            `${value} — ${formatAmount(entry.payload?.amount ?? 0n)} USDC`
+          }
+          wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
         />
       </PieChart>
     </ResponsiveContainer>
