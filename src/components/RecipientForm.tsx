@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { searchEntries, addEntry, type AddressEntry } from "@/lib/addressBook";
+
 interface RecipientRow {
   address: string;
   amount: string;
@@ -14,6 +17,7 @@ interface Props {
 
 /**
  * RecipientForm — dynamic add/remove rows for recipients and split amounts.
+ * Address input auto-suggests saved addresses from the address book.
  */
 export default function RecipientForm({
   recipients,
@@ -32,6 +36,37 @@ export default function RecipientForm({
 
   const removeRow = (index: number) =>
     onChange(recipients.filter((_, i) => i !== index));
+
+  const handleAddressChange = (index: number, value: string) => {
+    update(index, "address", value);
+    setActiveIndex(index);
+    if (value.trim().length >= 2) {
+      setSuggestions(searchEntries(value.trim()));
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const selectSuggestion = (index: number, entry: AddressEntry) => {
+    update(index, "address", entry.address);
+    setSuggestions([]);
+    setActiveIndex(null);
+  };
+
+  const handleAddressBlur = () => {
+    // Delay to allow click on suggestion
+    setTimeout(() => {
+      setSuggestions([]);
+      setActiveIndex(null);
+    }, 150);
+  };
+
+  // Save address to book when a valid G... address is entered
+  const handleAddressSave = (address: string) => {
+    if (address.startsWith("G") && address.length >= 56) {
+      addEntry({ nickname: address.slice(0, 8) + "…", address });
+    }
+  };
 
   return (
     <div className="flex flex-col gap-3">

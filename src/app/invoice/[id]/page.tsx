@@ -5,6 +5,8 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
+import InstallmentPanel from "@/components/InstallmentPanel";
+import CommentSection from "@/components/CommentSection";
 import type { Invoice } from "@stellar-split/sdk";
 
 interface Props {
@@ -116,6 +118,11 @@ export default function InvoiceDetailPage({ params }: Props) {
         </ul>
       </section>
 
+      {/* Installment schedule — only shown to payers with a registered plan */}
+      {publicKey && (
+        <InstallmentPanel invoiceId={id} publicKey={publicKey} />
+      )}
+
       {/* Pay form */}
       {invoice.status === "Pending" && publicKey && (
         <form onSubmit={handlePay} className="flex flex-col gap-4">
@@ -150,6 +157,11 @@ export default function InvoiceDetailPage({ params }: Props) {
         <p className="text-gray-400 text-sm">
           This invoice is {invoice.status.toLowerCase()} and no longer accepts payments.
         </p>
+      )}
+
+      {/* Private notes — only visible to the connected wallet */}
+      {publicKey && (
+        <CommentSection invoiceId={id} walletAddress={publicKey} />
       )}
     </main>
   );
