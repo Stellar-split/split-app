@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { searchEntries, addEntry, type AddressEntry } from "@/lib/addressBook";
 
 interface RecipientRow {
@@ -25,6 +25,9 @@ export default function RecipientForm({
   equalSplit = false,
   amountOverride,
 }: Props) {
+  const [suggestions, setSuggestions] = useState<AddressEntry[]>([]);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
   const update = (index: number, field: keyof RecipientRow, value: string) => {
     const next = recipients.map((r, i) =>
       i === index ? { ...r, [field]: value } : r
@@ -45,6 +48,7 @@ export default function RecipientForm({
     } else {
       setSuggestions([]);
     }
+    handleAddressSave(value);
   };
 
   const selectSuggestion = (index: number, entry: AddressEntry) => {
@@ -72,15 +76,33 @@ export default function RecipientForm({
     <div className="flex flex-col gap-3">
       {recipients.map((row, i) => (
         <div key={i} className="flex gap-2 items-start">
-          <input
-            type="text"
-            placeholder="G... address"
-            value={row.address}
-            onChange={(e) => update(i, "address", e.target.value)}
-            required
-            aria-label={`Recipient ${i + 1} address`}
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono min-w-0"
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="G... address"
+              value={row.address}
+              onChange={(e) => handleAddressChange(i, e.target.value)}
+              onBlur={handleAddressBlur}
+              required
+              aria-label={`Recipient ${i + 1} address`}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+            />
+            {activeIndex === i && suggestions.length > 0 && (
+              <ul className="absolute z-10 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto">
+                {suggestions.map((entry) => (
+                  <li key={entry.address}>
+                    <button
+                      type="button"
+                      onMouseDown={() => selectSuggestion(i, entry)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 font-mono truncate"
+                    >
+                      {entry.nickname} — {entry.address}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <input
             type="number"
             placeholder="USDC"

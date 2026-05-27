@@ -54,7 +54,7 @@ export default function WebhookConfig({ invoiceId }: Props) {
 
   /** Called by the polling mechanism in the parent when status changes. */
   // This function is exported so the parent page can call it.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  /* eslint-disable-next-line */
   const _sendWebhook = async (payload: Record<string, unknown>) => {
     const stored = localStorage.getItem(storageKey(invoiceId));
     if (!stored) return;
