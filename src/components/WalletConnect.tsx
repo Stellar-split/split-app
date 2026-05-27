@@ -66,12 +66,12 @@ export default function WalletConnect() {
   if (address) {
     return (
       <div className="flex items-center gap-2">
-        <span className="px-4 py-2 rounded-lg bg-gray-800 text-sm font-mono text-gray-300">
+        <span className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-gray-800 text-sm font-mono text-gray-300">
           {truncateAddress(address)}
         </span>
         <button
           onClick={handleDisconnect}
-          className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+          className="min-h-11 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
           aria-label="Disconnect wallet"
         >
           Disconnect
@@ -86,7 +86,7 @@ export default function WalletConnect() {
         <button
           onClick={handleWalletConnectOption}
           disabled={loading}
-          className="px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 font-semibold transition-colors disabled:opacity-50"
+          className="min-h-11 px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 font-semibold transition-colors disabled:opacity-50"
           aria-label="Connect Wallet via QR"
         >
           WalletConnect
@@ -95,13 +95,12 @@ export default function WalletConnect() {
         <button
           onClick={handleConnect}
           disabled={loading}
-          className="px-6 py-3 rounded-lg bg-gray-900 hover:bg-gray-800 font-semibold transition-colors disabled:opacity-50 border border-gray-800"
+          className="min-h-11 px-6 py-3 rounded-lg bg-gray-900 hover:bg-gray-800 font-semibold transition-colors disabled:opacity-50 border border-gray-800"
           aria-label="Connect Freighter wallet"
         >
           {loading ? "Connecting…" : "Connect Wallet"}
         </button>
       </div>
-
       {error && <p className="text-red-400 text-xs">{error}</p>}
 
       <QRModal
