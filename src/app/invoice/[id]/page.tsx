@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
@@ -14,7 +14,8 @@ interface Props {
 }
 
 /**
- * Invoice detail page — shows status, payment progress, and a Pay button.
+ * Invoice detail page — shows status, payment progress, Pay button,
+ * reminder system, and webhook configuration (creator only).
  */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
@@ -25,14 +26,42 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
+  // Reminder state
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderMsg, setReminderMsg] = useState("");
+  const [reminderSaved, setReminderSaved] = useState(false);
+  const [hasReminder, setHasReminder] = useState(false);
+
+  const prevStatusRef = useRef<string | null>(null);
+
   const load = async () => {
     const inv = await splitClient.getInvoice(id);
+
+    // Fire webhook if status changed
+    if (prevStatusRef.current && prevStatusRef.current !== inv.status) {
+      await sendWebhookIfConfigured(id, {
+        invoiceId: id,
+        previousStatus: prevStatusRef.current,
+        newStatus: inv.status,
+        timestamp: new Date().toISOString(),
+      });
+    }
+    prevStatusRef.current = inv.status;
+
     setInvoice(inv);
   };
 
   useEffect(() => {
     load().catch((e) => setError(String(e)));
     getFreighterPublicKey().then(setPublicKey).catch(() => null);
+
+    // Load existing reminder
+    const existing = getReminderForInvoice(id);
+    if (existing) {
+      setHasReminder(true);
+      setReminderDate(existing.reminderDate.slice(0, 16)); // datetime-local format
+      setReminderMsg(existing.message);
+    }
   }, [id]);
 
   const total = invoice
@@ -59,10 +88,34 @@ export default function InvoiceDetailPage({ params }: Props) {
     }
   };
 
+  const handleSetReminder = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reminderDate) return;
+    setReminder({
+      invoiceId: id,
+      reminderDate: new Date(reminderDate).toISOString(),
+      message: reminderMsg || `Invoice #${id} payment reminder`,
+    });
+    setHasReminder(true);
+    setReminderSaved(true);
+    // Request notification permission proactively
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  };
+
+  const handleCancelReminder = () => {
+    cancelReminder(id);
+    setHasReminder(false);
+    setReminderDate("");
+    setReminderMsg("");
+    setReminderSaved(false);
+  };
+
   if (error && !invoice) {
     return (
       <main className="max-w-xl mx-auto px-6 py-20 text-center">
-        <p className="text-red-400">{error}</p>
+        <p className="text-red-400" role="alert">{error}</p>
       </main>
     );
   }
@@ -70,10 +123,12 @@ export default function InvoiceDetailPage({ params }: Props) {
   if (!invoice) {
     return (
       <main className="max-w-xl mx-auto px-6 py-20 text-center">
-        <p className="text-gray-400">Loading invoice…</p>
+        <p className="text-gray-400" aria-live="polite">Loading invoice…</p>
       </main>
     );
   }
+
+  const isCreator = publicKey === invoice.creator;
 
   const statusColor: Record<string, string> = {
     Pending: "bg-yellow-500",
@@ -83,33 +138,35 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   return (
     <main className="max-w-xl mx-auto px-6 py-16">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
         <h1 className="text-3xl font-bold">Invoice #{id}</h1>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
+          aria-label={`Status: ${invoice.status}`}
         >
           {invoice.status}
         </span>
       </div>
 
       {/* Progress */}
-      <div className="mb-8">
+      <section aria-labelledby="progress-heading" className="mb-8">
+        <h2 id="progress-heading" className="sr-only">Payment Progress</h2>
         <PaymentProgress funded={invoice.funded} total={total} />
         <p className="text-sm text-gray-400 mt-1">
           {formatAmount(invoice.funded)} / {formatAmount(total)} USDC funded
         </p>
-      </div>
+      </section>
 
       {/* Recipients */}
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">Recipients</h2>
+      <section aria-labelledby="recipients-heading" className="mb-8">
+        <h2 id="recipients-heading" className="text-lg font-semibold mb-3">Recipients</h2>
         <ul className="flex flex-col gap-2">
           {invoice.recipients.map((r, i) => (
             <li
               key={i}
               className="flex justify-between bg-gray-900 rounded-lg px-4 py-2 text-sm"
             >
-              <span className="font-mono text-gray-300 truncate max-w-[60%]">
+              <span className="font-mono text-gray-300 truncate max-w-[60%]" title={r.address}>
                 {r.address}
               </span>
               <span className="text-indigo-300">{formatAmount(r.amount)} USDC</span>
@@ -125,36 +182,45 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Pay form */}
       {invoice.status === "Pending" && publicKey && (
-        <form onSubmit={handlePay} className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Pay toward this invoice</h2>
-          <input
-            type="number"
-            step="0.0000001"
-            min="0.0000001"
-            placeholder="Amount in USDC"
-            value={payAmount}
-            onChange={(e) => setPayAmount(e.target.value)}
-            required
-            className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          {txHash && (
-            <p className="text-green-400 text-sm">
-              Payment sent! Tx: {txHash.slice(0, 12)}…
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={paying}
-            className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
-          >
-            {paying ? "Sending…" : "Pay"}
-          </button>
-        </form>
+        <section aria-labelledby="pay-heading" className="mb-8">
+          <form onSubmit={handlePay} className="flex flex-col gap-4">
+            <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
+            <div>
+              <label htmlFor="pay-amount" className="block text-sm font-medium text-gray-300 mb-1">
+                Amount (USDC)
+              </label>
+              <input
+                id="pay-amount"
+                type="number"
+                step="0.0000001"
+                min="0.0000001"
+                placeholder="Amount in USDC"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                required
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                aria-describedby={error ? "pay-error" : undefined}
+              />
+            </div>
+            {error && <p id="pay-error" role="alert" className="text-red-400 text-sm">{error}</p>}
+            {txHash && (
+              <p role="status" className="text-green-400 text-sm">
+                Payment sent! Tx: {txHash.slice(0, 12)}…
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={paying}
+              className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+            >
+              {paying ? "Sending…" : "Pay"}
+            </button>
+          </form>
+        </section>
       )}
 
       {invoice.status !== "Pending" && (
-        <p className="text-gray-400 text-sm">
+        <p className="text-gray-400 text-sm mb-8">
           This invoice is {invoice.status.toLowerCase()} and no longer accepts payments.
         </p>
       )}
