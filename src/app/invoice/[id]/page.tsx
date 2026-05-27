@@ -5,6 +5,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
+import PayModal from "@/components/PayModal";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
@@ -37,6 +38,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [disputing, setDisputing] = useState(false);
   const [disputeError, setDisputeError] = useState<string | null>(null);
+  const [showPayModal, setShowPayModal] = useState(false);
 
   // Reminder state
   const [reminderDate, setReminderDate] = useState("");
@@ -212,43 +214,36 @@ export default function InvoiceDetailPage({ params }: Props) {
         <InstallmentPanel invoiceId={id} publicKey={publicKey} />
       )}
 
-      {/* Pay form */}
+      {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
-        <section aria-labelledby="pay-heading" className="mb-8">
-          <form onSubmit={handlePay} className="flex flex-col gap-4">
-            <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
-            <div>
-              <label htmlFor="pay-amount" className="block text-sm font-medium text-gray-300 mb-1">
-                Amount (USDC)
-              </label>
-              <input
-                id="pay-amount"
-                type="number"
-                step="0.0000001"
-                min="0.0000001"
-                placeholder="Amount in USDC"
-                value={payAmount}
-                onChange={(e) => setPayAmount(e.target.value)}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                aria-describedby={error ? "pay-error" : undefined}
-              />
-            </div>
-            {error && <p id="pay-error" role="alert" className="text-red-400 text-sm">{error}</p>}
-            {txHash && (
-              <p role="status" className="text-green-400 text-sm">
-                Payment sent! Tx: {txHash.slice(0, 12)}…
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={paying}
-              className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
-            >
-              {paying ? "Sending…" : "Pay"}
-            </button>
-          </form>
+        <section className="mb-8">
+          {txHash && (
+            <p role="status" className="text-green-400 text-sm mb-3">
+              Payment sent! Tx: {txHash.slice(0, 12)}…
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowPayModal(true)}
+            className="w-full px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors"
+          >
+            Pay
+          </button>
         </section>
+      )}
+
+      {showPayModal && invoice && publicKey && (
+        <PayModal
+          invoice={invoice}
+          total={total}
+          publicKey={publicKey}
+          onPay={async (amount) => {
+            const result = await splitClient.pay({ payer: publicKey, invoiceId: id, amount });
+            setTxHash(result.txHash);
+            await load();
+          }}
+          onClose={() => setShowPayModal(false)}
+        />
       )}
 
       {invoice.status !== "Pending" && (
