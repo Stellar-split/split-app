@@ -5,20 +5,12 @@ import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import InvoiceCard from "@/components/InvoiceCard";
-import type { Invoice, InvoiceStatus } from "@stellar-split/sdk";
-
-type StatusTab = "All" | InvoiceStatus;
-type SortKey = "date" | "amount";
-type SortDir = "asc" | "desc";
-
-const STATUS_TABS: StatusTab[] = ["All", "Pending", "Released", "Refunded"];
-
-function invoiceTotal(inv: Invoice): bigint {
-  return inv.recipients.reduce((s, r) => s + r.amount, 0n);
-}
+import BatchPayModal from "@/components/BatchPayModal";
+import type { Invoice } from "@stellar-split/sdk";
 
 /**
  * Dashboard — lists invoices where the connected wallet is creator or recipient.
+ * Supports multi-select mode for batch payments.
  */
 export default function DashboardPage() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
@@ -29,6 +21,11 @@ export default function DashboardPage() {
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
+
+  // Multi-select state
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showBatchModal, setShowBatchModal] = useState(false);
 
   useEffect(() => {
     getFreighterPublicKey()
@@ -62,50 +59,22 @@ export default function DashboardPage() {
     });
   }, [publicKey]);
 
-  const filteredInvoices = useMemo(() => {
-    let list = invoices;
-
-    if (statusTab !== "All") {
-      list = list.filter((inv) => inv.status === statusTab);
-    }
-
-    const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (inv) =>
-          inv.id.toLowerCase().includes(q) ||
-          inv.recipients.some((r) => r.address.toLowerCase().includes(q))
-      );
-    }
-
-    return [...list].sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "date") {
-        cmp = a.deadline - b.deadline;
-      } else {
-        const totalA = invoiceTotal(a);
-        const totalB = invoiceTotal(b);
-        cmp = totalA < totalB ? -1 : totalA > totalB ? 1 : 0;
-      }
-      return sortDir === "asc" ? cmp : -cmp;
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-  }, [invoices, statusTab, search, sortKey, sortDir]);
-
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
   };
 
-  const sortBtnClass = (key: SortKey) =>
-    `px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-      sortKey === key
-        ? "bg-indigo-600 text-white"
-        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-    }`;
+  const exitMultiSelect = () => {
+    setMultiSelect(false);
+    setSelected(new Set());
+  };
+
+  const pendingInvoices = invoices.filter((inv) => inv.status === "Pending");
+  const selectedInvoices = invoices.filter((inv) => selected.has(inv.id));
 
   if (error) {
     return (
@@ -116,60 +85,51 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
-        <Link
-          href="/invoice/new"
-          className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors shrink-0"
-        >
-          + New Invoice
-        </Link>
-      </div>
-
-      <div className="flex flex-col gap-4 mb-8">
-        <input
-          type="search"
-          placeholder="Search by invoice ID or address…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-
-        <div className="flex flex-wrap gap-2">
-          {STATUS_TABS.map((tab) => (
+    <main className="max-w-3xl mx-auto px-6 py-16">
+      <div className="flex items-center justify-between mb-10 flex-wrap gap-3">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="flex gap-2 flex-wrap">
+          {!multiSelect && pendingInvoices.length > 0 && (
             <button
-              key={tab}
-              type="button"
-              onClick={() => setStatusTab(tab)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                statusTab === tab
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-              }`}
+              onClick={() => setMultiSelect(true)}
+              className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              aria-label="Enter multi-select mode to pay multiple invoices"
             >
-              {tab}
+              Pay Multiple
             </button>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => toggleSort("date")}
-            className={sortBtnClass("date")}
+          )}
+          {multiSelect && (
+            <>
+              <button
+                onClick={exitMultiSelect}
+                className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setShowBatchModal(true)}
+                disabled={selected.size === 0}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                aria-label={`Pay ${selected.size} selected invoice${selected.size !== 1 ? "s" : ""}`}
+              >
+                Pay Selected ({selected.size})
+              </button>
+            </>
+          )}
+          <Link
+            href="/invoice/new"
+            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
           >
-            Date {sortKey === "date" && (sortDir === "asc" ? "↑" : "↓")}
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleSort("amount")}
-            className={sortBtnClass("amount")}
-          >
-            Amount {sortKey === "amount" && (sortDir === "asc" ? "↑" : "↓")}
-          </button>
+            + New Invoice
+          </Link>
         </div>
       </div>
+
+      {multiSelect && (
+        <p className="text-sm text-gray-400 mb-4" role="status">
+          Select pending invoices to pay in a single transaction.
+        </p>
+      )}
 
       {loading ? (
         <p className="text-gray-400">Loading invoices…</p>
@@ -180,13 +140,57 @@ export default function DashboardPage() {
             : "No invoices match your filters."}
         </p>
       ) : (
-        <div className="flex flex-col gap-4">
-          {filteredInvoices.map((inv) => (
-            <Link key={inv.id} href={`/invoice/${inv.id}`}>
-              <InvoiceCard invoice={inv} />
-            </Link>
-          ))}
-        </div>
+        <ul className="flex flex-col gap-4" aria-label="Invoice list">
+          {invoices.map((inv) => {
+            const isSelectable = multiSelect && inv.status === "Pending";
+            const isSelected = selected.has(inv.id);
+
+            return (
+              <li key={inv.id}>
+                {isSelectable ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleSelect(inv.id)}
+                    aria-pressed={isSelected}
+                    aria-label={`${isSelected ? "Deselect" : "Select"} Invoice #${inv.id}`}
+                    className={`w-full text-left rounded-xl ring-2 transition-all ${
+                      isSelected
+                        ? "ring-indigo-500"
+                        : "ring-transparent hover:ring-gray-600"
+                    }`}
+                  >
+                    <div className="relative">
+                      {isSelected && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold z-10"
+                        >
+                          ✓
+                        </span>
+                      )}
+                      <InvoiceCard invoice={inv} />
+                    </div>
+                  </button>
+                ) : (
+                  <Link href={`/invoice/${inv.id}`} aria-label={`View Invoice #${inv.id}`}>
+                    <InvoiceCard invoice={inv} />
+                  </Link>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {showBatchModal && publicKey && selectedInvoices.length > 0 && (
+        <BatchPayModal
+          invoices={selectedInvoices}
+          publicKey={publicKey}
+          onClose={() => {
+            setShowBatchModal(false);
+            exitMultiSelect();
+          }}
+        />
       )}
     </main>
   );
