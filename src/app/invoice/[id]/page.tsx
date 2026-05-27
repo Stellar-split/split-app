@@ -25,6 +25,8 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [disputing, setDisputing] = useState(false);
+  const [disputeError, setDisputeError] = useState<string | null>(null);
 
   // Reminder state
   const [reminderDate, setReminderDate] = useState("");
@@ -147,6 +149,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           {invoice.status}
         </span>
       </div>
+
+      {/* Status Timeline */}
+      <StatusTimeline invoice={invoice} total={total} />
 
       {/* Progress */}
       <section aria-labelledby="progress-heading" className="mb-8">
