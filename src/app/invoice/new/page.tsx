@@ -74,6 +74,7 @@ export default function NewInvoicePage() {
           onClose={() => router.push(`/invoice/${txModal.invoiceId}`)}
         />
       )}
+    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">
@@ -116,7 +117,7 @@ export default function NewInvoicePage() {
               value={totalAmount}
               onChange={(e) => setTotalAmount(e.target.value)}
               required
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             {perRecipientAmount && (
               <p className="mt-1 text-xs text-gray-400">
@@ -151,7 +152,7 @@ export default function NewInvoicePage() {
             onChange={(e) => setToken(e.target.value)}
             required
             placeholder="C..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
@@ -168,7 +169,7 @@ export default function NewInvoicePage() {
             value={deadlineDays}
             onChange={(e) => setDeadlineDays(Number(e.target.value))}
             required
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
@@ -177,7 +178,7 @@ export default function NewInvoicePage() {
         <button
           type="submit"
           disabled={submitting}
-          className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+          className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
         >
           {submitting ? "Creating…" : "Create Invoice"}
         </button>
