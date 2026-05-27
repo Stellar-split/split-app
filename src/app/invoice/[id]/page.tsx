@@ -5,6 +5,8 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
+import CountdownTimer from "@/components/CountdownTimer";
+import RecipientPieChart from "@/components/RecipientPieChart";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
@@ -187,12 +189,19 @@ export default function InvoiceDetailPage({ params }: Props) {
         <p className="text-sm text-gray-400 mt-1">
           {formatAmount(invoice.funded)} / {formatAmount(total)} USDC funded
         </p>
+        {invoice.deadline > 0 && (
+          <div className="flex items-center gap-2 mt-3">
+            <span className="text-sm text-gray-400">Time remaining:</span>
+            <CountdownTimer deadline={invoice.deadline} />
+          </div>
+        )}
       </section>
 
       {/* Recipients */}
       <section aria-labelledby="recipients-heading" className="mb-8">
         <h2 id="recipients-heading" className="text-lg font-semibold mb-3">Recipients</h2>
-        <ul className="flex flex-col gap-2">
+        <RecipientPieChart recipients={invoice.recipients} total={total} />
+        <ul className="flex flex-col gap-2 mt-4">
           {invoice.recipients.map((r, i) => (
             <li
               key={i}
