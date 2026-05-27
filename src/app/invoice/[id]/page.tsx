@@ -12,6 +12,8 @@ import {
 import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import CountdownTimer from "@/components/CountdownTimer";
+import RecipientPieChart from "@/components/RecipientPieChart";
+import InvoicePDF from "@/components/InvoicePDF";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
@@ -253,6 +255,11 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           {invoice.status}
         </span>
+<<<<<<< feature/issue-19-implement-invoice
+        <div className="ml-auto print:hidden">
+          <InvoicePDF invoice={invoice} total={total} />
+        </div>
+=======
         <button
           type="button"
           onClick={() => window.print()}
@@ -260,6 +267,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           Print Invoice
         </button>
+>>>>>>> main
       </div>
 
       {/* Status Timeline */}
