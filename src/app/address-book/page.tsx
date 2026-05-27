@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { truncateAddress } from "@stellar-split/sdk";
+import { useI18n } from "@/components/I18nProvider";
 import {
   getAddressBook,
   addEntry,
@@ -14,6 +15,7 @@ import {
  * Address Book page — manage saved Stellar addresses with nicknames.
  */
 export default function AddressBookPage() {
+  const { t } = useI18n();
   const [entries, setEntries] = useState<AddressEntry[]>([]);
   const [nickname, setNickname] = useState("");
   const [address, setAddress] = useState("");
@@ -52,14 +54,14 @@ export default function AddressBookPage() {
 
   return (
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
-      <h1 className="text-3xl font-bold mb-8">Address Book</h1>
+      <h1 className="text-3xl font-bold mb-8">{t("addressBook.title")}</h1>
 
       {/* Add new entry */}
       <form onSubmit={handleAdd} className="flex flex-col gap-3 mb-10">
-        <h2 className="text-lg font-semibold">Add Address</h2>
+        <h2 className="text-lg font-semibold">{t("addressBook.addAddress")}</h2>
         <input
           type="text"
-          placeholder="Nickname"
+          placeholder={t("addressBook.nickname")}
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
           required
@@ -67,7 +69,7 @@ export default function AddressBookPage() {
         />
         <input
           type="text"
-          placeholder="G... Stellar address"
+          placeholder={t("addressBook.stellarAddress")}
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           required
@@ -78,13 +80,13 @@ export default function AddressBookPage() {
           disabled={entries.length >= 50}
           className="self-start min-h-11 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-40"
         >
-          {entries.length >= 50 ? "Limit reached (50)" : "Save Address"}
+          {entries.length >= 50 ? t("addressBook.limitReached") : t("addressBook.save")}
         </button>
       </form>
 
       {/* Saved entries */}
       {entries.length === 0 ? (
-        <p className="text-sm text-gray-400">No saved addresses yet.</p>
+        <p className="text-sm text-gray-400">{t("addressBook.noSaved")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {entries.map((entry) => (
@@ -105,13 +107,13 @@ export default function AddressBookPage() {
                     onClick={() => handleSaveEdit(entry.address)}
                     className="min-h-11 px-3 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold transition-colors"
                   >
-                    Save
+                    {t("addressBook.save")}
                   </button>
                   <button
                     onClick={() => setEditAddress(null)}
                     className="min-h-11 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-xs transition-colors"
                   >
-                    Cancel
+                    {t("dashboard.cancel")}
                   </button>
                 </div>
               ) : (
@@ -128,14 +130,14 @@ export default function AddressBookPage() {
                     aria-label={`Edit ${entry.nickname}`}
                     className="min-h-11 px-2 text-xs text-gray-400 hover:text-indigo-300 transition-colors"
                   >
-                    Edit
+                    {t("addressBook.edit")}
                   </button>
                   <button
                     onClick={() => handleRemove(entry.address)}
                     aria-label={`Remove ${entry.nickname}`}
                     className="min-h-11 px-2 text-xs text-gray-400 hover:text-red-400 transition-colors"
                   >
-                    Remove
+                    {t("addressBook.remove")}
                   </button>
                 </>
               )}
