@@ -150,7 +150,9 @@ export default function DashboardPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-400">Loading invoices…</p>
+        <div className="flex flex-col gap-4">
+          {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
+        </div>
       ) : invoices.length === 0 ? (
         <p className="text-gray-400">No invoices found. Create your first one!</p>
       ) : (

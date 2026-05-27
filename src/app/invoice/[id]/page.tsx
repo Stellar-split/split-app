@@ -148,6 +148,13 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           {invoice.status}
         </span>
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="ml-auto px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors print:hidden"
+        >
+          Print Invoice
+        </button>
       </div>
 
       {/* Status Timeline */}
