@@ -6,6 +6,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
+import TemplateManager from "@/components/TemplateManager";
 import TxConfirmModal from "@/components/TxConfirmModal";
 
 interface RecipientRow {
@@ -37,6 +38,11 @@ export default function NewInvoicePage() {
     equalSplit && totalAmount && recipients.length > 0
       ? (parseFloat(totalAmount) / recipients.length).toFixed(7)
       : undefined;
+
+  const handleLoadTemplate = (template: { recipients: RecipientRow[]; token: string }) => {
+    setRecipients(template.recipients);
+    setToken(template.token);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +84,12 @@ export default function NewInvoicePage() {
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">
+        <TemplateManager
+          recipients={recipients}
+          token={token}
+          onLoad={handleLoadTemplate}
+        />
+
         {/* Equal Split toggle */}
         <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
           <label htmlFor="equal-split-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
