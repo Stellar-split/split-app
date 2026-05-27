@@ -5,6 +5,7 @@ import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
+import { useI18n } from "@/components/I18nProvider";
 import type { Invoice } from "@stellar-split/sdk";
 
 type LeaderboardRow = {
@@ -14,6 +15,7 @@ type LeaderboardRow = {
 };
 
 export default function LeaderboardPage() {
+  const { t } = useI18n();
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,11 +101,11 @@ export default function LeaderboardPage() {
   }, [publicKey, rows]);
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-16">
+    <main className="max-w-3xl mx-auto px-4 sm:px-6 py-16 overflow-x-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-8">
-        <h1 className="text-3xl font-bold">Leaderboard</h1>
+        <h1 className="text-3xl font-bold">{t("leaderboard.title")}</h1>
         <div className="text-sm text-gray-400">
-          Top USDC contributors across the latest invoices (1–100)
+          {t("leaderboard.subtitle")}
         </div>
       </div>
 
@@ -139,15 +141,15 @@ export default function LeaderboardPage() {
           <div className="h-3 bg-gray-800 rounded" aria-hidden="true" />
         </div>
       ) : rows.length === 0 ? (
-        <div className="text-gray-400">No payments found in invoices.</div>
+        <div className="text-gray-400">{t("leaderboard.noPayments")}</div>
       ) : (
         <div className="overflow-x-auto">
           <div className="min-w-[520px] bg-gray-900 rounded-xl border border-gray-800">
             <div className="grid grid-cols-12 gap-2 px-4 py-3 text-xs text-gray-500 border-b border-gray-800">
-              <div className="col-span-1">Rank</div>
-              <div className="col-span-5">Address</div>
-              <div className="col-span-3">Total USDC</div>
-              <div className="col-span-3">Invoices</div>
+              <div className="col-span-1">{t("leaderboard.rank")}</div>
+              <div className="col-span-5">{t("leaderboard.address")}</div>
+              <div className="col-span-3">{t("leaderboard.totalUsdc")}</div>
+              <div className="col-span-3">{t("leaderboard.invoices")}</div>
             </div>
 
             <ul>
@@ -177,7 +179,7 @@ export default function LeaderboardPage() {
                       </span>
                       {isWallet && (
                         <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-500 text-white font-semibold">
-                          You
+                          {t("leaderboard.you")}
                         </span>
                       )}
                     </div>
@@ -197,9 +199,9 @@ export default function LeaderboardPage() {
 
       {walletRank && (
         <p className="mt-4 text-sm text-gray-400" role="status">
-          Your wallet is ranked #{walletRank}.
+          {t("leaderboard.yourRank").replace("{rank}", String(walletRank))}
           {!loading && !rows.some((r) => r.address === publicKey) && (
-            <span className="text-gray-500"> (not in top 20)</span>
+            <span className="text-gray-500"> {t("leaderboard.notInTop")}</span>
           )}
         </p>
       )}
@@ -209,7 +211,7 @@ export default function LeaderboardPage() {
           href="/dashboard"
           className="text-indigo-300 hover:text-indigo-200 transition-colors"
         >
-          Back to dashboard
+          {t("leaderboard.backToDashboard")}
         </Link>
       </div>
     </main>

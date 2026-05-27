@@ -6,6 +6,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import AnalyticsPanel from "@/components/AnalyticsPanel";
+import { useI18n } from "@/components/I18nProvider";
 
 import { formatAmount } from "@stellar-split/sdk";
 import InvoiceCard from "@/components/InvoiceCard";
@@ -47,6 +48,7 @@ function exportCSV(invoices: Invoice[], from: string, to: string) {
  * Supports multi-select mode for batch payments.
  */
 export default function DashboardPage() {
+  const { t } = useI18n();
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,7 +169,7 @@ export default function DashboardPage() {
   return (
     <main className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <div className="flex items-center justify-between mb-10 flex-wrap gap-3">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold">{t("dashboard.title")}</h1>
         <div className="flex gap-2 flex-wrap">
           {!multiSelect && pendingInvoices.length > 0 && (
             <button
@@ -175,7 +177,7 @@ export default function DashboardPage() {
               className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
               aria-label="Enter multi-select mode to pay multiple invoices"
             >
-              Pay Multiple
+              {t("dashboard.payMultiple")}
             </button>
           )}
           {multiSelect && (
@@ -184,7 +186,7 @@ export default function DashboardPage() {
                 onClick={exitMultiSelect}
                 className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
               >
-                Cancel
+                {t("dashboard.cancel")}
               </button>
               <button
                 onClick={() => setShowBatchModal(true)}
@@ -192,7 +194,7 @@ export default function DashboardPage() {
                 className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
                 aria-label={`Pay ${selected.size} selected invoice${selected.size !== 1 ? "s" : ""}`}
               >
-                Pay Selected ({selected.size})
+                {t("dashboard.paySelected")} ({selected.size})
               </button>
             </>
           )}
@@ -200,7 +202,7 @@ export default function DashboardPage() {
             href="/invoice/new"
             className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
           >
-            + New Invoice
+            {t("dashboard.newInvoice")}
           </Link>
         </div>
       </div>
@@ -220,7 +222,7 @@ export default function DashboardPage() {
 
       {multiSelect && (
         <p className="text-sm text-gray-400 mb-4" role="status">
-          Select pending invoices to pay in a single transaction.
+          {t("dashboard.selectMessage")}
         </p>
       )}
 
@@ -232,7 +234,7 @@ export default function DashboardPage() {
         </div>
       ) : invoices.length === 0 ? (
         <p className="text-gray-400">
-          No invoices found. Create your first one!
+          {t("dashboard.noInvoices")}
         </p>
       ) : (
         <ul className="flex flex-col gap-4" aria-label="Invoice list">

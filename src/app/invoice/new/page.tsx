@@ -7,6 +7,7 @@ import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
 import TxConfirmModal from "@/components/TxConfirmModal";
+import { useI18n } from "@/components/I18nProvider";
 
 interface RecipientRow {
   address: string;
@@ -17,6 +18,7 @@ interface RecipientRow {
  * New Invoice page — form to create an on-chain StellarSplit invoice.
  */
 export default function NewInvoicePage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [recipients, setRecipients] = useState<RecipientRow[]>([
     { address: "", amount: "" },
@@ -75,13 +77,13 @@ export default function NewInvoicePage() {
         />
       )}
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
-      <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+      <h1 className="text-3xl font-bold mb-8">{t("invoiceNew.title")}</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">
         {/* Equal Split toggle */}
         <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
           <label htmlFor="equal-split-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
-            Equal Split
+            {t("invoiceNew.equalSplit")}
           </label>
           <button
             id="equal-split-toggle"
@@ -106,7 +108,7 @@ export default function NewInvoicePage() {
         {equalSplit && (
           <div>
             <label htmlFor="total-amount" className="block text-sm font-medium text-gray-300 mb-1">
-              Total Amount (USDC)
+              {t("invoiceNew.totalAmount")}
             </label>
             <input
               id="total-amount"
@@ -121,7 +123,7 @@ export default function NewInvoicePage() {
             />
             {perRecipientAmount && (
               <p className="mt-1 text-xs text-gray-400">
-                {perRecipientAmount} USDC per recipient
+                {perRecipientAmount} {t("invoiceNew.perRecipient")}
               </p>
             )}
           </div>
@@ -130,7 +132,7 @@ export default function NewInvoicePage() {
         {/* Recipients */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Recipients {equalSplit ? "" : "& Amounts (USDC)"}
+            {equalSplit ? t("invoiceNew.recipients") : t("invoiceNew.recipientsAndAmounts")}
           </label>
           <RecipientForm
             recipients={recipients}
@@ -143,7 +145,7 @@ export default function NewInvoicePage() {
         {/* Token address */}
         <div>
           <label htmlFor="token-address" className="block text-sm font-medium text-gray-300 mb-1">
-            USDC Token Contract Address
+            {t("invoiceNew.tokenAddress")}
           </label>
           <input
             id="token-address"
@@ -159,7 +161,7 @@ export default function NewInvoicePage() {
         {/* Deadline */}
         <div>
           <label htmlFor="deadline-days" className="block text-sm font-medium text-gray-300 mb-1">
-            Deadline (days from now)
+            {t("invoiceNew.deadline")}
           </label>
           <input
             id="deadline-days"
@@ -180,7 +182,7 @@ export default function NewInvoicePage() {
           disabled={submitting}
           className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
         >
-          {submitting ? "Creating…" : "Create Invoice"}
+          {submitting ? t("invoiceNew.creating") : t("invoiceNew.create")}
         </button>
       </form>
     </main>
