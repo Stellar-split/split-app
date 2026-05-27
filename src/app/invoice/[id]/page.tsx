@@ -176,6 +176,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         amount,
       });
       setTxHash(result.txHash);
+      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
       await load();
     } catch (err) {
       setInvoice((prev) => {
