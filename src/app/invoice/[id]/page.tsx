@@ -107,6 +107,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         amount: parseAmount(payAmount),
       });
       setTxHash(result.txHash);
+      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
       await load();
     } catch (err) {
       setError(String(err));

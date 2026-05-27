@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import NotificationCenter from "@/components/NotificationCenter";
+import WalletConnect from "@/components/WalletConnect";
 
 export const metadata: Metadata = {
   title: "StellarSplit — On-chain Invoice Splitting",
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Address Book
             </a>
             <NotificationCenter />
+            <WalletConnect />
           </div>
         </header>
         {children}
