@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
@@ -97,7 +97,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <main className="max-w-2xl mx-auto px-6 py-20 text-center">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
         <p className="text-red-400">{error}</p>
       </main>
     );

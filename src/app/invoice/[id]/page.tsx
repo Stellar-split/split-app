@@ -76,6 +76,21 @@ export default function InvoiceDetailPage({ params }: Props) {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (invoice?.status === "Released" || invoice?.status === "Refunded") {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      splitClient
+        .getInvoice(id)
+        .then(setInvoice)
+        .catch(() => {});
+    }, 10_000);
+
+    return () => clearInterval(interval);
+  }, [id, invoice?.status]);
+
   const total = invoice
     ? invoice.recipients.reduce((s, r) => s + r.amount, 0n)
     : 0n;
