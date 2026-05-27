@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
 import TxConfirmModal from "@/components/TxConfirmModal";
+import type { InvoiceTemplate } from "@/data/templates";
 
 interface RecipientRow {
   address: string;
@@ -28,6 +29,17 @@ export default function NewInvoicePage() {
   const [recurring, setRecurring] = useState(false);
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const template = sessionStorage.getItem("invoiceTemplate");
+    if (template) {
+      const parsed: InvoiceTemplate = JSON.parse(template);
+      setRecipients(parsed.recipients);
+      setDeadlineDays(parsed.deadlineDays);
+      setToken(parsed.token);
+      sessionStorage.removeItem("invoiceTemplate");
+    }
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [txModal, setTxModal] = useState<{ txHash: string; invoiceId: string } | null>(null);
   const [equalSplit, setEqualSplit] = useState(false);
@@ -75,7 +87,15 @@ export default function NewInvoicePage() {
         />
       )}
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
-      <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold">Create Invoice</h1>
+        <a
+          href="/invoice/templates"
+          className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+        >
+          Browse Templates
+        </a>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">
         {/* Equal Split toggle */}
