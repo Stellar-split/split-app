@@ -73,7 +73,7 @@ export default function BatchInvoicePage() {
 
   if (createdIds.length > 0) {
     return (
-      <main className="max-w-xl mx-auto px-6 py-16">
+      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
         <h1 className="text-3xl font-bold mb-6">Batch Created!</h1>
         <ul className="flex flex-col gap-2">
           {createdIds.map((id) => (
@@ -92,7 +92,7 @@ export default function BatchInvoicePage() {
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-6 py-16">
+    <main className="max-w-2xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <h1 className="text-3xl font-bold mb-2">Batch Invoice Creation</h1>
       <p className="text-gray-400 text-sm mb-8">
         Create up to {MAX_ROWS} invoices at once.
@@ -135,7 +135,7 @@ export default function BatchInvoicePage() {
                 value={row.deadlineDays}
                 onChange={(e) => updateRow(i, { deadlineDays: Number(e.target.value) })}
                 required
-                className="w-32 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full sm:w-32 min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function BatchInvoicePage() {
           <button
             type="button"
             onClick={() => setRows((prev) => [...prev, emptyRow()])}
-            className="self-start px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors"
+            className="self-start min-h-11 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors"
           >
             + Add Invoice
           </button>
@@ -156,7 +156,7 @@ export default function BatchInvoicePage() {
         <button
           type="submit"
           disabled={submitting}
-          className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+          className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
         >
           {submitting ? `Creating ${rows.length} invoice${rows.length > 1 ? "s" : ""}…` : `Create ${rows.length} Invoice${rows.length > 1 ? "s" : ""}`}
         </button>

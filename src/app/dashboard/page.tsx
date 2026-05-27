@@ -8,6 +8,7 @@ import InvoiceSearch from "@/components/InvoiceSearch";
 
 import { formatAmount } from "@stellar-split/sdk";
 import InvoiceCard from "@/components/InvoiceCard";
+import { SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
 import { SkeletonCard } from "@/components/Skeleton";
 import type { Invoice } from "@stellar-split/sdk";
@@ -157,21 +158,21 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
+      <main className="max-w-2xl mx-auto w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
         <p className="text-red-400">{error}</p>
       </main>
     );
   }
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-16">
+    <main className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <div className="flex items-center justify-between mb-10 flex-wrap gap-3">
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <div className="flex gap-2 flex-wrap">
           {!multiSelect && pendingInvoices.length > 0 && (
             <button
               onClick={() => setMultiSelect(true)}
-              className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
               aria-label="Enter multi-select mode to pay multiple invoices"
             >
               Pay Multiple
@@ -181,14 +182,14 @@ export default function DashboardPage() {
             <>
               <button
                 onClick={exitMultiSelect}
-                className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+                className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => setShowBatchModal(true)}
                 disabled={selected.size === 0}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
                 aria-label={`Pay ${selected.size} selected invoice${selected.size !== 1 ? "s" : ""}`}
               >
                 Pay Selected ({selected.size})
@@ -197,7 +198,7 @@ export default function DashboardPage() {
           )}
           <Link
             href="/invoice/new"
-            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+            className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
           >
             + New Invoice
           </Link>

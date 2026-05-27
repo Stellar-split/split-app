@@ -67,7 +67,7 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
           <button
             onClick={onClose}
             aria-label="Close batch pay modal"
-            className="text-gray-400 hover:text-white transition-colors text-2xl leading-none"
+            className="min-h-11 min-w-11 flex items-center justify-center text-gray-400 hover:text-white transition-colors text-2xl leading-none"
           >
             ×
           </button>
@@ -96,7 +96,7 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
                 onChange={(e) =>
                   setAmounts((prev) => ({ ...prev, [inv.id]: e.target.value }))
                 }
-                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex-1 min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-0"
               />
             </li>
           ))}
@@ -111,7 +111,7 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
             </p>
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
             >
               Close
             </button>
@@ -120,14 +120,14 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              className="flex-1 min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleConfirm}
               disabled={paying}
-              className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+              className="flex-1 min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
             >
               {paying ? "Sending…" : "Confirm Payment"}
             </button>

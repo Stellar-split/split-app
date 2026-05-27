@@ -36,7 +36,7 @@ export default function DisputePanel({
       <h2 className="text-lg font-semibold text-yellow-400">Dispute</h2>
 
       {ds ? (
-        <div className="text-sm text-gray-300 flex gap-6">
+        <div className="text-sm text-gray-300 flex flex-wrap gap-4 sm:gap-6">
           <span>👍 For: {ds.forCount}</span>
           <span>👎 Against: {ds.againstCount}</span>
           {ds.resolved && (
@@ -54,7 +54,7 @@ export default function DisputePanel({
       <button
         onClick={onDispute}
         disabled={disputing}
-        className="self-start px-4 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-sm font-semibold transition-colors disabled:opacity-50"
+        className="self-start min-h-11 px-4 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-sm font-semibold transition-colors disabled:opacity-50"
       >
         {disputing ? "Submitting…" : "Raise Dispute"}
       </button>

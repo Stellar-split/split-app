@@ -6,9 +6,9 @@ import WalletConnect from "@/components/WalletConnect";
  */
 export default function HomePage() {
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen px-6 py-20 text-center">
+    <main className="flex flex-col items-center justify-center min-h-screen w-full max-w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
       {/* Hero */}
-      <h1 className="text-5xl font-bold tracking-tight mb-4">
+      <h1 className="text-3xl sm:text-5xl font-bold tracking-tight mb-4">
         Split invoices on-chain.{" "}
         <span className="text-indigo-400">Instantly.</span>
       </h1>
@@ -23,7 +23,7 @@ export default function HomePage() {
         <WalletConnect />
         <Link
           href="/invoice/new"
-          className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="min-h-11 inline-flex items-center justify-center px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
         >
           Create Invoice
         </Link>

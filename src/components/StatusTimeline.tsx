@@ -19,7 +19,7 @@ export default function StatusTimeline({ invoice, total }: Props) {
   const deadlineDate = new Date(invoice.deadline * 1000).toLocaleDateString();
 
   return (
-    <div className="flex items-start gap-0 mb-8">
+    <div className="grid grid-cols-2 gap-y-4 mb-8 sm:flex sm:items-start sm:gap-0">
       {STEPS.map((step, i) => {
         const done = i < active;
         const current = i === active;
@@ -35,7 +35,7 @@ export default function StatusTimeline({ invoice, total }: Props) {
             : null;
 
         return (
-          <div key={step} className="flex-1 flex flex-col items-center">
+          <div key={step} className="flex-1 flex flex-col items-center min-w-0 px-1">
             <div className="flex items-center w-full">
               {i > 0 && (
                 <div

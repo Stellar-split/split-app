@@ -90,7 +90,7 @@ export default function WebhookConfig({ invoiceId }: Props) {
             placeholder="https://your-server.com/webhook"
             value={url}
             onChange={(e) => { setUrl(e.target.value); setSaved(false); setError(null); }}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             aria-describedby={error ? "webhook-error" : undefined}
           />
           {error && (
@@ -103,14 +103,14 @@ export default function WebhookConfig({ invoiceId }: Props) {
         <div className="flex gap-2">
           <button
             onClick={handleSave}
-            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+            className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
           >
             Save Webhook
           </button>
           {url && (
             <button
               onClick={handleRemove}
-              className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
             >
               Remove
             </button>
