@@ -11,6 +11,7 @@ import {
 } from "@/lib/notifications";
 import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
+import PayModal from "@/components/PayModal";
 import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
@@ -67,6 +68,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [disputing, setDisputing] = useState(false);
   const [disputeError, setDisputeError] = useState<string | null>(null);
+  const [showPayModal, setShowPayModal] = useState(false);
 
   // Reminder state
   const [reminderDate, setReminderDate] = useState("");
@@ -255,11 +257,6 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           {invoice.status}
         </span>
-<<<<<<< feature/issue-19-implement-invoice
-        <div className="ml-auto print:hidden">
-          <InvoicePDF invoice={invoice} total={total} />
-        </div>
-=======
         <button
           type="button"
           onClick={() => window.print()}
@@ -267,7 +264,6 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           Print Invoice
         </button>
->>>>>>> main
       </div>
 
       {/* Status Timeline */}
@@ -384,7 +380,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         <InstallmentPanel invoiceId={id} publicKey={publicKey} />
       )}
 
-      {/* Pay form */}
+      {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
         <section aria-labelledby="pay-heading" className="mb-8">
           <form onSubmit={handlePay} className="flex flex-col gap-4">
@@ -421,6 +417,20 @@ export default function InvoiceDetailPage({ params }: Props) {
             </button>
           </form>
         </section>
+      )}
+
+      {showPayModal && invoice && publicKey && (
+        <PayModal
+          invoice={invoice}
+          total={total}
+          publicKey={publicKey}
+          onPay={async (amount) => {
+            const result = await splitClient.pay({ payer: publicKey, invoiceId: id, amount });
+            setTxHash(result.txHash);
+            await load();
+          }}
+          onClose={() => setShowPayModal(false)}
+        />
       )}
 
       {invoice.status !== "Pending" && (
