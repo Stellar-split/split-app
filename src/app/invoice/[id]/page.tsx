@@ -12,6 +12,7 @@ import VestingTimeline from "@/components/VestingTimeline";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
+import CancelModal from "@/components/CancelModal";
 import type { Invoice } from "@stellar-split/sdk";
 
 // Extend the SDK Invoice type with vesting fields (not yet in published SDK)
@@ -38,6 +39,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [disputing, setDisputing] = useState(false);
   const [disputeError, setDisputeError] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   // Reminder state
   const [reminderDate, setReminderDate] = useState("");
@@ -140,6 +142,13 @@ export default function InvoiceDetailPage({ params }: Props) {
     setReminderSaved(false);
   };
 
+  const handleCancelInvoice = async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (splitClient as any).cancelInvoice(id);
+    await load();
+    setShowCancelModal(false);
+  };
+
   if (error && !invoice) {
     return (
       <main className="max-w-xl mx-auto px-6 py-20 text-center">
@@ -181,6 +190,15 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           Print Invoice
         </button>
+        {isCreator && invoice.status === "Pending" && (
+          <button
+            type="button"
+            onClick={() => setShowCancelModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-sm transition-colors print:hidden"
+          >
+            Cancel Invoice
+          </button>
+        )}
       </div>
 
       {/* Status Timeline */}
@@ -276,6 +294,15 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Private notes — only visible to the connected wallet */}
       {publicKey && (
         <CommentSection invoiceId={id} walletAddress={publicKey} />
+      )}
+
+      {showCancelModal && invoice && (
+        <CancelModal
+          invoiceId={id}
+          payments={invoice.payments}
+          onConfirm={handleCancelInvoice}
+          onClose={() => setShowCancelModal(false)}
+        />
       )}
     </main>
   );
