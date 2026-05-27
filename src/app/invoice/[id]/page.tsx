@@ -25,6 +25,7 @@ import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import VotingPanel from "@/components/VotingPanel";
 import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
@@ -32,8 +33,9 @@ const POLL_MS = 10_000;
 
 // Extend the SDK Invoice type with vesting fields (not yet in published SDK)
 type InvoiceWithVesting = Invoice & {
-  vestingCliff?: number; // unix timestamp (seconds)
-  claimed?: string[];    // addresses that have claimed
+  vestingCliff?: number;    // unix timestamp (seconds)
+  claimed?: string[];       // addresses that have claimed
+  extensionVotes?: number;  // current votes to extend deadline
 };
 
 interface Props {
@@ -409,6 +411,11 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Installment schedule — only shown to payers with a registered plan */}
       {publicKey && (
         <InstallmentPanel invoiceId={id} publicKey={publicKey} />
+      )}
+
+      {/* Deadline extension voting — shown to payers on Pending invoices */}
+      {publicKey && (
+        <VotingPanel invoice={invoice} publicKey={publicKey} />
       )}
 
       {/* Pay button → opens modal */}
