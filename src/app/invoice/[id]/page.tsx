@@ -313,7 +313,8 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Recipients */}
       <section aria-labelledby="recipients-heading" className="mb-8">
         <h2 id="recipients-heading" className="text-lg font-semibold mb-3">Recipients</h2>
-        <ul className="flex flex-col gap-2">
+        <RecipientPieChart recipients={invoice.recipients} total={total} />
+        <ul className="flex flex-col gap-2 mt-4">
           {invoice.recipients.map((r, i) => (
             <li
               key={i}
