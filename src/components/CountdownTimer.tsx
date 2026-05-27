@@ -33,6 +33,8 @@ export default function CountdownTimer({ deadline, compact = false }: Props) {
   const hours = Math.floor((timeLeft % 86400) / 3600);
   const minutes = Math.floor((timeLeft % 3600) / 60);
   const seconds = timeLeft % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const isUrgent = timeLeft < 86400;
 
   const pad = (n: number) => String(n).padStart(2, "0");
   const isUrgent = timeLeft < 86400;
@@ -43,6 +45,7 @@ export default function CountdownTimer({ deadline, compact = false }: Props) {
     : `${pad(days)}:${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
   return (
+    <span className={`font-mono text-xs font-semibold tabular-nums ${isUrgent ? "text-red-400" : "text-gray-300"}`}>
     <span className={`font-mono text-xs font-semibold tabular-nums ${colorClass}`}>
       {display}
     </span>
