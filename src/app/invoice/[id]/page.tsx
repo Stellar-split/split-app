@@ -13,7 +13,17 @@ import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
+import StatusTimeline from "@/components/StatusTimeline";
+import VestingTimeline from "@/components/VestingTimeline";
+import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
+import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import type { Invoice } from "@stellar-split/sdk";
+
+// Extend the SDK Invoice type with vesting fields (not yet in published SDK)
+type InvoiceWithVesting = Invoice & {
+  vestingCliff?: number; // unix timestamp (seconds)
+  claimed?: string[];    // addresses that have claimed
+};
 
 interface Props {
   params: { id: string };
@@ -42,7 +52,7 @@ function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceVie
  */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
-  const [invoice, setInvoice] = useState<InvoiceView | null>(null);
+  const [invoice, setInvoice] = useState<InvoiceWithVesting | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [paying, setPaying] = useState(false);
@@ -90,40 +100,19 @@ export default function InvoiceDetailPage({ params }: Props) {
   }, [id]);
 
   useEffect(() => {
+    if (invoice?.status === "Released" || invoice?.status === "Refunded") {
+      return;
+    }
+
     const interval = setInterval(() => {
       splitClient
         .getInvoice(id)
-        .then((inv) => {
-          const prev = prevStatusRef.current;
-          if (
-            prev === "Pending" &&
-            inv.status === "Released" &&
-            isSubscribedToInvoice(id)
-          ) {
-            notifyInvoiceReleased(id, formatAmount(inv.funded));
-          }
-          prevStatusRef.current = inv.status;
-          setInvoice((prev) => mergeWithServer(inv, prev));
-        })
-        .catch(() => undefined);
+        .then(setInvoice)
+        .catch(() => {});
     }, 10_000);
-    return () => clearInterval(interval);
-  }, [id]);
 
-  const handleNotifyMe = async () => {
-    setNotifyDenied(false);
-    try {
-      const permission = await requestNotificationPermission();
-      if (permission === "granted") {
-        subscribeToInvoice(id);
-        setNotifySubscribed(true);
-      } else {
-        setNotifyDenied(true);
-      }
-    } catch {
-      setNotifyDenied(true);
-    }
-  };
+    return () => clearInterval(interval);
+  }, [id, invoice?.status]);
 
   const total = invoice
     ? invoice.recipients.reduce((s, r) => s + r.amount, 0n)
@@ -241,6 +230,16 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Status Timeline */}
       <StatusTimeline invoice={invoice} total={total} />
+
+      {/* Vesting Timeline — only shown when vestingCliff is set */}
+      {invoice.vestingCliff && (
+        <VestingTimeline
+          invoiceId={id}
+          vestingCliff={invoice.vestingCliff}
+          claimed={invoice.claimed ?? []}
+          publicKey={publicKey}
+        />
+      )}
 
       {/* Progress */}
       <section aria-labelledby="progress-heading" className="mb-8">
