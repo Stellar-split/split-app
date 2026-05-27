@@ -7,3 +7,4 @@ out/
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
+test-snapshot/

@@ -62,19 +62,19 @@ export default function NewInvoicePage() {
 
   return (
     <main className="max-w-xl mx-auto px-6 py-16">
-      <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+      <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">Create Invoice</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         {/* Equal Split toggle */}
-        <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
-          <span className="text-sm font-medium text-gray-300">Equal Split</span>
+        <div className="flex items-center justify-between rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-3">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Equal Split</span>
           <button
             type="button"
             role="switch"
             aria-checked={equalSplit}
             onClick={() => setEqualSplit((v) => !v)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              equalSplit ? "bg-indigo-600" : "bg-gray-600"
+              equalSplit ? "bg-indigo-600" : "bg-gray-300 dark:bg-gray-600"
             }`}
           >
             <span
@@ -88,7 +88,7 @@ export default function NewInvoicePage() {
         {/* Total amount input (equal split mode) */}
         {equalSplit && (
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Total Amount (USDC)
             </label>
             <input
@@ -99,10 +99,10 @@ export default function NewInvoicePage() {
               value={totalAmount}
               onChange={(e) => setTotalAmount(e.target.value)}
               required
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800 dark:text-gray-100"
             />
             {perRecipientAmount && (
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {perRecipientAmount} USDC per recipient
               </p>
             )}
@@ -111,7 +111,7 @@ export default function NewInvoicePage() {
 
         {/* Recipients */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Recipients {equalSplit ? "" : "& Amounts (USDC)"}
           </label>
           <RecipientForm
@@ -124,7 +124,7 @@ export default function NewInvoicePage() {
 
         {/* Token address */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             USDC Token Contract Address
           </label>
           <input
@@ -133,13 +133,13 @@ export default function NewInvoicePage() {
             onChange={(e) => setToken(e.target.value)}
             required
             placeholder="C..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800 dark:text-gray-100"
           />
         </div>
 
         {/* Deadline */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Deadline (days from now)
           </label>
           <input
@@ -149,16 +149,16 @@ export default function NewInvoicePage() {
             value={deadlineDays}
             onChange={(e) => setDeadlineDays(Number(e.target.value))}
             required
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800 dark:text-gray-100"
           />
         </div>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
 
         <button
           type="submit"
           disabled={submitting}
-          className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+          className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50 text-white"
         >
           {submitting ? "Creating…" : "Create Invoice"}
         </button>

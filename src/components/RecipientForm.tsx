@@ -44,7 +44,7 @@ export default function RecipientForm({
             onChange={(e) => update(i, "address", e.target.value)}
             required
             aria-label={`Recipient ${i + 1} address`}
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono min-w-0"
+            className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono min-w-0 text-gray-800 dark:text-gray-100"
           />
           <input
             type="number"
@@ -58,10 +58,10 @@ export default function RecipientForm({
             readOnly={equalSplit}
             required
             aria-label={`Recipient ${i + 1} amount`}
-            className={`w-28 bg-gray-800 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+            className={`w-28 bg-gray-100 dark:bg-gray-800 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800 dark:text-gray-100 ${
               equalSplit
-                ? "border-gray-600 text-gray-400 cursor-not-allowed"
-                : "border-gray-700"
+                ? "border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                : "border-gray-300 dark:border-gray-700"
             }`}
           />
           {recipients.length > 1 && (
@@ -69,7 +69,7 @@ export default function RecipientForm({
               type="button"
               onClick={() => removeRow(i)}
               aria-label={`Remove recipient ${i + 1}`}
-              className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-red-700 text-sm transition-colors"
+              className="px-3 py-2 rounded-lg bg-gray-300 dark:bg-gray-700 hover:bg-red-600 dark:hover:bg-red-700 text-sm transition-colors text-gray-800 dark:text-gray-100"
             >
               ✕
             </button>
@@ -80,7 +80,7 @@ export default function RecipientForm({
       <button
         type="button"
         onClick={addRow}
-        className="self-start px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors"
+        className="self-start px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm transition-colors text-gray-800 dark:text-gray-100"
       >
         + Add Recipient
       </button>
