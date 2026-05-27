@@ -9,7 +9,7 @@ import {
   requestNotificationPermission,
   subscribeToInvoice,
 } from "@/lib/notifications";
-import { formatAmount, parseAmount } from "@stellar-split/sdk";
+import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
@@ -187,7 +187,7 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (error && !invoice) {
     return (
-      <main className="max-w-xl mx-auto px-6 py-20 text-center">
+      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
         <p className="text-red-400" role="alert">{error}</p>
       </main>
     );
@@ -195,7 +195,7 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (!invoice) {
     return (
-      <main className="max-w-xl mx-auto px-6 py-20 text-center">
+      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
         <p className="text-gray-400" aria-live="polite">Loading invoice…</p>
       </main>
     );
@@ -210,9 +210,9 @@ export default function InvoiceDetailPage({ params }: Props) {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-6 py-16">
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <h1 className="text-3xl font-bold">Invoice #{id}</h1>
+    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">Invoice #{id}</h1>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
           aria-label={`Status: ${invoice.status}`}
@@ -222,7 +222,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         <button
           type="button"
           onClick={() => window.print()}
-          className="ml-auto px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors print:hidden"
+          className="sm:ml-auto min-h-11 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors print:hidden self-start sm:self-auto"
         >
           Print Invoice
         </button>
@@ -310,10 +310,11 @@ export default function InvoiceDetailPage({ params }: Props) {
           {invoice.recipients.map((r, i) => (
             <li
               key={i}
-              className="flex justify-between bg-gray-900 rounded-lg px-4 py-2 text-sm"
+              className="flex justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm min-w-0"
             >
-              <span className="font-mono text-gray-300 truncate max-w-[60%]" title={r.address}>
-                {r.address}
+              <span className="font-mono text-gray-300 min-w-0 shrink" title={r.address}>
+                <span className="sm:hidden">{truncateAddress(r.address)}</span>
+                <span className="hidden sm:inline truncate">{r.address}</span>
               </span>
               <span className="text-indigo-300">{formatAmount(r.amount)} USDC</span>
             </li>
@@ -344,7 +345,7 @@ export default function InvoiceDetailPage({ params }: Props) {
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
                 required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 aria-describedby={error ? "pay-error" : undefined}
               />
             </div>
@@ -357,7 +358,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             <button
               type="submit"
               disabled={paying}
-              className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+              className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
             >
               {paying ? "Sending…" : "Pay"}
             </button>
