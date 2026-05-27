@@ -7,6 +7,7 @@ import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount } from "@stellar-split/sdk";
 import InvoiceCard from "@/components/InvoiceCard";
 import BatchPayModal from "@/components/BatchPayModal";
+import { SkeletonCard } from "@/components/Skeleton";
 import type { Invoice } from "@stellar-split/sdk";
 
 function exportCSV(invoices: Invoice[], from: string, to: string) {
