@@ -5,12 +5,8 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
-import WebhookConfig, { sendWebhookIfConfigured } from "@/components/WebhookConfig";
-import {
-  getReminderForInvoice,
-  setReminder,
-  cancelReminder,
-} from "@/lib/reminders";
+import InstallmentPanel from "@/components/InstallmentPanel";
+import CommentSection from "@/components/CommentSection";
 import type { Invoice } from "@stellar-split/sdk";
 
 interface Props {
@@ -179,6 +175,11 @@ export default function InvoiceDetailPage({ params }: Props) {
         </ul>
       </section>
 
+      {/* Installment schedule — only shown to payers with a registered plan */}
+      {publicKey && (
+        <InstallmentPanel invoiceId={id} publicKey={publicKey} />
+      )}
+
       {/* Pay form */}
       {invoice.status === "Pending" && publicKey && (
         <section aria-labelledby="pay-heading" className="mb-8">
@@ -224,69 +225,10 @@ export default function InvoiceDetailPage({ params }: Props) {
         </p>
       )}
 
-      {/* Reminder section */}
-      <section aria-labelledby="reminder-heading" className="border-t border-gray-800 pt-6 mb-8">
-        <h2 id="reminder-heading" className="text-lg font-semibold mb-3">
-          {hasReminder ? "Reminder Set" : "Set Reminder"}
-        </h2>
-        {hasReminder ? (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-gray-400">
-              Reminder scheduled for{" "}
-              <time dateTime={new Date(reminderDate).toISOString()}>
-                {new Date(reminderDate).toLocaleString()}
-              </time>
-            </p>
-            {reminderSaved && (
-              <p role="status" className="text-green-400 text-sm">Reminder saved!</p>
-            )}
-            <button
-              onClick={handleCancelReminder}
-              className="self-start px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
-            >
-              Cancel Reminder
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSetReminder} className="flex flex-col gap-3">
-            <div>
-              <label htmlFor="reminder-date" className="block text-sm font-medium text-gray-300 mb-1">
-                Reminder date &amp; time
-              </label>
-              <input
-                id="reminder-date"
-                type="datetime-local"
-                value={reminderDate}
-                onChange={(e) => setReminderDate(e.target.value)}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="reminder-msg" className="block text-sm font-medium text-gray-300 mb-1">
-                Message (optional)
-              </label>
-              <input
-                id="reminder-msg"
-                type="text"
-                placeholder={`Invoice #${id} payment reminder`}
-                value={reminderMsg}
-                onChange={(e) => setReminderMsg(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <button
-              type="submit"
-              className="self-start px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
-            >
-              Set Reminder
-            </button>
-          </form>
-        )}
-      </section>
-
-      {/* Webhook config — creator only */}
-      {isCreator && <WebhookConfig invoiceId={id} />}
+      {/* Private notes — only visible to the connected wallet */}
+      {publicKey && (
+        <CommentSection invoiceId={id} walletAddress={publicKey} />
+      )}
     </main>
   );
 }
