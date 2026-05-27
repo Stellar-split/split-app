@@ -7,12 +7,26 @@ import QRModal from "@/components/QRModal";
 
 /**
  * WalletConnect — Freighter connect/disconnect button.
- * Shows truncated address when connected.
+ * Shows truncated address and USDC balance when connected.
  */
 export default function WalletConnect() {
   const [address, setAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [balance, setBalance] = useState<bigint | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
+  const loadBalance = async (addr: string) => {
+    setBalanceLoading(true);
+    try {
+      const bal = await fetchUsdcBalance(addr, USDC_CONTRACT_ID);
+      setBalance(bal);
+    } catch {
+      setBalance(null);
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
 
   const [qrOpen, setQrOpen] = useState(false);
   const [qrUri, setQrUri] = useState<string>("");
@@ -53,7 +67,18 @@ export default function WalletConnect() {
     }
   };
 
-  const handleDisconnect = () => setAddress(null);
+  const handleDisconnect = () => {
+    setAddress(null);
+    setBalance(null);
+  };
+
+  // Re-fetch balance after a successful payment
+  useEffect(() => {
+    if (!address) return;
+    const handler = () => loadBalance(address);
+    window.addEventListener("usdc-balance-refresh", handler);
+    return () => window.removeEventListener("usdc-balance-refresh", handler);
+  }, [address]);
 
   const handleWalletConnectOption = () => {
     // Open QR modal with an encoded URI. If the app has not connected yet,
