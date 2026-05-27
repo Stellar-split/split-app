@@ -14,10 +14,13 @@ import PaymentProgress from "@/components/PaymentProgress";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
+import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
-import type { Invoice } from "@stellar-split/sdk";
+import type { Invoice, Payment } from "@stellar-split/sdk";
+
+const POLL_MS = 10_000;
 
 // Extend the SDK Invoice type with vesting fields (not yet in published SDK)
 type InvoiceWithVesting = Invoice & {
@@ -52,7 +55,8 @@ function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceVie
  */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
-  const [invoice, setInvoice] = useState<InvoiceWithVesting | null>(null);
+  const [invoice, setInvoice] = useState<InvoiceView | null>(null);
+  const [previousInvoice, setPreviousInvoice] = useState<Invoice | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [paying, setPaying] = useState(false);
@@ -66,8 +70,25 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [reminderMsg, setReminderMsg] = useState("");
   const [reminderSaved, setReminderSaved] = useState(false);
   const [hasReminder, setHasReminder] = useState(false);
+  const [notifySubscribed, setNotifySubscribed] = useState(false);
+  const [notifyDenied, setNotifyDenied] = useState(false);
 
   const prevStatusRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setNotifySubscribed(isSubscribedToInvoice(id));
+  }, [id]);
+
+  const handleNotifyMe = async () => {
+    const permission = await requestNotificationPermission();
+    if (permission !== "granted") {
+      setNotifyDenied(true);
+      return;
+    }
+    subscribeToInvoice(id);
+    setNotifySubscribed(true);
+    setNotifyDenied(false);
+  };
 
   const load = async () => {
     const inv = await splitClient.getInvoice(id);
@@ -83,7 +104,21 @@ export default function InvoiceDetailPage({ params }: Props) {
     }
     prevStatusRef.current = inv.status;
 
-    setInvoice(inv);
+    setInvoice((current) => {
+      if (current) {
+        setPreviousInvoice({
+          id: current.id,
+          creator: current.creator,
+          recipients: current.recipients,
+          token: current.token,
+          deadline: current.deadline,
+          funded: current.funded,
+          status: current.status,
+          payments: current.payments.filter((p) => !p.pending),
+        });
+      }
+      return mergeWithServer(inv, current);
+    });
   };
 
   useEffect(() => {
@@ -104,14 +139,11 @@ export default function InvoiceDetailPage({ params }: Props) {
       return;
     }
 
-    const interval = setInterval(() => {
-      splitClient
-        .getInvoice(id)
-        .then(setInvoice)
-        .catch(() => {});
-    }, 10_000);
+    const pollId = setInterval(() => {
+      load().catch((e) => setError(String(e)));
+    }, POLL_MS);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(pollId);
   }, [id, invoice?.status]);
 
   const total = invoice
@@ -321,6 +353,14 @@ export default function InvoiceDetailPage({ params }: Props) {
           ))}
         </ul>
       </section>
+
+      <ActivityFeed
+        invoice={{
+          ...invoice,
+          payments: invoice.payments.filter((p) => !p.pending),
+        }}
+        previousInvoice={previousInvoice}
+      />
 
       {/* Installment schedule — only shown to payers with a registered plan */}
       {publicKey && (
