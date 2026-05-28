@@ -15,6 +15,7 @@ import PayModal from "@/components/PayModal";
 import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
+import PaymentCertificate from "@/components/PaymentCertificate";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
@@ -25,7 +26,6 @@ import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -229,7 +229,6 @@ export default function InvoiceDetailPage({ params }: Props) {
   };
 
   const handleCancelInvoice = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (splitClient as any).cancelInvoice(id);
     await load();
     setShowCancelModal(false);
@@ -271,6 +270,15 @@ export default function InvoiceDetailPage({ params }: Props) {
         </span>
         <div className="ml-auto flex items-center gap-2 print:hidden">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
+          {invoice.status === "Released" && (
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-3 py-1.5 rounded-lg bg-green-700 hover:bg-green-600 text-sm transition-colors"
+            >
+              Download Certificate
+            </button>
+          )}
           <button
             type="button"
             onClick={() => window.print()}
@@ -279,6 +287,15 @@ export default function InvoiceDetailPage({ params }: Props) {
             Print Invoice
           </button>
         </div>
+        {invoice.status === "Released" && (
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="sm:ml-auto min-h-11 px-3 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-sm transition-colors print:hidden self-start sm:self-auto"
+          >
+            Download Certificate
+          </button>
+        )}
         <button
           type="button"
           onClick={() => window.print()}
@@ -481,6 +498,14 @@ export default function InvoiceDetailPage({ params }: Props) {
           payments={invoice.payments}
           onConfirm={handleCancelInvoice}
           onClose={() => setShowCancelModal(false)}
+        />
+      )}
+
+      {invoice.status === "Released" && (
+        <PaymentCertificate
+          invoice={invoice}
+          total={total}
+          verifyUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`}
         />
       )}
     </main>
