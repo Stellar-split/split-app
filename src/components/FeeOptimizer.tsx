@@ -18,12 +18,13 @@ export default function FeeOptimizer() {
   const fetchFee = async () => {
     try {
       setLoading(true);
-      const estimate = await splitClient.estimateFee();
+      // Mock fee estimate (in stroops)
+      const estimate = BigInt(Math.floor(Math.random() * 5000) + 500);
       
-      // Determine congestion level based on fee (mock logic)
+      // Determine congestion level based on fee
       let congestion: "Low" | "Medium" | "High" = "Low";
       if (estimate > 1000n) congestion = "Medium";
-      if (estimate > 5000n) congestion = "High";
+      if (estimate > 3000n) congestion = "High";
 
       setFee({
         stroops: estimate,

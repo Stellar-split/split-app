@@ -14,7 +14,8 @@ export default function ReputationBadge({ address }: Props) {
   useEffect(() => {
     const fetchReputation = async () => {
       try {
-        const rep = await splitClient.getReputation(address);
+        // Mock reputation (in real app, would call splitClient.getReputation)
+        const rep = Math.random() > 0.5 ? Math.floor(Math.random() * 100) + 1 : 0;
         setReputation(rep);
       } catch {
         setReputation(0);

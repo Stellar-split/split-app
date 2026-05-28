@@ -28,7 +28,6 @@ import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -183,19 +182,17 @@ export default function InvoiceDetailPage({ params }: Props) {
     setPaying(true);
     try {
       const isSimulation = getSimulationMode();
-      const result = isSimulation
-        ? await splitClient.simulatePay({
-            payer: publicKey,
-            invoiceId: id,
-            amount,
-          })
-        : await splitClient.pay({
-            payer: publicKey,
-            invoiceId: id,
-            amount,
-          });
-      setTxHash(result.txHash);
-      if (!isSimulation) {
+      if (isSimulation) {
+        // Simulate payment without sending transaction
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        setTxHash(`sim-${Date.now()}`);
+      } else {
+        const result = await splitClient.pay({
+          payer: publicKey,
+          invoiceId: id,
+          amount,
+        });
+        setTxHash(result.txHash);
         window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
         await load();
       }
@@ -241,7 +238,6 @@ export default function InvoiceDetailPage({ params }: Props) {
   };
 
   const handleCancelInvoice = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (splitClient as any).cancelInvoice(id);
     await load();
     setShowCancelModal(false);
