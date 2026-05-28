@@ -28,6 +28,7 @@ import InstallmentPanel from "@/components/InstallmentPanel";
 import InstallmentTracker from "@/components/InstallmentTracker";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
+import EscrowPanel from "@/components/EscrowPanel";
 import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
 import PresenceIndicators from "@/components/PresenceIndicators";
@@ -390,6 +391,9 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Status Timeline */}
       <StatusTimeline invoice={invoice} total={total} />
+
+      {/* Escrow Panel */}
+      <EscrowPanel invoice={invoice} total={total} />
 
       {/* Custom Message */}
       {customization?.message && (
