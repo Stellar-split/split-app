@@ -1,6 +1,7 @@
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 import PaymentProgress from "./PaymentProgress";
+import CountdownTimer from "./CountdownTimer";
 
 interface Props {
   invoice: Invoice;
@@ -17,19 +18,21 @@ const STATUS_STYLES: Record<string, string> = {
  */
 export default function InvoiceCard({ invoice }: Props) {
   const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
+  const deadlineLabel = new Date(invoice.deadline * 1000).toLocaleDateString();
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl p-5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer border border-gray-200 dark:border-gray-800">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+    <div className="bg-gray-900 rounded-xl p-4 sm:p-5 hover:bg-gray-800 transition-colors cursor-pointer min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <span className="text-sm font-semibold text-gray-300">
           Invoice #{invoice.id}
         </span>
         <span
-          className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLES[invoice.status]}`}
+          className={`text-xs px-2 py-0.5 rounded-full font-semibold shrink-0 ${STATUS_STYLES[invoice.status]}`}
         >
           {invoice.status}
         </span>
       </div>
+      <p className="text-xs text-gray-500 mb-3">Due {deadlineLabel}</p>
 
       {/* Recipients */}
       <div className="flex flex-wrap gap-1 mb-3">
@@ -50,6 +53,13 @@ export default function InvoiceCard({ invoice }: Props) {
         <span>{formatAmount(invoice.funded)} USDC funded</span>
         <span>Total: {formatAmount(total)} USDC</span>
       </div>
+
+      {invoice.deadline > 0 && (
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-800">
+          <span className="text-xs text-gray-500">Deadline</span>
+          <CountdownTimer deadline={invoice.deadline} compact />
+        </div>
+      )}
     </div>
   );
 }

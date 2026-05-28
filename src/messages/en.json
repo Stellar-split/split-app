@@ -1,0 +1,85 @@
+{
+  "app": {
+    "title": "StellarSplit",
+    "description": "Create on-chain invoices on Stellar where multiple payers each owe a share. USDC auto-routes to recipients when fully funded."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "contacts": "Contacts",
+    "addressBook": "Address Book",
+    "leaderboard": "Leaderboard"
+  },
+  "home": {
+    "headline": "Split invoices on-chain. Instantly.",
+    "description": "StellarSplit lets you create on-chain invoices on Stellar where multiple payers each owe a share. USDC auto-routes to every recipient the moment the invoice is fully funded. Missed the deadline? Everyone gets refunded.",
+    "createInvoice": "Create Invoice",
+    "features": {
+      "onChain": {
+        "title": "On-chain & trustless",
+        "description": "Every invoice lives on Stellar Soroban. No middlemen, no custody."
+      },
+      "autoRelease": {
+        "title": "Auto-release",
+        "description": "Funds route to recipients the instant the last share is paid."
+      },
+      "autoRefund": {
+        "title": "Auto-refund",
+        "description": "If the deadline passes unfunded, every contributor is refunded."
+      }
+    },
+    "useCases": "Use cases: group bills · freelancer team payments · remittances across LATAM & Africa"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "payMultiple": "Pay Multiple",
+    "cancel": "Cancel",
+    "paySelected": "Pay Selected",
+    "newInvoice": "+ New Invoice",
+    "selectMessage": "Select pending invoices to pay in a single transaction.",
+    "noInvoices": "No invoices found. Create your first one!",
+    "analytics": "Analytics",
+    "totalSent": "Total USDC Sent",
+    "totalReceived": "Total USDC Received",
+    "totalInvoices": "Total Invoices",
+    "pending": "Pending",
+    "released": "Released",
+    "refunded": "Refunded",
+    "invoicesByWeek": "Invoices by Week (Last 30 Days)"
+  },
+  "invoiceNew": {
+    "title": "Create Invoice",
+    "equalSplit": "Equal Split",
+    "totalAmount": "Total Amount (USDC)",
+    "perRecipient": "USDC per recipient",
+    "recipients": "Recipients",
+    "recipientsAndAmounts": "Recipients & Amounts (USDC)",
+    "tokenAddress": "USDC Token Contract Address",
+    "deadline": "Deadline (days from now)",
+    "create": "Create Invoice",
+    "creating": "Creating…"
+  },
+  "addressBook": {
+    "title": "Address Book",
+    "addAddress": "Add Address",
+    "nickname": "Nickname",
+    "stellarAddress": "G... Stellar address",
+    "save": "Save Address",
+    "limitReached": "Limit reached (50)",
+    "noSaved": "No saved addresses yet.",
+    "edit": "Edit",
+    "remove": "Remove"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "subtitle": "Top USDC contributors across the latest invoices (1–100)",
+    "noPayments": "No payments found in invoices.",
+    "rank": "Rank",
+    "address": "Address",
+    "totalUsdc": "Total USDC",
+    "invoices": "Invoices",
+    "you": "You",
+    "yourRank": "Your wallet is ranked #{rank}.",
+    "notInTop": "(not in top 20)",
+    "backToDashboard": "Back to dashboard"
+  }
+}
