@@ -1,9 +1,11 @@
 import { formatAmount } from "@stellar-split/sdk";
+import { t, formatDate, type Locale } from "@/lib/receiptI18n";
 import type { Invoice } from "@stellar-split/sdk";
 
 interface Props {
   invoice: Invoice;
   total: bigint;
+  locale?: Locale;
 }
 
 /**
@@ -11,10 +13,10 @@ interface Props {
  * The button is hidden in print view via print:hidden.
  * The #invoice-print section is shown only in print via the global @media print styles.
  */
-export default function InvoicePDF({ invoice, total }: Props) {
+export default function InvoicePDF({ invoice, total, locale = "en" }: Props) {
   const deadline = invoice.deadline > 0
-    ? new Date(invoice.deadline * 1000).toLocaleString()
-    : "No deadline";
+    ? formatDate(new Date(invoice.deadline * 1000), locale)
+    : t(locale, "noDeadline");
 
   return (
     <>
@@ -29,36 +31,38 @@ export default function InvoicePDF({ invoice, total }: Props) {
 
       {/* Print-only content */}
       <div id="invoice-print" className="hidden print:block text-black bg-white p-8 text-sm leading-relaxed">
-        <h1 className="text-2xl font-bold mb-1">Invoice #{invoice.id}</h1>
-        <p className="text-gray-500 mb-6">StellarSplit On-Chain Invoice</p>
+        <h1 className="text-2xl font-bold mb-1">
+          {t(locale, "invoice")} #{invoice.id}
+        </h1>
+        <p className="text-gray-500 mb-6">{t(locale, "stellarSplitInvoice")}</p>
 
         <table className="w-full mb-6 text-left border-collapse">
           <tbody>
             <tr className="border-b border-gray-200">
-              <th className="py-1.5 pr-4 font-semibold w-32">Status</th>
+              <th className="py-1.5 pr-4 font-semibold w-32">{t(locale, "status")}</th>
               <td className="py-1.5">{invoice.status}</td>
             </tr>
             <tr className="border-b border-gray-200">
-              <th className="py-1.5 pr-4 font-semibold">Creator</th>
+              <th className="py-1.5 pr-4 font-semibold">{t(locale, "creator")}</th>
               <td className="py-1.5 font-mono break-all">{invoice.creator}</td>
             </tr>
             <tr className="border-b border-gray-200">
-              <th className="py-1.5 pr-4 font-semibold">Deadline</th>
+              <th className="py-1.5 pr-4 font-semibold">{t(locale, "deadline")}</th>
               <td className="py-1.5">{deadline}</td>
             </tr>
             <tr>
-              <th className="py-1.5 pr-4 font-semibold">Total</th>
+              <th className="py-1.5 pr-4 font-semibold">{t(locale, "total")}</th>
               <td className="py-1.5">{formatAmount(total)} USDC</td>
             </tr>
           </tbody>
         </table>
 
-        <h2 className="font-semibold text-base mb-2">Recipients</h2>
+        <h2 className="font-semibold text-base mb-2">{t(locale, "recipients")}</h2>
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b-2 border-gray-300">
-              <th className="text-left py-1.5 pr-4">Address</th>
-              <th className="text-right py-1.5">Amount (USDC)</th>
+              <th className="text-left py-1.5 pr-4">{t(locale, "address")}</th>
+              <th className="text-right py-1.5">{t(locale, "amount")}</th>
             </tr>
           </thead>
           <tbody>
