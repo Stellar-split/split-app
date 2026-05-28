@@ -46,6 +46,12 @@ export default function RootLayout({
               Dashboard
             </a>
             <a
+              href="/groups"
+              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
+            >
+              Groups
+            </a>
+            <a
               href="/address-book"
               className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center whitespace-nowrap"
             >
