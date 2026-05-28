@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 export interface AppNotification {
   id: string;
-  type: "payment" | "funded" | "released";
+  type: "payment" | "funded" | "released" | "reminder";
   invoiceId: string;
   message: string;
   timestamp: number;
@@ -153,6 +153,14 @@ export default function NotificationCenter() {
               ))}
             </ul>
           )}
+          <div className="border-t border-gray-700 px-4 py-2">
+            <button
+              onClick={() => { setOpen(false); router.push("/notifications"); }}
+              className="w-full min-h-11 text-xs text-indigo-400 hover:text-indigo-300 transition-colors text-center"
+            >
+              View all notifications
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -7,7 +7,10 @@ import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount } from "@stellar-split/sdk";
 import InvoiceCard from "@/components/InvoiceCard";
 import { SkeletonCard } from "@/components/Skeleton";
+import PayoutScheduler from "@/components/PayoutScheduler";
 import type { Invoice } from "@stellar-split/sdk";
+
+type InvoiceWithVesting = Invoice & { vestingCliff?: number; claimed?: string[] };
 
 /**
  * Recipient portal — shows all invoices where the connected wallet is a recipient.
@@ -86,6 +89,7 @@ export default function RecipientPage() {
       ) : (
         <ul className="flex flex-col gap-4" aria-label="Recipient invoice list">
           {invoices.map((inv) => {
+            const extended = inv as InvoiceWithVesting;
             const recipientAmount = inv.recipients.find(
               (r) => r.address === publicKey,
             )?.amount ?? 0n;
@@ -155,6 +159,13 @@ export default function RecipientPage() {
                     </div>
                   </div>
                 </Link>
+                {isReleased && extended.vestingCliff && (
+                  <PayoutScheduler
+                    invoiceId={inv.id}
+                    vestingCliff={extended.vestingCliff}
+                    publicKey={publicKey}
+                  />
+                )}
               </li>
             );
           })}
