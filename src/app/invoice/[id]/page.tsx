@@ -674,8 +674,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       {publicKey && (
         <CommentSection invoiceId={id} walletAddress={publicKey} />
       )}
-        </>
-      )}
+      
 
       {showCancelModal && invoice && (
         <CancelModal

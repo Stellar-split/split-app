@@ -62,7 +62,6 @@ export default function RootLayout({
             </a>
             <SimulationModeToggle />
             <NotificationCenter />
-          </nav>
         </header>
         <SimulationBanner />
         <UpgradeBanner />
@@ -76,6 +75,7 @@ export default function RootLayout({
             });
           }`}
         </Script>
+        </I18nProvider>
       </body>
     </html>
   );
