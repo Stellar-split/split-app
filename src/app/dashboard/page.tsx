@@ -196,6 +196,24 @@ export default function DashboardPage() {
             </>
           )}
           <Link
+            href="/analytics"
+            className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+          >
+            Analytics
+          </Link>
+          <Link
+            href="/invoice/compare"
+            className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+          >
+            Compare
+          </Link>
+          <Link
+            href="/invoice/import"
+            className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+          >
+            Import
+          </Link>
+          <Link
             href="/invoice/new"
             className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
           >
