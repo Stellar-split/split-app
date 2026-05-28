@@ -64,7 +64,7 @@ export default function VerifyPayButton({ invoiceId, status }: Props) {
       <button
         type="submit"
         disabled={paying}
-        className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+        className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         {paying ? "Sending…" : "Pay"}
       </button>

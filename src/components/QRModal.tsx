@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import FocusTrap from "./FocusTrap";
 import { QRCodeCanvas } from "qrcode.react";
 
 type QRModalProps = {
@@ -18,14 +19,7 @@ export default function QRModal({
   onCopied,
   onConnected,
 }: QRModalProps) {
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  // Escape and focus trapping handled by FocusTrap when open
 
   useEffect(() => {
     if (!open) return;

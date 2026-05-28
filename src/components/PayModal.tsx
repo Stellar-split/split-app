@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import FocusTrap from "./FocusTrap";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "./PaymentProgress";
 import PaymentBreakdownModal from "./PaymentBreakdownModal";
@@ -66,10 +67,11 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-gray-900 rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
+      <FocusTrap onClose={onClose}>
+        <div className="bg-gray-900 rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
         <div className="flex items-center justify-between">
           <h2 id="pay-modal-title" className="text-lg font-semibold">Pay Invoice #{invoice.id}</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-white text-xl leading-none">×</button>
+          <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-white text-xl leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">×</button>
         </div>
 
         {/* Current progress */}
@@ -94,7 +96,7 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
             placeholder="0.00"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             autoFocus
           />
         </div>
@@ -135,10 +137,11 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
           type="button"
           onClick={handleReview}
           disabled={paying || !parsed || parsed <= 0n}
-          className="w-full px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+          className="w-full px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {paying ? "Sending…" : "Review & Pay"}
         </button>
+      </FocusTrap>
       </div>
 
       {showBreakdown && (
