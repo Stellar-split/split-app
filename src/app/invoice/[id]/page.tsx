@@ -42,6 +42,7 @@ import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
+import FlowDiagram from "@/components/FlowDiagram";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -328,6 +329,10 @@ export default function InvoiceDetailPage({ params }: Props) {
           </h1>
           <VerifiedCreatorBadge address={invoice.creator} />
         </div>
+
+      <div className="mb-6">
+        <FlowDiagram invoice={invoice} />
+      </div>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
           aria-label={`Status: ${invoice.status}`}
