@@ -8,6 +8,7 @@ import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
 import TemplateManager from "@/components/TemplateManager";
 import TxConfirmModal from "@/components/TxConfirmModal";
+import { recordInvoiceHistory } from "@/lib/invoiceHistory";
 
 interface RecipientRow {
   address: string;
@@ -63,6 +64,12 @@ export default function NewInvoicePage() {
         ...(recurring && { recurring, intervalDays }),
       });
 
+      recordInvoiceHistory(
+        recipients.map((r) => ({
+          address: r.address,
+          amount: equalSplit ? (perRecipientAmount ?? "0") : r.amount,
+        }))
+      );
       setTxModal({ txHash, invoiceId });
     } catch (err) {
       setError(String(err));
@@ -72,7 +79,7 @@ export default function NewInvoicePage() {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-6 py-16">
+    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       {txModal && (
         <TxConfirmModal
           txHash={txModal.txHash}
@@ -80,7 +87,6 @@ export default function NewInvoicePage() {
           onClose={() => router.push(`/invoice/${txModal.invoiceId}`)}
         />
       )}
-    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">
