@@ -11,6 +11,7 @@ import {
   subscribeToInvoice,
 } from "@/lib/notifications";
 import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
+import { useInvoiceCustomization } from "@/lib/customization";
 import PaymentProgress from "@/components/PaymentProgress";
 import PayModal from "@/components/PayModal";
 import CountdownTimer from "@/components/CountdownTimer";
@@ -82,6 +83,11 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
+
+  // Payment retry state
+  const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint; fee?: bigint } | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [estimatedFee, setEstimatedFee] = useState<bigint | null>(null);
 
   // Reminder state
   const [reminderDate, setReminderDate] = useState("");
@@ -193,6 +199,8 @@ export default function InvoiceDetailPage({ params }: Props) {
         amount,
       });
       setTxHash(result.txHash);
+      setLastFailedPayment(null);
+      setRetryCount(0);
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
       await load();
     } catch (err) {
@@ -207,6 +215,8 @@ export default function InvoiceDetailPage({ params }: Props) {
         };
       });
       setError(String(err));
+      setLastFailedPayment({ amount });
+      setRetryCount((prev) => prev + 1);
     } finally {
       setPaying(false);
     }
@@ -242,6 +252,29 @@ export default function InvoiceDetailPage({ params }: Props) {
     setShowCancelModal(false);
   };
 
+  const handleRetryPayment = async () => {
+    if (!lastFailedPayment || !publicKey) return;
+    setError(null);
+    setPaying(true);
+    try {
+      const result = await splitClient.pay({
+        payer: publicKey,
+        invoiceId: id,
+        amount: lastFailedPayment.amount,
+      });
+      setTxHash(result.txHash);
+      setLastFailedPayment(null);
+      setRetryCount(0);
+      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+      await load();
+    } catch (err) {
+      setError(String(err));
+      setRetryCount((prev) => prev + 1);
+    } finally {
+      setPaying(false);
+    }
+  };
+
   if (error && !invoice) {
     return (
       <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
@@ -270,7 +303,9 @@ export default function InvoiceDetailPage({ params }: Props) {
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <PresenceIndicators invoiceId={id} currentAddress={publicKey} />
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">Invoice #{id}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">
+          {customization?.title ? customization.title : `Invoice #${id}`}
+        </h1>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
           aria-label={`Status: ${invoice.status}`}
@@ -316,6 +351,13 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Status Timeline */}
       <StatusTimeline invoice={invoice} total={total} />
+
+      {/* Custom Message */}
+      {customization?.message && (
+        <section className="mb-8 p-4 rounded-lg border-l-4" style={{ borderColor: customization.accentColor, backgroundColor: `${customization.accentColor}15` }}>
+          <p className="text-sm text-gray-300 whitespace-pre-wrap">{customization.message}</p>
+        </section>
+      )}
 
       {/* Vesting Timeline — only shown when vestingCliff is set */}
       {invoice.vestingCliff && (
@@ -471,7 +513,26 @@ export default function InvoiceDetailPage({ params }: Props) {
                 aria-describedby={error ? "pay-error" : undefined}
               />
             </div>
-            {error && <p id="pay-error" role="alert" className="text-red-400 text-sm">{error}</p>}
+            {error && (
+              <div id="pay-error" role="alert" className="flex flex-col gap-2">
+                <p className="text-red-400 text-sm">{error}</p>
+                {lastFailedPayment && retryCount < 3 && (
+                  <button
+                    type="button"
+                    onClick={handleRetryPayment}
+                    disabled={paying}
+                    className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {paying ? "Retrying…" : `Retry Payment (${retryCount}/3)`}
+                  </button>
+                )}
+                {retryCount >= 3 && (
+                  <p className="text-amber-400 text-sm">
+                    Max retries reached. Please refresh the page and try again.
+                  </p>
+                )}
+              </div>
+            )}
             {txHash && (
               <p role="status" className="text-green-400 text-sm">
                 Payment sent! Tx: {txHash.slice(0, 12)}…
