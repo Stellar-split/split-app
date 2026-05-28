@@ -30,6 +30,7 @@ import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
 import EscrowPanel from "@/components/EscrowPanel";
 import ActivityFeed from "@/components/ActivityFeed";
+import VelocityChart from "@/components/VelocityChart";
 import VestingTimeline from "@/components/VestingTimeline";
 import PresenceIndicators from "@/components/PresenceIndicators";
 import CollaborationCursors from "@/components/CollaborationCursors";

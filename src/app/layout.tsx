@@ -68,6 +68,7 @@ export default function RootLayout({
         <UpgradeBanner />
         <ErrorBoundary>{children}</ErrorBoundary>
         <OnboardingFlow />
+        <RecipientOnboarding />
         <Script id="register-sw" strategy="afterInteractive">
           {`if ("serviceWorker" in navigator) {
             window.addEventListener("load", function () {

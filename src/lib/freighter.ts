@@ -20,7 +20,7 @@ async function initWalletConnectKit() {
   if (typeof window === "undefined") throw new Error("Browser only");
 
   try {
-    const { getStellarWalletKit } = await import("@stellar/walletconnect-kit");
+    const { getStellarWalletKit } = await import("@/lib/walletconnect-kit-stub");
     walletConnectKit = getStellarWalletKit();
     return walletConnectKit;
   } catch {
