@@ -22,6 +22,7 @@ import StatusTimeline from "@/components/StatusTimeline";
 import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
 import ReputationBadge from "@/components/ReputationBadge";
+import FeeOptimizer from "@/components/FeeOptimizer";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
@@ -430,6 +431,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         <section aria-labelledby="pay-heading" className="mb-8">
           <form onSubmit={handlePay} className="flex flex-col gap-4">
             <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
+            <FeeOptimizer />
             <div>
               <label htmlFor="pay-amount" className="block text-sm font-medium text-gray-300 mb-1">
                 Amount (USDC)
