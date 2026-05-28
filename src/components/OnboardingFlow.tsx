@@ -51,7 +51,7 @@ export default function OnboardingFlow() {
           <div className="flex flex-col gap-4">
             <h2 className="text-xl font-bold">Welcome to StellarSplit</h2>
             <p className="text-sm text-gray-400">
-              Let's get you started. First, connect your Freighter wallet.
+              Let&apos;s get you started. First, connect your Freighter wallet.
             </p>
             <WalletConnect />
             <div className="flex gap-2 mt-4">

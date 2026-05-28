@@ -46,9 +46,7 @@ export default function RecipientPieChart({ recipients, total }: Props) {
           labelStyle={{ display: "none" }}
         />
         <Legend
-          formatter={(value: string, entry: { payload?: { amount: bigint } }) =>
-            `${value} — ${formatAmount(entry.payload?.amount ?? 0n)} USDC`
-          }
+          formatter={(value: string) => value}
           wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
         />
       </PieChart>

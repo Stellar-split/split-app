@@ -34,7 +34,7 @@ export default function PaymentSuggestions({
     },
     {
       label: "Pay my share",
-      amount: userShare,
+      amount: userShare ?? 0n,
       show: userShare && userShare > 0n,
     },
   ];
