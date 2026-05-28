@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
-import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
+import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
 import TxConfirmModal from "@/components/TxConfirmModal";
 
@@ -18,6 +18,7 @@ interface RecipientRow {
  */
 export default function NewInvoicePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [recipients, setRecipients] = useState<RecipientRow[]>([
     { address: "", amount: "" },
   ]);
@@ -32,6 +33,37 @@ export default function NewInvoicePage() {
   const [txModal, setTxModal] = useState<{ txHash: string; invoiceId: string } | null>(null);
   const [equalSplit, setEqualSplit] = useState(false);
   const [totalAmount, setTotalAmount] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Load source invoice if duplicating
+  useEffect(() => {
+    const fromId = searchParams.get("from");
+    if (!fromId) return;
+
+    setLoading(true);
+    splitClient
+      .getInvoice(fromId)
+      .then((invoice) => {
+        // Pre-fill recipients and amounts
+        const recipientRows = invoice.recipients.map((r) => ({
+          address: r.address,
+          amount: formatAmount(r.amount),
+        }));
+        setRecipients(recipientRows);
+        
+        // Pre-fill token
+        setToken(invoice.token);
+        
+        // Reset deadline to default (7 days)
+        setDeadlineDays(7);
+      })
+      .catch((err) => {
+        setError(`Failed to load source invoice: ${err}`);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [searchParams]);
 
   const perRecipientAmount =
     equalSplit && totalAmount && recipients.length > 0
@@ -66,7 +98,7 @@ export default function NewInvoicePage() {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-6 py-16">
+    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       {txModal && (
         <TxConfirmModal
           txHash={txModal.txHash}
@@ -74,8 +106,13 @@ export default function NewInvoicePage() {
           onClose={() => router.push(`/invoice/${txModal.invoiceId}`)}
         />
       )}
-    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+
+      {loading && (
+        <div className="text-center py-8">
+          <p className="text-gray-400" aria-live="polite">Loading invoice data…</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">
         {/* Equal Split toggle */}
