@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
+import { getSimulationMode } from "@/lib/simulationMode";
 import {
   isSubscribedToInvoice,
   notifyInvoiceReleased,
@@ -179,14 +180,23 @@ export default function InvoiceDetailPage({ params }: Props) {
     });
     setPaying(true);
     try {
-      const result = await splitClient.pay({
-        payer: publicKey,
-        invoiceId: id,
-        amount,
-      });
+      const isSimulation = getSimulationMode();
+      const result = isSimulation
+        ? await splitClient.simulatePay({
+            payer: publicKey,
+            invoiceId: id,
+            amount,
+          })
+        : await splitClient.pay({
+            payer: publicKey,
+            invoiceId: id,
+            amount,
+          });
       setTxHash(result.txHash);
-      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
-      await load();
+      if (!isSimulation) {
+        window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+        await load();
+      }
     } catch (err) {
       setInvoice((prev) => {
         if (!prev) return prev;

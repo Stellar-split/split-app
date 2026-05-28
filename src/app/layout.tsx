@@ -3,6 +3,8 @@ import Script from "next/script";
 import "./globals.css";
 import NotificationCenter from "@/components/NotificationCenter";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import SimulationModeToggle from "@/components/SimulationModeToggle";
+import SimulationBanner from "@/components/SimulationBanner";
 
 export const metadata: Metadata = {
   title: "StellarSplit — On-chain Invoice Splitting",
@@ -58,9 +60,11 @@ export default function RootLayout({
             >
               Leaderboard
             </a>
+            <SimulationModeToggle />
             <NotificationCenter />
           </nav>
         </header>
+        <SimulationBanner />
         <ErrorBoundary>{children}</ErrorBoundary>
         <Script id="register-sw" strategy="afterInteractive">
           {`if ("serviceWorker" in navigator) {
