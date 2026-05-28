@@ -46,8 +46,8 @@ export default function RecipientPieChart({ recipients, total }: Props) {
           labelStyle={{ display: "none" }}
         />
         <Legend
-          formatter={(value: string) => value}
           wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+          formatter={(value: string) => value}
         />
       </PieChart>
     </ResponsiveContainer>

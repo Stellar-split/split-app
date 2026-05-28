@@ -9,6 +9,12 @@ const nextConfig = {
           { key: "Service-Worker-Allowed", value: "/" },
         ],
       },
+      {
+        source: "/embed/:id",
+        headers: [
+          { key: "X-Frame-Options", value: "ALLOWALL" },
+        ],
+      },
     ];
   },
   webpack: (config, { isServer }) => {
