@@ -8,9 +8,9 @@ interface Props {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  Pending: "bg-yellow-500/20 text-yellow-300",
-  Released: "bg-green-500/20 text-green-300",
-  Refunded: "bg-gray-500/20 text-gray-300",
+  Pending: "bg-yellow-500/20 text-yellow-600 dark:text-yellow-300",
+  Released: "bg-green-500/20 text-green-600 dark:text-green-300",
+  Refunded: "bg-gray-500/20 text-gray-600 dark:text-gray-300",
 };
 
 /**
@@ -39,7 +39,7 @@ export default function InvoiceCard({ invoice }: Props) {
         {invoice.recipients.map((r, i) => (
           <span
             key={i}
-            className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded font-mono"
+            className="text-xs bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-400 px-2 py-0.5 rounded font-mono"
           >
             {truncateAddress(r.address)}
           </span>
@@ -49,7 +49,7 @@ export default function InvoiceCard({ invoice }: Props) {
       {/* Progress */}
       <PaymentProgress funded={invoice.funded} total={total} />
 
-      <div className="flex justify-between text-xs text-gray-500 mt-1">
+      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500 mt-1">
         <span>{formatAmount(invoice.funded)} USDC funded</span>
         <span>Total: {formatAmount(total)} USDC</span>
       </div>

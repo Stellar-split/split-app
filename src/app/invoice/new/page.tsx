@@ -162,7 +162,7 @@ export default function NewInvoicePage() {
             aria-label="Toggle equal split mode"
             onClick={() => setEqualSplit((v) => !v)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              equalSplit ? "bg-indigo-600" : "bg-gray-600"
+              equalSplit ? "bg-indigo-600" : "bg-gray-300 dark:bg-gray-600"
             }`}
           >
             <span

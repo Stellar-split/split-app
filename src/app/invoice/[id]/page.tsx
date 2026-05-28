@@ -405,7 +405,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       <section aria-labelledby="progress-heading" className="mb-8">
         <h2 id="progress-heading" className="sr-only">Payment Progress</h2>
         <PaymentProgress funded={invoice.funded} total={total} />
-        <p className="text-sm text-gray-400 mt-1">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
           {formatAmount(invoice.funded)} / {formatAmount(total)} USDC funded
         </p>
         {invoice.deadline > 0 && (
