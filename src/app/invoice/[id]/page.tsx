@@ -77,6 +77,11 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
 
+  // Payment retry state
+  const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint; fee?: bigint } | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [estimatedFee, setEstimatedFee] = useState<bigint | null>(null);
+
   // Reminder state
   const [reminderDate, setReminderDate] = useState("");
   const [reminderMsg, setReminderMsg] = useState("");
@@ -187,6 +192,8 @@ export default function InvoiceDetailPage({ params }: Props) {
         amount,
       });
       setTxHash(result.txHash);
+      setLastFailedPayment(null);
+      setRetryCount(0);
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
       await load();
     } catch (err) {
@@ -201,6 +208,8 @@ export default function InvoiceDetailPage({ params }: Props) {
         };
       });
       setError(String(err));
+      setLastFailedPayment({ amount });
+      setRetryCount((prev) => prev + 1);
     } finally {
       setPaying(false);
     }
@@ -235,6 +244,29 @@ export default function InvoiceDetailPage({ params }: Props) {
     await (splitClient as any).cancelInvoice(id);
     await load();
     setShowCancelModal(false);
+  };
+
+  const handleRetryPayment = async () => {
+    if (!lastFailedPayment || !publicKey) return;
+    setError(null);
+    setPaying(true);
+    try {
+      const result = await splitClient.pay({
+        payer: publicKey,
+        invoiceId: id,
+        amount: lastFailedPayment.amount,
+      });
+      setTxHash(result.txHash);
+      setLastFailedPayment(null);
+      setRetryCount(0);
+      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+      await load();
+    } catch (err) {
+      setError(String(err));
+      setRetryCount((prev) => prev + 1);
+    } finally {
+      setPaying(false);
+    }
   };
 
   if (error && !invoice) {
@@ -444,7 +476,26 @@ export default function InvoiceDetailPage({ params }: Props) {
                 aria-describedby={error ? "pay-error" : undefined}
               />
             </div>
-            {error && <p id="pay-error" role="alert" className="text-red-400 text-sm">{error}</p>}
+            {error && (
+              <div id="pay-error" role="alert" className="flex flex-col gap-2">
+                <p className="text-red-400 text-sm">{error}</p>
+                {lastFailedPayment && retryCount < 3 && (
+                  <button
+                    type="button"
+                    onClick={handleRetryPayment}
+                    disabled={paying}
+                    className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {paying ? "Retrying…" : `Retry Payment (${retryCount}/3)`}
+                  </button>
+                )}
+                {retryCount >= 3 && (
+                  <p className="text-amber-400 text-sm">
+                    Max retries reached. Please refresh the page and try again.
+                  </p>
+                )}
+              </div>
+            )}
             {txHash && (
               <p role="status" className="text-green-400 text-sm">
                 Payment sent! Tx: {txHash.slice(0, 12)}…
