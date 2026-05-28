@@ -5,6 +5,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
+import { recordInvoiceHistory } from "@/lib/invoiceHistory";
 
 interface RecipientRow {
   address: string;
@@ -63,6 +64,14 @@ export default function BatchInvoicePage() {
           ids.push(invoiceId);
         }
       }
+      recordInvoiceHistory(
+        rows.flatMap((row) =>
+          row.recipients.map((recipient) => ({
+            address: recipient.address,
+            amount: recipient.amount,
+          }))
+        )
+      );
       setCreatedIds(ids);
     } catch (err) {
       setError(String(err));
