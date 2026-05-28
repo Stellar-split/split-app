@@ -65,9 +65,11 @@ export default function RootLayout({
             >
               Leaderboard
             </a>
+            <SimulationModeToggle />
             <NotificationCenter />
           </nav>
         </header>
+        <SimulationBanner />
         <ErrorBoundary>{children}</ErrorBoundary>
         <OnboardingFlow />
         <Script id="register-sw" strategy="afterInteractive">
