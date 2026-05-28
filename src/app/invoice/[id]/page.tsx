@@ -20,6 +20,7 @@ import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
 import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
+import PaymentSuggestions from "@/components/PaymentSuggestions";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
@@ -431,6 +432,12 @@ export default function InvoiceDetailPage({ params }: Props) {
                 required
                 className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 aria-describedby={error ? "pay-error" : undefined}
+              />
+              <PaymentSuggestions
+                invoice={invoice}
+                total={total}
+                publicKey={publicKey}
+                onSuggest={setPayAmount}
               />
             </div>
             {error && <p id="pay-error" role="alert" className="text-red-400 text-sm">{error}</p>}
