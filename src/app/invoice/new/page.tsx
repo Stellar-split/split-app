@@ -7,6 +7,7 @@ import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
 import TxConfirmModal from "@/components/TxConfirmModal";
+import CustomizationPanel from "@/components/CustomizationPanel";
 
 interface RecipientRow {
   address: string;
@@ -32,6 +33,7 @@ export default function NewInvoicePage() {
   const [txModal, setTxModal] = useState<{ txHash: string; invoiceId: string } | null>(null);
   const [equalSplit, setEqualSplit] = useState(false);
   const [totalAmount, setTotalAmount] = useState("");
+  const [customizationInvoiceId, setCustomizationInvoiceId] = useState<string | null>(null);
 
   const perRecipientAmount =
     equalSplit && totalAmount && recipients.length > 0
@@ -57,6 +59,7 @@ export default function NewInvoicePage() {
         ...(recurring && { recurring, intervalDays }),
       });
 
+      setCustomizationInvoiceId(invoiceId);
       setTxModal({ txHash, invoiceId });
     } catch (err) {
       setError(String(err));
@@ -78,6 +81,11 @@ export default function NewInvoicePage() {
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">
+        {/* Customization Panel */}
+        {customizationInvoiceId ? (
+          <CustomizationPanel invoiceId={customizationInvoiceId} />
+        ) : null}
+
         {/* Equal Split toggle */}
         <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
           <label htmlFor="equal-split-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
