@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { connectFreighter, getFreighterPublicKey } from "@/lib/freighter";
-import { truncateAddress } from "@stellar-split/sdk";
-import { fetchUsdcBalance } from "@/lib/stellar";
+import { truncateAddress, formatAmount } from "@stellar-split/sdk";
+import { fetchUsdcBalance, USDC_CONTRACT_ID } from "@/lib/stellar";
 import QRModal from "@/components/QRModal";
 
 /**
@@ -17,10 +17,21 @@ export default function WalletConnect() {
   const [balance, setBalance] = useState<bigint | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
 
+  const USDC_CONTRACT_ID = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "";
+
   const loadBalance = async (addr: string) => {
+    if (!USDC_CONTRACT_ID) {
+      setBalance(null);
+      return;
+    }
+
     setBalanceLoading(true);
     try {
       const usdcAddress = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "";
+      if (!usdcAddress) {
+        setBalance(null);
+        return;
+      }
       const bal = await fetchUsdcBalance(addr, usdcAddress);
       setBalance(bal);
     } catch {
@@ -52,6 +63,11 @@ export default function WalletConnect() {
       .then((pk) => setAddress(pk))
       .catch(() => null);
   }, []);
+
+  useEffect(() => {
+    if (!address) return;
+    loadBalance(address);
+  }, [address]);
 
   const handleConnect = async () => {
     setLoading(true);
@@ -92,17 +108,28 @@ export default function WalletConnect() {
 
   if (address) {
     return (
-      <div className="flex items-center gap-2">
-        <span className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-gray-800 text-sm font-mono text-gray-300">
-          {truncateAddress(address)}
-        </span>
-        <button
-          onClick={handleDisconnect}
-          className="min-h-11 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
-          aria-label="Disconnect wallet"
-        >
-          Disconnect
-        </button>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-2">
+          <span className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-gray-800 text-sm font-mono text-gray-300">
+            {truncateAddress(address)}
+          </span>
+          <button
+            onClick={handleDisconnect}
+            className="min-h-11 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+            aria-label="Disconnect wallet"
+          >
+            Disconnect
+          </button>
+        </div>
+        <div className="text-sm text-gray-400">
+          {balanceLoading
+            ? "Loading USDC…"
+            : balance !== null
+            ? `${formatAmount(balance)} USDC`
+            : USDC_CONTRACT_ID
+            ? "Unable to load balance"
+            : "USDC contract not configured"}
+        </div>
       </div>
     );
   }
@@ -113,7 +140,7 @@ export default function WalletConnect() {
         <button
           onClick={handleWalletConnectOption}
           disabled={loading}
-          className="min-h-11 px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 font-semibold transition-colors disabled:opacity-50"
+          className="min-h-11 px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           aria-label="Connect Wallet via QR"
         >
           WalletConnect
@@ -122,7 +149,7 @@ export default function WalletConnect() {
         <button
           onClick={handleConnect}
           disabled={loading}
-          className="min-h-11 px-6 py-3 rounded-lg bg-gray-900 hover:bg-gray-800 font-semibold transition-colors disabled:opacity-50 border border-gray-800"
+          className="min-h-11 px-6 py-3 rounded-lg bg-gray-900 hover:bg-gray-800 font-semibold transition-colors disabled:opacity-50 border border-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           aria-label="Connect Freighter wallet"
         >
           {loading ? "Connecting…" : "Connect Wallet"}

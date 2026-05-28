@@ -109,7 +109,7 @@ export default function CommentSection({ invoiceId, walletAddress }: Props) {
               <button
                 onClick={() => handleDelete(c.id)}
                 aria-label="Delete note"
-                className="flex-shrink-0 min-h-11 min-w-11 text-gray-600 hover:text-red-400 transition-colors text-xs"
+                className="flex-shrink-0 min-h-11 min-w-11 text-gray-600 hover:text-red-400 transition-colors text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 ✕
               </button>
@@ -125,12 +125,12 @@ export default function CommentSection({ invoiceId, walletAddress }: Props) {
           onChange={(e) => setText(e.target.value)}
           placeholder="Add a private note…"
           rows={2}
-          className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         />
         <button
           type="submit"
           disabled={!text.trim()}
-          className="self-end min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-40"
+          className="self-end min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           Add Note
         </button>

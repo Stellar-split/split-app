@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { getSimulationMode } from "@/lib/simulationMode";
@@ -11,31 +12,43 @@ import {
   subscribeToInvoice,
 } from "@/lib/notifications";
 import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
+import { useInvoiceCustomization } from "@/lib/customization";
 import PaymentProgress from "@/components/PaymentProgress";
 import PayModal from "@/components/PayModal";
+import PaymentMethodSelector from "@/components/PaymentMethodSelector";
+import CoCreatorPanel from "@/components/CoCreatorPanel";
+import AuditLogTable from "@/components/AuditLogTable";
 import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
+import PaymentCertificate from "@/components/PaymentCertificate";
+import PaymentSourceBar from "@/components/PaymentSourceBar";
+import VersionHistory from "@/components/VersionHistory";
 import InstallmentPanel from "@/components/InstallmentPanel";
+import InstallmentTracker from "@/components/InstallmentTracker";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
 import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
-import ReputationBadge from "@/components/ReputationBadge";
-import FeeOptimizer from "@/components/FeeOptimizer";
+import PresenceIndicators from "@/components/PresenceIndicators";
+import SplitCalculator from "@/components/SplitCalculator";
+import InvoiceQR from "@/components/InvoiceQR";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import VotingPanel from "@/components/VotingPanel";
+import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
 
 // Extend the SDK Invoice type with vesting fields (not yet in published SDK)
 type InvoiceWithVesting = Invoice & {
-  vestingCliff?: number; // unix timestamp (seconds)
-  claimed?: string[];    // addresses that have claimed
+  vestingCliff?: number;    // unix timestamp (seconds)
+  claimed?: string[];       // addresses that have claimed
+  extensionVotes?: number;  // current votes to extend deadline
 };
 
 interface Props {
@@ -65,6 +78,7 @@ function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceVie
  */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
+  const router = useRouter();
   const [invoice, setInvoice] = useState<InvoiceView | null>(null);
   const [previousInvoice, setPreviousInvoice] = useState<Invoice | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
@@ -76,6 +90,12 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [locale, setLocale] = useState<Locale>("en");
+
+  // Payment retry state
+  const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint; fee?: bigint } | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [estimatedFee, setEstimatedFee] = useState<bigint | null>(null);
 
   // Reminder state
   const [reminderDate, setReminderDate] = useState("");
@@ -144,6 +164,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       setReminderDate(existing.reminderDate.slice(0, 16)); // datetime-local format
       setReminderMsg(existing.message);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -156,6 +177,7 @@ export default function InvoiceDetailPage({ params }: Props) {
     }, POLL_MS);
 
     return () => clearInterval(pollId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, invoice?.status]);
 
   const total = invoice
@@ -181,21 +203,16 @@ export default function InvoiceDetailPage({ params }: Props) {
     });
     setPaying(true);
     try {
-      const isSimulation = getSimulationMode();
-      if (isSimulation) {
-        // Simulate payment without sending transaction
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setTxHash(`sim-${Date.now()}`);
-      } else {
-        const result = await splitClient.pay({
-          payer: publicKey,
-          invoiceId: id,
-          amount,
-        });
-        setTxHash(result.txHash);
-        window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
-        await load();
-      }
+      const result = await splitClient.pay({
+        payer: publicKey,
+        invoiceId: id,
+        amount,
+      });
+      setTxHash(result.txHash);
+      setLastFailedPayment(null);
+      setRetryCount(0);
+      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+      await load();
     } catch (err) {
       setInvoice((prev) => {
         if (!prev) return prev;
@@ -208,6 +225,8 @@ export default function InvoiceDetailPage({ params }: Props) {
         };
       });
       setError(String(err));
+      setLastFailedPayment({ amount });
+      setRetryCount((prev) => prev + 1);
     } finally {
       setPaying(false);
     }
@@ -243,6 +262,29 @@ export default function InvoiceDetailPage({ params }: Props) {
     setShowCancelModal(false);
   };
 
+  const handleRetryPayment = async () => {
+    if (!lastFailedPayment || !publicKey) return;
+    setError(null);
+    setPaying(true);
+    try {
+      const result = await splitClient.pay({
+        payer: publicKey,
+        invoiceId: id,
+        amount: lastFailedPayment.amount,
+      });
+      setTxHash(result.txHash);
+      setLastFailedPayment(null);
+      setRetryCount(0);
+      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+      await load();
+    } catch (err) {
+      setError(String(err));
+      setRetryCount((prev) => prev + 1);
+    } finally {
+      setPaying(false);
+    }
+  };
+
   if (error && !invoice) {
     return (
       <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
@@ -269,16 +311,29 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   return (
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
+      <PresenceIndicators invoiceId={id} currentAddress={publicKey} />
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">Invoice #{id}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">
+          {customization?.title ? customization.title : `Invoice #${id}`}
+        </h1>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
           aria-label={`Status: ${invoice.status}`}
         >
           {invoice.status}
         </span>
-        <div className="ml-auto flex items-center gap-2 print:hidden">
+        <div className="ml-auto flex items-center gap-2 print:hidden flex-wrap justify-end">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm transition-colors"
+            aria-label="Receipt language"
+          >
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
           <button
             type="button"
             onClick={() => window.print()}
@@ -287,6 +342,15 @@ export default function InvoiceDetailPage({ params }: Props) {
             Print Invoice
           </button>
         </div>
+        {invoice.status === "Released" && (
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="sm:ml-auto min-h-11 px-3 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-sm transition-colors print:hidden self-start sm:self-auto"
+          >
+            Download Certificate
+          </button>
+        )}
         <button
           type="button"
           onClick={() => window.print()}
@@ -294,6 +358,15 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           Print Invoice
         </button>
+        {isCreator && (
+          <button
+            type="button"
+            onClick={() => router.push(`/invoice/new?from=${id}`)}
+            className="px-3 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-sm transition-colors print:hidden"
+          >
+            Duplicate
+          </button>
+        )}
         {isCreator && invoice.status === "Pending" && (
           <button
             type="button"
@@ -305,8 +378,18 @@ export default function InvoiceDetailPage({ params }: Props) {
         )}
       </div>
 
+      {/* Invoice PDF — print-only */}
+      <InvoicePDF invoice={invoice} total={total} locale={locale} />
+
       {/* Status Timeline */}
       <StatusTimeline invoice={invoice} total={total} />
+
+      {/* Custom Message */}
+      {customization?.message && (
+        <section className="mb-8 p-4 rounded-lg border-l-4" style={{ borderColor: customization.accentColor, backgroundColor: `${customization.accentColor}15` }}>
+          <p className="text-sm text-gray-300 whitespace-pre-wrap">{customization.message}</p>
+        </section>
+      )}
 
       {/* Vesting Timeline — only shown when vestingCliff is set */}
       {invoice.vestingCliff && (
@@ -332,6 +415,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           </div>
         )}
       </section>
+
+      {/* QR Code */}
+      <InvoiceQR invoiceId={id} />
 
       {/* Release notifications */}
       <section className="mb-8">
@@ -359,30 +445,39 @@ export default function InvoiceDetailPage({ params }: Props) {
         {invoice.payments.length === 0 ? (
           <p className="text-gray-500 text-sm">No payments yet.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {invoice.payments.map((p, i) => (
-              <li
-                key={p.clientKey ?? `${p.payer}-${i}`}
-                className="flex flex-wrap items-center justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm"
-              >
-                <span className="font-mono text-gray-300 truncate max-w-[55%]">
-                  {p.payer}
-                </span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-indigo-300">{formatAmount(p.amount)} USDC</span>
-                  {p.pending && (
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full">
-                      <span
-                        className="inline-block h-3 w-3 rounded-full border-2 border-amber-300 border-t-transparent animate-spin"
-                        aria-hidden
-                      />
-                      Confirming…
-                    </span>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <>
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-400 mb-3">Payment Sources</h3>
+              <PaymentSourceBar
+                payments={invoice.payments.filter((p) => !p.pending)}
+                total={total}
+              />
+            </div>
+            <ul className="flex flex-col gap-2">
+              {invoice.payments.map((p, i) => (
+                <li
+                  key={p.clientKey ?? `${p.payer}-${i}`}
+                  className="flex flex-wrap items-center justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm"
+                >
+                  <span className="font-mono text-gray-300 truncate max-w-[55%]">
+                    {p.payer}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-indigo-300">{formatAmount(p.amount)} USDC</span>
+                    {p.pending && (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full">
+                        <span
+                          className="inline-block h-3 w-3 rounded-full border-2 border-amber-300 border-t-transparent animate-spin"
+                          aria-hidden
+                        />
+                        Confirming…
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </section>
 
@@ -409,6 +504,9 @@ export default function InvoiceDetailPage({ params }: Props) {
         </ul>
       </section>
 
+      {/* Split Calculator */}
+      {invoice.status === "Pending" && <SplitCalculator invoice={invoice} />}
+
       <ActivityFeed
         invoice={{
           ...invoice,
@@ -419,15 +517,35 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Installment schedule — only shown to payers with a registered plan */}
       {publicKey && (
-        <InstallmentPanel invoiceId={id} publicKey={publicKey} />
+        <>
+          <InstallmentTracker
+            invoice={invoice}
+            publicKey={publicKey}
+            onPayNow={(amount) => {
+              setPayAmount(formatAmount(amount));
+              setShowPayModal(true);
+            }}
+          />
+          <InstallmentPanel invoiceId={id} publicKey={publicKey} />
+        </>
+      )}
+
+      {/* Deadline extension voting — shown to payers on Pending invoices */}
+      {publicKey && (
+        <VotingPanel invoice={invoice} publicKey={publicKey} />
+      )}
+
+      {/* Co-Creator Management — only shown to primary creator */}
+      {publicKey && (
+        <CoCreatorPanel invoice={invoice} publicKey={publicKey} onUpdate={load} />
       )}
 
       {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
         <section aria-labelledby="pay-heading" className="mb-8">
+          <h2 id="pay-heading" className="text-lg font-semibold mb-4">Pay toward this invoice</h2>
+          <PaymentMethodSelector onMethodChange={setPaymentMethod} />
           <form onSubmit={handlePay} className="flex flex-col gap-4">
-            <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
-            <FeeOptimizer />
             <div>
               <label htmlFor="pay-amount" className="block text-sm font-medium text-gray-300 mb-1">
                 Amount (USDC)
@@ -444,8 +562,33 @@ export default function InvoiceDetailPage({ params }: Props) {
                 className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 aria-describedby={error ? "pay-error" : undefined}
               />
+              <PaymentSuggestions
+                invoice={invoice}
+                total={total}
+                publicKey={publicKey}
+                onSuggest={setPayAmount}
+              />
             </div>
-            {error && <p id="pay-error" role="alert" className="text-red-400 text-sm">{error}</p>}
+            {error && (
+              <div id="pay-error" role="alert" className="flex flex-col gap-2">
+                <p className="text-red-400 text-sm">{error}</p>
+                {lastFailedPayment && retryCount < 3 && (
+                  <button
+                    type="button"
+                    onClick={handleRetryPayment}
+                    disabled={paying}
+                    className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {paying ? "Retrying…" : `Retry Payment (${retryCount}/3)`}
+                  </button>
+                )}
+                {retryCount >= 3 && (
+                  <p className="text-amber-400 text-sm">
+                    Max retries reached. Please refresh the page and try again.
+                  </p>
+                )}
+              </div>
+            )}
             {txHash && (
               <p role="status" className="text-green-400 text-sm">
                 Payment sent! Tx: {txHash.slice(0, 12)}…
@@ -482,9 +625,14 @@ export default function InvoiceDetailPage({ params }: Props) {
         </p>
       )}
 
+      {/* Audit Log */}
+      <AuditLogTable invoiceId={id} />
+
       {/* Private notes — only visible to the connected wallet */}
       {publicKey && (
         <CommentSection invoiceId={id} walletAddress={publicKey} />
+      )}
+        </>
       )}
 
       {showCancelModal && invoice && (
@@ -493,6 +641,14 @@ export default function InvoiceDetailPage({ params }: Props) {
           payments={invoice.payments}
           onConfirm={handleCancelInvoice}
           onClose={() => setShowCancelModal(false)}
+        />
+      )}
+
+      {invoice.status === "Released" && (
+        <PaymentCertificate
+          invoice={invoice}
+          total={total}
+          verifyUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`}
         />
       )}
     </main>

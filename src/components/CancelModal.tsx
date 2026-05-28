@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import FocusTrap from "./FocusTrap";
 import { formatAmount } from "@stellar-split/sdk";
 import type { Payment } from "@stellar-split/sdk";
 
@@ -29,12 +30,7 @@ export default function CancelModal({ invoiceId, payments, onConfirm, onClose }:
 
   const refundEntries = Object.entries(refunds);
 
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
+  // Focus trap and Escape handled by FocusTrap
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -55,17 +51,18 @@ export default function CancelModal({ invoiceId, payments, onConfirm, onClose }:
       aria-labelledby="cancel-modal-title"
       onClick={onClose}
     >
-      <div
-        className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <FocusTrap onClose={onClose}>
+        <div
+          className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md"
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="flex items-center justify-between mb-4">
           <h2 id="cancel-modal-title" className="text-lg font-semibold text-red-400">
             Cancel Invoice #{invoiceId}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-200 text-xl leading-none"
+            className="text-gray-400 hover:text-gray-200 text-xl leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-label="Close"
           >
             ×
@@ -102,13 +99,13 @@ export default function CancelModal({ invoiceId, payments, onConfirm, onClose }:
             <div className="flex gap-3">
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+                className="flex-1 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 Go Back
               </button>
               <button
                 onClick={() => setStep("confirm")}
-                className="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-semibold transition-colors"
+                className="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 Continue
               </button>
@@ -128,20 +125,21 @@ export default function CancelModal({ invoiceId, payments, onConfirm, onClose }:
               <button
                 onClick={() => setStep("preview")}
                 disabled={loading}
-                className="flex-1 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 Back
               </button>
               <button
                 onClick={handleConfirm}
                 disabled={loading}
-                className="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 {loading ? "Cancelling…" : "Confirm Cancel"}
               </button>
             </div>
           </>
         )}
+      </FocusTrap>
       </div>
     </div>
   );
