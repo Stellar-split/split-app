@@ -85,7 +85,7 @@ export default function RecipientForm({
               onBlur={handleAddressBlur}
               required
               aria-label={`Recipient ${i + 1} address`}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 min-h-11 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 min-h-11 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 font-mono"
             />
             {activeIndex === i && suggestions.length > 0 && (
               <ul className="absolute z-10 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto">
@@ -94,7 +94,7 @@ export default function RecipientForm({
                     <button
                       type="button"
                       onMouseDown={() => selectSuggestion(i, entry)}
-                      className="w-full min-h-11 text-left px-3 py-2 text-sm hover:bg-gray-700 font-mono truncate"
+                      className="w-full min-h-11 text-left px-3 py-2 text-sm hover:bg-gray-700 font-mono truncate focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     >
                       {entry.nickname} — {entry.address}
                     </button>
@@ -115,7 +115,7 @@ export default function RecipientForm({
             readOnly={equalSplit}
             required
             aria-label={`Recipient ${i + 1} amount`}
-            className={`w-full sm:w-28 bg-gray-800 border rounded-lg px-3 py-2 min-h-11 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+            className={`w-full sm:w-28 bg-gray-800 border rounded-lg px-3 py-2 min-h-11 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
               equalSplit
                 ? "border-gray-600 text-gray-400 cursor-not-allowed"
                 : "border-gray-700"
@@ -126,7 +126,7 @@ export default function RecipientForm({
               type="button"
               onClick={() => removeRow(i)}
               aria-label={`Remove recipient ${i + 1}`}
-              className="min-h-11 px-3 py-2 rounded-lg bg-gray-700 hover:bg-red-700 text-sm transition-colors sm:self-start"
+              className="min-h-11 px-3 py-2 rounded-lg bg-gray-700 hover:bg-red-700 text-sm transition-colors sm:self-start focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               ✕
             </button>
@@ -137,7 +137,7 @@ export default function RecipientForm({
       <button
         type="button"
         onClick={addRow}
-        className="self-start min-h-11 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors"
+        className="self-start min-h-11 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         + Add Recipient
       </button>

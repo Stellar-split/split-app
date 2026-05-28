@@ -85,7 +85,7 @@ export default function DashboardPage() {
           const isRecipient = inv.recipients.some(
             (r) => r.address === publicKey,
           );
-          if (isCreator || isRecipient) results.push(inv);
+                    className={`w-full text-left rounded-xl ring-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
         } catch {
           break;
         }
@@ -171,7 +171,7 @@ export default function DashboardPage() {
           {!multiSelect && pendingInvoices.length > 0 && (
             <button
               onClick={() => setMultiSelect(true)}
-              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               aria-label="Enter multi-select mode to pay multiple invoices"
             >
               Pay Multiple
@@ -181,14 +181,14 @@ export default function DashboardPage() {
             <>
               <button
                 onClick={exitMultiSelect}
-                className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+                className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 Cancel
               </button>
               <button
                 onClick={() => setShowBatchModal(true)}
                 disabled={selected.size === 0}
-                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 aria-label={`Pay ${selected.size} selected invoice${selected.size !== 1 ? "s" : ""}`}
               >
                 Pay Selected ({selected.size})
@@ -197,7 +197,7 @@ export default function DashboardPage() {
           )}
           <Link
             href="/invoice/new"
-            className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+            className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             + New Invoice
           </Link>
@@ -263,10 +263,11 @@ export default function DashboardPage() {
                       <InvoiceCard invoice={inv} />
                     </div>
                   </button>
-                ) : (
+                  ) : (
                   <Link
                     href={`/invoice/${inv.id}`}
                     aria-label={`View Invoice #${inv.id}`}
+                    className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-xl"
                   >
                     <InvoiceCard invoice={inv} />
                   </Link>
