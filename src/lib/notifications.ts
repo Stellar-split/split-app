@@ -1,4 +1,31 @@
 const STORAGE_KEY = "stellarsplit-notify-invoices";
+const PREFS_KEY = "stellarsplit-notification-prefs";
+
+interface NotificationPreferences {
+  paymentReceived: boolean;
+  invoiceFunded: boolean;
+  deadlineApproaching: boolean;
+  invoiceReleased: boolean;
+  invoiceRefunded: boolean;
+}
+
+const DEFAULT_PREFS: NotificationPreferences = {
+  paymentReceived: true,
+  invoiceFunded: true,
+  deadlineApproaching: true,
+  invoiceReleased: true,
+  invoiceRefunded: true,
+};
+
+function getPreferences(): NotificationPreferences {
+  if (typeof window === "undefined") return DEFAULT_PREFS;
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    return raw ? { ...DEFAULT_PREFS, ...JSON.parse(raw) } : DEFAULT_PREFS;
+  } catch {
+    return DEFAULT_PREFS;
+  }
+}
 
 /** Request browser notification permission; returns current permission if unsupported. */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
@@ -53,10 +80,52 @@ export function isSubscribedToInvoice(invoiceId: string): boolean {
   return getSubscribedInvoiceIds().includes(invoiceId);
 }
 
+/** Notify when a payment is received. */
+export function notifyPaymentReceived(invoiceId: string, amount: string): void {
+  const prefs = getPreferences();
+  if (!prefs.paymentReceived) return;
+  sendBrowserNotification(`Payment received on Invoice #${invoiceId}`, {
+    body: `${amount} USDC received.`,
+    tag: `payment-received-${invoiceId}`,
+  });
+}
+
+/** Notify when an invoice is fully funded. */
+export function notifyInvoiceFunded(invoiceId: string, fundedLabel: string): void {
+  const prefs = getPreferences();
+  if (!prefs.invoiceFunded) return;
+  sendBrowserNotification(`Invoice #${invoiceId} fully funded`, {
+    body: `${fundedLabel} USDC received.`,
+    tag: `invoice-funded-${invoiceId}`,
+  });
+}
+
+/** Notify when an invoice deadline is approaching. */
+export function notifyDeadlineApproaching(invoiceId: string, daysLeft: number): void {
+  const prefs = getPreferences();
+  if (!prefs.deadlineApproaching) return;
+  sendBrowserNotification(`Invoice #${invoiceId} deadline approaching`, {
+    body: `${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining.`,
+    tag: `deadline-approaching-${invoiceId}`,
+  });
+}
+
 /** Notify when an invoice transitions to Released. */
 export function notifyInvoiceReleased(invoiceId: string, fundedLabel: string): void {
+  const prefs = getPreferences();
+  if (!prefs.invoiceReleased) return;
   sendBrowserNotification(`Invoice #${invoiceId} released`, {
     body: `Fully funded with ${fundedLabel} USDC.`,
     tag: `invoice-released-${invoiceId}`,
+  });
+}
+
+/** Notify when an invoice is refunded. */
+export function notifyInvoiceRefunded(invoiceId: string): void {
+  const prefs = getPreferences();
+  if (!prefs.invoiceRefunded) return;
+  sendBrowserNotification(`Invoice #${invoiceId} refunded`, {
+    body: "All payments have been refunded.",
+    tag: `invoice-refunded-${invoiceId}`,
   });
 }

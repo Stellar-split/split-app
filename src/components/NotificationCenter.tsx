@@ -84,7 +84,7 @@ export default function NotificationCenter() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={`Notifications${unread > 0 ? `, ${unread} unread` : ""}`}
-        className="relative min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-gray-800 transition-colors"
+        className="relative min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         {/* Bell icon */}
         <svg
@@ -116,7 +116,7 @@ export default function NotificationCenter() {
             {unread > 0 && (
               <button
                 onClick={markAllRead}
-                className="min-h-11 px-2 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                className="min-h-11 px-2 text-xs text-indigo-400 hover:text-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 Mark all as read
               </button>
@@ -135,7 +135,7 @@ export default function NotificationCenter() {
                     onClick={() => handleClick(n)}
                     className={`w-full min-h-11 text-left px-4 py-3 hover:bg-gray-800 transition-colors ${
                       !n.read ? "bg-gray-800/50" : ""
-                    }`}
+                    } focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
                   >
                     <div className="flex items-start gap-2">
                       {!n.read && (
