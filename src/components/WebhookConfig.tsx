@@ -34,6 +34,7 @@ export default function WebhookConfig({ invoiceId }: Props) {
     const stored = localStorage.getItem(storageKey(invoiceId));
     if (stored) setUrl(stored);
     loadLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceId]);
 
   const loadLogs = () => {

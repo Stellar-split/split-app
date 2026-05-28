@@ -27,7 +27,6 @@ import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import type { Locale } from "@/lib/receiptI18n";
-import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -145,6 +144,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       setReminderDate(existing.reminderDate.slice(0, 16)); // datetime-local format
       setReminderMsg(existing.message);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -157,6 +157,7 @@ export default function InvoiceDetailPage({ params }: Props) {
     }, POLL_MS);
 
     return () => clearInterval(pollId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, invoice?.status]);
 
   const total = invoice
@@ -232,8 +233,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   };
 
   const handleCancelInvoice = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (splitClient as any).cancelInvoice(id);
+    await (splitClient as unknown as { cancelInvoice: (id: string) => Promise<void> }).cancelInvoice(id);
     await load();
     setShowCancelModal(false);
   };
