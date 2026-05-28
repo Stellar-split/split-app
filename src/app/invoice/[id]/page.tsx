@@ -17,6 +17,7 @@ import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
 import PaymentCertificate from "@/components/PaymentCertificate";
 import PaymentSourceBar from "@/components/PaymentSourceBar";
+import VersionHistory from "@/components/VersionHistory";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
@@ -75,6 +76,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "history">("overview");
 
   // Reminder state
   const [reminderDate, setReminderDate] = useState("");
@@ -318,14 +320,46 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Status Timeline */}
       <StatusTimeline invoice={invoice} total={total} />
 
-      {/* Vesting Timeline — only shown when vestingCliff is set */}
-      {invoice.vestingCliff && (
-        <VestingTimeline
-          invoiceId={id}
-          vestingCliff={invoice.vestingCliff}
-          claimed={invoice.claimed ?? []}
-          publicKey={publicKey}
-        />
+      {/* Tabs */}
+      <div className="mb-8 border-b border-gray-700 flex gap-4">
+        <button
+          type="button"
+          onClick={() => setActiveTab("overview")}
+          className={`px-4 py-2 font-semibold text-sm transition-colors border-b-2 ${
+            activeTab === "overview"
+              ? "border-indigo-500 text-indigo-400"
+              : "border-transparent text-gray-400 hover:text-gray-300"
+          }`}
+        >
+          Overview
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("history")}
+          className={`px-4 py-2 font-semibold text-sm transition-colors border-b-2 ${
+            activeTab === "history"
+              ? "border-indigo-500 text-indigo-400"
+              : "border-transparent text-gray-400 hover:text-gray-300"
+          }`}
+        >
+          History
+        </button>
+      </div>
+
+      {activeTab === "history" ? (
+        <section className="mb-8">
+          <VersionHistory invoiceId={id} />
+        </section>
+      ) : (
+        <>
+          {/* Vesting Timeline — only shown when vestingCliff is set */}
+          {invoice.vestingCliff && (
+            <VestingTimeline
+              invoiceId={id}
+              vestingCliff={invoice.vestingCliff}
+              claimed={invoice.claimed ?? []}
+              publicKey={publicKey}
+            />
       )}
 
       {/* Progress */}
@@ -500,6 +534,8 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Private notes — only visible to the connected wallet */}
       {publicKey && (
         <CommentSection invoiceId={id} walletAddress={publicKey} />
+      )}
+        </>
       )}
 
       {showCancelModal && invoice && (
