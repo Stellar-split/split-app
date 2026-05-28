@@ -10,6 +10,7 @@ import { formatAmount } from "@stellar-split/sdk";
 import InvoiceCard from "@/components/InvoiceCard";
 import { SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
+import BulkActionBar from "@/components/BulkActionBar";
 import type { Invoice } from "@stellar-split/sdk";
 
 function exportCSV(invoices: Invoice[], from: string, to: string) {
@@ -111,6 +112,72 @@ export default function DashboardPage() {
 
   const exitMultiSelect = () => {
     setMultiSelect(false);
+    setSelected(new Set());
+  };
+
+  const handleBulkCancel = async () => {
+    const confirmed = window.confirm(
+      `Cancel ${selectedInvoices.filter((inv) => inv.status === "Pending").length} pending invoice(s)?`,
+    );
+    if (!confirmed) return;
+
+    try {
+      for (const inv of selectedInvoices) {
+        if (inv.status === "Pending") {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (splitClient as any).cancelInvoice(inv.id);
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const results: Invoice[] = [];
+      for (let id = 1; id <= 50; id++) {
+        try {
+          const inv = await splitClient.getInvoice(String(id));
+          const isCreator = inv.creator === publicKey;
+          const isRecipient = inv.recipients.some(
+            (r) => r.address === publicKey,
+          );
+          if (isCreator || isRecipient) results.push(inv);
+        } catch {
+          break;
+        }
+      }
+      setInvoices(results);
+      exitMultiSelect();
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+
+  const handleBulkExport = () => {
+    const header =
+      "ID,Status,Total (USDC),Funded (USDC),Deadline,Recipient Count";
+    const lines = selectedInvoices.map((inv) => {
+      const total = inv.recipients.reduce((s, r) => s + r.amount, 0n);
+      const deadline = new Date(inv.deadline * 1000).toISOString().slice(0, 10);
+      return [
+        inv.id,
+        inv.status,
+        formatAmount(total),
+        formatAmount(inv.funded),
+        deadline,
+        inv.recipients.length,
+      ].join(",");
+    });
+    const csv = [header, ...lines].join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `invoices-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSelectAll = () => {
+    setSelected(new Set(invoices.map((inv) => inv.id)));
+  };
+
+  const handleDeselectAll = () => {
     setSelected(new Set());
   };
 
@@ -232,49 +299,63 @@ export default function DashboardPage() {
           No invoices found. Create your first one!
         </p>
       ) : (
-        <ul className="flex flex-col gap-4" aria-label="Invoice list">
-          {invoices.map((inv) => {
-            const isSelectable = multiSelect && inv.status === "Pending";
-            const isSelected = selected.has(inv.id);
+        <>
+          <ul className="flex flex-col gap-4" aria-label="Invoice list">
+            {invoices.map((inv) => {
+              const isSelectable = multiSelect && inv.status === "Pending";
+              const isSelected = selected.has(inv.id);
 
-            return (
-              <li key={inv.id}>
-                {isSelectable ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleSelect(inv.id)}
-                    aria-pressed={isSelected}
-                    aria-label={`${isSelected ? "Deselect" : "Select"} Invoice #${inv.id}`}
-                    className={`w-full text-left rounded-xl ring-2 transition-all ${
-                      isSelected
-                        ? "ring-indigo-500"
-                        : "ring-transparent hover:ring-gray-600"
-                    }`}
-                  >
-                    <div className="relative">
-                      {isSelected && (
-                        <span
-                          aria-hidden="true"
-                          className="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold z-10"
-                        >
-                          ✓
-                        </span>
-                      )}
+              return (
+                <li key={inv.id}>
+                  {isSelectable ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleSelect(inv.id)}
+                      aria-pressed={isSelected}
+                      aria-label={`${isSelected ? "Deselect" : "Select"} Invoice #${inv.id}`}
+                      className={`w-full text-left rounded-xl ring-2 transition-all ${
+                        isSelected
+                          ? "ring-indigo-500"
+                          : "ring-transparent hover:ring-gray-600"
+                      }`}
+                    >
+                      <div className="relative">
+                        {isSelected && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold z-10"
+                          >
+                            ✓
+                          </span>
+                        )}
+                        <InvoiceCard invoice={inv} />
+                      </div>
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/invoice/${inv.id}`}
+                      aria-label={`View Invoice #${inv.id}`}
+                    >
                       <InvoiceCard invoice={inv} />
-                    </div>
-                  </button>
-                ) : (
-                  <Link
-                    href={`/invoice/${inv.id}`}
-                    aria-label={`View Invoice #${inv.id}`}
-                  >
-                    <InvoiceCard invoice={inv} />
-                  </Link>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {multiSelect && selected.size > 0 && (
+            <BulkActionBar
+              selectedCount={selected.size}
+              selectedInvoices={selectedInvoices}
+              onCancel={exitMultiSelect}
+              onBulkCancel={handleBulkCancel}
+              onBulkExport={handleBulkExport}
+              onSelectAll={handleSelectAll}
+              onDeselectAll={handleDeselectAll}
+              totalCount={invoices.length}
+            />
+          )}
+        </>
       )}
 
       {showBatchModal && publicKey && selectedInvoices.length > 0 && (
