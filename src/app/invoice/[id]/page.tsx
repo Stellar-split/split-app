@@ -17,6 +17,7 @@ import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
 import InstallmentPanel from "@/components/InstallmentPanel";
+import InstallmentTracker from "@/components/InstallmentTracker";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
 import ActivityFeed from "@/components/ActivityFeed";
@@ -421,7 +422,17 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Installment schedule — only shown to payers with a registered plan */}
       {publicKey && (
-        <InstallmentPanel invoiceId={id} publicKey={publicKey} />
+        <>
+          <InstallmentTracker
+            invoice={invoice}
+            publicKey={publicKey}
+            onPayNow={(amount) => {
+              setPayAmount(formatAmount(amount));
+              setShowPayModal(true);
+            }}
+          />
+          <InstallmentPanel invoiceId={id} publicKey={publicKey} />
+        </>
       )}
 
       {/* Deadline extension voting — shown to payers on Pending invoices */}
