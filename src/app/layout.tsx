@@ -46,10 +46,10 @@ export default function RootLayout({
               Dashboard
             </a>
             <a
-              href="/history"
+              href="/groups"
               className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
             >
-              History
+              Groups
             </a>
             <a
               href="/address-book"
