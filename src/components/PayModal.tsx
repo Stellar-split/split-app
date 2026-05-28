@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "./PaymentProgress";
+import PaymentBreakdownModal from "./PaymentBreakdownModal";
 import type { Invoice } from "@stellar-split/sdk";
 
 interface Props {
@@ -18,6 +19,7 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
   const [email, setEmail] = useState("");
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const parsed = (() => {
     try { return input ? parseAmount(input) : 0n; } catch { return 0n; }
@@ -27,9 +29,24 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
   const currentPct = total > 0n ? Number((invoice.funded * 100n) / total) : 0;
   const previewPct = total > 0n ? Math.min(100, Number((previewFunded * 100n) / total)) : 0;
 
-  const handleConfirm = async () => {
+  // Mock fee breakdown (in production, call splitClient.calculateFee)
+  const feeBreakdown = {
+    gross: parsed,
+    fee: parsed > 0n ? (parsed * 2n) / 100n : 0n, // 2% fee
+    net: parsed > 0n ? parsed - (parsed * 2n) / 100n : 0n,
+  };
+
+  // Mock Stellar fee (in production, call splitClient.estimateFee)
+  const stellarFee = 100000n; // stroops
+
+  const handleReview = () => {
     if (!parsed || parsed <= 0n) return;
     setError(null);
+    setShowBreakdown(true);
+  };
+
+  const handleConfirm = async () => {
+    if (!parsed || parsed <= 0n) return;
     setPaying(true);
     try {
       await onPay(parsed, email || undefined);
@@ -116,13 +133,24 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
 
         <button
           type="button"
-          onClick={handleConfirm}
+          onClick={handleReview}
           disabled={paying || !parsed || parsed <= 0n}
           className="w-full px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
         >
-          {paying ? "Sending…" : "Confirm Payment"}
+          {paying ? "Sending…" : "Review & Pay"}
         </button>
       </div>
+
+      {showBreakdown && (
+        <PaymentBreakdownModal
+          amount={parsed}
+          feeBreakdown={feeBreakdown}
+          stellarFee={stellarFee}
+          onConfirm={handleConfirm}
+          onBack={() => setShowBreakdown(false)}
+          confirming={paying}
+        />
+      )}
     </div>
   );
 }
