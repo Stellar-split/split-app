@@ -135,8 +135,8 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
             </button>
           </div>
         )}
+        </div>
       </FocusTrap>
-      </div>
     </div>
   );
 }

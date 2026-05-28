@@ -139,8 +139,8 @@ export default function CancelModal({ invoiceId, payments, onConfirm, onClose }:
             </div>
           </>
         )}
+        </div>
       </FocusTrap>
-      </div>
     </div>
   );
 }
