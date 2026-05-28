@@ -16,6 +16,7 @@ import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
 import PaymentCertificate from "@/components/PaymentCertificate";
+import PaymentSourceBar from "@/components/PaymentSourceBar";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
@@ -368,30 +369,39 @@ export default function InvoiceDetailPage({ params }: Props) {
         {invoice.payments.length === 0 ? (
           <p className="text-gray-500 text-sm">No payments yet.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {invoice.payments.map((p, i) => (
-              <li
-                key={p.clientKey ?? `${p.payer}-${i}`}
-                className="flex flex-wrap items-center justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm"
-              >
-                <span className="font-mono text-gray-300 truncate max-w-[55%]">
-                  {p.payer}
-                </span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-indigo-300">{formatAmount(p.amount)} USDC</span>
-                  {p.pending && (
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full">
-                      <span
-                        className="inline-block h-3 w-3 rounded-full border-2 border-amber-300 border-t-transparent animate-spin"
-                        aria-hidden
-                      />
-                      Confirming…
-                    </span>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <>
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-400 mb-3">Payment Sources</h3>
+              <PaymentSourceBar
+                payments={invoice.payments.filter((p) => !p.pending)}
+                total={total}
+              />
+            </div>
+            <ul className="flex flex-col gap-2">
+              {invoice.payments.map((p, i) => (
+                <li
+                  key={p.clientKey ?? `${p.payer}-${i}`}
+                  className="flex flex-wrap items-center justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm"
+                >
+                  <span className="font-mono text-gray-300 truncate max-w-[55%]">
+                    {p.payer}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-indigo-300">{formatAmount(p.amount)} USDC</span>
+                    {p.pending && (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full">
+                        <span
+                          className="inline-block h-3 w-3 rounded-full border-2 border-amber-300 border-t-transparent animate-spin"
+                          aria-hidden
+                        />
+                        Confirming…
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </section>
 
