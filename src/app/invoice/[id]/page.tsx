@@ -14,6 +14,9 @@ import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
 import { useInvoiceCustomization } from "@/lib/customization";
 import PaymentProgress from "@/components/PaymentProgress";
 import PayModal from "@/components/PayModal";
+import PaymentMethodSelector from "@/components/PaymentMethodSelector";
+import CoCreatorPanel from "@/components/CoCreatorPanel";
+import AuditLogTable from "@/components/AuditLogTable";
 import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
@@ -507,11 +510,17 @@ export default function InvoiceDetailPage({ params }: Props) {
         <VotingPanel invoice={invoice} publicKey={publicKey} />
       )}
 
+      {/* Co-Creator Management — only shown to primary creator */}
+      {publicKey && (
+        <CoCreatorPanel invoice={invoice} publicKey={publicKey} onUpdate={load} />
+      )}
+
       {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
         <section aria-labelledby="pay-heading" className="mb-8">
+          <h2 id="pay-heading" className="text-lg font-semibold mb-4">Pay toward this invoice</h2>
+          <PaymentMethodSelector onMethodChange={setPaymentMethod} />
           <form onSubmit={handlePay} className="flex flex-col gap-4">
-            <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
             <div>
               <label htmlFor="pay-amount" className="block text-sm font-medium text-gray-300 mb-1">
                 Amount (USDC)
@@ -590,6 +599,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           This invoice is {invoice.status.toLowerCase()} and no longer accepts payments.
         </p>
       )}
+
+      {/* Audit Log */}
+      <AuditLogTable invoiceId={id} />
 
       {/* Private notes — only visible to the connected wallet */}
       {publicKey && (
