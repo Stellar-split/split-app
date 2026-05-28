@@ -39,7 +39,6 @@ import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
-import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -104,6 +103,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [hasReminder, setHasReminder] = useState(false);
   const [notifySubscribed, setNotifySubscribed] = useState(false);
   const [notifyDenied, setNotifyDenied] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"freighter" | "walletconnect">("freighter");
 
   const prevStatusRef = useRef<string | null>(null);
 
@@ -211,6 +211,11 @@ export default function InvoiceDetailPage({ params }: Props) {
       setTxHash(result.txHash);
       setLastFailedPayment(null);
       setRetryCount(0);
+      try {
+        const existing = JSON.parse(localStorage.getItem("stellarsplit_adapter_usage") ?? "[]");
+        existing.push({ adapter: paymentMethod, timestamp: Date.now() });
+        localStorage.setItem("stellarsplit_adapter_usage", JSON.stringify(existing));
+      } catch { /* ignore storage errors */ }
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
       await load();
     } catch (err) {
