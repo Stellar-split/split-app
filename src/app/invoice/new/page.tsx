@@ -95,6 +95,9 @@ export default function NewInvoicePage() {
 
     try {
       const creator = await getFreighterPublicKey();
+      const invoiceTotal = equalSplit
+        ? parseFloat(totalAmount) * recipients.filter((r) => r.address).length
+        : recipients.reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0);
 
       const { invoiceId, txHash } = await splitClient.createInvoice({
         creator,
@@ -237,6 +240,11 @@ export default function NewInvoicePage() {
             onChange={(e) => setDeadlineDays(Number(e.target.value))}
             required
             className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <DeadlineSuggester
+            totalAmount={equalSplit ? totalAmount : recipients.reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0).toString()}
+            recipientCount={recipients.filter((r) => r.address).length}
+            onUseSuggestion={(days) => setDeadlineDays(days)}
           />
         </div>
 
