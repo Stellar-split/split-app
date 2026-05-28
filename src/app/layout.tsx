@@ -5,7 +5,6 @@ import NotificationCenter from "@/components/NotificationCenter";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import UpgradeBanner from "@/components/UpgradeBanner";
-import RecipientOnboarding from "@/components/RecipientOnboarding";
 
 export const metadata: Metadata = {
   title: "StellarSplit — On-chain Invoice Splitting",

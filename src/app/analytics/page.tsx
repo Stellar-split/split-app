@@ -10,6 +10,9 @@ import {
   Line,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -34,11 +37,23 @@ export default function AnalyticsPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [adapterData, setAdapterData] = useState<{ name: string; value: number }[]>([]);
 
   useEffect(() => {
     getFreighterPublicKey()
       .then(setPublicKey)
       .catch(() => setError("Connect your Freighter wallet to view analytics."));
+    try {
+      const raw: { adapter: string }[] = JSON.parse(localStorage.getItem("stellarsplit_adapter_usage") ?? "[]");
+      const freighter = raw.filter((r) => r.adapter === "freighter").length;
+      const walletconnect = raw.filter((r) => r.adapter === "walletconnect").length;
+      if (raw.length > 0) {
+        setAdapterData([
+          { name: "Freighter", value: freighter },
+          { name: "WalletConnect", value: walletconnect },
+        ]);
+      }
+    } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
@@ -204,6 +219,31 @@ export default function AnalyticsPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+        </div>
+
+        {/* Payment Method Breakdown */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <h2 className="text-lg font-bold mb-4">Payment Method Usage</h2>
+          {adapterData.length === 0 ? (
+            <p className="text-gray-500 text-sm text-center py-8">No payment history yet.</p>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={adapterData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {adapterData.map((_, i) => (
+                      <Cell key={i} fill={i === 0 ? "#6366f1" : "#10b981"} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="text-center shrink-0">
+                <p className="text-3xl font-bold">{adapterData.reduce((s, d) => s + d.value, 0)}</p>
+                <p className="text-gray-500 text-sm">Total payments</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Recipients Table */}
