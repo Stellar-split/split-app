@@ -31,6 +31,7 @@ import StatusTimeline from "@/components/StatusTimeline";
 import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
 import PresenceIndicators from "@/components/PresenceIndicators";
+import CollaborationCursors from "@/components/CollaborationCursors";
 import SplitCalculator from "@/components/SplitCalculator";
 import InvoiceQR from "@/components/InvoiceQR";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
@@ -317,6 +318,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   return (
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <PresenceIndicators invoiceId={id} currentAddress={publicKey} />
+      <CollaborationCursors invoiceId={id} currentAddress={publicKey} />
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold">
           {customization?.title ? customization.title : `Invoice #${id}`}
