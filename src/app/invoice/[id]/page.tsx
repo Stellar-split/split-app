@@ -25,7 +25,7 @@ import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import type { Invoice } from "@stellar-split/sdk";
+import ShareButtons from "@/components/ShareButtons";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -296,6 +296,16 @@ export default function InvoiceDetailPage({ params }: Props) {
           </button>
         )}
       </div>
+
+      {/* Share Buttons */}
+      <section className="mb-8 print:hidden">
+        <h2 className="text-sm font-semibold mb-3 text-gray-300">Share Invoice</h2>
+        <ShareButtons
+          invoiceId={id}
+          fundedPct={total > 0n ? Number((invoice.funded * 100n) / total) : 0}
+          verifyUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`}
+        />
+      </section>
 
       {/* Status Timeline */}
       <StatusTimeline invoice={invoice} total={total} />

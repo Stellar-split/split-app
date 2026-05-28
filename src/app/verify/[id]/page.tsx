@@ -5,6 +5,7 @@ import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import VerifyPayButton from "./VerifyPayButton";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import ShareButtons from "@/components/ShareButtons";
 
 interface Props {
   params: { id: string };
@@ -92,6 +93,15 @@ export default async function VerifyPage({ params }: Props) {
       >
         {invoice.status}
       </p>
+
+      {/* Share Buttons */}
+      <section className="mb-6">
+        <ShareButtons
+          invoiceId={id}
+          fundedPct={fundedBadge}
+          verifyUrl={`${appUrl}/verify/${id}`}
+        />
+      </section>
 
       <section aria-labelledby="verify-progress-heading">
         <h2 id="verify-progress-heading" className="sr-only">Payment Progress</h2>
