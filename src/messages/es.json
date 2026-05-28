@@ -1,0 +1,85 @@
+{
+  "app": {
+    "title": "StellarSplit",
+    "description": "Crea facturas en cadena en Stellar donde múltiples pagadores deben una parte. USDC se enruta automáticamente a los destinatarios cuando se financia completamente."
+  },
+  "nav": {
+    "dashboard": "Panel de Control",
+    "contacts": "Contactos",
+    "addressBook": "Libreta de Direcciones",
+    "leaderboard": "Tabla de Clasificación"
+  },
+  "home": {
+    "headline": "Divide facturas en cadena. Al instante.",
+    "description": "StellarSplit te permite crear facturas en cadena en Stellar donde múltiples pagadores deben una parte. USDC se enruta automáticamente a cada destinatario en el momento en que se financia completamente la factura. ¿Pasó la fecha límite? Todos son reembolsados.",
+    "createInvoice": "Crear Factura",
+    "features": {
+      "onChain": {
+        "title": "En cadena y sin confianza",
+        "description": "Cada factura vive en Stellar Soroban. Sin intermediarios, sin custodia."
+      },
+      "autoRelease": {
+        "title": "Liberación automática",
+        "description": "Los fondos se enrutan a los destinatarios en el instante en que se paga la última parte."
+      },
+      "autoRefund": {
+        "title": "Reembolso automático",
+        "description": "Si la fecha límite pasa sin financiamiento, cada contribuyente es reembolsado."
+      }
+    },
+    "useCases": "Casos de uso: cuentas compartidas · pagos de equipos de freelancers · remesas en LATAM y África"
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "payMultiple": "Pagar Múltiples",
+    "cancel": "Cancelar",
+    "paySelected": "Pagar Seleccionados",
+    "newInvoice": "+ Nueva Factura",
+    "selectMessage": "Selecciona facturas pendientes para pagar en una única transacción.",
+    "noInvoices": "No se encontraron facturas. ¡Crea la primera!",
+    "analytics": "Análisis",
+    "totalSent": "USDC Total Enviado",
+    "totalReceived": "USDC Total Recibido",
+    "totalInvoices": "Total de Facturas",
+    "pending": "Pendiente",
+    "released": "Liberado",
+    "refunded": "Reembolsado",
+    "invoicesByWeek": "Facturas por Semana (Últimos 30 Días)"
+  },
+  "invoiceNew": {
+    "title": "Crear Factura",
+    "equalSplit": "División Equitativa",
+    "totalAmount": "Monto Total (USDC)",
+    "perRecipient": "USDC por destinatario",
+    "recipients": "Destinatarios",
+    "recipientsAndAmounts": "Destinatarios y Montos (USDC)",
+    "tokenAddress": "Dirección del Contrato USDC",
+    "deadline": "Fecha Límite (días desde ahora)",
+    "create": "Crear Factura",
+    "creating": "Creando…"
+  },
+  "addressBook": {
+    "title": "Libreta de Direcciones",
+    "addAddress": "Agregar Dirección",
+    "nickname": "Apodo",
+    "stellarAddress": "Dirección G... de Stellar",
+    "save": "Guardar Dirección",
+    "limitReached": "Límite alcanzado (50)",
+    "noSaved": "Aún no hay direcciones guardadas.",
+    "edit": "Editar",
+    "remove": "Eliminar"
+  },
+  "leaderboard": {
+    "title": "Tabla de Clasificación",
+    "subtitle": "Principales contribuyentes de USDC en las facturas más recientes (1–100)",
+    "noPayments": "No se encontraron pagos en facturas.",
+    "rank": "Clasificación",
+    "address": "Dirección",
+    "totalUsdc": "USDC Total",
+    "invoices": "Facturas",
+    "you": "Tú",
+    "yourRank": "Tu billetera está clasificada #{rank}.",
+    "notInTop": "(no en los mejores 20)",
+    "backToDashboard": "Volver al panel de control"
+  }
+}
