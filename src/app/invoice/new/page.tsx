@@ -31,6 +31,17 @@ export default function NewInvoicePage() {
   const [recurring, setRecurring] = useState(false);
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const template = sessionStorage.getItem("invoiceTemplate");
+    if (template) {
+      const parsed: InvoiceTemplate = JSON.parse(template);
+      setRecipients(parsed.recipients);
+      setDeadlineDays(parsed.deadlineDays);
+      setToken(parsed.token);
+      sessionStorage.removeItem("invoiceTemplate");
+    }
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [txModal, setTxModal] = useState<{ txHash: string; invoiceId: string } | null>(null);
   const [equalSplit, setEqualSplit] = useState(false);

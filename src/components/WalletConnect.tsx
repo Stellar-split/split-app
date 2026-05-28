@@ -17,6 +17,8 @@ export default function WalletConnect() {
   const [balance, setBalance] = useState<bigint | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
 
+  const USDC_CONTRACT_ID = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "";
+
   const loadBalance = async (addr: string) => {
     if (!USDC_CONTRACT_ID) {
       setBalance(null);

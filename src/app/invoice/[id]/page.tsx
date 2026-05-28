@@ -22,6 +22,9 @@ import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
 import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
+import PresenceIndicators from "@/components/PresenceIndicators";
+import SplitCalculator from "@/components/SplitCalculator";
+import InvoiceQR from "@/components/InvoiceQR";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
@@ -234,7 +237,6 @@ export default function InvoiceDetailPage({ params }: Props) {
   };
 
   const handleCancelInvoice = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (splitClient as any).cancelInvoice(id);
     await load();
     setShowCancelModal(false);
@@ -266,6 +268,7 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   return (
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
+      <PresenceIndicators invoiceId={id} currentAddress={publicKey} />
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold">Invoice #{id}</h1>
         <span
@@ -339,6 +342,9 @@ export default function InvoiceDetailPage({ params }: Props) {
         )}
       </section>
 
+      {/* QR Code */}
+      <InvoiceQR invoiceId={id} />
+
       {/* Release notifications */}
       <section className="mb-8">
         <button
@@ -411,6 +417,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           ))}
         </ul>
       </section>
+
+      {/* Split Calculator */}
+      {invoice.status === "Pending" && <SplitCalculator invoice={invoice} />}
 
       <ActivityFeed
         invoice={{
