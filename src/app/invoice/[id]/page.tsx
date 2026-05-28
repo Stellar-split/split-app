@@ -12,6 +12,7 @@ import {
 import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import PayModal from "@/components/PayModal";
+import PaymentMethodSelector from "@/components/PaymentMethodSelector";
 import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
@@ -74,6 +75,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"freighter" | "walletconnect">("freighter");
 
   // Reminder state
   const [reminderDate, setReminderDate] = useState("");
@@ -414,8 +416,9 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
         <section aria-labelledby="pay-heading" className="mb-8">
+          <h2 id="pay-heading" className="text-lg font-semibold mb-4">Pay toward this invoice</h2>
+          <PaymentMethodSelector onMethodChange={setPaymentMethod} />
           <form onSubmit={handlePay} className="flex flex-col gap-4">
-            <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
             <div>
               <label htmlFor="pay-amount" className="block text-sm font-medium text-gray-300 mb-1">
                 Amount (USDC)
