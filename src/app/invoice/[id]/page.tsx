@@ -29,6 +29,7 @@ import InstallmentTracker from "@/components/InstallmentTracker";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
 import ActivityFeed from "@/components/ActivityFeed";
+import VelocityChart from "@/components/VelocityChart";
 import VestingTimeline from "@/components/VestingTimeline";
 import PresenceIndicators from "@/components/PresenceIndicators";
 import SplitCalculator from "@/components/SplitCalculator";
@@ -479,6 +480,16 @@ export default function InvoiceDetailPage({ params }: Props) {
             </ul>
           </>
         )}
+      </section>
+
+      {/* Payment Velocity Chart */}
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold mb-3">Payment Velocity</h2>
+        <VelocityChart
+          payments={invoice.payments}
+          total={total}
+          createdAt={invoice.createdAt}
+        />
       </section>
 
       {/* Recipients */}
