@@ -83,6 +83,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [locale, setLocale] = useState<Locale>("en");
 
   // Payment retry state
   const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint; fee?: bigint } | null>(null);
@@ -156,6 +157,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       setReminderDate(existing.reminderDate.slice(0, 16)); // datetime-local format
       setReminderMsg(existing.message);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -168,6 +170,7 @@ export default function InvoiceDetailPage({ params }: Props) {
     }, POLL_MS);
 
     return () => clearInterval(pollId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, invoice?.status]);
 
   const total = invoice
@@ -312,8 +315,18 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           {invoice.status}
         </span>
-        <div className="ml-auto flex items-center gap-2 print:hidden">
+        <div className="ml-auto flex items-center gap-2 print:hidden flex-wrap justify-end">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm transition-colors"
+            aria-label="Receipt language"
+          >
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
           <button
             type="button"
             onClick={() => window.print()}
@@ -348,6 +361,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           </button>
         )}
       </div>
+
+      {/* Invoice PDF — print-only */}
+      <InvoicePDF invoice={invoice} total={total} locale={locale} />
 
       {/* Status Timeline */}
       <StatusTimeline invoice={invoice} total={total} />
@@ -511,6 +527,12 @@ export default function InvoiceDetailPage({ params }: Props) {
                 required
                 className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 aria-describedby={error ? "pay-error" : undefined}
+              />
+              <PaymentSuggestions
+                invoice={invoice}
+                total={total}
+                publicKey={publicKey}
+                onSuggest={setPayAmount}
               />
             </div>
             {error && (
