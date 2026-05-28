@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import {
@@ -16,15 +17,20 @@ import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
 import InstallmentPanel from "@/components/InstallmentPanel";
+import InstallmentTracker from "@/components/InstallmentTracker";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
 import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
+import PresenceIndicators from "@/components/PresenceIndicators";
+import SplitCalculator from "@/components/SplitCalculator";
+import InvoiceQR from "@/components/InvoiceQR";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import VotingPanel from "@/components/VotingPanel";
 import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
@@ -32,8 +38,9 @@ const POLL_MS = 10_000;
 
 // Extend the SDK Invoice type with vesting fields (not yet in published SDK)
 type InvoiceWithVesting = Invoice & {
-  vestingCliff?: number; // unix timestamp (seconds)
-  claimed?: string[];    // addresses that have claimed
+  vestingCliff?: number;    // unix timestamp (seconds)
+  claimed?: string[];       // addresses that have claimed
+  extensionVotes?: number;  // current votes to extend deadline
 };
 
 interface Props {
@@ -63,6 +70,7 @@ function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceVie
  */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
+  const router = useRouter();
   const [invoice, setInvoice] = useState<InvoiceView | null>(null);
   const [previousInvoice, setPreviousInvoice] = useState<Invoice | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
@@ -229,7 +237,6 @@ export default function InvoiceDetailPage({ params }: Props) {
   };
 
   const handleCancelInvoice = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (splitClient as any).cancelInvoice(id);
     await load();
     setShowCancelModal(false);
@@ -261,6 +268,7 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   return (
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
+      <PresenceIndicators invoiceId={id} currentAddress={publicKey} />
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold">Invoice #{id}</h1>
         <span
@@ -286,6 +294,15 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           Print Invoice
         </button>
+        {isCreator && (
+          <button
+            type="button"
+            onClick={() => router.push(`/invoice/new?from=${id}`)}
+            className="px-3 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-sm transition-colors print:hidden"
+          >
+            Duplicate
+          </button>
+        )}
         {isCreator && invoice.status === "Pending" && (
           <button
             type="button"
@@ -324,6 +341,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           </div>
         )}
       </section>
+
+      {/* QR Code */}
+      <InvoiceQR invoiceId={id} />
 
       {/* Release notifications */}
       <section className="mb-8">
@@ -398,6 +418,9 @@ export default function InvoiceDetailPage({ params }: Props) {
         </ul>
       </section>
 
+      {/* Split Calculator */}
+      {invoice.status === "Pending" && <SplitCalculator invoice={invoice} />}
+
       <ActivityFeed
         invoice={{
           ...invoice,
@@ -408,7 +431,22 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Installment schedule — only shown to payers with a registered plan */}
       {publicKey && (
-        <InstallmentPanel invoiceId={id} publicKey={publicKey} />
+        <>
+          <InstallmentTracker
+            invoice={invoice}
+            publicKey={publicKey}
+            onPayNow={(amount) => {
+              setPayAmount(formatAmount(amount));
+              setShowPayModal(true);
+            }}
+          />
+          <InstallmentPanel invoiceId={id} publicKey={publicKey} />
+        </>
+      )}
+
+      {/* Deadline extension voting — shown to payers on Pending invoices */}
+      {publicKey && (
+        <VotingPanel invoice={invoice} publicKey={publicKey} />
       )}
 
       {/* Pay button → opens modal */}
