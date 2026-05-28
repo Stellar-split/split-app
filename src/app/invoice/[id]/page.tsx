@@ -13,6 +13,7 @@ import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
+import CoCreatorPanel from "@/components/CoCreatorPanel";
 import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
@@ -411,6 +412,11 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Installment schedule — only shown to payers with a registered plan */}
       {publicKey && (
         <InstallmentPanel invoiceId={id} publicKey={publicKey} />
+      )}
+
+      {/* Co-Creator Management — only shown to primary creator */}
+      {publicKey && (
+        <CoCreatorPanel invoice={invoice} publicKey={publicKey} onUpdate={load} />
       )}
 
       {/* Pay button → opens modal */}
