@@ -9,12 +9,13 @@ interface Props {
   invoice: Invoice;
   total: bigint;
   publicKey: string;
-  onPay: (amount: bigint) => Promise<void>;
+  onPay: (amount: bigint, email?: string) => Promise<void>;
   onClose: () => void;
 }
 
 export default function PayModal({ invoice, total, onPay, onClose }: Props) {
   const [input, setInput] = useState("");
+  const [email, setEmail] = useState("");
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +32,7 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
     setError(null);
     setPaying(true);
     try {
-      await onPay(parsed);
+      await onPay(parsed, email || undefined);
       onClose();
     } catch (err) {
       setError(String(err));
@@ -96,6 +97,22 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
         )}
 
         {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
+
+        {/* Email input (optional) */}
+        <div>
+          <label htmlFor="modal-pay-email" className="block text-sm font-medium text-gray-300 mb-1">
+            Email (optional)
+          </label>
+          <input
+            id="modal-pay-email"
+            type="email"
+            placeholder="your@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">We'll send a confirmation email after payment is confirmed on-chain.</p>
+        </div>
 
         <button
           type="button"
