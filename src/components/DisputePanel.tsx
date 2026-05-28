@@ -54,7 +54,7 @@ export default function DisputePanel({
       <button
         onClick={onDispute}
         disabled={disputing}
-        className="self-start min-h-11 px-4 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-sm font-semibold transition-colors disabled:opacity-50"
+        className="self-start min-h-11 px-4 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         {disputing ? "Submitting…" : "Raise Dispute"}
       </button>
