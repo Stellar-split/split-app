@@ -14,6 +14,7 @@ import PaymentProgress from "@/components/PaymentProgress";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
 import CoCreatorPanel from "@/components/CoCreatorPanel";
+import AuditLogTable from "@/components/AuditLogTable";
 import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
@@ -478,6 +479,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           This invoice is {invoice.status.toLowerCase()} and no longer accepts payments.
         </p>
       )}
+
+      {/* Audit Log */}
+      <AuditLogTable invoiceId={id} />
 
       {/* Private notes — only visible to the connected wallet */}
       {publicKey && (
