@@ -1,46 +1,78 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import ThemeToggle from "@/components/ThemeToggle";
+import NotificationCenter from "@/components/NotificationCenter";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import OnboardingFlow from "@/components/OnboardingFlow";
 
 export const metadata: Metadata = {
   title: "StellarSplit — On-chain Invoice Splitting",
   description:
     "Create on-chain invoices on Stellar where multiple payers each owe a share. USDC auto-routes to recipients when fully funded.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "StellarSplit",
+  },
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/icon-192.png",
+  },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const viewport: Viewport = {
+  themeColor: "#4f46e5",
+  width: "device-width",
+  initialScale: 1,
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var theme = localStorage.getItem('theme');
-                  if (!theme) {
-                    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    theme = prefersDark ? 'dark' : 'light';
-                  }
-                  if (theme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                  }
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
-      <body className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased">
-        <ThemeProvider>
-          <header className="fixed top-0 left-0 right-0 z-50 flex justify-end p-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
-            <ThemeToggle />
-          </header>
-          <div className="pt-16">
-            {children}
-          </div>
-        </ThemeProvider>
+      <body className="min-h-screen bg-gray-950 text-gray-100 antialiased overflow-x-hidden">
+        <I18nProvider>
+          <header className="sticky top-0 z-40 flex items-center justify-between gap-2 px-4 sm:px-6 py-3 bg-gray-950/80 backdrop-blur border-b border-gray-800 min-w-0">
+            <a href="/" className="font-bold text-base sm:text-lg tracking-tight shrink-0 min-h-11 inline-flex items-center">
+              StellarSplit
+            </a>
+            <a
+              href="/groups"
+              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
+            >
+              Groups
+            </a>
+            <a
+              href="/address-book"
+              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center whitespace-nowrap"
+            >
+              <span className="sm:hidden">Contacts</span>
+              <span className="hidden sm:inline">Address Book</span>
+            </a>
+            <a
+              href="/leaderboard"
+              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 py-1"
+            >
+              Leaderboard
+            </a>
+            <SimulationModeToggle />
+            <NotificationCenter />
+          </nav>
+        </header>
+        <SimulationBanner />
+        <ErrorBoundary>{children}</ErrorBoundary>
+        <OnboardingFlow />
+        <Script id="register-sw" strategy="afterInteractive">
+          {`if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+              navigator.serviceWorker.register("/sw.js");
+            });
+          }`}
+        </Script>
       </body>
     </html>
   );
