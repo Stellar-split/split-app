@@ -136,7 +136,7 @@ export default function OnboardingFlow() {
         {/* Step 4: Done */}
         {step === 4 && (
           <div className="flex flex-col gap-4 text-center">
-            <h2 className="text-xl font-bold">You're All Set!</h2>
+            <h2 className="text-xl font-bold">You&apos;re All Set!</h2>
             <p className="text-sm text-gray-400">
               You can now create invoices and manage payments. Visit your dashboard anytime.
             </p>
