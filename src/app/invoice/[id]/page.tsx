@@ -28,9 +28,12 @@ import InstallmentPanel from "@/components/InstallmentPanel";
 import InstallmentTracker from "@/components/InstallmentTracker";
 import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
+import EscrowPanel from "@/components/EscrowPanel";
 import ActivityFeed from "@/components/ActivityFeed";
+import VelocityChart from "@/components/VelocityChart";
 import VestingTimeline from "@/components/VestingTimeline";
 import PresenceIndicators from "@/components/PresenceIndicators";
+import CollaborationCursors from "@/components/CollaborationCursors";
 import SplitCalculator from "@/components/SplitCalculator";
 import InvoiceQR from "@/components/InvoiceQR";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
@@ -39,8 +42,6 @@ import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
-import VerifiedCreatorBadge from "@/components/VerifiedCreatorBadge";
-import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -105,6 +106,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [hasReminder, setHasReminder] = useState(false);
   const [notifySubscribed, setNotifySubscribed] = useState(false);
   const [notifyDenied, setNotifyDenied] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"freighter" | "walletconnect">("freighter");
 
   const prevStatusRef = useRef<string | null>(null);
 
@@ -212,6 +214,11 @@ export default function InvoiceDetailPage({ params }: Props) {
       setTxHash(result.txHash);
       setLastFailedPayment(null);
       setRetryCount(0);
+      try {
+        const existing = JSON.parse(localStorage.getItem("stellarsplit_adapter_usage") ?? "[]");
+        existing.push({ adapter: paymentMethod, timestamp: Date.now() });
+        localStorage.setItem("stellarsplit_adapter_usage", JSON.stringify(existing));
+      } catch { /* ignore storage errors */ }
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
       await load();
     } catch (err) {
@@ -313,6 +320,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   return (
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <PresenceIndicators invoiceId={id} currentAddress={publicKey} />
+      <CollaborationCursors invoiceId={id} currentAddress={publicKey} />
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
         <div className="flex items-center gap-2 flex-wrap">
           <h1 className="text-2xl sm:text-3xl font-bold">
@@ -387,6 +395,9 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Status Timeline */}
       <StatusTimeline invoice={invoice} total={total} />
+
+      {/* Escrow Panel */}
+      <EscrowPanel invoice={invoice} total={total} />
 
       {/* Custom Message */}
       {customization?.message && (
@@ -483,6 +494,14 @@ export default function InvoiceDetailPage({ params }: Props) {
             </ul>
           </>
         )}
+      </section>
+
+      {/* Payment Export */}
+      <section className="mb-8">
+        <PaymentExport
+          invoiceId={id}
+          payments={invoice.payments.filter((p) => !p.pending)}
+        />
       </section>
 
       {/* Recipients */}
