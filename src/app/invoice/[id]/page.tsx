@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import {
@@ -65,6 +66,7 @@ function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceVie
  */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
+  const router = useRouter();
   const [invoice, setInvoice] = useState<InvoiceView | null>(null);
   const [previousInvoice, setPreviousInvoice] = useState<Invoice | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
@@ -288,6 +290,15 @@ export default function InvoiceDetailPage({ params }: Props) {
         >
           Print Invoice
         </button>
+        {isCreator && (
+          <button
+            type="button"
+            onClick={() => router.push(`/invoice/new?from=${id}`)}
+            className="px-3 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-sm transition-colors print:hidden"
+          >
+            Duplicate
+          </button>
+        )}
         {isCreator && invoice.status === "Pending" && (
           <button
             type="button"
