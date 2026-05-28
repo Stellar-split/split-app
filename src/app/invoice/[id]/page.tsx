@@ -610,9 +610,28 @@ export default function InvoiceDetailPage({ params }: Props) {
           invoice={invoice}
           total={total}
           publicKey={publicKey}
-          onPay={async (amount) => {
+          onPay={async (amount, email) => {
             const result = await splitClient.pay({ payer: publicKey, invoiceId: id, amount });
             setTxHash(result.txHash);
+            
+            // Send confirmation email if provided
+            if (email) {
+              try {
+                await fetch("/api/send-confirmation", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    email,
+                    invoiceId: id,
+                    txHash: result.txHash,
+                    amount: formatAmount(amount),
+                  }),
+                });
+              } catch (err) {
+                console.error("Failed to send confirmation email:", err);
+              }
+            }
+            
             await load();
           }}
           onClose={() => setShowPayModal(false)}
