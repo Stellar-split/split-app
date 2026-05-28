@@ -39,6 +39,7 @@ import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
+import PaymentExport from "@/components/PaymentExport";
 import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
@@ -479,6 +480,14 @@ export default function InvoiceDetailPage({ params }: Props) {
             </ul>
           </>
         )}
+      </section>
+
+      {/* Payment Export */}
+      <section className="mb-8">
+        <PaymentExport
+          invoiceId={id}
+          payments={invoice.payments.filter((p) => !p.pending)}
+        />
       </section>
 
       {/* Recipients */}
