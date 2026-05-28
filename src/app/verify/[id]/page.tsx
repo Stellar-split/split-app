@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { splitClient } from "@/lib/stellar";
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
+import CustomizationDisplay from "@/components/CustomizationDisplay";
 import VerifyPayButton from "./VerifyPayButton";
 import CopyLinkButton from "@/components/CopyLinkButton";
 
@@ -92,6 +93,8 @@ export default async function VerifyPage({ params }: Props) {
       >
         {invoice.status}
       </p>
+
+      <CustomizationDisplay invoiceId={id} />
 
       <section aria-labelledby="verify-progress-heading">
         <h2 id="verify-progress-heading" className="sr-only">Payment Progress</h2>

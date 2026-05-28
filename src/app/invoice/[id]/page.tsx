@@ -10,6 +10,7 @@ import {
   subscribeToInvoice,
 } from "@/lib/notifications";
 import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
+import { useInvoiceCustomization } from "@/lib/customization";
 import PaymentProgress from "@/components/PaymentProgress";
 import PayModal from "@/components/PayModal";
 import CountdownTimer from "@/components/CountdownTimer";
@@ -63,6 +64,7 @@ function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceVie
  */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
+  const customization = useInvoiceCustomization(id);
   const [invoice, setInvoice] = useState<InvoiceView | null>(null);
   const [previousInvoice, setPreviousInvoice] = useState<Invoice | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
@@ -262,7 +264,9 @@ export default function InvoiceDetailPage({ params }: Props) {
   return (
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">Invoice #{id}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">
+          {customization?.title ? customization.title : `Invoice #${id}`}
+        </h1>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
           aria-label={`Status: ${invoice.status}`}
@@ -299,6 +303,13 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Status Timeline */}
       <StatusTimeline invoice={invoice} total={total} />
+
+      {/* Custom Message */}
+      {customization?.message && (
+        <section className="mb-8 p-4 rounded-lg border-l-4" style={{ borderColor: customization.accentColor, backgroundColor: `${customization.accentColor}15` }}>
+          <p className="text-sm text-gray-300 whitespace-pre-wrap">{customization.message}</p>
+        </section>
+      )}
 
       {/* Vesting Timeline — only shown when vestingCliff is set */}
       {invoice.vestingCliff && (
