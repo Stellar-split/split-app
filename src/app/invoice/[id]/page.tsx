@@ -31,7 +31,7 @@ import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
-import type { Invoice } from "@stellar-split/sdk";
+import ReminderSender from "@/components/ReminderSender";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -313,6 +313,18 @@ export default function InvoiceDetailPage({ params }: Props) {
           </button>
         )}
       </div>
+
+      {/* Reminder Sender — creator only, Pending invoices */}
+      {isCreator && invoice.status === "Pending" && (
+        <div className="mb-6 print:hidden">
+          <ReminderSender
+            invoiceId={id}
+            amount={total}
+            deadline={invoice.deadline}
+            verifyUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`}
+          />
+        </div>
+      )}
 
       {/* Status Timeline */}
       <StatusTimeline invoice={invoice} total={total} />
