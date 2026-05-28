@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import NotificationCenter from "@/components/NotificationCenter";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import OnboardingFlow from "@/components/OnboardingFlow";
 
 export const metadata: Metadata = {
   title: "StellarSplit — On-chain Invoice Splitting",
@@ -68,6 +69,7 @@ export default function RootLayout({
           </nav>
         </header>
         <ErrorBoundary>{children}</ErrorBoundary>
+        <OnboardingFlow />
         <Script id="register-sw" strategy="afterInteractive">
           {`if ("serviceWorker" in navigator) {
             window.addEventListener("load", function () {
