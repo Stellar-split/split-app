@@ -21,6 +21,7 @@ import CommentSection from "@/components/CommentSection";
 import StatusTimeline from "@/components/StatusTimeline";
 import ActivityFeed from "@/components/ActivityFeed";
 import VestingTimeline from "@/components/VestingTimeline";
+import ReputationBadge from "@/components/ReputationBadge";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
@@ -396,13 +397,16 @@ export default function InvoiceDetailPage({ params }: Props) {
           {invoice.recipients.map((r, i) => (
             <li
               key={i}
-              className="flex justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm min-w-0"
+              className="flex justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm min-w-0 items-center"
             >
-              <span className="font-mono text-gray-300 min-w-0 shrink" title={r.address}>
-                <span className="sm:hidden">{truncateAddress(r.address)}</span>
-                <span className="hidden sm:inline truncate">{r.address}</span>
-              </span>
-              <span className="text-indigo-300">{formatAmount(r.amount)} USDC</span>
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="font-mono text-gray-300 min-w-0 shrink" title={r.address}>
+                  <span className="sm:hidden">{truncateAddress(r.address)}</span>
+                  <span className="hidden sm:inline truncate">{r.address}</span>
+                </span>
+                <ReputationBadge address={r.address} />
+              </div>
+              <span className="text-indigo-300 shrink-0">{formatAmount(r.amount)} USDC</span>
             </li>
           ))}
         </ul>
