@@ -492,6 +492,14 @@ export default function InvoiceDetailPage({ params }: Props) {
         )}
       </section>
 
+      {/* Payment Export */}
+      <section className="mb-8">
+        <PaymentExport
+          invoiceId={id}
+          payments={invoice.payments.filter((p) => !p.pending)}
+        />
+      </section>
+
       {/* Recipients */}
       <section aria-labelledby="recipients-heading" className="mb-8">
         <h2 id="recipients-heading" className="text-lg font-semibold mb-3">Recipients</h2>
