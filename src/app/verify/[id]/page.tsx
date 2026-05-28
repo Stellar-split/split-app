@@ -70,9 +70,9 @@ export default async function VerifyPage({ params }: Props) {
   const fundedBadge = Math.min(100, Math.max(0, fundedPct));
 
   const statusColor: Record<string, string> = {
-    Pending: "text-yellow-400",
-    Released: "text-green-400",
-    Refunded: "text-gray-400",
+    Pending: "text-yellow-600 dark:text-yellow-400",
+    Released: "text-green-600 dark:text-green-400",
+    Refunded: "text-gray-600 dark:text-gray-400",
   };
 
   return (
@@ -139,7 +139,7 @@ export default async function VerifyPage({ params }: Props) {
           Payments ({invoice.payments.length})
         </h2>
         {invoice.payments.length === 0 ? (
-          <p className="text-gray-500 text-sm">No payments yet.</p>
+          <p className="text-gray-500 dark:text-gray-500 text-sm">No payments yet.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {invoice.payments.map((p, i) => (
