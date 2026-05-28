@@ -46,6 +46,13 @@ export default function RootLayout({
               Dashboard
             </a>
             <a
+              href="/recipient"
+              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center whitespace-nowrap"
+            >
+              <span className="sm:hidden">Recipient</span>
+              <span className="hidden sm:inline">Recipient Invoices</span>
+            </a>
+            <a
               href="/address-book"
               className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center whitespace-nowrap"
             >
