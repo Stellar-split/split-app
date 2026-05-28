@@ -4,6 +4,7 @@ import "./globals.css";
 import NotificationCenter from "@/components/NotificationCenter";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import OnboardingFlow from "@/components/OnboardingFlow";
+import UpgradeBanner from "@/components/UpgradeBanner";
 
 export const metadata: Metadata = {
   title: "StellarSplit — On-chain Invoice Splitting",
@@ -64,6 +65,7 @@ export default function RootLayout({
           </nav>
         </header>
         <SimulationBanner />
+        <UpgradeBanner />
         <ErrorBoundary>{children}</ErrorBoundary>
         <OnboardingFlow />
         <Script id="register-sw" strategy="afterInteractive">
