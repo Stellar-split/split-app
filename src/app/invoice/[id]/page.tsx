@@ -322,9 +322,12 @@ export default function InvoiceDetailPage({ params }: Props) {
       <PresenceIndicators invoiceId={id} currentAddress={publicKey} />
       <CollaborationCursors invoiceId={id} currentAddress={publicKey} />
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">
-          {customization?.title ? customization.title : `Invoice #${id}`}
-        </h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            {customization?.title ? customization.title : `Invoice #${id}`}
+          </h1>
+          <VerifiedCreatorBadge address={invoice.creator} />
+        </div>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
           aria-label={`Status: ${invoice.status}`}
