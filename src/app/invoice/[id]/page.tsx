@@ -39,6 +39,7 @@ import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
+import VerifiedCreatorBadge from "@/components/VerifiedCreatorBadge";
 import type { Invoice } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
@@ -313,9 +314,12 @@ export default function InvoiceDetailPage({ params }: Props) {
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <PresenceIndicators invoiceId={id} currentAddress={publicKey} />
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">
-          {customization?.title ? customization.title : `Invoice #${id}`}
-        </h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            {customization?.title ? customization.title : `Invoice #${id}`}
+          </h1>
+          <VerifiedCreatorBadge address={invoice.creator} />
+        </div>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
           aria-label={`Status: ${invoice.status}`}
