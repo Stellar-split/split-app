@@ -78,7 +78,7 @@ export default function AddressBookPage() {
         <button
           type="submit"
           disabled={entries.length >= 50}
-          className="self-start min-h-11 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-40"
+          className="self-start min-h-11 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {entries.length >= 50 ? t("addressBook.limitReached") : t("addressBook.save")}
         </button>
@@ -100,18 +100,18 @@ export default function AddressBookPage() {
                     type="text"
                     value={editNickname}
                     onChange={(e) => setEditNickname(e.target.value)}
-                    className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     autoFocus
                   />
                   <button
                     onClick={() => handleSaveEdit(entry.address)}
-                    className="min-h-11 px-3 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold transition-colors"
+                    className="min-h-11 px-3 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   >
                     {t("addressBook.save")}
                   </button>
                   <button
                     onClick={() => setEditAddress(null)}
-                    className="min-h-11 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-xs transition-colors"
+                    className="min-h-11 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   >
                     {t("dashboard.cancel")}
                   </button>
@@ -128,14 +128,14 @@ export default function AddressBookPage() {
                   <button
                     onClick={() => handleEdit(entry.address)}
                     aria-label={`Edit ${entry.nickname}`}
-                    className="min-h-11 px-2 text-xs text-gray-400 hover:text-indigo-300 transition-colors"
+                    className="min-h-11 px-2 text-xs text-gray-400 hover:text-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   >
                     {t("addressBook.edit")}
                   </button>
                   <button
                     onClick={() => handleRemove(entry.address)}
                     aria-label={`Remove ${entry.nickname}`}
-                    className="min-h-11 px-2 text-xs text-gray-400 hover:text-red-400 transition-colors"
+                    className="min-h-11 px-2 text-xs text-gray-400 hover:text-red-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   >
                     {t("addressBook.remove")}
                   </button>

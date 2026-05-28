@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
-import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
+import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
+import TemplateManager from "@/components/TemplateManager";
 import TxConfirmModal from "@/components/TxConfirmModal";
-import { useI18n } from "@/components/I18nProvider";
+import { recordInvoiceHistory } from "@/lib/invoiceHistory";
 
 interface RecipientRow {
   address: string;
@@ -20,6 +21,7 @@ interface RecipientRow {
 export default function NewInvoicePage() {
   const { t } = useI18n();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [recipients, setRecipients] = useState<RecipientRow[]>([
     { address: "", amount: "" },
   ]);
@@ -30,15 +32,62 @@ export default function NewInvoicePage() {
   const [recurring, setRecurring] = useState(false);
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const template = sessionStorage.getItem("invoiceTemplate");
+    if (template) {
+      const parsed: InvoiceTemplate = JSON.parse(template);
+      setRecipients(parsed.recipients);
+      setDeadlineDays(parsed.deadlineDays);
+      setToken(parsed.token);
+      sessionStorage.removeItem("invoiceTemplate");
+    }
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [txModal, setTxModal] = useState<{ txHash: string; invoiceId: string } | null>(null);
   const [equalSplit, setEqualSplit] = useState(false);
   const [totalAmount, setTotalAmount] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Load source invoice if duplicating
+  useEffect(() => {
+    const fromId = searchParams.get("from");
+    if (!fromId) return;
+
+    setLoading(true);
+    splitClient
+      .getInvoice(fromId)
+      .then((invoice) => {
+        // Pre-fill recipients and amounts
+        const recipientRows = invoice.recipients.map((r) => ({
+          address: r.address,
+          amount: formatAmount(r.amount),
+        }));
+        setRecipients(recipientRows);
+        
+        // Pre-fill token
+        setToken(invoice.token);
+        
+        // Reset deadline to default (7 days)
+        setDeadlineDays(7);
+      })
+      .catch((err) => {
+        setError(`Failed to load source invoice: ${err}`);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [searchParams]);
 
   const perRecipientAmount =
     equalSplit && totalAmount && recipients.length > 0
       ? (parseFloat(totalAmount) / recipients.length).toFixed(7)
       : undefined;
+
+  const handleLoadTemplate = (template: { recipients: RecipientRow[]; token: string }) => {
+    setRecipients(template.recipients);
+    setToken(template.token);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +96,9 @@ export default function NewInvoicePage() {
 
     try {
       const creator = await getFreighterPublicKey();
+      const invoiceTotal = equalSplit
+        ? parseFloat(totalAmount) * recipients.filter((r) => r.address).length
+        : recipients.reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0);
 
       const { invoiceId, txHash } = await splitClient.createInvoice({
         creator,
@@ -59,6 +111,12 @@ export default function NewInvoicePage() {
         ...(recurring && { recurring, intervalDays }),
       });
 
+      recordInvoiceHistory(
+        recipients.map((r) => ({
+          address: r.address,
+          amount: equalSplit ? (perRecipientAmount ?? "0") : r.amount,
+        }))
+      );
       setTxModal({ txHash, invoiceId });
     } catch (err) {
       setError(String(err));
@@ -68,7 +126,7 @@ export default function NewInvoicePage() {
   };
 
   return (
-    <main className="max-w-xl mx-auto px-6 py-16">
+    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       {txModal && (
         <TxConfirmModal
           txHash={txModal.txHash}
@@ -76,10 +134,21 @@ export default function NewInvoicePage() {
           onClose={() => router.push(`/invoice/${txModal.invoiceId}`)}
         />
       )}
-    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
-      <h1 className="text-3xl font-bold mb-8">{t("invoiceNew.title")}</h1>
+      <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+
+      {loading && (
+        <div className="text-center py-8">
+          <p className="text-gray-400" aria-live="polite">Loading invoice data…</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">
+        <TemplateManager
+          recipients={recipients}
+          token={token}
+          onLoad={handleLoadTemplate}
+        />
+
         {/* Equal Split toggle */}
         <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
           <label htmlFor="equal-split-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
@@ -172,6 +241,11 @@ export default function NewInvoicePage() {
             onChange={(e) => setDeadlineDays(Number(e.target.value))}
             required
             className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <DeadlineSuggester
+            totalAmount={equalSplit ? totalAmount : recipients.reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0).toString()}
+            recipientCount={recipients.filter((r) => r.address).length}
+            onUseSuggestion={(days) => setDeadlineDays(days)}
           />
         </div>
 

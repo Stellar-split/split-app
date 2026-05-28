@@ -115,7 +115,7 @@ export default function VestingTimeline({ invoiceId, vestingCliff, claimed, publ
             type="button"
             onClick={handleClaim}
             disabled={!cliffPassed || claiming}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-disabled={!cliffPassed}
           >
             {claiming ? "Claiming…" : "Claim Share"}
