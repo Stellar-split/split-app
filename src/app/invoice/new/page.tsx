@@ -6,6 +6,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
+import DeadlineSuggester from "@/components/DeadlineSuggester";
 import TxConfirmModal from "@/components/TxConfirmModal";
 
 interface RecipientRow {
@@ -45,6 +46,9 @@ export default function NewInvoicePage() {
 
     try {
       const creator = await getFreighterPublicKey();
+      const invoiceTotal = equalSplit
+        ? parseFloat(totalAmount) * recipients.filter((r) => r.address).length
+        : recipients.reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0);
 
       const { invoiceId, txHash } = await splitClient.createInvoice({
         creator,
@@ -56,6 +60,15 @@ export default function NewInvoicePage() {
         deadline: deadlineFromDays(deadlineDays),
         ...(recurring && { recurring, intervalDays }),
       });
+
+      // Save to history for deadline suggestions
+      const history = JSON.parse(localStorage.getItem("invoiceHistory") || "[]");
+      history.push({
+        total: invoiceTotal,
+        recipientCount: recipients.filter((r) => r.address).length,
+        fundingTime: deadlineDays,
+      });
+      localStorage.setItem("invoiceHistory", JSON.stringify(history.slice(-100))); // Keep last 100
 
       setTxModal({ txHash, invoiceId });
     } catch (err) {
@@ -169,6 +182,11 @@ export default function NewInvoicePage() {
             onChange={(e) => setDeadlineDays(Number(e.target.value))}
             required
             className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <DeadlineSuggester
+            totalAmount={equalSplit ? totalAmount : recipients.reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0).toString()}
+            recipientCount={recipients.filter((r) => r.address).length}
+            onUseSuggestion={(days) => setDeadlineDays(days)}
           />
         </div>
 
