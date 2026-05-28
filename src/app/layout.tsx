@@ -3,8 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import NotificationCenter from "@/components/NotificationCenter";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import SimulationModeToggle from "@/components/SimulationModeToggle";
-import SimulationBanner from "@/components/SimulationBanner";
+import OnboardingFlow from "@/components/OnboardingFlow";
 
 export const metadata: Metadata = {
   title: "StellarSplit — On-chain Invoice Splitting",
@@ -48,6 +47,12 @@ export default function RootLayout({
               Dashboard
             </a>
             <a
+              href="/groups"
+              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
+            >
+              Groups
+            </a>
+            <a
               href="/address-book"
               className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center whitespace-nowrap"
             >
@@ -66,6 +71,7 @@ export default function RootLayout({
         </header>
         <SimulationBanner />
         <ErrorBoundary>{children}</ErrorBoundary>
+        <OnboardingFlow />
         <Script id="register-sw" strategy="afterInteractive">
           {`if ("serviceWorker" in navigator) {
             window.addEventListener("load", function () {
