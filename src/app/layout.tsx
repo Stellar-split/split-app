@@ -56,7 +56,7 @@ export default function RootLayout({
             </a>
             <a
               href="/leaderboard"
-              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 py-1"
+              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
             >
               Leaderboard
             </a>
