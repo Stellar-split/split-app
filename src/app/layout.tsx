@@ -3,6 +3,8 @@ import Script from "next/script";
 import "./globals.css";
 import NotificationCenter from "@/components/NotificationCenter";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import OnboardingFlow from "@/components/OnboardingFlow";
+import UpgradeBanner from "@/components/UpgradeBanner";
 
 export const metadata: Metadata = {
   title: "StellarSplit — On-chain Invoice Splitting",
@@ -34,16 +36,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-950 text-gray-100 antialiased overflow-x-hidden">
-        <header className="sticky top-0 z-40 flex items-center justify-between gap-2 px-4 sm:px-6 py-3 bg-gray-950/80 backdrop-blur border-b border-gray-800 min-w-0">
-          <a href="/" className="font-bold text-base sm:text-lg tracking-tight shrink-0 min-h-11 inline-flex items-center">
-            StellarSplit
-          </a>
-          <nav className="flex items-center gap-1 sm:gap-2 min-w-0 flex-wrap justify-end">
-            <a
-              href="/dashboard"
-              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
-            >
-              Dashboard
+        <I18nProvider>
+          <header className="sticky top-0 z-40 flex items-center justify-between gap-2 px-4 sm:px-6 py-3 bg-gray-950/80 backdrop-blur border-b border-gray-800 min-w-0">
+            <a href="/" className="font-bold text-base sm:text-lg tracking-tight shrink-0 min-h-11 inline-flex items-center">
+              StellarSplit
             </a>
             <a
               href="/groups"
@@ -64,28 +60,14 @@ export default function RootLayout({
             >
               Leaderboard
             </a>
-            <a
-              href="/analytics"
-              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
-            >
-              Analytics
-            </a>
-            <a
-              href="/revenue"
-              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
-            >
-              Revenue
-            </a>
-            <a
-              href="/settings/sync"
-              className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
-            >
-              Sync
-            </a>
+            <SimulationModeToggle />
             <NotificationCenter />
-          </nav>
         </header>
+        <SimulationBanner />
+        <UpgradeBanner />
         <ErrorBoundary>{children}</ErrorBoundary>
+        <OnboardingFlow />
+        <RecipientOnboarding />
         <Script id="register-sw" strategy="afterInteractive">
           {`if ("serviceWorker" in navigator) {
             window.addEventListener("load", function () {
@@ -93,6 +75,7 @@ export default function RootLayout({
             });
           }`}
         </Script>
+        </I18nProvider>
       </body>
     </html>
   );

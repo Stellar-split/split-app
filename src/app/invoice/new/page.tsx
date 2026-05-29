@@ -19,6 +19,7 @@ interface RecipientRow {
  * New Invoice page — form to create an on-chain StellarSplit invoice.
  */
 export default function NewInvoicePage() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [recipients, setRecipients] = useState<RecipientRow[]>([
@@ -95,6 +96,9 @@ export default function NewInvoicePage() {
 
     try {
       const creator = await getFreighterPublicKey();
+      const invoiceTotal = equalSplit
+        ? parseFloat(totalAmount) * recipients.filter((r) => r.address).length
+        : recipients.reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0);
 
       const { invoiceId, txHash } = await splitClient.createInvoice({
         creator,
@@ -148,7 +152,7 @@ export default function NewInvoicePage() {
         {/* Equal Split toggle */}
         <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
           <label htmlFor="equal-split-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
-            Equal Split
+            {t("invoiceNew.equalSplit")}
           </label>
           <button
             id="equal-split-toggle"
@@ -158,7 +162,7 @@ export default function NewInvoicePage() {
             aria-label="Toggle equal split mode"
             onClick={() => setEqualSplit((v) => !v)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              equalSplit ? "bg-indigo-600" : "bg-gray-600"
+              equalSplit ? "bg-indigo-600" : "bg-gray-300 dark:bg-gray-600"
             }`}
           >
             <span
@@ -173,7 +177,7 @@ export default function NewInvoicePage() {
         {equalSplit && (
           <div>
             <label htmlFor="total-amount" className="block text-sm font-medium text-gray-300 mb-1">
-              Total Amount (USDC)
+              {t("invoiceNew.totalAmount")}
             </label>
             <input
               id="total-amount"
@@ -188,7 +192,7 @@ export default function NewInvoicePage() {
             />
             {perRecipientAmount && (
               <p className="mt-1 text-xs text-gray-400">
-                {perRecipientAmount} USDC per recipient
+                {perRecipientAmount} {t("invoiceNew.perRecipient")}
               </p>
             )}
           </div>
@@ -197,7 +201,7 @@ export default function NewInvoicePage() {
         {/* Recipients */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Recipients {equalSplit ? "" : "& Amounts (USDC)"}
+            {equalSplit ? t("invoiceNew.recipients") : t("invoiceNew.recipientsAndAmounts")}
           </label>
           <RecipientForm
             recipients={recipients}
@@ -210,7 +214,7 @@ export default function NewInvoicePage() {
         {/* Token address */}
         <div>
           <label htmlFor="token-address" className="block text-sm font-medium text-gray-300 mb-1">
-            USDC Token Contract Address
+            {t("invoiceNew.tokenAddress")}
           </label>
           <input
             id="token-address"
@@ -226,7 +230,7 @@ export default function NewInvoicePage() {
         {/* Deadline */}
         <div>
           <label htmlFor="deadline-days" className="block text-sm font-medium text-gray-300 mb-1">
-            Deadline (days from now)
+            {t("invoiceNew.deadline")}
           </label>
           <input
             id="deadline-days"
@@ -238,6 +242,11 @@ export default function NewInvoicePage() {
             required
             className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
+          <DeadlineSuggester
+            totalAmount={equalSplit ? totalAmount : recipients.reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0).toString()}
+            recipientCount={recipients.filter((r) => r.address).length}
+            onUseSuggestion={(days) => setDeadlineDays(days)}
+          />
         </div>
 
         {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
@@ -247,7 +256,7 @@ export default function NewInvoicePage() {
           disabled={submitting}
           className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
         >
-          {submitting ? "Creating…" : "Create Invoice"}
+          {submitting ? t("invoiceNew.creating") : t("invoiceNew.create")}
         </button>
       </form>
     </main>
