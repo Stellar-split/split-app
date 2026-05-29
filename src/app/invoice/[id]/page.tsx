@@ -22,6 +22,7 @@ import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
 import PaymentCertificate from "@/components/PaymentCertificate";
+import AchievementCard from "@/components/AchievementCard";
 import PaymentSourceBar from "@/components/PaymentSourceBar";
 import VersionHistory from "@/components/VersionHistory";
 import InstallmentPanel from "@/components/InstallmentPanel";
@@ -91,6 +92,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showAchievement, setShowAchievement] = useState(false);
   const [disputing, setDisputing] = useState(false);
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -139,6 +141,9 @@ export default function InvoiceDetailPage({ params }: Props) {
         newStatus: inv.status,
         timestamp: new Date().toISOString(),
       });
+      if (inv.status === "Released") {
+        setShowAchievement(true);
+      }
     }
     prevStatusRef.current = inv.status;
 
@@ -699,6 +704,14 @@ export default function InvoiceDetailPage({ params }: Props) {
           invoice={invoice}
           total={total}
           verifyUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`}
+        />
+      )}
+
+      {showAchievement && (
+        <AchievementCard
+          invoiceId={id}
+          totalAmount={formatAmount(total)}
+          onDismiss={() => setShowAchievement(false)}
         />
       )}
 
