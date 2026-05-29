@@ -18,6 +18,7 @@ import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
 import CoCreatorPanel from "@/components/CoCreatorPanel";
 import AuditLogTable from "@/components/AuditLogTable";
+import DisputeTimeline from "@/components/DisputeTimeline";
 import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
@@ -679,6 +680,14 @@ export default function InvoiceDetailPage({ params }: Props) {
         <p className="text-gray-400 text-sm mb-8">
           This invoice is {invoice.status.toLowerCase()} and no longer accepts payments.
         </p>
+      )}
+
+      {/* Dispute Timeline — shown when invoice has an active or resolved dispute */}
+      {(invoice as any).disputeStatus && (
+        <DisputeTimeline
+          invoiceId={id}
+          disputeStatus={(invoice as any).disputeStatus}
+        />
       )}
 
       {/* Audit Log */}
