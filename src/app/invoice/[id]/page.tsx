@@ -43,6 +43,7 @@ import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
 import FlowDiagram from "@/components/FlowDiagram";
+import SuccessAnimation from "@/components/SuccessAnimation";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -89,6 +90,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [disputing, setDisputing] = useState(false);
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -213,6 +215,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         amount,
       });
       setTxHash(result.txHash);
+      setShowSuccess(true);
       setLastFailedPayment(null);
       setRetryCount(0);
       try {
@@ -282,6 +285,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         amount: lastFailedPayment.amount,
       });
       setTxHash(result.txHash);
+      setShowSuccess(true);
       setLastFailedPayment(null);
       setRetryCount(0);
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
@@ -695,6 +699,14 @@ export default function InvoiceDetailPage({ params }: Props) {
           invoice={invoice}
           total={total}
           verifyUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`}
+        />
+      )}
+
+      {showSuccess && txHash && (
+        <SuccessAnimation
+          invoiceId={id}
+          txHash={txHash}
+          onDismiss={() => setShowSuccess(false)}
         />
       )}
     </main>
