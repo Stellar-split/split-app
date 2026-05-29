@@ -13,6 +13,7 @@
     "@stellar-split/sdk": "^0.1.0",
     "@stellar/freighter-api": "^3.0.0",
     "canvas-confetti": "^1.9.3",
+    "html2canvas": "^1.4.1",
     "next": "14.2.3",
     "qrcode.react": "4.2.0",
     "react": "^18.3.0",
@@ -22,6 +23,7 @@
   "devDependencies": {
     "@playwright/test": "^1.40.0",
     "@types/canvas-confetti": "^1.9.0",
+    "@types/html2canvas": "^1.0.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
