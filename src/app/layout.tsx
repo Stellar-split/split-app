@@ -5,6 +5,10 @@ import NotificationCenter from "@/components/NotificationCenter";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import UpgradeBanner from "@/components/UpgradeBanner";
+import { I18nProvider } from "@/components/I18nProvider";
+import SimulationModeToggle from "@/components/SimulationModeToggle";
+import SimulationBanner from "@/components/SimulationBanner";
+import RecipientOnboarding from "@/components/RecipientOnboarding";
 
 export const metadata: Metadata = {
   title: "StellarSplit — On-chain Invoice Splitting",
@@ -62,19 +66,19 @@ export default function RootLayout({
             </a>
             <SimulationModeToggle />
             <NotificationCenter />
-        </header>
-        <SimulationBanner />
-        <UpgradeBanner />
-        <ErrorBoundary>{children}</ErrorBoundary>
-        <OnboardingFlow />
-        <RecipientOnboarding />
-        <Script id="register-sw" strategy="afterInteractive">
-          {`if ("serviceWorker" in navigator) {
+          </header>
+          <SimulationBanner />
+          <UpgradeBanner />
+          <ErrorBoundary>{children}</ErrorBoundary>
+          <OnboardingFlow />
+          <RecipientOnboarding />
+          <Script id="register-sw" strategy="afterInteractive">
+            {`if ("serviceWorker" in navigator) {
             window.addEventListener("load", function () {
               navigator.serviceWorker.register("/sw.js");
             });
           }`}
-        </Script>
+          </Script>
         </I18nProvider>
       </body>
     </html>
