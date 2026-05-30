@@ -113,6 +113,8 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [notifySubscribed, setNotifySubscribed] = useState(false);
   const [notifyDenied, setNotifyDenied] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"freighter" | "walletconnect">("freighter");
+  const [amountLocked, setAmountLocked] = useState(false);
+  const prevPayAmountRef = useRef("");
 
   const prevStatusRef = useRef<string | null>(null);
 
@@ -195,6 +197,14 @@ export default function InvoiceDetailPage({ params }: Props) {
   const total = invoice
     ? invoice.recipients.reduce((s, r) => s + r.amount, 0n)
     : 0n;
+
+  // Keep locked amount in sync with the latest remaining balance after each poll
+  useEffect(() => {
+    if (amountLocked && invoice) {
+      const remaining = invoice.recipients.reduce((s, r) => s + r.amount, 0n) - invoice.funded;
+      setPayAmount(formatAmount(remaining > 0n ? remaining : 0n));
+    }
+  }, [amountLocked, invoice]);
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -585,9 +595,34 @@ export default function InvoiceDetailPage({ params }: Props) {
           <PaymentMethodSelector onMethodChange={setPaymentMethod} />
           <form onSubmit={handlePay} className="flex flex-col gap-4">
             <div>
-              <label htmlFor="pay-amount" className="block text-sm font-medium text-gray-300 mb-1">
-                Amount (USDC)
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="pay-amount" className="block text-sm font-medium text-gray-300">
+                  Amount (USDC)
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <span className="text-xs text-gray-400">Pay exact remaining</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={amountLocked}
+                    onClick={() => {
+                      if (!amountLocked) {
+                        prevPayAmountRef.current = payAmount;
+                        const remaining = total - invoice.funded;
+                        setPayAmount(formatAmount(remaining > 0n ? remaining : 0n));
+                      } else {
+                        setPayAmount(prevPayAmountRef.current);
+                      }
+                      setAmountLocked((v) => !v);
+                    }}
+                    className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${amountLocked ? "bg-indigo-600" : "bg-gray-600"}`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${amountLocked ? "translate-x-4" : "translate-x-0"}`}
+                    />
+                  </button>
+                </label>
+              </div>
               <input
                 id="pay-amount"
                 type="number"
@@ -597,7 +632,9 @@ export default function InvoiceDetailPage({ params }: Props) {
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
                 required
-                className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={amountLocked}
+                readOnly={amountLocked}
+                className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed"
                 aria-describedby={error ? "pay-error" : undefined}
               />
               <PaymentSuggestions
