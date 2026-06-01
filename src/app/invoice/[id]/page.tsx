@@ -16,6 +16,7 @@ import { useInvoiceCustomization } from "@/lib/customization";
 import PaymentProgress from "@/components/PaymentProgress";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
+import PaymentChannelPanel from "@/components/PaymentChannelPanel";
 import CoCreatorPanel from "@/components/CoCreatorPanel";
 import AuditLogTable from "@/components/AuditLogTable";
 import DisputeTimeline from "@/components/DisputeTimeline";
@@ -23,8 +24,11 @@ import CountdownTimer from "@/components/CountdownTimer";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoicePDF from "@/components/InvoicePDF";
 import PaymentCertificate from "@/components/PaymentCertificate";
+import PaymentExport from "@/components/PaymentExport";
 import AchievementCard from "@/components/AchievementCard";
 import PaymentSourceBar from "@/components/PaymentSourceBar";
+import ReputationBadge from "@/components/ReputationBadge";
+import VerifiedCreatorBadge from "@/components/VerifiedCreatorBadge";
 import VersionHistory from "@/components/VersionHistory";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import InstallmentTracker from "@/components/InstallmentTracker";
@@ -38,6 +42,7 @@ import PresenceIndicators from "@/components/PresenceIndicators";
 import CollaborationCursors from "@/components/CollaborationCursors";
 import SplitCalculator from "@/components/SplitCalculator";
 import InvoiceQR from "@/components/InvoiceQR";
+import PaymentSuggestions from "@/components/PaymentSuggestions";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
@@ -63,6 +68,13 @@ interface Props {
 
 type InvoicePayment = Payment & { pending?: boolean; clientKey?: string };
 type InvoiceView = Omit<InvoiceWithVesting, "payments"> & { payments: InvoicePayment[] };
+
+type PaymentChannelState = {
+  invoiceId: string;
+  payer: string;
+  balance: bigint;
+  opened: boolean;
+};
 
 function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceView {
   const pending = (local?.payments ?? []).filter((p) => p.pending);
@@ -99,6 +111,9 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [locale, setLocale] = useState<Locale>("en");
+  const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
+  const [channelLoading, setChannelLoading] = useState(false);
+  const [channelError, setChannelError] = useState<string | null>(null);
 
   // Payment retry state
   const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint; fee?: bigint } | null>(null);
@@ -167,6 +182,64 @@ export default function InvoiceDetailPage({ params }: Props) {
     });
   };
 
+  const channelStorageKey = (invoiceId: string, payer: string) =>
+    `payment-channel-${invoiceId}-${payer}`;
+
+  const persistChannelState = (state: PaymentChannelState | null) => {
+    if (typeof window === "undefined") return;
+    const key = channelStorageKey(id, publicKey ?? "");
+    if (!state) {
+      localStorage.removeItem(key);
+      return;
+    }
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        invoiceId: state.invoiceId,
+        payer: state.payer,
+        balance: state.balance.toString(),
+        opened: state.opened,
+      })
+    );
+  };
+
+  const loadChannelState = () => {
+    if (typeof window === "undefined" || !publicKey) return null;
+    const raw = localStorage.getItem(channelStorageKey(id, publicKey));
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as {
+        invoiceId: string;
+        payer: string;
+        balance: string | number;
+        opened: boolean;
+      };
+
+      if (parsed.invoiceId !== id || parsed.payer !== publicKey) return null;
+      return {
+        invoiceId: parsed.invoiceId,
+        payer: parsed.payer,
+        balance: BigInt(parsed.balance),
+        opened: parsed.opened,
+      } as PaymentChannelState;
+    } catch {
+      return null;
+    }
+  };
+
+  const syncChannelState = (state: PaymentChannelState | null) => {
+    setChannelState(state);
+    persistChannelState(state);
+  };
+
+  useEffect(() => {
+    if (!publicKey) return;
+    const stored = loadChannelState();
+    if (stored) {
+      setChannelState(stored);
+    }
+  }, [id, publicKey]);
+
   useEffect(() => {
     load().catch((e) => setError(String(e)));
     getFreighterPublicKey().then(setPublicKey).catch(() => null);
@@ -206,11 +279,26 @@ export default function InvoiceDetailPage({ params }: Props) {
     }
   }, [amountLocked, invoice]);
 
+  const applyChannelBalance = (amount: bigint) => {
+    if (!channelState?.opened || channelState.balance <= 0n) return null;
+    const used = amount <= channelState.balance ? amount : channelState.balance;
+    const remaining = channelState.balance - used;
+    const nextState: PaymentChannelState = {
+      ...channelState,
+      balance: remaining > 0n ? remaining : 0n,
+      opened: remaining > 0n,
+    };
+    syncChannelState(nextState.opened ? nextState : null);
+    return channelState;
+  };
+
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!publicKey || !invoice) return;
     const amount = parseAmount(payAmount);
     const clientKey = `opt-${Date.now()}`;
+    const originalChannel = channelState;
+    const channelUsed = applyChannelBalance(amount);
     setError(null);
     setInvoice((prev) => {
       if (!prev) return prev;
@@ -242,6 +330,9 @@ export default function InvoiceDetailPage({ params }: Props) {
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
       await load();
     } catch (err) {
+      if (channelUsed && originalChannel) {
+        syncChannelState(originalChannel);
+      }
       setInvoice((prev) => {
         if (!prev) return prev;
         const pending = prev.payments.find((p) => p.clientKey === clientKey);
@@ -257,6 +348,39 @@ export default function InvoiceDetailPage({ params }: Props) {
       setRetryCount((prev) => prev + 1);
     } finally {
       setPaying(false);
+    }
+  };
+
+  const payWithChannel = async (amount: bigint, email?: string) => {
+    if (!publicKey) return;
+    const originalChannel = channelState;
+    const channelUsed = applyChannelBalance(amount);
+    try {
+      const result = await splitClient.pay({ payer: publicKey, invoiceId: id, amount });
+      setTxHash(result.txHash);
+      if (email) {
+        try {
+          await fetch("/api/send-confirmation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              invoiceId: id,
+              txHash: result.txHash,
+              amount: formatAmount(amount),
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to send confirmation email:", err);
+        }
+      }
+      await load();
+      return result;
+    } catch (err) {
+      if (channelUsed && originalChannel) {
+        syncChannelState(originalChannel);
+      }
+      throw err;
     }
   };
 
@@ -447,6 +571,11 @@ export default function InvoiceDetailPage({ params }: Props) {
         <PaymentProgress funded={invoice.funded} total={total} />
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
           {formatAmount(invoice.funded)} / {formatAmount(total)} USDC funded
+          {channelState?.opened && (
+            <span className="text-indigo-300 ml-2">
+              · Channel balance: {formatAmount(channelState.balance)} USDC
+            </span>
+          )}
         </p>
         {invoice.deadline > 0 && (
           <div className="flex items-center gap-2 mt-3">
@@ -588,6 +717,46 @@ export default function InvoiceDetailPage({ params }: Props) {
         <CoCreatorPanel invoice={invoice} publicKey={publicKey} onUpdate={load} />
       )}
 
+      {/* Payment channel panel for frequent payers */}
+      {invoice.status === "Pending" && publicKey && publicKey !== invoice.creator && (
+        <PaymentChannelPanel
+          invoiceId={id}
+          publicKey={publicKey}
+          channelState={channelState}
+          onOpen={async () => {
+            if (!publicKey) return;
+            setChannelLoading(true);
+            setChannelError(null);
+            try {
+              const result = await (splitClient as any).openChannel({ payer: publicKey, invoiceId: id });
+              const balance = result?.balance != null ? BigInt(result.balance) : 0n;
+              syncChannelState({ invoiceId: id, payer: publicKey, balance, opened: true });
+              await load();
+            } catch (err) {
+              setChannelError(String(err));
+            } finally {
+              setChannelLoading(false);
+            }
+          }}
+          onClose={async () => {
+            if (!publicKey) return;
+            setChannelLoading(true);
+            setChannelError(null);
+            try {
+              await (splitClient as any).closeChannel({ payer: publicKey, invoiceId: id });
+              syncChannelState(null);
+              await load();
+            } catch (err) {
+              setChannelError(String(err));
+            } finally {
+              setChannelLoading(false);
+            }
+          }}
+          loading={channelLoading}
+          error={channelError}
+        />
+      )}
+
       {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
         <section aria-labelledby="pay-heading" className="mb-8">
@@ -643,6 +812,11 @@ export default function InvoiceDetailPage({ params }: Props) {
                 publicKey={publicKey}
                 onSuggest={setPayAmount}
               />
+              {channelState?.opened && channelState.balance > 0n && (
+                <p className="text-sm text-gray-400 mt-2">
+                  This payment will use up to <span className="text-indigo-300">{formatAmount(channelState.balance)} USDC</span> from your open payment channel.
+                </p>
+              )}
             </div>
             {error && (
               <div id="pay-error" role="alert" className="flex flex-col gap-2">
@@ -686,28 +860,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           total={total}
           publicKey={publicKey}
           onPay={async (amount, email) => {
-            const result = await splitClient.pay({ payer: publicKey, invoiceId: id, amount });
-            setTxHash(result.txHash);
-            
-            // Send confirmation email if provided
-            if (email) {
-              try {
-                await fetch("/api/send-confirmation", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    email,
-                    invoiceId: id,
-                    txHash: result.txHash,
-                    amount: formatAmount(amount),
-                  }),
-                });
-              } catch (err) {
-                console.error("Failed to send confirmation email:", err);
-              }
-            }
-            
-            await load();
+            await payWithChannel(amount, email);
           }}
           onClose={() => setShowPayModal(false)}
         />
