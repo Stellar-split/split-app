@@ -38,6 +38,8 @@ import PresenceIndicators from "@/components/PresenceIndicators";
 import CollaborationCursors from "@/components/CollaborationCursors";
 import SplitCalculator from "@/components/SplitCalculator";
 import InvoiceQR from "@/components/InvoiceQR";
+import InvoiceChat from "@/components/InvoiceChat";
+import PaymentExport from "@/components/PaymentExport";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
@@ -528,6 +530,14 @@ export default function InvoiceDetailPage({ params }: Props) {
           payments={invoice.payments.filter((p) => !p.pending)}
         />
       </section>
+
+      {/* Invoice Chat */}
+      <InvoiceChat
+        invoiceId={id}
+        creator={invoice.creator}
+        recipients={invoice.recipients}
+        currentAddress={publicKey}
+      />
 
       {/* Recipients */}
       <section aria-labelledby="recipients-heading" className="mb-8">
