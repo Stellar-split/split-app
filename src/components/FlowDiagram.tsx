@@ -1,7 +1,6 @@
-"use client"
+"use client";
 
-import React from "react";
-import type { Payment, Invoice } from "@stellar-split/sdk";
+import type { Invoice, Payment } from "@stellar-split/sdk";
 
 type FlowDiagramProps = {
   invoice: Invoice;
@@ -9,81 +8,148 @@ type FlowDiagramProps = {
 
 function formatAmount(a: bigint) {
   try {
-    // rough conversion for display: assume amounts in stroops/atomic units
-    // If SDK provides formatting, callers can change later.
-    return `${(Number(a) / 1_000000).toFixed(6)}`;
+    return `${(Number(a) / 1_000_000).toFixed(6)}`;
   } catch {
     return String(a);
   }
 }
 
+function aggregateAmounts<T extends { address: string; amount: bigint }>(items: T[]) {
+  const totals = new Map<string, bigint>();
+
+  items.forEach(({ address, amount }) => {
+    totals.set(address, (totals.get(address) ?? 0n) + amount);
+  });
+
+  return Array.from(totals.entries()).map(([address, amount]) => ({ address, amount }));
+}
+
 export default function FlowDiagram({ invoice }: FlowDiagramProps) {
-  const payers = invoice.payments.map((p: Payment) => ({ address: p.payer, amount: p.amount }));
-  const recipients = invoice.recipients.map((r) => ({ address: r.address, amount: r.amount }));
+  const payers = aggregateAmounts(
+    invoice.payments.map((payment: Payment) => ({
+      address: payment.payer,
+      amount: payment.amount,
+    }))
+  );
 
-  const width = 800;
-  const height = 240;
+  const recipients = aggregateAmounts(
+    invoice.recipients.map((recipient) => ({
+      address: recipient.address,
+      amount: recipient.amount,
+    }))
+  );
 
-  // layout: left column payers (stack), center contract, right column recipients (stack)
-  const centerX = width / 2;
+  const payerNodes = payers.length > 0 ? payers : [{ address: "Awaiting payer", amount: 0n }];
+  const recipientNodes = recipients.length > 0 ? recipients : [{ address: "No recipients", amount: 0n }];
+
+  const width = 860;
+  const height = Math.max(240, Math.max(payerNodes.length, recipientNodes.length) * 80 + 40);
   const leftX = 120;
+  const centerX = width / 2;
   const rightX = width - 120;
-
-  const maxNodes = Math.max(payers.length || 1, recipients.length || 1, 1);
+  const maxNodes = Math.max(payerNodes.length, recipientNodes.length);
   const spacing = height / (maxNodes + 1);
-
-  const isActive = invoice.status === "Pending";
+  const isPending = invoice.status === "Pending";
 
   return (
-    <div className="w-full overflow-auto">
-      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="240" preserveAspectRatio="xMidYMid meet" className="mx-auto">
+    <section className="w-full overflow-x-auto" aria-label="Invoice payment flow diagram">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        height={height}
+        preserveAspectRatio="xMidYMid meet"
+      >
         <defs>
-          <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8" />
+          <marker
+            id="flow-arrow"
+            markerWidth="8"
+            markerHeight="8"
+            refX="7"
+            refY="4"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M0,0 L8,4 L0,8 Z" fill="#60a5fa" />
           </marker>
           <style>{`
-            .node { fill: #0f172a; stroke: #94a3b8; stroke-width: 1; }
-            .label { fill: #e6eef8; font-size: 12px; }
-            .arrow { stroke: #94a3b8; stroke-width: 2; fill: none; marker-end: url(#arrow); }
-            .pulse { animation: pulse 1.5s infinite; }
-            @keyframes pulse { 0% { opacity: 0.2 } 50% { opacity: 1 } 100% { opacity: 0.2 } }
+            .node { fill: #0f172a; stroke: #94a3b8; stroke-width: 1.5; }
+            .label { fill: #e2e8f0; font-size: 11px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+            .secondary { fill: #94a3b8; }
+            .arrow { stroke: #60a5fa; stroke-width: 2; fill: none; marker-end: url(#flow-arrow); opacity: 0.75; }
+            .pulse { animation: pulse 1.5s ease-in-out infinite; }
+            @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
           `}</style>
         </defs>
 
-        {/* payers */}
-        {payers.map((p, i) => {
-          const y = spacing * (i + 1);
+        {payerNodes.map((payer, index) => {
+          const y = spacing * (index + 1);
+          const amountLabel = payer.amount > 0n ? `${formatAmount(payer.amount)} USDC` : "Awaiting payment";
+
           return (
-            <g key={`payer-${i}`}>
-              <rect x={leftX - 60} y={y - 16} width={120} height={32} rx={8} className="node" />
-              <text x={leftX} y={y + 4} textAnchor="middle" className="label">{p.address}</text>
-              {/* arrow to contract */}
-              <line x1={leftX + 60} y1={y} x2={centerX - 40} y2={y} className={`arrow ${isActive ? "pulse" : ""}`} />
-              <text x={(leftX + centerX) / 2} y={y - 6} textAnchor="middle" className="label">{formatAmount(p.amount)} USDC</text>
+            <g key={`payer-${payer.address}-${index}`}>
+              <rect x={leftX - 70} y={y - 20} width={140} height={40} rx={12} className="node" />
+              <text x={leftX} y={y - 2} textAnchor="middle" className="label" fontWeight="700">
+                {payer.address}
+              </text>
+              <text x={leftX} y={y + 12} textAnchor="middle" className="secondary label">
+                {amountLabel}
+              </text>
+              <path
+                d={`M ${leftX + 70} ${y} H ${centerX - 60}`}
+                className={`arrow ${isPending ? "pulse" : ""}`}
+              />
+              {payer.amount > 0n && (
+                <text
+                  x={(leftX + centerX - 60) / 2}
+                  y={y - 8}
+                  textAnchor="middle"
+                  className="secondary label"
+                >
+                  {`${formatAmount(payer.amount)} USDC`}
+                </text>
+              )}
             </g>
           );
         })}
 
-        {/* contract node */}
         <g>
-          <rect x={centerX - 60} y={height / 2 - 20} width={120} height={40} rx={10} className="node" />
-          <text x={centerX} y={height / 2 + 6} textAnchor="middle" className="label">Contract</text>
+          <rect x={centerX - 70} y={height / 2 - 28} width={140} height={56} rx={14} className="node" />
+          <text x={centerX} y={height / 2 - 4} textAnchor="middle" className="label" fontWeight="700">
+            Contract
+          </text>
+          <text x={centerX} y={height / 2 + 12} textAnchor="middle" className="secondary label">
+            {invoice.status}
+          </text>
         </g>
 
-        {/* recipients */}
-        {recipients.map((r, i) => {
-          const y = spacing * (i + 1);
+        {recipientNodes.map((recipient, index) => {
+          const y = spacing * (index + 1);
+
           return (
-            <g key={`recip-${i}`}>
-              <rect x={rightX - 60} y={y - 16} width={120} height={32} rx={8} className="node" />
-              <text x={rightX} y={y + 4} textAnchor="middle" className="label">{r.address}</text>
-              {/* arrow from contract */}
-              <line x1={centerX + 40} y1={y} x2={rightX - 60} y2={y} className={`arrow ${isActive ? "pulse" : ""}`} />
-              <text x={(centerX + rightX) / 2} y={y - 6} textAnchor="middle" className="label">{formatAmount(r.amount)} USDC</text>
+            <g key={`recipient-${recipient.address}-${index}`}>
+              <rect x={rightX - 70} y={y - 20} width={140} height={40} rx={12} className="node" />
+              <text x={rightX} y={y - 2} textAnchor="middle" className="label" fontWeight="700">
+                {recipient.address}
+              </text>
+              <text x={rightX} y={y + 12} textAnchor="middle" className="secondary label">
+                {formatAmount(recipient.amount)} USDC
+              </text>
+              <path
+                d={`M ${centerX + 60} ${y} H ${rightX - 70}`}
+                className={`arrow ${isPending ? "pulse" : ""}`}
+              />
+              <text
+                x={(centerX + rightX - 70) / 2}
+                y={y - 8}
+                textAnchor="middle"
+                className="secondary label"
+              >
+                {`${formatAmount(recipient.amount)} USDC`}
+              </text>
             </g>
           );
         })}
       </svg>
-    </div>
+    </section>
   );
 }

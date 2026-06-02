@@ -43,6 +43,10 @@ import CancelModal from "@/components/CancelModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
 import FlowDiagram from "@/components/FlowDiagram";
+import PaymentExport from "@/components/PaymentExport";
+import PaymentSuggestions from "@/components/PaymentSuggestions";
+import VerifiedCreatorBadge from "@/components/VerifiedCreatorBadge";
+import ReputationBadge from "@/components/ReputationBadge";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -94,6 +98,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [locale, setLocale] = useState<Locale>("en");
+  const customization = useInvoiceCustomization(id);
 
   // Payment retry state
   const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint; fee?: bigint } | null>(null);
@@ -678,8 +683,6 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Private notes — only visible to the connected wallet */}
       {publicKey && (
         <CommentSection invoiceId={id} walletAddress={publicKey} />
-      )}
-        </>
       )}
 
       {showCancelModal && invoice && (
