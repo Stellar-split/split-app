@@ -141,8 +141,8 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
         >
           {paying ? "Sending…" : "Review & Pay"}
         </button>
+        </div>
       </FocusTrap>
-      </div>
 
       {showBreakdown && (
         <PaymentBreakdownModal

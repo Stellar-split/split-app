@@ -49,6 +49,48 @@ export default function NewInvoicePage() {
   const [totalAmount, setTotalAmount] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [autofilled, setAutofilled] = useState(false);
+
+  // Autofill from invoice history on first load (skip if duplicating or using a template)
+  useEffect(() => {
+    const fromId = searchParams.get("from");
+    if (fromId || sessionStorage.getItem("invoiceTemplate")) return;
+
+    getFreighterPublicKey()
+      .then((pk) => (splitClient as any).getInvoicesByCreator(pk))
+      .then((invoices: import("@stellar-split/sdk").Invoice[]) => {
+        if (!invoices || invoices.length === 0) return;
+        const recent = invoices.slice(-5);
+
+        // Most recent token
+        const latestToken = recent[recent.length - 1].token;
+
+        // Median deadline in days
+        const now = Math.floor(Date.now() / 1000);
+        const daysList = recent
+          .map((inv) => Math.round((inv.deadline - now) / 86400))
+          .filter((d) => d > 0)
+          .sort((a, b) => a - b);
+        const medianDays =
+          daysList.length > 0
+            ? daysList[Math.floor(daysList.length / 2)]
+            : null;
+
+        // Most recent recipients
+        const lastRecipients = recent[recent.length - 1].recipients.map((r) => ({
+          address: r.address,
+          amount: formatAmount(r.amount),
+        }));
+
+        setToken(latestToken);
+        if (medianDays !== null) setDeadlineDays(medianDays);
+        setRecipients(lastRecipients.length > 0 ? lastRecipients : [{ address: "", amount: "" }]);
+        setAutofilled(true);
+      })
+      .catch(() => null); // silently ignore — autofill is best-effort
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Load source invoice if duplicating
   useEffect(() => {
     const fromId = searchParams.get("from");
@@ -135,6 +177,12 @@ export default function NewInvoicePage() {
         />
       )}
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+
+      {autofilled && (
+        <p className="mb-6 text-xs text-indigo-400 bg-indigo-950/50 border border-indigo-800 rounded-lg px-3 py-2">
+          ✦ Autofilled from history — you can override any value below.
+        </p>
+      )}
 
       {loading && (
         <div className="text-center py-8">

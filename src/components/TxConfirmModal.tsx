@@ -71,8 +71,8 @@ export default function TxConfirmModal({ txHash, action, onClose }: Props) {
         >
           View on Stellar Expert ↗
         </a>
-        </FocusTrap>
-      </div>
+        </div>
+      </FocusTrap>
     </div>
   );
 }
