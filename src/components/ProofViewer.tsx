@@ -28,7 +28,7 @@ export default function ProofViewer({ invoiceId }: Props) {
     try {
       // In a real implementation, this would call splitClient.generatePaymentProof
       // and compare against the proof hash. For now, we'll simulate the verification.
-      const proof = await splitClient.generatePaymentProof(proofHash);
+      const proof = await (splitClient as any).generatePaymentProof(proofHash);
       
       if (proof && proof.proofHash === proofHash) {
         setVerified({

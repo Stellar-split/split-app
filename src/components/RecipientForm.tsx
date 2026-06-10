@@ -35,6 +35,32 @@ export default function RecipientForm({
   const [amountSuggestions, setAmountSuggestions] = useState<string[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [activeField, setActiveField] = useState<"address" | "amount" | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const parseRecipientFile = async (file: File): Promise<RecipientRow[]> => {
+    const text = await file.text();
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (ext === "json") {
+      const data = JSON.parse(text);
+      return (Array.isArray(data) ? data : []).map((r: { address?: string; amount?: string }) => ({
+        address: r.address ?? "",
+        amount: r.amount ?? "",
+      }));
+    }
+    // CSV
+    const lines = text.trim().split("\n");
+    if (lines.length < 2) return [];
+    const header = lines[0].split(",").map((h) => h.trim().toLowerCase());
+    return lines.slice(1).map((line) => {
+      const cols = line.split(",").map((c) => c.trim());
+      const idx = (k: string) => header.indexOf(k);
+      return {
+        address: idx("address") >= 0 ? cols[idx("address")] ?? "" : cols[0] ?? "",
+        amount: idx("amount") >= 0 ? cols[idx("amount")] ?? "" : cols[1] ?? "",
+      };
+    }).filter((r) => r.address);
+  };
 
   const update = (index: number, field: keyof RecipientRow, value: string) => {
     const next = recipients.map((r, i) =>

@@ -13,8 +13,10 @@ import {
 import { formatAmount } from "@stellar-split/sdk";
 import type { Payment } from "@stellar-split/sdk";
 
+type PaymentWithTimestamp = Payment & { timestamp?: number; pending?: boolean };
+
 interface Props {
-  payments: Payment[];
+  payments: PaymentWithTimestamp[];
   total: bigint;
   createdAt: number; // unix seconds — invoice creation timestamp
 }
@@ -43,10 +45,10 @@ function toNumber(amount: bigint): number {
   return Number(amount) / 1e7;
 }
 
-function buildSeries(payments: Payment[], createdAt: number): DataPoint[] {
+function buildSeries(payments: PaymentWithTimestamp[], createdAt: number): DataPoint[] {
   const sorted = [...payments]
-    .filter((p) => !("pending" in p && (p as { pending?: boolean }).pending))
-    .sort((a, b) => a.timestamp - b.timestamp);
+    .filter((p) => !p.pending && p.timestamp != null)
+    .sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
 
   if (sorted.length === 0) return [];
 
@@ -58,7 +60,7 @@ function buildSeries(payments: Payment[], createdAt: number): DataPoint[] {
   let running = 0n;
   for (const p of sorted) {
     running += p.amount;
-    const elapsed = Math.max(0, p.timestamp - createdAt);
+    const elapsed = Math.max(0, (p.timestamp ?? 0) - createdAt);
     points.push({
       elapsed,
       label: formatElapsed(elapsed),

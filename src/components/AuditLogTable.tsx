@@ -25,7 +25,6 @@ export default function AuditLogTable({ invoiceId }: Props) {
   useEffect(() => {
     const fetchAuditLog = async () => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const log = await (splitClient as any).getAuditLog(invoiceId);
         setEntries(log || []);
       } catch (err) {

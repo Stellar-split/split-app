@@ -57,9 +57,9 @@ function DebuggerContent() {
         };
       } else {
         // Generic fallback: build a minimal transaction envelope and simulate it
-        const { SorobanRpc } = await import("@stellar/stellar-sdk");
+        const { rpc } = await import("@stellar/stellar-sdk");
         const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
-        const server = new SorobanRpc.Server(rpcUrl);
+        const server = new rpc.Server(rpcUrl);
         const raw = await (server as any).simulateTransaction({
           functionName: fnName,
           args: params,

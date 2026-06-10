@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
@@ -8,6 +8,14 @@ import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 
 export default function CompareInvoicesPage() {
+  return (
+    <Suspense fallback={<div className="max-w-4xl mx-auto px-4 py-16 text-gray-400">Loading…</div>}>
+      <CompareInvoicesContent />
+    </Suspense>
+  );
+}
+
+function CompareInvoicesContent() {
   const searchParams = useSearchParams();
   const [id1, setId1] = useState(searchParams.get("id1") || "");
   const [id2, setId2] = useState(searchParams.get("id2") || "");

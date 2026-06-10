@@ -20,7 +20,7 @@ export default function RecipientOnboarding() {
         const address = await getFreighterPublicKey();
         if (!address) return;
 
-        const invoices = await splitClient.getInvoicesByRecipient(address);
+        const invoices = await (splitClient as any).getInvoicesByRecipient(address);
         if (!invoices || invoices.length === 0) return;
 
         setInvoiceCount(invoices.length);

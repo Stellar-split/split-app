@@ -15,7 +15,7 @@ interface EmbedInvoicePayment {
   clientKey?: string;
 }
 
-type EmbedInvoice = Invoice & { payments: EmbedInvoicePayment[] };
+type EmbedInvoice = Omit<Invoice, "payments"> & { payments: EmbedInvoicePayment[] };
 
 interface Props {
   params: { id: string };

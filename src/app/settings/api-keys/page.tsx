@@ -104,7 +104,7 @@ export default function ApiKeysPage() {
           <div className="flex items-start justify-between">
             <div>
               <strong className="block">New API Key</strong>
-              <p className="mt-1 text-sm">Save this key now — you won't be able to see it again.</p>
+              <p className="mt-1 text-sm">Save this key now — you won&apos;t be able to see it again.</p>
               <div className="mt-3 flex gap-2 items-center">
                 <code className="bg-white px-3 py-1 rounded break-all">{showNewKey}</code>
                 <button

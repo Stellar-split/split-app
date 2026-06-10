@@ -18,7 +18,6 @@ interface Props {
  */
 export default function VotingPanel({ invoice, publicKey }: Props) {
   const isPayer = invoice.payments.some((p) => p.payer === publicKey);
-  if (!isPayer || invoice.status !== "Pending") return null;
 
   const totalPayers = new Set(invoice.payments.map((p) => p.payer)).size;
   const majority = Math.ceil((totalPayers + 1) / 2);
@@ -31,11 +30,12 @@ export default function VotingPanel({ invoice, publicKey }: Props) {
   const [voting, setVoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  if (!isPayer || invoice.status !== "Pending") return null;
+
   const handleVote = async () => {
     setVoting(true);
     setError(null);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (splitClient as any).voteExtendDeadline(invoice.id);
       localStorage.setItem(STORAGE_KEY(invoice.id), "1");
       setVoted(true);

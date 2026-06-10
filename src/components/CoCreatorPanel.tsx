@@ -5,8 +5,10 @@ import { splitClient } from "@/lib/stellar";
 import { truncateAddress } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 
+type InvoiceWithCoCreators = Invoice & { coCreators?: string[] };
+
 interface Props {
-  invoice: Invoice;
+  invoice: InvoiceWithCoCreators;
   publicKey: string;
   onUpdate: () => Promise<void>;
 }
@@ -44,7 +46,6 @@ export default function CoCreatorPanel({ invoice, publicKey, onUpdate }: Props) 
 
     setLoading(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (splitClient as any).addCoCreator(invoice.id, newAddress);
       setSuccess(`Added ${truncateAddress(newAddress)} as co-creator`);
       setNewAddress("");
@@ -61,7 +62,6 @@ export default function CoCreatorPanel({ invoice, publicKey, onUpdate }: Props) 
     setSuccess(null);
     setLoading(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (splitClient as any).removeCoCreator(invoice.id, address);
       setSuccess(`Removed ${truncateAddress(address)} as co-creator`);
       await onUpdate();
@@ -79,7 +79,7 @@ export default function CoCreatorPanel({ invoice, publicKey, onUpdate }: Props) 
       {/* Current co-creators */}
       {invoice.coCreators && invoice.coCreators.length > 0 ? (
         <ul className="flex flex-col gap-2 mb-4">
-          {invoice.coCreators.map((address) => (
+          {invoice.coCreators.map((address: string) => (
             <li
               key={address}
               className="flex items-center justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm"

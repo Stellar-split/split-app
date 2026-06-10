@@ -20,7 +20,7 @@ export default function UpgradeBanner() {
     let cleanup: (() => void) | undefined;
 
     try {
-      cleanup = splitClient.watchContractUpgrade((info: UpgradeInfo) => {
+      cleanup = (splitClient as any).watchContractUpgrade((info: UpgradeInfo) => {
         const key = `${STORAGE_KEY_PREFIX}${info.version}`;
         const dismissed = localStorage.getItem(key) === "true";
         if (!dismissed) {

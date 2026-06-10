@@ -104,7 +104,7 @@ export default function ImportInvoicesPage() {
           deadline: Math.floor(Date.now() / 1000) + Number(row.deadline_days) * 86400,
           token: row.token,
         });
-        invoiceIds.push(inv.id);
+        invoiceIds.push(inv.invoiceId);
       }
 
       setSuccess(invoiceIds);

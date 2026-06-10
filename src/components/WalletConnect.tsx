@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { connectFreighter, getFreighterPublicKey } from "@/lib/freighter";
+import { connectFreighter, getFreighterPublicKey, getWalletConnectPublicKey, connectWalletConnect, disconnectWalletConnect } from "@/lib/freighter";
+import type { WalletType } from "@/lib/freighter";
 import { truncateAddress, formatAmount } from "@stellar-split/sdk";
 import { fetchUsdcBalance, USDC_CONTRACT_ID } from "@/lib/stellar";
 import QRModal from "@/components/QRModal";
@@ -155,7 +156,7 @@ export default function WalletConnect() {
     <div className="flex flex-col items-start gap-2">
       <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
         <button
-          onClick={handleConnectFreighter}
+          onClick={handleConnect}
           disabled={loading}
           className="min-h-11 px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           aria-label="Connect Wallet via QR"

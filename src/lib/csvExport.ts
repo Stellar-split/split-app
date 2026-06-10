@@ -5,6 +5,8 @@
 import type { Payment } from "@stellar-split/sdk";
 import { formatAmount } from "@stellar-split/sdk";
 
+type PaymentWithMeta = Payment & { timestamp?: number; txHash?: string };
+
 export interface PaymentExportRow {
   payer_address: string;
   amount_usdc: string;
@@ -15,7 +17,7 @@ export interface PaymentExportRow {
 /**
  * Convert payments array to CSV string
  */
-export function paymentsToCSV(payments: Payment[]): string {
+export function paymentsToCSV(payments: PaymentWithMeta[]): string {
   // CSV header
   const headers = ["payer_address", "amount_usdc", "timestamp", "tx_hash"];
   const rows = [headers.join(",")];
@@ -96,10 +98,10 @@ export function generatePaymentExportFilename(invoiceId: string): string {
  * Filter payments by date range
  */
 export function filterPaymentsByDateRange(
-  payments: Payment[],
+  payments: PaymentWithMeta[],
   startDate: string | null,
   endDate: string | null
-): Payment[] {
+): PaymentWithMeta[] {
   if (!startDate && !endDate) return payments;
   
   return payments.filter((payment) => {

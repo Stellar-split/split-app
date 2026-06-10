@@ -13,6 +13,8 @@ import {
 } from "@/lib/notifications";
 import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
 import { useInvoiceCustomization } from "@/lib/customization";
+import type { Locale } from "@/lib/i18n";
+import PaymentSuggestions from "@/components/PaymentSuggestions";
 import PaymentProgress from "@/components/PaymentProgress";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
@@ -43,7 +45,6 @@ import CollaborationCursors from "@/components/CollaborationCursors";
 import SplitCalculator from "@/components/SplitCalculator";
 import InvoiceQR from "@/components/InvoiceQR";
 import InvoiceChat from "@/components/InvoiceChat";
-import PaymentExport from "@/components/PaymentExport";
 import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
@@ -98,6 +99,7 @@ function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceVie
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
   const router = useRouter();
+  const customization = useInvoiceCustomization(id);
   const [invoice, setInvoice] = useState<InvoiceView | null>(null);
   const [previousInvoice, setPreviousInvoice] = useState<Invoice | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);

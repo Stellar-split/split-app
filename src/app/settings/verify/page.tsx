@@ -64,7 +64,7 @@ export default function VerifyIdentityPage() {
       // Store attestation
       const newAttestation: CreatorAttestation = {
         address,
-        signature: signedMessage,
+        signature: typeof signedMessage === "string" ? signedMessage : ((signedMessage as unknown as { signature: string }).signature ?? String(signedMessage)),
         timestamp: Date.now(),
       };
 
@@ -189,7 +189,7 @@ export default function VerifyIdentityPage() {
               </div>
               
               <p className="text-sm text-gray-400">
-                You haven't verified your identity yet. Click the button below to sign a verification message.
+                You haven&apos;t verified your identity yet. Click the button below to sign a verification message.
               </p>
             </div>
           )}
@@ -228,7 +228,7 @@ export default function VerifyIdentityPage() {
                 1
               </span>
               <span>
-                Click "Verify Identity" to generate a unique challenge message containing your wallet address and timestamp.
+                Click &quot;Verify Identity&quot; to generate a unique challenge message containing your wallet address and timestamp.
               </span>
             </li>
             <li className="flex gap-3">
@@ -252,7 +252,7 @@ export default function VerifyIdentityPage() {
                 4
               </span>
               <span>
-                Invoices you create will display a "Verified Creator" badge, building trust with recipients.
+                Invoices you create will display a &quot;Verified Creator&quot; badge, building trust with recipients.
               </span>
             </li>
           </ol>

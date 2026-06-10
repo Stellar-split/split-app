@@ -48,17 +48,17 @@ export default function GroupsPage() {
 
         const groupsData: GroupStatus[] = [];
         for (const groupId of groupIds) {
-          const status = await splitClient.getGroupStatus(groupId);
+          const status = await (splitClient as any).getGroupStatus(groupId);
           if (status) {
-            const memberInvoices = status.memberInvoices || [];
+            const memberInvoices: Invoice[] = status.memberInvoices || [];
             const totalFunded = memberInvoices.reduce(
-              (sum, inv) => sum + inv.funded,
+              (sum: bigint, inv: Invoice) => sum + inv.funded,
               0n
             );
             const totalRequired = memberInvoices.reduce(
-              (sum, inv) =>
+              (sum: bigint, inv: Invoice) =>
                 sum +
-                inv.recipients.reduce((s, r) => s + r.amount, 0n),
+                inv.recipients.reduce((s: bigint, r: { amount: bigint }) => s + r.amount, 0n),
               0n
             );
 
@@ -87,7 +87,7 @@ export default function GroupsPage() {
   const handleReleaseGroup = async (groupId: string) => {
     setReleasing(groupId);
     try {
-      const txHash = await splitClient.releaseGroup(groupId);
+      const txHash = await (splitClient as any).releaseGroup(groupId);
       setTxModal({ txHash, groupId });
     } catch (err) {
       setError(String(err));

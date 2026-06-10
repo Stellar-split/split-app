@@ -1,9 +1,12 @@
 import { formatAmount } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
+type InvoiceWithCreatedAt = Invoice & { createdAt?: number };
+type PaymentWithTimestamp = Payment & { timestamp?: number };
+
 interface PaymentTimelineProps {
-  invoice: Invoice;
-  payments: Payment[];
+  invoice: InvoiceWithCreatedAt;
+  payments: PaymentWithTimestamp[];
 }
 
 export default function PaymentTimeline({ invoice, payments }: PaymentTimelineProps) {
@@ -15,14 +18,16 @@ export default function PaymentTimeline({ invoice, payments }: PaymentTimelinePr
     );
   }
 
-  const now = Math.floor(Date.now() / 1000);
-  const timeRange = invoice.deadline - invoice.createdAt;
+  const createdAt = invoice.createdAt ?? Math.floor(Date.now() / 1000) - 86400;
+  const timeRange = invoice.deadline - createdAt;
   const getPosition = (timestamp: number) => {
-    const elapsed = Math.max(0, Math.min(timestamp - invoice.createdAt, timeRange));
+    const elapsed = Math.max(0, Math.min(timestamp - createdAt, timeRange));
     return (elapsed / timeRange) * 100;
   };
 
-  const sortedPayments = [...payments].sort((a, b) => a.timestamp - b.timestamp);
+  const sortedPayments = [...payments]
+    .filter((p) => p.timestamp != null)
+    .sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -52,14 +57,14 @@ export default function PaymentTimeline({ invoice, payments }: PaymentTimelinePr
               <div
                 key={idx}
                 className="absolute flex flex-col items-center"
-                style={{ left: `${getPosition(payment.timestamp)}%` }}
+                style={{ left: `${getPosition(payment.timestamp ?? 0)}%` }}
               >
                 <div className="w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow" />
                 <div className="text-xs font-semibold text-green-600 mt-6 whitespace-nowrap">
                   {formatAmount(payment.amount)} USDC
                 </div>
                 <div className="text-xs text-gray-500">
-                  {new Date(payment.timestamp * 1000).toLocaleDateString()}
+                  {new Date((payment.timestamp ?? 0) * 1000).toLocaleDateString()}
                 </div>
               </div>
             ))}

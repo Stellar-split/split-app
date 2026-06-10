@@ -130,7 +130,7 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-          <p className="text-xs text-gray-500 mt-1">We'll send a confirmation email after payment is confirmed on-chain.</p>
+          <p className="text-xs text-gray-500 mt-1">We&apos;ll send a confirmation email after payment is confirmed on-chain.</p>
         </div>
 
         <button

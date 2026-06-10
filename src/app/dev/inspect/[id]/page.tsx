@@ -66,14 +66,14 @@ function CopyButton({ data }: { data: unknown }) {
 
 async function fetchWasmHash(contractId: string, rpcUrl: string): Promise<string | null> {
   try {
-    const { xdr, rpc } = await import("@stellar/stellar-sdk");
+    const { xdr, rpc, StrKey } = await import("@stellar/stellar-sdk");
     const server = new rpc.Server(rpcUrl, { allowHttp: true });
+    const ScAddress = (xdr as any).ScAddress ?? (xdr as any).scAddress;
     const contractKey = xdr.LedgerKey.contractData(
       new xdr.LedgerKeyContractData({
-        contract: new xdr.ScAddress({
-          type: xdr.ScAddressType.scAddressTypeContract(),
-          contractId: Buffer.from(contractId.replace(/^C/, ""), "base32"),
-        }),
+        contract: ScAddress
+          ? new ScAddress({ type: xdr.ScAddressType.scAddressTypeContract(), contractId: StrKey.decodeContract(contractId) })
+          : (xdr as any).ScAddress.contract(StrKey.decodeContract(contractId)),
         key: xdr.ScVal.scvLedgerKeyContractInstance(),
         durability: xdr.ContractDataDurability.persistent(),
       })

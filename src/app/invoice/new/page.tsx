@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
@@ -9,16 +9,29 @@ import RecipientForm from "@/components/RecipientForm";
 import TemplateManager from "@/components/TemplateManager";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
+import { useI18n } from "@/components/I18nProvider";
+import DeadlineSuggester from "@/components/DeadlineSuggester";
 
 interface RecipientRow {
   address: string;
   amount: string; // human-readable USDC
 }
 
-/**
- * New Invoice page — form to create an on-chain StellarSplit invoice.
- */
+interface InvoiceTemplate {
+  recipients: RecipientRow[];
+  deadlineDays: number;
+  token: string;
+}
+
 export default function NewInvoicePage() {
+  return (
+    <Suspense fallback={<div className="max-w-xl mx-auto px-4 py-16 text-gray-400">Loading…</div>}>
+      <NewInvoiceForm />
+    </Suspense>
+  );
+}
+
+function NewInvoiceForm() {
   const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -293,7 +306,7 @@ export default function NewInvoicePage() {
           <DeadlineSuggester
             totalAmount={equalSplit ? totalAmount : recipients.reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0).toString()}
             recipientCount={recipients.filter((r) => r.address).length}
-            onUseSuggestion={(days) => setDeadlineDays(days)}
+            onUseSuggestion={(days: number) => setDeadlineDays(days)}
           />
         </div>
 

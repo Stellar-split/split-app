@@ -22,6 +22,8 @@ import {
 } from "recharts";
 import type { Invoice } from "@stellar-split/sdk";
 
+type InvoiceWithCreatedAt = Invoice & { createdAt?: number };
+
 interface WeeklyData {
   week: string;
   count: number;
@@ -34,7 +36,7 @@ interface RecipientData {
 
 export default function AnalyticsPage() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceWithCreatedAt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adapterData, setAdapterData] = useState<{ name: string; value: number }[]>([]);
@@ -62,13 +64,13 @@ export default function AnalyticsPage() {
     const fetchInvoices = async () => {
       setLoading(true);
       try {
-        const results: Invoice[] = [];
+        const results: InvoiceWithCreatedAt[] = [];
         let offset = 0;
         const limit = 100;
 
         while (true) {
-          const batch = await splitClient.getInvoicesByCreator(publicKey, offset, limit);
-          if (batch.length === 0) break;
+          const batch = await (splitClient as any).getInvoicesByCreator(publicKey, offset, limit);
+          if (!batch || batch.length === 0) break;
           results.push(...batch);
           offset += limit;
         }
@@ -104,7 +106,8 @@ export default function AnalyticsPage() {
     }
 
     invoices.forEach((inv) => {
-      const weekStart = Math.floor((inv.createdAt - now) / (7 * 86400)) * 7 * 86400 + now;
+      const ts = inv.createdAt ?? inv.deadline - 7 * 86400;
+      const weekStart = Math.floor((ts - now) / (7 * 86400)) * 7 * 86400 + now;
       if (weeklyMap.has(weekStart)) {
         weeklyMap.set(weekStart, (weeklyMap.get(weekStart) || 0) + 1);
       }
@@ -128,7 +131,7 @@ export default function AnalyticsPage() {
     const releasedInvoices = invoices.filter((inv) => inv.status === "Released");
     const avgFundingTime =
       releasedInvoices.length > 0
-        ? releasedInvoices.reduce((sum, inv) => sum + (inv.deadline - inv.createdAt), 0) /
+        ? releasedInvoices.reduce((sum, inv) => sum + (inv.deadline - (inv.createdAt ?? inv.deadline - 7 * 86400)), 0) /
           releasedInvoices.length /
           86400
         : 0;
