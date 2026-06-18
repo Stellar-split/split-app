@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import ThemeToggle from "@/components/ThemeToggle";
 import NotificationCenter from "@/components/NotificationCenter";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import OnboardingFlow from "@/components/OnboardingFlow";
@@ -38,9 +40,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-gray-950 text-gray-100 antialiased overflow-x-hidden">
-        <I18nProvider>
+        <ThemeProvider>
+          <I18nProvider>
           <header className="sticky top-0 z-40 flex items-center justify-between gap-2 px-4 sm:px-6 py-3 bg-gray-950/80 backdrop-blur border-b border-gray-800 min-w-0">
             <a href="/" className="font-bold text-base sm:text-lg tracking-tight shrink-0 min-h-11 inline-flex items-center">
               StellarSplit
@@ -64,6 +67,7 @@ export default function RootLayout({
             >
               Leaderboard
             </a>
+            <ThemeToggle />
             <SimulationModeToggle />
             <NotificationCenter />
           </header>
@@ -80,6 +84,7 @@ export default function RootLayout({
           }`}
           </Script>
         </I18nProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
