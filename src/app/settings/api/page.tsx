@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface ApiKey {
   id: string;
@@ -55,11 +56,14 @@ export default function ApiDashboardPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10 overflow-x-hidden">
-      <div className="mb-6">
-        <Link href="/settings" className="text-sm text-gray-400 hover:text-gray-200 transition-colors">
-          ← Settings
-        </Link>
-        <h1 className="text-2xl font-bold mt-2">API Dashboard</h1>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <Link href="/settings" className="text-sm text-gray-400 hover:text-gray-200 transition-colors">
+            ← Settings
+          </Link>
+          <h1 className="text-2xl font-bold mt-2">API Dashboard</h1>
+        </div>
+        <ThemeToggle />
       </div>
 
       {/* Rate limit */}

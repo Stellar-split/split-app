@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { splitClient } from "@/lib/stellar";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 
@@ -86,6 +87,9 @@ function DebuggerContent() {
           DEV
         </span>
         <h1 className="text-2xl font-bold">Contract Debugger</h1>
+        <div className="ml-auto">
+          <ThemeToggle />
+        </div>
       </div>
       <p className="text-gray-400 text-sm mb-8">
         Simulate contract function calls and inspect the raw XDR response and decoded result.

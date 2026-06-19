@@ -8,6 +8,10 @@ body {
   max-width: 100%;
 }
 
+* {
+  transition: color 200ms, background-color 200ms, border-color 200ms;
+}
+
 @media print {
   header,
   footer,
