@@ -53,6 +53,8 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
 import FlowDiagram from "@/components/FlowDiagram";
 import SuccessAnimation from "@/components/SuccessAnimation";
+import CooldownBadge from "@/components/CooldownBadge";
+import DuplicateInvoiceModal from "@/components/DuplicateInvoiceModal";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 
 const POLL_MS = 10_000;
@@ -113,6 +115,8 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [cooldownExpiresAt, setCooldownExpiresAt] = useState<number | null>(null);
   const [locale, setLocale] = useState<Locale>("en");
   const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
   const [channelLoading, setChannelLoading] = useState(false);
@@ -325,6 +329,8 @@ export default function InvoiceDetailPage({ params }: Props) {
       setShowSuccess(true);
       setLastFailedPayment(null);
       setRetryCount(0);
+      // Set cooldown: 5 minutes from now
+      setCooldownExpiresAt(Math.floor(Date.now() / 1000) + 5 * 60);
       try {
         const existing = JSON.parse(localStorage.getItem("stellarsplit_adapter_usage") ?? "[]");
         existing.push({ adapter: paymentMethod, timestamp: Date.now() });
@@ -525,7 +531,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         {isCreator && (
           <button
             type="button"
-            onClick={() => router.push(`/invoice/new?from=${id}`)}
+            onClick={() => setShowDuplicateModal(true)}
             className="px-3 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-sm transition-colors print:hidden"
           >
             Duplicate
@@ -856,13 +862,32 @@ export default function InvoiceDetailPage({ params }: Props) {
             )}
             <button
               type="submit"
-              disabled={paying}
+              disabled={paying || (cooldownExpiresAt !== null && cooldownExpiresAt > Math.floor(Date.now() / 1000))}
               className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
             >
               {paying ? "Sending…" : "Pay"}
             </button>
           </form>
         </section>
+      )}
+
+      {/* Cooldown badge — shown when payment cooldown is active */}
+      {cooldownExpiresAt && (
+        <div className="mb-4">
+          <CooldownBadge
+            expiresAt={cooldownExpiresAt}
+            onExpired={() => setCooldownExpiresAt(null)}
+          />
+        </div>
+      )}
+
+      {/* Duplicate invoice modal */}
+      {showDuplicateModal && (
+        <DuplicateInvoiceModal
+          invoice={invoice}
+          isOpen={showDuplicateModal}
+          onClose={() => setShowDuplicateModal(false)}
+        />
       )}
 
       {showPayModal && invoice && publicKey && (
