@@ -54,6 +54,8 @@ import VotingPanel from "@/components/VotingPanel";
 import FlowDiagram from "@/components/FlowDiagram";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import type { Invoice, Payment } from "@stellar-split/sdk";
+import CooldownBadge from "@/components/CooldownBadge";
+import { fetchCooldownExpiry, recordCooldown, clearCooldown } from "@/lib/cooldown";
 
 const POLL_MS = 10_000;
 
@@ -133,6 +135,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<"freighter" | "walletconnect">("freighter");
   const [amountLocked, setAmountLocked] = useState(false);
   const prevPayAmountRef = useRef("");
+  const [cooldownExpiresAt, setCooldownExpiresAt] = useState<number | null>(null);
 
   const prevStatusRef = useRef<string | null>(null);
 
@@ -183,6 +186,11 @@ export default function InvoiceDetailPage({ params }: Props) {
       }
       return mergeWithServer(inv, current);
     });
+  };
+
+  const loadCooldown = async (wallet: string) => {
+    const expiry = await fetchCooldownExpiry(id, wallet);
+    setCooldownExpiresAt(expiry);
   };
 
   const channelStorageKey = (invoiceId: string, payer: string) =>
@@ -245,7 +253,12 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   useEffect(() => {
     load().catch((e) => setError(String(e)));
-    getFreighterPublicKey().then(setPublicKey).catch(() => null);
+    getFreighterPublicKey()
+      .then((key) => {
+        setPublicKey(key);
+        if (key) loadCooldown(key);
+      })
+      .catch(() => null);
 
     // Load existing reminder
     const existing = getReminderForInvoice(id);
@@ -331,6 +344,10 @@ export default function InvoiceDetailPage({ params }: Props) {
         localStorage.setItem("stellarsplit_adapter_usage", JSON.stringify(existing));
       } catch { /* ignore storage errors */ }
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+      if (publicKey) {
+        const expiry = recordCooldown(id, publicKey);
+        setCooldownExpiresAt(expiry);
+      }
       await load();
     } catch (err) {
       if (channelUsed && originalChannel) {
@@ -432,6 +449,10 @@ export default function InvoiceDetailPage({ params }: Props) {
       setLastFailedPayment(null);
       setRetryCount(0);
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+      if (publicKey) {
+        const expiry = recordCooldown(id, publicKey);
+        setCooldownExpiresAt(expiry);
+      }
       await load();
     } catch (err) {
       setError(String(err));
@@ -440,6 +461,23 @@ export default function InvoiceDetailPage({ params }: Props) {
       setPaying(false);
     }
   };
+
+  // Interval-driven cooldown expiry: re-enable the pay button the moment
+  // the cooldown timestamp passes, without requiring a page refresh or chain poll.
+  useEffect(() => {
+    if (!cooldownExpiresAt || !publicKey) return;
+    const msUntilExpiry = cooldownExpiresAt * 1000 - Date.now();
+    if (msUntilExpiry <= 0) {
+      setCooldownExpiresAt(null);
+      clearCooldown(id, publicKey);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCooldownExpiresAt(null);
+      if (publicKey) clearCooldown(id, publicKey);
+    }, msUntilExpiry);
+    return () => clearTimeout(timer);
+  }, [cooldownExpiresAt, id, publicKey]);
 
   if (error && !invoice) {
     return (
@@ -771,7 +809,10 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
         <section aria-labelledby="pay-heading" className="mb-8">
-          <h2 id="pay-heading" className="text-lg font-semibold mb-4">Pay toward this invoice</h2>
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
+            <CooldownBadge expiresAt={cooldownExpiresAt} />
+          </div>
           <PaymentMethodSelector onMethodChange={setPaymentMethod} />
           <form onSubmit={handlePay} className="flex flex-col gap-4">
             <div>
@@ -856,8 +897,16 @@ export default function InvoiceDetailPage({ params }: Props) {
             )}
             <button
               type="submit"
-              disabled={paying}
-              className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+              disabled={paying || !!cooldownExpiresAt}
+              aria-disabled={paying || !!cooldownExpiresAt}
+              aria-label={
+                cooldownExpiresAt
+                  ? `Pay — cooldown active, next payment available after cooldown expires`
+                  : paying
+                  ? "Sending payment…"
+                  : "Pay"
+              }
+              className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {paying ? "Sending…" : "Pay"}
             </button>
