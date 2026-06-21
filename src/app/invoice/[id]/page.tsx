@@ -28,6 +28,8 @@ import InvoicePDF from "@/components/InvoicePDF";
 import PaymentCertificate from "@/components/PaymentCertificate";
 import PaymentExport from "@/components/PaymentExport";
 import AchievementCard from "@/components/AchievementCard";
+import DuplicateInvoiceModal from "@/components/DuplicateInvoiceModal";
+import PaymentSummaryCard from "@/components/PaymentSummaryCard";
 import PaymentSourceBar from "@/components/PaymentSourceBar";
 import ReputationBadge from "@/components/ReputationBadge";
 import VerifiedCreatorBadge from "@/components/VerifiedCreatorBadge";
@@ -112,6 +114,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [disputing, setDisputing] = useState(false);
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [locale, setLocale] = useState<Locale>("en");
   const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
@@ -478,6 +481,9 @@ export default function InvoiceDetailPage({ params }: Props) {
         </div>
 
       <div className="mb-6">
+        <PaymentSummaryCard invoiceId={id} />
+      </div>
+      <div className="mb-6">
         <FlowDiagram invoice={invoice} />
       </div>
         <span
@@ -487,6 +493,15 @@ export default function InvoiceDetailPage({ params }: Props) {
           {invoice.status}
         </span>
         <div className="ml-auto flex items-center gap-2 print:hidden flex-wrap justify-end">
+                    {isCreator && (
+            <button
+              onClick={() => setShowDuplicateModal(true)}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-sm font-medium transition-colors"
+              aria-label="Duplicate invoice"
+            >
+              Duplicate
+            </button>
+          )}
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
           <select
             value={locale}
