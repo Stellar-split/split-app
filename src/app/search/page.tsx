@@ -55,7 +55,7 @@ function dateStrToTs(date: string): number {
 
 function hasActiveFilters(c: FilterCriteria): boolean {
   return Object.keys(c).some((k) => {
-    const v = (c as Record<string, unknown>)[k];
+    const v = (c as unknown as Record<string, unknown>)[k];
     return Array.isArray(v) ? v.length > 0 : v !== undefined;
   });
 }
@@ -300,7 +300,7 @@ function SearchPageInner() {
         const all: Invoice[] = [];
         let offset = 0;
         while (true) {
-          const batch = await (splitClient as Record<string, unknown> as { listInvoices: (pk: string, offset: number, limit: number) => Promise<Invoice[]> }).listInvoices(publicKey, offset, 100);
+          const batch = await (splitClient as unknown as { listInvoices: (pk: string, offset: number, limit: number) => Promise<Invoice[]> }).listInvoices(publicKey, offset, 100);
           if (!batch?.length || cancelled) break;
           all.push(...batch);
           offset += 100;
@@ -309,7 +309,7 @@ function SearchPageInner() {
         setAllInvoices(all);
         const tokens = new Set<string>(DEFAULT_TOKENS);
         for (const inv of all) {
-          const t = (inv as Record<string, unknown>).token;
+          const t = (inv as unknown as Record<string, unknown>).token;
           if (typeof t === 'string') tokens.add(t);
         }
         setKnownTokens(Array.from(tokens));
