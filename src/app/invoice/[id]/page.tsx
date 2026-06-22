@@ -49,6 +49,7 @@ import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/remind
 import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
+import DuplicateModal from "@/components/DuplicateModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
 import FlowDiagram from "@/components/FlowDiagram";
@@ -115,6 +116,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [locale, setLocale] = useState<Locale>("en");
   const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
   const [channelLoading, setChannelLoading] = useState(false);
@@ -563,7 +565,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         {isCreator && (
           <button
             type="button"
-            onClick={() => router.push(`/invoice/new?from=${id}`)}
+            onClick={() => setShowDuplicateModal(true)}
             className="px-3 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-sm transition-colors print:hidden"
           >
             Duplicate
@@ -955,6 +957,18 @@ export default function InvoiceDetailPage({ params }: Props) {
           payments={invoice.payments}
           onConfirm={handleCancelInvoice}
           onClose={() => setShowCancelModal(false)}
+        />
+      )}
+
+      {showDuplicateModal && (
+        <DuplicateModal
+          invoiceId={id}
+          onConfirm={(deadlineIso) => {
+            setShowDuplicateModal(false);
+            const params = new URLSearchParams({ from: id, deadline: deadlineIso });
+            router.push(`/invoice/new?${params.toString()}`);
+          }}
+          onClose={() => setShowDuplicateModal(false)}
         />
       )}
 
