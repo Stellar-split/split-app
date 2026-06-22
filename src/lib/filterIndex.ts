@@ -25,7 +25,7 @@ export function compileFilter(criteria: FilterCriteria): CompiledFilter {
 export class FilterIndex {
   static queryIndex(invoices: Invoice[], filter: CompiledFilter): Invoice[] {
     const hasConstraints = Object.keys(filter).some((k) => {
-      const v = (filter as Record<string, unknown>)[k];
+      const v = (filter as unknown as Record<string, unknown>)[k];
       return Array.isArray(v) ? v.length > 0 : v !== undefined;
     });
     if (!hasConstraints) return invoices;
@@ -34,7 +34,7 @@ export class FilterIndex {
       if (filter.statuses?.length && !filter.statuses.includes(inv.status)) return false;
 
       if (filter.token) {
-        const invToken: string = (inv as Record<string, unknown>).token as string ?? 'USDC';
+        const invToken: string = (inv as unknown as Record<string, unknown>).token as string ?? 'USDC';
         if (invToken.toLowerCase() !== filter.token.toLowerCase()) return false;
       }
 

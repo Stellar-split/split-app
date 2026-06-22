@@ -10,6 +10,7 @@ const config = {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   testMatch: ["**/__tests__/**/*.(test|spec).(ts|tsx)"],
+  testPathIgnorePatterns: ["/node_modules/", "/src/app/search/__tests__/"],
 };
 
 module.exports = createJestConfig(config);

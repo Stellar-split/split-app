@@ -57,6 +57,7 @@ import SuccessAnimation from "@/components/SuccessAnimation";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 import CooldownBadge from "@/components/CooldownBadge";
 import { fetchCooldownExpiry, recordCooldown, clearCooldown } from "@/lib/cooldown";
+import PaymentSummaryCard from "@/components/PaymentSummaryCard";
 
 const POLL_MS = 10_000;
 
@@ -607,6 +608,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           publicKey={publicKey}
         />
       )}
+
+      {/* Live payment summary with aggregator, leaderboard, and mini bar chart */}
+      <PaymentSummaryCard invoiceId={id} />
 
       {/* Progress */}
       <section aria-labelledby="progress-heading" className="mb-8">
