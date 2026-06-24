@@ -162,7 +162,7 @@ describe('debounce', () => {
 
   it('does not fire before 300ms', () => {
     const apply = vi.fn();
-    let timer: ReturnType<typeof setTimeout> | null = null;
+    let timer: number | null = null;
     const schedule = () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(apply, 300);
@@ -175,7 +175,7 @@ describe('debounce', () => {
 
   it('fires exactly once after 300ms following the last keystroke', () => {
     const apply = vi.fn();
-    let timer: ReturnType<typeof setTimeout> | null = null;
+    let timer: number | null = null;
     const schedule = () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(apply, 300);
@@ -192,7 +192,7 @@ describe('debounce', () => {
 
   it('flushes immediately when Enter is pressed (timer cancelled)', () => {
     const apply = vi.fn();
-    let timer: ReturnType<typeof setTimeout> | null = null;
+    let timer: number | null = null;
     const schedule = () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(apply, 300);
