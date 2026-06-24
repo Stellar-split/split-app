@@ -89,31 +89,15 @@ export default function WebhookConfig({ invoiceId }: Props) {
     setTesting(true);
     setTestStatus(null);
     try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event: "test",
-          invoiceId,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-      const success = res.ok;
-      setTestStatus(`${success ? "✓" : "✗"} ${res.status} ${res.statusText}`);
-      addLog({
-        timestamp: Date.now(),
-        status: res.status,
-        success,
-        event: "test",
-      });
+      const { enqueue, processQueue } = await import("@/lib/webhookDeliveryQueue");
+      const payload = { event: "test", invoiceId, timestamp: new Date().toISOString() };
+      enqueue(payload, url);
+      await processQueue();
+      setTestStatus("✓ Queued and attempted. Check dead-letter queue if it failed.");
+      addLog({ timestamp: Date.now(), status: null, success: true, event: "test" });
     } catch (e) {
-      setTestStatus(`✗ Network error: ${String(e)}`);
-      addLog({
-        timestamp: Date.now(),
-        status: null,
-        success: false,
-        event: "test",
-      });
+      setTestStatus(`✗ Error: ${String(e)}`);
+      addLog({ timestamp: Date.now(), status: null, success: false, event: "test" });
     } finally {
       setTesting(false);
     }
@@ -225,24 +209,18 @@ export default function WebhookConfig({ invoiceId }: Props) {
 }
 
 /**
- * Sends a webhook POST for the given invoice ID if a URL is stored.
- * Called from the invoice detail page polling loop on status change.
+ * Enqueues a webhook delivery for the given invoice ID if a URL is stored.
+ * Delivery is attempted with exponential backoff; failures go to the dead-letter queue.
  */
 export async function sendWebhookIfConfigured(
   invoiceId: string,
   payload: Record<string, unknown>
-): Promise<{ ok: boolean; status?: number; error?: string }> {
+): Promise<{ ok: boolean; queued?: boolean }> {
   if (typeof window === "undefined") return { ok: false };
   const url = localStorage.getItem(storageKey(invoiceId));
   if (!url) return { ok: false };
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    return { ok: res.ok, status: res.status };
-  } catch (e) {
-    return { ok: false, error: String(e) };
-  }
+  const { enqueue, processQueue } = await import("@/lib/webhookDeliveryQueue");
+  enqueue(payload, url);
+  await processQueue();
+  return { ok: true, queued: true };
 }
