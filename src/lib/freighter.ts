@@ -91,6 +91,21 @@ export async function disconnectWalletConnect(): Promise<void> {
   }
 }
 
+/** Returns true if any supported wallet is currently connected. */
+export async function isWalletConnected(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  try {
+    const wcKey = await getWalletConnectPublicKey();
+    if (wcKey) return true;
+  } catch { /* fall through */ }
+  try {
+    const key = await getFreighterPublicKey();
+    return !!key;
+  } catch {
+    return false;
+  }
+}
+
 /** Sign a transaction with the currently connected wallet adapter. */
 export async function signTransaction(xdr: string): Promise<string> {
   if (typeof window === "undefined") throw new Error("Browser only");
