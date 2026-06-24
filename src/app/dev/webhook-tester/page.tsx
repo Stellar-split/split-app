@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  getDeadLettered,
+  retryDeadLettered,
+  type DeadLetteredDelivery,
+} from "@/lib/webhookDeliveryQueue";
 
 const EVENT_TYPES = [
   "invoice.created",
@@ -22,6 +27,15 @@ export default function WebhookTesterPage() {
   const [eventType, setEventType] = useState(EVENT_TYPES[0]);
   const [sending, setSending] = useState(false);
   const [response, setResponse] = useState<WebhookResponse | null>(null);
+  const [dlq, setDlq] = useState<DeadLetteredDelivery[]>([]);
+  const [retrying, setRetrying] = useState<string | null>(null);
+  const [retryResult, setRetryResult] = useState<Record<string, string>>({});
+
+  const refreshDlq = useCallback(() => setDlq(getDeadLettered()), []);
+
+  useEffect(() => {
+    refreshDlq();
+  }, [refreshDlq]);
 
   if (process.env.NEXT_PUBLIC_DEV_MODE !== "true") {
     return (
@@ -49,6 +63,18 @@ export default function WebhookTesterPage() {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleRetry = async (id: string) => {
+    setRetrying(id);
+    setRetryResult((prev) => ({ ...prev, [id]: "" }));
+    const result = await retryDeadLettered(id);
+    setRetryResult((prev) => ({
+      ...prev,
+      [id]: result.ok ? "✓ Retry succeeded" : `✗ ${result.error}`,
+    }));
+    setRetrying(null);
+    refreshDlq();
   };
 
   const statusBadgeClass =
@@ -109,7 +135,7 @@ export default function WebhookTesterPage() {
       </form>
 
       {response && (
-        <section aria-label="Response inspector" className="flex flex-col gap-4">
+        <section aria-label="Response inspector" className="flex flex-col gap-4 mb-12">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-semibold">Response</h2>
             {response.status !== undefined && (
@@ -155,6 +181,76 @@ export default function WebhookTesterPage() {
           )}
         </section>
       )}
+
+      {/* Dead-Letter Queue */}
+      <section aria-labelledby="dlq-heading" className="border-t border-gray-800 pt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 id="dlq-heading" className="text-lg font-semibold">
+            Dead-Letter Queue
+            {dlq.length > 0 && (
+              <span className="ml-2 text-xs font-normal bg-red-900 text-red-300 px-2 py-0.5 rounded-full">
+                {dlq.length}
+              </span>
+            )}
+          </h2>
+          <button
+            onClick={refreshDlq}
+            className="text-xs text-gray-400 hover:text-gray-200 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
+
+        {dlq.length === 0 ? (
+          <p className="text-gray-500 text-sm">No failed deliveries.</p>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {dlq.map((item) => (
+              <li
+                key={item.id}
+                className="bg-gray-900 rounded-lg p-4 flex flex-col gap-2"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <span className="text-xs text-gray-400">
+                      {new Date(item.failedAt).toLocaleString()}
+                    </span>
+                    <span className="text-xs text-gray-400 truncate max-w-xs" title={item.url}>
+                      {item.url}
+                    </span>
+                    <span className="text-xs text-red-400">{item.lastError}</span>
+                  </div>
+                  <button
+                    onClick={() => handleRetry(item.id)}
+                    disabled={retrying === item.id}
+                    className="min-h-9 px-3 py-1.5 rounded bg-indigo-700 hover:bg-indigo-600 disabled:opacity-50 text-xs font-semibold shrink-0 transition-colors"
+                  >
+                    {retrying === item.id ? "Retrying…" : "Retry now"}
+                  </button>
+                </div>
+
+                {retryResult[item.id] && (
+                  <p
+                    className={`text-xs ${retryResult[item.id].startsWith("✓") ? "text-green-400" : "text-red-400"}`}
+                    role="status"
+                  >
+                    {retryResult[item.id]}
+                  </p>
+                )}
+
+                <details className="mt-1">
+                  <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-300">
+                    Payload
+                  </summary>
+                  <pre className="mt-2 bg-gray-800 rounded px-3 py-2 text-xs text-gray-300 overflow-x-auto whitespace-pre-wrap break-all">
+                    {JSON.stringify(item.payload, null, 2)}
+                  </pre>
+                </details>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }
