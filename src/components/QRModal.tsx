@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import FocusTrap from "./FocusTrap";
 import { QRCodeCanvas } from "qrcode.react";
+import { isWalletConnected } from "@/lib/freighter";
 
 type QRModalProps = {
   open: boolean;
@@ -10,6 +11,7 @@ type QRModalProps = {
   onClose: () => void;
   onCopied?: () => void;
   onConnected?: () => void;
+  pollingInterval?: number;
 };
 
 export default function QRModal({
@@ -18,16 +20,28 @@ export default function QRModal({
   onClose,
   onCopied,
   onConnected,
+  pollingInterval = 2000,
 }: QRModalProps) {
-  // Escape and focus trapping handled by FocusTrap when open
+  const firedRef = useRef(false);
 
   useEffect(() => {
-    if (!open) return;
-    // If the wallet successfully connected elsewhere in the UI,
-    // consumers can trigger onConnected manually. This effect is left
-    // as a placeholder for future integration and does not auto-fire.
-    void onConnected;
-  }, [open, onConnected]);
+    if (!open) {
+      firedRef.current = false;
+      return;
+    }
+
+    const id = setInterval(async () => {
+      if (firedRef.current) return;
+      const connected = await isWalletConnected();
+      if (connected) {
+        firedRef.current = true;
+        clearInterval(id);
+        onConnected?.();
+      }
+    }, pollingInterval);
+
+    return () => clearInterval(id);
+  }, [open, onConnected, pollingInterval]);
 
   if (!open) return null;
 
