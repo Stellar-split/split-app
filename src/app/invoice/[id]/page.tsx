@@ -58,6 +58,7 @@ import type { Invoice, Payment } from "@stellar-split/sdk";
 import CooldownBadge from "@/components/CooldownBadge";
 import { fetchCooldownExpiry, recordCooldown, clearCooldown } from "@/lib/cooldown";
 import PaymentSummaryCard from "@/components/PaymentSummaryCard";
+import CloneLineageTree from "@/components/CloneLineageTree";
 
 const POLL_MS = 10_000;
 
@@ -521,6 +522,8 @@ export default function InvoiceDetailPage({ params }: Props) {
       <div className="mb-6">
         <FlowDiagram invoice={invoice} />
       </div>
+
+      <CloneLineageTree invoiceId={id} />
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
           aria-label={`Status: ${invoice.status}`}
