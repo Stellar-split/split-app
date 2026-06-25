@@ -12,6 +12,8 @@ import { recordInvoiceHistory } from "@/lib/invoiceHistory";
 import { useI18n } from "@/components/I18nProvider";
 import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
+import { decodeTemplate } from "@/lib/templateSharing";
+
 
 interface RecipientRow {
   address: string;
@@ -106,6 +108,19 @@ function NewInvoiceForm() {
   const { toasts, addToast } = useToasts();
 
   useEffect(() => {
+    const templateParam = searchParams.get("template");
+    if (templateParam) {
+      const decoded = decodeTemplate(templateParam);
+      if (decoded) {
+        setRecipients(decoded.recipients);
+        setToken(decoded.token);
+        addToast("Shared template loaded successfully", "success");
+      } else {
+        addToast("Failed to decode shared template: invalid format", "error");
+      }
+      return;
+    }
+
     const template = sessionStorage.getItem("invoiceTemplate");
     if (template) {
       const parsed: InvoiceTemplate = JSON.parse(template);
@@ -114,7 +129,7 @@ function NewInvoiceForm() {
       setToken(parsed.token);
       sessionStorage.removeItem("invoiceTemplate");
     }
-  }, []);
+  }, [searchParams, addToast]);
   const [error, setError] = useState<string | null>(null);
   const [txModal, setTxModal] = useState<{ txHash: string; invoiceId: string } | null>(null);
   const [equalSplit, setEqualSplit] = useState(false);

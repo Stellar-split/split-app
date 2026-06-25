@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { encodeTemplate } from "@/lib/templateSharing";
+
 
 interface Recipient {
   address: string;
@@ -83,6 +85,26 @@ export default function TemplateManager({
     setTimeout(() => setMessage(null), 2000);
   };
 
+  const shareTemplate = (index: number) => {
+    const template = templates[index];
+    if (template) {
+      try {
+        const encoded = encodeTemplate({
+          recipients: template.recipients,
+          token: template.token,
+        });
+        const url = `${window.location.origin}/invoice/new?template=${encoded}`;
+        navigator.clipboard.writeText(url);
+        setMessage("Shareable link copied to clipboard!");
+        setTimeout(() => setMessage(null), 3000);
+      } catch (err) {
+        console.error("Failed to share template", err);
+        setMessage("Error generating shareable link");
+        setTimeout(() => setMessage(null), 3000);
+      }
+    }
+  };
+
   return (
     <div className="rounded-lg bg-gray-800 border border-gray-700 p-4 mb-6">
       <h2 className="text-sm font-medium text-gray-300 mb-3">Invoice Templates</h2>
@@ -121,6 +143,13 @@ export default function TemplateManager({
                   className="min-h-10 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-sm font-medium transition-colors"
                 >
                   Load
+                </button>
+                <button
+                  type="button"
+                  onClick={() => shareTemplate(selectedTemplateIndex)}
+                  className="min-h-10 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-medium transition-colors"
+                >
+                  Share
                 </button>
                 <button
                   type="button"

@@ -177,6 +177,9 @@ function SearchPageInner() {
   const [draftCreator, setDraftCreator] = useState(criteria.creator ?? '');
   const [draftRecipient, setDraftRecipient] = useState(criteria.recipient ?? '');
 
+  // Share status feedback
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
+
   // Refs so debounce/flush callbacks always see the latest values
   const criteriaRef = useRef(criteria);
   criteriaRef.current = criteria;
@@ -192,6 +195,34 @@ function SearchPageInner() {
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [knownTokens, setKnownTokens] = useState<string[]>(DEFAULT_TOKENS);
+
+  // ── Sync URL back to state on changes ──────────────────────────────────────
+
+  const searchParamsString = searchParams.toString();
+  useEffect(() => {
+    const nextCriteria = fromURLParams(searchParams);
+    setCriteria(nextCriteria);
+    setDraftToken(nextCriteria.token ?? '');
+    setDraftFundedMin(bigintToUsdc(nextCriteria.fundedMin));
+    setDraftFundedMax(bigintToUsdc(nextCriteria.fundedMax));
+    setDraftCreator(nextCriteria.creator ?? '');
+    setDraftRecipient(nextCriteria.recipient ?? '');
+  }, [searchParamsString, searchParams]);
+
+  // ── Copy search link to clipboard ──────────────────────────────────────────
+
+  const copySearchLink = () => {
+    try {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url);
+      setShareStatus('Copied!');
+      setTimeout(() => setShareStatus(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy search link', err);
+      setShareStatus('Failed');
+      setTimeout(() => setShareStatus(null), 2000);
+    }
+  };
 
   // ── URL push ───────────────────────────────────────────────────────────────
 
@@ -356,16 +387,39 @@ function SearchPageInner() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Search Invoices</h1>
-        {filtersActive && (
+        <div className="flex items-center gap-4">
           <button
             type="button"
-            onClick={clearAll}
-            data-testid="clear-all"
-            className="text-sm text-red-400 hover:text-red-300 transition-colors"
+            onClick={copySearchLink}
+            className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1.5"
           >
-            Clear all
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.684 10.742l-1.956.978a3 3 0 000 5.364l1.956.978m0-7.322a3 3 0 010-5.364l1.956-.978m0 7.322a3 3 0 000 5.364l1.956.978m-1.956-6.344l6.438-3.219m0 0a3 3 0 112.684 4.478 3 3 0 01-2.684-4.478zm0 0l-6.438 3.219"
+              />
+            </svg>
+            <span>{shareStatus || 'Share search'}</span>
           </button>
-        )}
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={clearAll}
+              data-testid="clear-all"
+              className="text-sm text-red-400 hover:text-red-300 transition-colors"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
       </div>
 
       {fetchError && (
