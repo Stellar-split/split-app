@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  --font-scale: 1;
+  font-size: calc(100% * var(--font-scale));
+}
+
 html,
 body {
   overflow-x: hidden;
@@ -10,6 +15,73 @@ body {
 
 * {
   transition: color 200ms, background-color 200ms, border-color 200ms;
+}
+
+html[data-reduced-motion="true"],
+html[data-reduced-motion="true"] * {
+  scroll-behavior: auto !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html[data-contrast="high"] {
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --surface-primary: #111111;
+  --surface-secondary: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #f5f5f5;
+  --border-strong: #ffffff;
+  color-scheme: dark;
+}
+
+html[data-contrast="high"] body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+html[data-contrast="high"] .bg-gray-950,
+html[data-contrast="high"] .bg-gray-900,
+html[data-contrast="high"] .dark .bg-gray-950,
+html[data-contrast="high"] .dark .bg-gray-900 {
+  background-color: var(--bg-primary);
+}
+
+html[data-contrast="high"] .bg-gray-800,
+html[data-contrast="high"] .bg-gray-700 {
+  background-color: var(--surface-primary);
+}
+
+html[data-contrast="high"] .text-gray-100,
+html[data-contrast="high"] .text-gray-200,
+html[data-contrast="high"] .text-gray-300 {
+  color: var(--text-primary);
+}
+
+html[data-contrast="high"] .text-gray-400 {
+  color: var(--text-secondary);
+}
+
+html[data-contrast="high"] .text-gray-500,
+html[data-contrast="high"] .text-gray-600 {
+  color: #e5e5e5;
+}
+
+html[data-contrast="high"] .border-gray-700,
+html[data-contrast="high"] .border-gray-800 {
+  border-color: var(--border-strong);
+}
+
+html[data-contrast="high"] .bg-indigo-600,
+html[data-contrast="high"] .bg-indigo-700 {
+  background-color: #ffff00;
+  color: #000000;
+}
+
+html[data-contrast="high"] .text-indigo-300,
+html[data-contrast="high"] .text-indigo-400,
+html[data-contrast="high"] .text-indigo-500 {
+  color: #ffff00;
 }
 
 @media print {
