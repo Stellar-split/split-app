@@ -12,6 +12,7 @@ import { I18nProvider } from "@/components/I18nProvider";
 import SimulationModeToggle from "@/components/SimulationModeToggle";
 import SimulationBanner from "@/components/SimulationBanner";
 import RecipientOnboarding from "@/components/RecipientOnboarding";
+import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 
 const accessibilityBootstrap = `
 (function () {
