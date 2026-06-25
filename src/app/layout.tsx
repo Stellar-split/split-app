@@ -11,6 +11,7 @@ import { I18nProvider } from "@/components/I18nProvider";
 import SimulationModeToggle from "@/components/SimulationModeToggle";
 import SimulationBanner from "@/components/SimulationBanner";
 import RecipientOnboarding from "@/components/RecipientOnboarding";
+import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 
 export const metadata: Metadata = {
   title: "StellarSplit — On-chain Invoice Splitting",
@@ -68,6 +69,7 @@ export default function RootLayout({
               Leaderboard
             </a>
             <ThemeToggle />
+            <HeaderShortcutsButton />
             <SimulationModeToggle />
             <NotificationCenter />
           </header>
