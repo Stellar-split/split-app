@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
+import { validateThemeConfig } from "@/components/EmbedThemeProvider";
 
 interface ApiKey {
   id: string;
@@ -18,8 +19,15 @@ interface ApiCall {
   success: boolean;
 }
 
+interface EmbedBrandingConfig {
+  primaryColor: string;
+  logoUrl: string;
+  borderRadius: string;
+}
+
 const KEYS_STORAGE = "stellarsplit_api_keys";
 const USAGE_STORAGE = "stellarsplit_api_usage";
+const BRANDING_STORAGE = "stellarsplit_embed_branding";
 const RATE_LIMIT = 60;
 
 function loadKeys(): ApiKey[] {
@@ -34,14 +42,65 @@ function loadUsage(): ApiCall[] {
   catch { return []; }
 }
 
+function loadBranding(): EmbedBrandingConfig {
+  if (typeof window === "undefined") return { primaryColor: "", logoUrl: "", borderRadius: "" };
+  try {
+    return JSON.parse(localStorage.getItem(BRANDING_STORAGE) ?? '{"primaryColor":"","logoUrl":"","borderRadius":""}');
+  }
+  catch { return { primaryColor: "", logoUrl: "", borderRadius: "" }; }
+}
+
+function saveBranding(config: EmbedBrandingConfig): void {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(BRANDING_STORAGE, JSON.stringify(config)); }
+  catch { /* ignore */ }
+}
+
 export default function ApiDashboardPage() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [usage, setUsage] = useState<ApiCall[]>([]);
+  const [branding, setBranding] = useState<EmbedBrandingConfig>({
+    primaryColor: "",
+    logoUrl: "",
+    borderRadius: "",
+  });
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setKeys(loadKeys());
     setUsage(loadUsage());
+    setBranding(loadBranding());
   }, []);
+
+  const handleBrandingChange = (field: keyof EmbedBrandingConfig, value: string) => {
+    const updated = { ...branding, [field]: value };
+    setBranding(updated);
+    saveBranding(updated);
+  };
+
+  const generateEmbedUrl = (invoiceId: string = "INVOICE_ID"): string => {
+    const baseUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/embed/${invoiceId}`;
+    const params = new URLSearchParams();
+
+    if (branding.primaryColor) {
+      params.append("primaryColor", branding.primaryColor);
+    }
+    if (branding.logoUrl) {
+      params.append("logoUrl", branding.logoUrl);
+    }
+    if (branding.borderRadius) {
+      params.append("borderRadius", branding.borderRadius);
+    }
+
+    return params.toString() ? `${baseUrl}?${params}` : baseUrl;
+  };
+
+  const copyEmbedUrl = async () => {
+    const url = generateEmbedUrl();
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const clearHistory = () => {
     localStorage.removeItem(USAGE_STORAGE);
@@ -80,7 +139,85 @@ export default function ApiDashboardPage() {
         </div>
       </section>
 
-      {/* API keys */}
+      {/* Embed branding */}
+      <section className="mb-6">
+        <h2 className="text-lg font-semibold mb-3">Embed Branding</h2>
+        <div className="bg-gray-900 rounded-xl p-5 space-y-4">
+          <div>
+            <label className="block text-sm text-gray-300 font-medium mb-2">
+              Primary Color (hex)
+            </label>
+            <input
+              type="text"
+              placeholder="#4f46e5"
+              value={branding.primaryColor}
+              onChange={(e) => handleBrandingChange("primaryColor", e.target.value)}
+              maxLength={7}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Applied to buttons and interactive elements. Defaults to #4f46e5 if invalid.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-300 font-medium mb-2">
+              Logo URL (HTTPS only)
+            </label>
+            <input
+              type="url"
+              placeholder="https://example.com/logo.png"
+              value={branding.logoUrl}
+              onChange={(e) => handleBrandingChange("logoUrl", e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Rendered above the invoice amount. Only HTTPS URLs accepted.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-300 font-medium mb-2">
+              Border Radius (CSS value)
+            </label>
+            <input
+              type="text"
+              placeholder="0.5rem"
+              value={branding.borderRadius}
+              onChange={(e) => handleBrandingChange("borderRadius", e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Supports px, rem, em, %. Defaults to 0.5rem if invalid.
+            </p>
+          </div>
+
+          <div className="pt-2 border-t border-gray-700">
+            <p className="text-sm text-gray-300 font-medium mb-3">Generated Embed URL</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={generateEmbedUrl()}
+                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-400 font-mono truncate"
+              />
+              <button
+                onClick={copyEmbedUrl}
+                className={`min-h-11 px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                  copied
+                    ? "bg-green-600/20 text-green-400"
+                    : "bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400"
+                }`}
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Replace INVOICE_ID with your actual invoice ID. All parameters are optional and fall back to defaults if invalid.
+            </p>
+          </div>
+        </div>
+      </section>
       <section className="mb-6">
         <h2 className="text-lg font-semibold mb-3">API Keys</h2>
         {keys.length === 0 ? (
