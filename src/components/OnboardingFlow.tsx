@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import WalletConnect from "@/components/WalletConnect";
 
 const ONBOARDING_KEY = "stellarsplit_onboarded";
+const ONBOARDING_STEP_KEY = "stellarsplit_onboarding_step";
 
 export default function OnboardingFlow() {
   const [show, setShow] = useState(false);
@@ -11,21 +12,32 @@ export default function OnboardingFlow() {
 
   useEffect(() => {
     const onboarded = localStorage.getItem(ONBOARDING_KEY);
-    if (!onboarded) {
-      setShow(true);
+    const savedStep = localStorage.getItem(ONBOARDING_STEP_KEY);
+
+    if (onboarded === "true") {
+      setShow(false);
+      return;
+    }
+
+    setShow(true);
+    if (savedStep) {
+      setStep(parseInt(savedStep, 10));
     }
   }, []);
 
   const handleSkip = () => {
     localStorage.setItem(ONBOARDING_KEY, "true");
+    localStorage.removeItem(ONBOARDING_STEP_KEY);
     setShow(false);
   };
 
   const handleNext = () => {
-    if (step < 4) {
-      setStep(step + 1);
-    } else {
+    const nextStep = step < 4 ? step + 1 : 4;
+    if (step === 4) {
       handleSkip();
+    } else {
+      setStep(nextStep);
+      localStorage.setItem(ONBOARDING_STEP_KEY, nextStep.toString());
     }
   };
 
