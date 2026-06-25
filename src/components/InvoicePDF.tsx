@@ -30,7 +30,13 @@ export default function InvoicePDF({ invoice, total, locale = "en" }: Props) {
       </button>
 
       {/* Print-only content */}
-      <div id="invoice-print" className="hidden print:block text-black bg-white p-8 text-sm leading-relaxed">
+      <div id="invoice-print" className="hidden print:block text-black bg-white p-8 text-sm leading-relaxed relative">
+        {invoice.status !== "Released" && (
+          <div className="fixed inset-0 pointer-events-none print:fixed print:inset-0 print:pointer-events-none z-0 flex items-center justify-center opacity-10">
+            <div className="transform -rotate-45 text-9xl font-bold text-gray-800 whitespace-nowrap">DRAFT</div>
+          </div>
+        )}
+        <div className="relative z-10">
         <h1 className="text-2xl font-bold mb-1">
           {t(locale, "invoice")} #{invoice.id}
         </h1>
@@ -74,6 +80,7 @@ export default function InvoicePDF({ invoice, total, locale = "en" }: Props) {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </>
   );

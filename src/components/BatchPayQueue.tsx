@@ -2,6 +2,7 @@
 
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
+import { useState } from "react";
 
 interface QueueEntry {
   invoice: Invoice;
@@ -12,13 +13,39 @@ interface Props {
   queue: QueueEntry[];
   onAmountChange: (invoiceId: string, value: string) => void;
   onRemove: (invoiceId: string) => void;
+  onReorder?: (newQueue: QueueEntry[]) => void;
 }
 
-export default function BatchPayQueue({ queue, onAmountChange, onRemove }: Props) {
+export default function BatchPayQueue({ queue, onAmountChange, onRemove, onReorder }: Props) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
   const runningTotal = queue.reduce((sum, entry) => {
     const parsed = parseFloat(entry.amount);
     return sum + (isNaN(parsed) ? 0 : parsed);
   }, 0);
+
+  const handleDrop = (targetIndex: number) => {
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+    const newQueue = [...queue];
+    const [dragged] = newQueue.splice(draggedIndex, 1);
+    newQueue.splice(targetIndex, 0, dragged);
+    onReorder?.(newQueue);
+    setDraggedIndex(null);
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.altKey && e.key === "ArrowUp" && index > 0) {
+      e.preventDefault();
+      const newQueue = [...queue];
+      [newQueue[index - 1], newQueue[index]] = [newQueue[index], newQueue[index - 1]];
+      onReorder?.(newQueue);
+    } else if (e.altKey && e.key === "ArrowDown" && index < queue.length - 1) {
+      e.preventDefault();
+      const newQueue = [...queue];
+      [newQueue[index], newQueue[index + 1]] = [newQueue[index + 1], newQueue[index]];
+      onReorder?.(newQueue);
+    }
+  };
 
   if (queue.length === 0) {
     return (
@@ -30,13 +57,23 @@ export default function BatchPayQueue({ queue, onAmountChange, onRemove }: Props
 
   return (
     <div className="flex flex-col gap-3">
-      {queue.map(({ invoice, amount }) => {
+      {queue.map(({ invoice, amount }, index) => {
         const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
         return (
           <div
             key={invoice.id}
-            className="bg-gray-900 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
+            draggable
+            onDragStart={() => setDraggedIndex(index)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => handleDrop(index)}
+            onDragEnd={() => setDraggedIndex(null)}
+            onKeyDown={(e) => handleKeyDown(index, e)}
+            tabIndex={0}
+            className={`bg-gray-900 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 cursor-grab ${
+              draggedIndex === index ? "opacity-50" : ""
+            }`}
           >
+            <span className="text-gray-500 text-xs select-none">⋮⋮</span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">Invoice #{invoice.id}</p>
               <p className="text-xs text-gray-500 mt-0.5">
