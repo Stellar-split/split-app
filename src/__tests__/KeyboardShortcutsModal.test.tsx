@@ -18,14 +18,13 @@ import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 // Renders children transparently and calls onClose when Escape is pressed
 jest.mock("@/components/FocusTrap", () => ({
   __esModule: true,
-  default: ({
+  default: function MockFocusTrap({
     children,
     onClose,
   }: {
     children: React.ReactNode;
     onClose?: () => void;
-  }) => {
-    // Simulate Escape handling (FocusTrap does this natively)
+  }) {
     React.useEffect(() => {
       const handler = (e: KeyboardEvent) => {
         if (e.key === "Escape") onClose?.();
