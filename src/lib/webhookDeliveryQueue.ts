@@ -9,6 +9,7 @@ import { computeWebhookSignature } from "./webhookSignature";
 
 const QUEUE_KEY = "stellarsplit_webhook_queue";
 const DLQ_KEY = "stellarsplit_webhook_dlq";
+const HISTORY_KEY = "stellarsplit_webhook_history";
 
 /** Backoff delays in milliseconds: 1m, 5m, 30m, 2h */
 export const BACKOFF_DELAYS = [60_000, 300_000, 1_800_000, 7_200_000];
@@ -30,6 +31,18 @@ export interface DeadLetteredDelivery {
   payload: Record<string, unknown>;
   failedAt: number;
   lastError: string;
+}
+
+export interface DeliveryHistoryEntry {
+  id: string;
+  url: string;
+  payload: Record<string, unknown>;
+  sentAt: number;
+  status: "success" | "failed";
+  statusCode?: number;
+  error?: string;
+  isReplay: boolean;
+  originalDeliveryId?: string;
 }
 
 function readQueue(): QueuedDelivery[] {
@@ -56,6 +69,19 @@ function readDLQ(): DeadLetteredDelivery[] {
 
 function writeDLQ(dlq: DeadLetteredDelivery[]): void {
   localStorage.setItem(DLQ_KEY, JSON.stringify(dlq));
+}
+
+function readHistory(): DeliveryHistoryEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function writeHistory(history: DeliveryHistoryEntry[]): void {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
 }
 
 /** Add a new delivery to the queue (first attempt is immediate). */
@@ -146,6 +172,66 @@ export async function processQueue(): Promise<void> {
 /** Return all dead-lettered deliveries. */
 export function getDeadLettered(): DeadLetteredDelivery[] {
   return readDLQ();
+}
+
+/** Return all delivery history entries, newest first. */
+export function getDeliveryHistory(): DeliveryHistoryEntry[] {
+  return readHistory().slice().reverse();
+}
+
+/** Record a delivery in history. Returns the entry with its generated id. */
+export function addDeliveryHistoryEntry(
+  entry: Omit<DeliveryHistoryEntry, "id">
+): DeliveryHistoryEntry {
+  const full: DeliveryHistoryEntry = {
+    ...entry,
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  };
+  const history = readHistory();
+  history.push(full);
+  writeHistory(history);
+  return full;
+}
+
+/**
+ * Replay a historical delivery by sending its original stored payload verbatim
+ * to targetUrl. Appends a new history entry marked as a replay.
+ * Does not affect the original entry's status or retry counters.
+ */
+export async function replayDelivery(
+  originalId: string,
+  targetUrl: string
+): Promise<{ ok: boolean; error?: string; statusCode?: number }> {
+  const history = readHistory();
+  const original = history.find((h) => h.id === originalId);
+  if (!original) return { ok: false, error: "Delivery not found in history" };
+
+  const sentAt = Date.now();
+  let result: { ok: boolean; error?: string; statusCode?: number };
+  try {
+    const res = await fetch(targetUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(original.payload),
+    });
+    result = { ok: res.ok, statusCode: res.status };
+    if (!res.ok) result.error = `HTTP ${res.status}`;
+  } catch (e) {
+    result = { ok: false, error: String(e) };
+  }
+
+  addDeliveryHistoryEntry({
+    url: targetUrl,
+    payload: original.payload,
+    sentAt,
+    status: result.ok ? "success" : "failed",
+    statusCode: result.statusCode,
+    error: result.error,
+    isReplay: true,
+    originalDeliveryId: originalId,
+  });
+
+  return result;
 }
 
 /**
