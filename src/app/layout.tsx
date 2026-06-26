@@ -13,6 +13,7 @@ import SimulationModeToggle from "@/components/SimulationModeToggle";
 import SimulationBanner from "@/components/SimulationBanner";
 import RecipientOnboarding from "@/components/RecipientOnboarding";
 import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
+import { SessionLockProvider } from "@/contexts/SessionLockContext";
 
 const accessibilityBootstrap = `
 (function () {
@@ -106,11 +107,13 @@ export default function RootLayout({
               <SimulationModeToggle />
               <NotificationCenter />
             </header>
+            <SessionLockProvider>
             <SimulationBanner />
             <UpgradeBanner />
             <ErrorBoundary>{children}</ErrorBoundary>
             <OnboardingFlow />
             <RecipientOnboarding />
+            </SessionLockProvider>
             <Script id="register-sw" strategy="afterInteractive">
               {`if ("serviceWorker" in navigator) {
               window.addEventListener("load", function () {
