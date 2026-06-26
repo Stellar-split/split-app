@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
@@ -9,6 +9,12 @@ import InvoiceCard from "@/components/InvoiceCard";
 import { SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
 import type { Invoice } from "@stellar-split/sdk";
+import {
+  DASHBOARD_PRESETS,
+  filterDashboardInvoices,
+  getDashboardPresetCounts,
+  type DashboardPresetId,
+} from "@/lib/dashboardFilters";
 
 /**
  * Client component for dashboard with streaming invoice list.
@@ -26,6 +32,7 @@ export default function DashboardClient() {
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showBatchModal, setShowBatchModal] = useState(false);
+  const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
 
   // Get wallet public key
   useEffect(() => {
@@ -119,8 +126,35 @@ export default function DashboardClient() {
     setSelected(new Set());
   };
 
+  const clearFilters = () => {
+    setActivePreset("all");
+    setSearchValue("");
+    setNumericResult(null);
+  };
+
+  const handlePresetToggle = (preset: DashboardPresetId) => {
+    setActivePreset((current) => (current === preset ? "all" : preset));
+    setSearchValue("");
+    setNumericResult(null);
+  };
+
+  const handleSearchChange = (next: string) => {
+    setSearchValue(next);
+    if (next.trim() && activePreset !== "all") {
+      setActivePreset("all");
+    }
+  };
+
   const pendingInvoices = invoices.filter((inv) => inv.status === "Pending");
   const selectedInvoices = invoices.filter((inv) => selected.has(inv.id));
+  const presetCounts = useMemo(
+    () => getDashboardPresetCounts(invoices, publicKey),
+    [invoices, publicKey],
+  );
+  const visibleInvoices = useMemo(
+    () => filterDashboardInvoices(invoices, publicKey, activePreset, searchValue),
+    [invoices, publicKey, activePreset, searchValue],
+  );
 
   if (error) {
     return (
@@ -171,12 +205,57 @@ export default function DashboardClient() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <button
+          type="button"
+          onClick={() => handlePresetToggle("all")}
+          className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
+            activePreset === "all"
+              ? "bg-indigo-600 text-white"
+              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+          }`}
+          aria-pressed={activePreset === "all"}
+        >
+          All
+        </button>
+        {DASHBOARD_PRESETS.map((preset) => {
+          const isActive = activePreset === preset.id;
+          const count = presetCounts[preset.id] ?? 0;
+
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => handlePresetToggle(preset.id)}
+              className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
+                isActive
+                  ? "bg-indigo-600 text-white"
+                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              }`}
+              aria-pressed={isActive}
+            >
+              <span>{preset.label}</span>
+              <span className="ml-2 rounded-full bg-white/15 px-2 py-0.5 text-xs">
+                {count}
+              </span>
+            </button>
+          );
+        })}
+        {(activePreset !== "all" || searchValue.trim().length > 0) && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="rounded-full border border-gray-700 px-3 py-1.5 text-sm font-semibold text-gray-300 transition-colors hover:bg-gray-800"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
       <InvoiceSearch
         invoices={invoices}
         searchValue={searchValue}
-        onSearchChange={(next) => {
-          setSearchValue(next);
-        }}
+        onSearchChange={handleSearchChange}
         numericResult={numericResult}
         loading={searchLoading}
         onNumericResult={setNumericResult}
@@ -198,9 +277,20 @@ export default function DashboardClient() {
         <p className="text-gray-400">
           No invoices found. Create your first one!
         </p>
+      ) : visibleInvoices.length === 0 ? (
+        <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 text-center">
+          <p className="text-gray-400">
+            {activePreset === "all"
+              ? searchValue.trim()
+                ? "No invoices match your search."
+                : "No invoices found. Create your first one!"
+              : DASHBOARD_PRESETS.find((preset) => preset.id === activePreset)
+                  ?.emptyState ?? "No invoices match this view."}
+          </p>
+        </div>
       ) : (
         <ul className="flex flex-col gap-4" aria-label="Invoice list">
-          {invoices.map((inv) => {
+          {visibleInvoices.map((inv) => {
             const isSelectable = multiSelect && inv.status === "Pending";
             const isSelected = selected.has(inv.id);
 
