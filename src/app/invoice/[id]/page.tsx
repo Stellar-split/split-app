@@ -822,7 +822,11 @@ export default function InvoiceDetailPage({ params }: Props) {
             <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
             <CooldownBadge expiresAt={cooldownExpiresAt} />
           </div>
-          <PaymentMethodSelector onMethodChange={setPaymentMethod} />
+          <PaymentMethodSelector
+            onMethodChange={setPaymentMethod}
+            payerAddress={publicKey ?? undefined}
+            recipientAddress={invoice.recipients[0]?.address}
+          />
           <form onSubmit={handlePay} className="flex flex-col gap-4">
             <div>
               <div className="flex items-center justify-between mb-2">
