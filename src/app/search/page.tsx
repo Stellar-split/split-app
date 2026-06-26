@@ -20,9 +20,18 @@ import {
   fromURLParams,
 } from '@/lib/filterIndex';
 import type { FilterCriteria } from '@/lib/filterIndex';
-import InvoiceCard from '@/components/InvoiceCard';
 import { SkeletonCard } from '@/components/Skeleton';
+import { formatAmount, truncateAddress } from '@stellar-split/sdk';
 import type { Invoice } from '@stellar-split/sdk';
+import {
+  SEARCH_COLUMNS,
+  COLUMN_LABELS,
+  loadColumns,
+  saveColumns,
+  toggleColumn,
+  isLastColumn,
+  type SearchColumn,
+} from '@/lib/searchColumns';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -60,14 +69,154 @@ function hasActiveFilters(c: FilterCriteria): boolean {
   });
 }
 
+// ── Status badge styles ───────────────────────────────────────────────────────
+
+const STATUS_STYLES: Record<string, string> = {
+  Pending: 'bg-yellow-500/20 text-yellow-300',
+  Released: 'bg-green-500/20 text-green-300',
+  Refunded: 'bg-gray-500/20 text-gray-300',
+};
+
+// ── ColumnPicker ──────────────────────────────────────────────────────────────
+
+function ColumnPicker({
+  visibleColumns,
+  onToggle,
+}: {
+  visibleColumns: SearchColumn[];
+  onToggle: (col: SearchColumn) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid="column-picker-toggle"
+        className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1.5"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        Columns
+      </button>
+      {open && (
+        <div
+          data-testid="column-picker-dropdown"
+          className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-2 min-w-[160px]"
+        >
+          {SEARCH_COLUMNS.map((col) => {
+            const checked = visibleColumns.includes(col);
+            const disabled = isLastColumn(visibleColumns, col);
+            return (
+              <label
+                key={col}
+                className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-700 text-sm ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={disabled}
+                  onChange={() => onToggle(col)}
+                  className="accent-indigo-500 w-4 h-4"
+                  data-testid={`col-toggle-${col}`}
+                />
+                {COLUMN_LABELS[col]}
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── InvoiceRow ────────────────────────────────────────────────────────────────
+
+function InvoiceRow({
+  invoice,
+  visibleColumns,
+}: {
+  invoice: Invoice;
+  visibleColumns: SearchColumn[];
+}) {
+  const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
+  const fundedPct = total > 0n ? Number((invoice.funded * 100n) / total) : 0;
+
+  return (
+    <div className="bg-gray-900 rounded-xl p-4 hover:bg-gray-800 transition-colors cursor-pointer">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-semibold text-gray-300 shrink-0">
+          Invoice #{invoice.id}
+        </span>
+
+        {visibleColumns.includes('amount') && (
+          <span className="text-sm text-gray-400">
+            {formatAmount(total)} USDC
+          </span>
+        )}
+
+        {visibleColumns.includes('status') && (
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLES[invoice.status] ?? ''}`}
+          >
+            {invoice.status}
+          </span>
+        )}
+
+        {visibleColumns.includes('deadline') && (
+          <span className="text-xs text-gray-500">
+            {new Date(invoice.deadline * 1000).toLocaleDateString()}
+          </span>
+        )}
+
+        {visibleColumns.includes('creator') && (
+          <span className="text-xs text-gray-500 font-mono">
+            {truncateAddress(invoice.creator)}
+          </span>
+        )}
+
+        {visibleColumns.includes('recipients') && (
+          <span className="text-xs text-gray-500 font-mono">
+            {invoice.recipients.map((r) => truncateAddress(r.address)).join(', ')}
+          </span>
+        )}
+
+        {visibleColumns.includes('fundedPercent') && (
+          <span className="text-xs text-gray-400">
+            {fundedPct}%
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── VirtualList ────────────────────────────────────────────────────────────────
-// Renders at most MAX_VISIBLE_NODES invoice cards regardless of total count.
 
 interface VirtualListProps {
   items: Invoice[];
+  visibleColumns: SearchColumn[];
 }
 
-function VirtualList({ items }: VirtualListProps) {
+function VirtualList({ items, visibleColumns }: VirtualListProps) {
   const [scrollTop, setScrollTop] = useState(0);
 
   const startIdx = Math.floor(scrollTop / ITEM_HEIGHT_PX);
@@ -92,7 +241,7 @@ function VirtualList({ items }: VirtualListProps) {
             className="mb-4"
           >
             <Link href={`/invoice/${inv.id}`}>
-              <InvoiceCard invoice={inv} />
+              <InvoiceRow invoice={inv} visibleColumns={visibleColumns} />
             </Link>
           </div>
         ))}
@@ -179,6 +328,17 @@ function SearchPageInner() {
 
   // Share status feedback
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+
+  // Column customization
+  const [visibleColumns, setVisibleColumns] = useState<SearchColumn[]>(() => loadColumns());
+
+  const handleToggleColumn = useCallback((col: SearchColumn) => {
+    setVisibleColumns((prev) => {
+      const next = toggleColumn(prev, col);
+      saveColumns(next);
+      return next;
+    });
+  }, []);
 
   // Refs so debounce/flush callbacks always see the latest values
   const criteriaRef = useRef(criteria);
@@ -409,6 +569,7 @@ function SearchPageInner() {
             </svg>
             <span>{shareStatus || 'Share search'}</span>
           </button>
+          <ColumnPicker visibleColumns={visibleColumns} onToggle={handleToggleColumn} />
           {filtersActive && (
             <button
               type="button"
@@ -691,7 +852,7 @@ function SearchPageInner() {
       ) : results.length === 0 ? (
         <EmptyState hasInvoices={allInvoices.length > 0} hasFilters={filtersActive} />
       ) : (
-        <VirtualList items={results} />
+        <VirtualList items={results} visibleColumns={visibleColumns} />
       )}
     </main>
   );
