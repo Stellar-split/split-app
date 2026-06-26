@@ -111,6 +111,7 @@ export default function RootLayout({
             <SimulationBanner />
             <UpgradeBanner />
             <ErrorBoundary>{children}</ErrorBoundary>
+            <CommandPalette />
             <OnboardingFlow />
             <RecipientOnboarding />
             </SessionLockProvider>
