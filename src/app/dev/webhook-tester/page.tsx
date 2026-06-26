@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { computeWebhookSignature } from "@/lib/webhookSignature";
 import {
   getDeadLettered,
   retryDeadLettered,
@@ -38,6 +39,21 @@ export default function WebhookTesterPage() {
   const [history, setHistory] = useState<DeliveryHistoryEntry[]>([]);
   const [replaying, setReplaying] = useState<string | null>(null);
   const [replayResult, setReplayResult] = useState<Record<string, string>>({});
+
+  const [testerSecret, setTesterSecret] = useState("");
+  const [testerPayload, setTesterPayload] = useState('{\n  "event": "invoice.created",\n  "invoiceId": "INV-SAMPLE-001"\n}');
+  const [computedSignature, setComputedSignature] = useState("");
+  const [userSignature, setUserSignature] = useState("");
+
+  useEffect(() => {
+    if (testerSecret && testerPayload) {
+      computeWebhookSignature(testerSecret, testerPayload)
+        .then(setComputedSignature)
+        .catch(() => setComputedSignature("Error computing signature"));
+    } else {
+      setComputedSignature("");
+    }
+  }, [testerSecret, testerPayload]);
 
   const refreshDlq = useCallback(() => setDlq(getDeadLettered()), []);
   const refreshHistory = useCallback(() => setHistory(getDeliveryHistory()), []);

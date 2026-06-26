@@ -1,3 +1,5 @@
+import { computeWebhookSignature } from "./webhookSignature";
+
 /**
  * Webhook delivery queue with exponential backoff and dead-letter queue.
  * Persisted in localStorage under stellarsplit_ prefixed keys.
@@ -15,6 +17,7 @@ export const BACKOFF_DELAYS = [60_000, 300_000, 1_800_000, 7_200_000];
 export interface QueuedDelivery {
   id: string;
   url: string;
+  secret?: string;
   payload: Record<string, unknown>;
   retryCount: number;
   nextAttemptAt: number;
@@ -24,6 +27,7 @@ export interface QueuedDelivery {
 export interface DeadLetteredDelivery {
   id: string;
   url: string;
+  secret?: string;
   payload: Record<string, unknown>;
   failedAt: number;
   lastError: string;
@@ -83,11 +87,13 @@ function writeHistory(history: DeliveryHistoryEntry[]): void {
 /** Add a new delivery to the queue (first attempt is immediate). */
 export function enqueue(
   payload: Record<string, unknown>,
-  url: string
+  url: string,
+  secret?: string
 ): QueuedDelivery {
   const item: QueuedDelivery = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     url,
+    secret,
     payload,
     retryCount: 0,
     nextAttemptAt: Date.now(),
@@ -102,10 +108,15 @@ async function attempt(
   item: QueuedDelivery
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    const payloadStr = JSON.stringify(item.payload);
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (item.secret) {
+      headers["X-Webhook-Signature"] = await computeWebhookSignature(item.secret, payloadStr);
+    }
     const res = await fetch(item.url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(item.payload),
+      headers,
+      body: payloadStr,
     });
     if (res.ok) return { ok: true };
     return { ok: false, error: `HTTP ${res.status}` };
@@ -139,6 +150,7 @@ export async function processQueue(): Promise<void> {
       dlq.push({
         id: item.id,
         url: item.url,
+        secret: item.secret,
         payload: item.payload,
         failedAt: Date.now(),
         lastError: result.error ?? "Unknown error",

@@ -15,6 +15,7 @@ interface DeliveryLog {
 
 const storageKey = (id: string) => `stellarsplit_webhook_${id}`;
 const logKey = (id: string) => `stellarsplit_webhook_log_${id}`;
+const secretKey = (id: string) => `stellarsplit_webhook_secret_${id}`;
 
 /**
  * WebhookConfig — lets the invoice creator configure a webhook URL that
@@ -24,6 +25,7 @@ const logKey = (id: string) => `stellarsplit_webhook_log_${id}`;
  */
 export default function WebhookConfig({ invoiceId }: Props) {
   const [url, setUrl] = useState("");
+  const [secret, setSecret] = useState("");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
@@ -33,6 +35,8 @@ export default function WebhookConfig({ invoiceId }: Props) {
   useEffect(() => {
     const stored = localStorage.getItem(storageKey(invoiceId));
     if (stored) setUrl(stored);
+    const storedSecret = localStorage.getItem(secretKey(invoiceId));
+    if (storedSecret) setSecret(storedSecret);
     loadLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceId]);
@@ -71,12 +75,19 @@ export default function WebhookConfig({ invoiceId }: Props) {
       return;
     }
     localStorage.setItem(storageKey(invoiceId), url);
+    if (secret) {
+      localStorage.setItem(secretKey(invoiceId), secret);
+    } else {
+      localStorage.removeItem(secretKey(invoiceId));
+    }
     setSaved(true);
   };
 
   const handleRemove = () => {
     localStorage.removeItem(storageKey(invoiceId));
+    localStorage.removeItem(secretKey(invoiceId));
     setUrl("");
+    setSecret("");
     setSaved(false);
     setTestStatus(null);
   };
@@ -91,7 +102,7 @@ export default function WebhookConfig({ invoiceId }: Props) {
     try {
       const { enqueue, processQueue } = await import("@/lib/webhookDeliveryQueue");
       const payload = { event: "test", invoiceId, timestamp: new Date().toISOString() };
-      enqueue(payload, url);
+      enqueue(payload, url, secret || undefined);
       await processQueue();
       setTestStatus("✓ Queued and attempted. Check dead-letter queue if it failed.");
       addLog({ timestamp: Date.now(), status: null, success: true, event: "test" });
@@ -131,6 +142,23 @@ export default function WebhookConfig({ invoiceId }: Props) {
               {error}
             </p>
           )}
+        </div>
+
+        <div>
+          <label htmlFor="webhook-secret" className="block text-sm font-medium text-gray-300 mb-1">
+            Webhook Secret (optional)
+          </label>
+          <input
+            id="webhook-secret"
+            type="password"
+            placeholder="Your secret key for HMAC SHA-256 signature"
+            value={secret}
+            onChange={(e) => { setSecret(e.target.value); setSaved(false); }}
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            If provided, a signature will be sent in the <code>X-Webhook-Signature</code> header.
+          </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">
@@ -218,9 +246,10 @@ export async function sendWebhookIfConfigured(
 ): Promise<{ ok: boolean; queued?: boolean }> {
   if (typeof window === "undefined") return { ok: false };
   const url = localStorage.getItem(storageKey(invoiceId));
+  const secret = localStorage.getItem(secretKey(invoiceId));
   if (!url) return { ok: false };
   const { enqueue, processQueue } = await import("@/lib/webhookDeliveryQueue");
-  enqueue(payload, url);
+  enqueue(payload, url, secret || undefined);
   await processQueue();
   return { ok: true, queued: true };
 }
