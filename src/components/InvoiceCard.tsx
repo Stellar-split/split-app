@@ -5,6 +5,7 @@ import CountdownTimer from "./CountdownTimer";
 
 interface Props {
   invoice: Invoice;
+  displayNumber?: string;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -16,7 +17,7 @@ const STATUS_STYLES: Record<string, string> = {
 /**
  * InvoiceCard — summary card showing recipients, total, funded %, and status.
  */
-export default function InvoiceCard({ invoice }: Props) {
+export default function InvoiceCard({ invoice, displayNumber }: Props) {
   const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
   const deadlineLabel = new Date(invoice.deadline * 1000).toLocaleDateString();
 
@@ -25,6 +26,9 @@ export default function InvoiceCard({ invoice }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <span className="text-sm font-semibold text-gray-300">
           Invoice #{invoice.id}
+          {displayNumber && (
+            <span className="ml-2 text-xs font-mono text-indigo-400">({displayNumber})</span>
+          )}
         </span>
         <span
           className={`text-xs px-2 py-0.5 rounded-full font-semibold shrink-0 ${STATUS_STYLES[invoice.status]}`}

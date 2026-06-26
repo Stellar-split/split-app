@@ -8,6 +8,8 @@ import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
 import { SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
+import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
+import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
 import type { Invoice } from "@stellar-split/sdk";
 
 /**
@@ -26,6 +28,11 @@ export default function DashboardClient() {
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showBatchModal, setShowBatchModal] = useState(false);
+  const [reminderSelect, setReminderSelect] = useState(false);
+  const [reminderSelected, setReminderSelected] = useState<Set<string>>(new Set());
+  const [showReminderPicker, setShowReminderPicker] = useState(false);
+  const [reminderDateTime, setReminderDateTime] = useState("");
+  const [bulkReminderResults, setBulkReminderResults] = useState<BulkReminderResult[] | null>(null);
 
   // Get wallet public key
   useEffect(() => {
@@ -119,6 +126,33 @@ export default function DashboardClient() {
     setSelected(new Set());
   };
 
+  const toggleReminderSelect = (id: string) => {
+    setReminderSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitReminderSelect = () => {
+    setReminderSelect(false);
+    setReminderSelected(new Set());
+    setShowReminderPicker(false);
+    setReminderDateTime("");
+    setBulkReminderResults(null);
+  };
+
+  const handleScheduleBulkReminders = () => {
+    if (!reminderDateTime || reminderSelected.size === 0) return;
+    const isoDate = new Date(reminderDateTime).toISOString();
+    const results = setBulkReminders(Array.from(reminderSelected), isoDate);
+    setBulkReminderResults(results);
+    setReminderSelected(new Set());
+    setShowReminderPicker(false);
+    setReminderDateTime("");
+  };
+
   const pendingInvoices = invoices.filter((inv) => inv.status === "Pending");
   const selectedInvoices = invoices.filter((inv) => selected.has(inv.id));
 
@@ -135,13 +169,22 @@ export default function DashboardClient() {
       <div className="flex items-center justify-between mb-10 flex-wrap gap-3">
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <div className="flex gap-2 flex-wrap">
-          {!multiSelect && pendingInvoices.length > 0 && (
+          {!multiSelect && !reminderSelect && pendingInvoices.length > 0 && (
             <button
               onClick={() => setMultiSelect(true)}
               className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
               aria-label="Enter multi-select mode to pay multiple invoices"
             >
               Pay Multiple
+            </button>
+          )}
+          {!multiSelect && !reminderSelect && invoices.length > 0 && (
+            <button
+              onClick={() => { setBulkReminderResults(null); setReminderSelect(true); }}
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              aria-label="Enter multi-select mode to schedule reminders"
+            >
+              Schedule Reminders
             </button>
           )}
           {multiSelect && (
@@ -159,6 +202,24 @@ export default function DashboardClient() {
                 aria-label={`Pay ${selected.size} selected invoice${selected.size !== 1 ? "s" : ""}`}
               >
                 Pay Selected ({selected.size})
+              </button>
+            </>
+          )}
+          {reminderSelect && (
+            <>
+              <button
+                onClick={exitReminderSelect}
+                className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setShowReminderPicker(true)}
+                disabled={reminderSelected.size === 0}
+                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                aria-label={`Set reminder for ${reminderSelected.size} selected invoice${reminderSelected.size !== 1 ? "s" : ""}`}
+              >
+                Set Reminder ({reminderSelected.size})
               </button>
             </>
           )}
@@ -187,6 +248,36 @@ export default function DashboardClient() {
           Select pending invoices to pay in a single transaction.
         </p>
       )}
+      {reminderSelect && (
+        <p className="text-sm text-gray-400 mb-4" role="status">
+          Select invoices to schedule a reminder for.
+        </p>
+      )}
+      {bulkReminderResults && (
+        <div className="mb-4 rounded-lg bg-gray-800 border border-gray-700 p-4">
+          <p className="text-sm font-medium text-gray-300 mb-2">Reminder scheduling results:</p>
+          <ul className="flex flex-col gap-1">
+            {bulkReminderResults.map((r) => (
+              <li key={r.invoiceId} className="text-xs flex items-center gap-2">
+                <span className={r.success ? "text-green-400" : "text-red-400"}>
+                  {r.success ? "✓" : "✗"}
+                </span>
+                <span className="text-gray-300">Invoice #{r.invoiceId}</span>
+                {!r.success && r.error && (
+                  <span className="text-red-400">{r.error}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={() => setBulkReminderResults(null)}
+            className="mt-3 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {loading && invoices.length === 0 ? (
         <div className="flex flex-col gap-4">
@@ -203,6 +294,8 @@ export default function DashboardClient() {
           {invoices.map((inv) => {
             const isSelectable = multiSelect && inv.status === "Pending";
             const isSelected = selected.has(inv.id);
+            const isReminderSelectable = reminderSelect;
+            const isReminderSelected = reminderSelected.has(inv.id);
 
             return (
               <li key={inv.id}>
@@ -227,7 +320,31 @@ export default function DashboardClient() {
                           ✓
                         </span>
                       )}
-                      <InvoiceCard invoice={inv} />
+                      <InvoiceCard invoice={inv} displayNumber={getOrAssignDisplayNumber(inv.id)} />
+                    </div>
+                  </button>
+                ) : isReminderSelectable ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleReminderSelect(inv.id)}
+                    aria-pressed={isReminderSelected}
+                    aria-label={`${isReminderSelected ? "Deselect" : "Select"} Invoice #${inv.id} for reminder`}
+                    className={`w-full text-left rounded-xl ring-2 transition-all ${
+                      isReminderSelected
+                        ? "ring-indigo-500"
+                        : "ring-transparent hover:ring-gray-600"
+                    }`}
+                  >
+                    <div className="relative">
+                      {isReminderSelected && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold z-10"
+                        >
+                          ✓
+                        </span>
+                      )}
+                      <InvoiceCard invoice={inv} displayNumber={getOrAssignDisplayNumber(inv.id)} />
                     </div>
                   </button>
                 ) : (
@@ -262,6 +379,49 @@ export default function DashboardClient() {
             exitMultiSelect();
           }}
         />
+      )}
+
+      {showReminderPicker && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Schedule bulk reminders"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        >
+          <div className="bg-gray-900 rounded-2xl border border-gray-700 p-6 w-full max-w-sm">
+            <h2 className="text-lg font-bold mb-4">Schedule Reminders</h2>
+            <p className="text-sm text-gray-400 mb-4">
+              Applies to {reminderSelected.size} selected invoice{reminderSelected.size !== 1 ? "s" : ""}.
+            </p>
+            <label htmlFor="bulk-reminder-dt" className="block text-sm font-medium text-gray-300 mb-1">
+              Reminder date &amp; time
+            </label>
+            <input
+              id="bulk-reminder-dt"
+              type="datetime-local"
+              value={reminderDateTime}
+              onChange={(e) => setReminderDateTime(e.target.value)}
+              className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => { setShowReminderPicker(false); setReminderDateTime(""); }}
+                className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleScheduleBulkReminders}
+                disabled={!reminderDateTime}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                Schedule
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
