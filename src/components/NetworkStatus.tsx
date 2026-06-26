@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getQueueCount } from "@/lib/offlineQueue";
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "";
 const NETWORK = process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? "testnet";
@@ -11,6 +12,7 @@ type Status = "online" | "offline" | "checking";
 export default function NetworkStatus() {
   const [status, setStatus] = useState<Status>("checking");
   const [lastPing, setLastPing] = useState<Date | null>(null);
+  const [queueCount, setQueueCount] = useState(0);
 
   async function ping() {
     if (!RPC_URL) {
@@ -45,6 +47,24 @@ export default function NetworkStatus() {
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function pollQueue() {
+      try {
+        const count = await getQueueCount();
+        if (!cancelled) setQueueCount(count);
+      } catch {
+        // IndexedDB unavailable
+      }
+    }
+    pollQueue();
+    const id = setInterval(pollQueue, POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
   const dotColor =
     status === "online"
       ? "bg-green-400"
@@ -64,6 +84,11 @@ export default function NetworkStatus() {
       {lastPing && (
         <span title={lastPing.toLocaleTimeString()}>
           · {lastPing.toLocaleTimeString()}
+        </span>
+      )}
+      {queueCount > 0 && (
+        <span className="text-yellow-400" data-testid="queue-count">
+          · {queueCount} payment{queueCount !== 1 ? "s" : ""} queued
         </span>
       )}
     </div>
