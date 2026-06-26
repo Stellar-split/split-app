@@ -35,6 +35,31 @@ export function getReminderForInvoice(invoiceId: string): Reminder | undefined {
   return getReminders().find((r) => r.invoiceId === invoiceId);
 }
 
+export interface BulkReminderResult {
+  invoiceId: string;
+  success: boolean;
+  error?: string;
+}
+
+export function setBulkReminders(
+  invoiceIds: string[],
+  reminderDate: string,
+  message?: string
+): BulkReminderResult[] {
+  return invoiceIds.map((invoiceId) => {
+    try {
+      setReminder({
+        invoiceId,
+        reminderDate,
+        message: message ?? `Invoice #${invoiceId} payment reminder`,
+      });
+      return { invoiceId, success: true };
+    } catch (err) {
+      return { invoiceId, success: false, error: String(err) };
+    }
+  });
+}
+
 /**
  * Check all stored reminders and fire browser notifications for any that are
  * past-due. Called once on app load from layout.tsx.

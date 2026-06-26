@@ -59,7 +59,8 @@ import CooldownBadge from "@/components/CooldownBadge";
 import { fetchCooldownExpiry, recordCooldown, clearCooldown } from "@/lib/cooldown";
 import PaymentSummaryCard from "@/components/PaymentSummaryCard";
 import CloneLineageTree from "@/components/CloneLineageTree";
-import TransferOwnershipModal from "@/components/TransferOwnershipModal";
+import { exportTimelineAsImage } from "@/lib/timelineImageExport";
+import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
 
 const POLL_MS = 10_000;
 
@@ -145,6 +146,8 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [cooldownExpiresAt, setCooldownExpiresAt] = useState<number | null>(null);
 
   const prevStatusRef = useRef<string | null>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [exportingTimeline, setExportingTimeline] = useState(false);
 
   useEffect(() => {
     setNotifySubscribed(isSubscribedToInvoice(id));
@@ -427,6 +430,16 @@ export default function InvoiceDetailPage({ params }: Props) {
     }
   };
 
+  const handleExportTimeline = async () => {
+    if (!timelineRef.current || !invoice) return;
+    setExportingTimeline(true);
+    try {
+      await exportTimelineAsImage(timelineRef.current, id, invoice.status);
+    } finally {
+      setExportingTimeline(false);
+    }
+  };
+
   const handleCancelReminder = () => {
     cancelReminder(id);
     setHasReminder(false);
@@ -526,6 +539,12 @@ export default function InvoiceDetailPage({ params }: Props) {
           <h1 className="text-2xl sm:text-3xl font-bold">
             {customization?.title ? customization.title : `Invoice #${id}`}
           </h1>
+          {(() => {
+            const dn = getOrAssignDisplayNumber(id);
+            return dn ? (
+              <span className="text-sm font-mono text-indigo-400 self-end mb-1">({dn})</span>
+            ) : null;
+          })()}
           <VerifiedCreatorBadge address={invoice.creator} />
         </div>
 
@@ -609,7 +628,19 @@ export default function InvoiceDetailPage({ params }: Props) {
       <InvoicePDF invoice={invoice} total={total} locale={locale} />
 
       {/* Status Timeline */}
-      <StatusTimeline invoice={invoice} total={total} />
+      <div ref={timelineRef}>
+        <StatusTimeline invoice={invoice} total={total} />
+      </div>
+      <div className="flex justify-end mb-8 print:hidden">
+        <button
+          type="button"
+          onClick={handleExportTimeline}
+          disabled={exportingTimeline}
+          className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-xs font-medium transition-colors disabled:opacity-50"
+        >
+          {exportingTimeline ? "Exporting…" : "Export as image"}
+        </button>
+      </div>
 
       {/* Escrow Panel */}
       <EscrowPanel invoice={invoice} total={total} />
