@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { searchArbitrators, getArbitrators } from "@/lib/arbitrators";
+import type { Arbitrator } from "@/lib/arbitrators";
 
 const DISPUTE_REASONS = [
   "Non-delivery",
@@ -11,7 +13,7 @@ const DISPUTE_REASONS = [
 
 interface Props {
   invoiceId: string;
-  onSubmit: (reason: string, description: string) => Promise<void>;
+  onSubmit: (reason: string, description: string, arbitratorAddress?: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -19,8 +21,16 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
   const [step, setStep] = useState(1);
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedArbitrator, setSelectedArbitrator] = useState<string>("");
+  const [arbitratorSearch, setArbitratorSearch] = useState("");
+  const [manualArbitrator, setManualArbitrator] = useState("");
+  const [useManualEntry, setUseManualEntry] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const registryEmpty = getArbitrators().length === 0;
+  const arbitratorResults = searchArbitrators(arbitratorSearch);
+  const effectiveArbitrator = useManualEntry || registryEmpty ? manualArbitrator : selectedArbitrator;
 
   const isStep2Valid = reason.length > 0;
   const isStep3Valid = description.length >= 20;
@@ -28,6 +38,7 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
   const handleNext = () => {
     if (step === 1 && isStep2Valid) setStep(2);
     else if (step === 2 && isStep3Valid) setStep(3);
+    else if (step === 3) setStep(4);
   };
 
   const handleBack = () => {
@@ -38,7 +49,7 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
     setError(null);
     setSubmitting(true);
     try {
-      await onSubmit(reason, description);
+      await onSubmit(reason, description, effectiveArbitrator || undefined);
       onClose();
     } catch (err) {
       setError(String(err));
@@ -70,7 +81,7 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
         {/* Step 1: Reason Selection */}
         {step === 1 && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-400">Step 1 of 3: Select reason</p>
+            <p className="text-sm text-gray-400">Step 1 of 4: Select reason</p>
             {DISPUTE_REASONS.map((r) => (
               <button
                 key={r}
@@ -91,7 +102,7 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
         {/* Step 2: Description */}
         {step === 2 && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-400">Step 2 of 3: Describe the issue</p>
+            <p className="text-sm text-gray-400">Step 2 of 4: Describe the issue</p>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -105,10 +116,89 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
           </div>
         )}
 
-        {/* Step 3: Confirmation */}
+        {/* Step 3: Arbitrator Selection */}
         {step === 3 && (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-400">Step 3 of 4: Select arbitrator (optional)</p>
+
+            {registryEmpty ? (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-400">No arbitrators registered yet.</p>
+                <input
+                  type="text"
+                  value={manualArbitrator}
+                  onChange={(e) => setManualArbitrator(e.target.value)}
+                  placeholder="Enter arbitrator address (G...)"
+                  className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                />
+              </div>
+            ) : (
+              <>
+                {!useManualEntry && (
+                  <>
+                    <input
+                      type="text"
+                      value={arbitratorSearch}
+                      onChange={(e) => setArbitratorSearch(e.target.value)}
+                      placeholder="Search arbitrators…"
+                      className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <div className="max-h-48 overflow-y-auto space-y-2">
+                      {arbitratorResults.map((arb: Arbitrator) => (
+                        <button
+                          key={arb.address}
+                          type="button"
+                          onClick={() => setSelectedArbitrator(arb.address)}
+                          className={`w-full p-3 rounded-lg border-2 transition-colors text-left text-sm ${
+                            selectedArbitrator === arb.address
+                              ? "border-indigo-500 bg-indigo-500/10"
+                              : "border-gray-700 bg-gray-800 hover:border-gray-600"
+                          }`}
+                        >
+                          <span className="font-medium">{arb.name}</span>
+                          <span className="block text-xs text-gray-400 font-mono truncate">
+                            {arb.address}
+                          </span>
+                          <span className="block text-xs text-gray-500">
+                            {arb.resolvedDisputeCount !== null
+                              ? `${arb.resolvedDisputeCount} resolved`
+                              : "No history yet"}
+                          </span>
+                        </button>
+                      ))}
+                      {arbitratorResults.length === 0 && (
+                        <p className="text-sm text-gray-500 py-2">No results.</p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {useManualEntry && (
+                  <input
+                    type="text"
+                    value={manualArbitrator}
+                    onChange={(e) => setManualArbitrator(e.target.value)}
+                    placeholder="Enter arbitrator address (G...)"
+                    className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                  />
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setUseManualEntry(!useManualEntry)}
+                  className="text-xs text-indigo-400 hover:text-indigo-300"
+                >
+                  {useManualEntry ? "Pick from registry" : "Enter address manually"}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Step 4: Confirmation */}
+        {step === 4 && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-400">Step 3 of 3: Confirm dispute</p>
+            <p className="text-sm text-gray-400">Step 4 of 4: Confirm dispute</p>
             <div className="bg-gray-800 rounded-lg p-4 space-y-2">
               <div>
                 <p className="text-xs text-gray-500">Reason</p>
@@ -118,6 +208,12 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
                 <p className="text-xs text-gray-500">Description</p>
                 <p className="text-sm text-gray-300 break-words">{description}</p>
               </div>
+              {effectiveArbitrator && (
+                <div>
+                  <p className="text-xs text-gray-500">Arbitrator</p>
+                  <p className="text-sm text-gray-300 font-mono break-all">{effectiveArbitrator}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -134,11 +230,11 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
           >
             Back
           </button>
-          {step < 3 ? (
+          {step < 4 ? (
             <button
               type="button"
               onClick={handleNext}
-              disabled={step === 1 ? !isStep2Valid : !isStep3Valid}
+              disabled={step === 1 ? !isStep2Valid : step === 2 ? !isStep3Valid : false}
               className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
