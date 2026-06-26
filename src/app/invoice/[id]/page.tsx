@@ -59,6 +59,7 @@ import CooldownBadge from "@/components/CooldownBadge";
 import { fetchCooldownExpiry, recordCooldown, clearCooldown } from "@/lib/cooldown";
 import PaymentSummaryCard from "@/components/PaymentSummaryCard";
 import CloneLineageTree from "@/components/CloneLineageTree";
+import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 
 const POLL_MS = 10_000;
 
@@ -119,6 +120,8 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
   const [locale, setLocale] = useState<Locale>("en");
   const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
   const [channelLoading, setChannelLoading] = useState(false);
@@ -438,6 +441,13 @@ export default function InvoiceDetailPage({ params }: Props) {
     setShowCancelModal(false);
   };
 
+  const handleTransferOwnership = async (newOwner: string) => {
+    setTransferError(null);
+    await (splitClient as any).forwardInvoice({ invoiceId: id, newOwner });
+    await load();
+    setShowTransferModal(false);
+  };
+
   const handleRetryPayment = async () => {
     if (!lastFailedPayment || !publicKey) return;
     setError(null);
@@ -582,6 +592,15 @@ export default function InvoiceDetailPage({ params }: Props) {
             className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-sm transition-colors print:hidden"
           >
             Cancel Invoice
+          </button>
+        )}
+        {isCreator && invoice.status === "Pending" && invoice.funded === 0n && (
+          <button
+            type="button"
+            onClick={() => setShowTransferModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 text-sm transition-colors print:hidden"
+          >
+            Transfer Ownership
           </button>
         )}
       </div>
@@ -977,6 +996,18 @@ export default function InvoiceDetailPage({ params }: Props) {
           }}
           onClose={() => setShowDuplicateModal(false)}
         />
+      )}
+
+      {showTransferModal && (
+        <TransferOwnershipModal
+          invoiceId={id}
+          onConfirm={handleTransferOwnership}
+          onClose={() => { setShowTransferModal(false); setTransferError(null); }}
+        />
+      )}
+
+      {transferError && (
+        <p role="alert" className="text-red-400 text-sm mt-2">{transferError}</p>
       )}
 
       {invoice.status === "Released" && (

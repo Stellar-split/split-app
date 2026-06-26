@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     const responseHeaders: Record<string, string> = {};
     upstream.headers.forEach((value, key) => { responseHeaders[key] = value; });
 
-    return NextResponse.json({ status: upstream.status, headers: responseHeaders, body: responseBody, latencyMs });
+    return NextResponse.json({ status: upstream.status, headers: responseHeaders, body: responseBody, latencyMs, sentPayload: payload });
   } catch (err) {
     return NextResponse.json({ error: String(err), latencyMs: Date.now() - start }, { status: 502 });
   }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FocusTrap from "./FocusTrap";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "./PaymentProgress";
 import PaymentBreakdownModal from "./PaymentBreakdownModal";
 import type { Invoice } from "@stellar-split/sdk";
+import { checkBudget, getBudgetLimit, setBudgetLimit, clearBudgetLimit } from "@/lib/budgetTracker";
 
 interface Props {
   invoice: Invoice;
@@ -15,16 +16,31 @@ interface Props {
   onClose: () => void;
 }
 
-export default function PayModal({ invoice, total, onPay, onClose }: Props) {
+export default function PayModal({ invoice, total, publicKey, onPay, onClose }: Props) {
   const [input, setInput] = useState("");
   const [email, setEmail] = useState("");
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [budgetDismissed, setBudgetDismissed] = useState(false);
+  const [showBudgetSettings, setShowBudgetSettings] = useState(false);
+  const [budgetInput, setBudgetInput] = useState("");
 
   const parsed = (() => {
     try { return input ? parseAmount(input) : 0n; } catch { return 0n; }
   })();
+
+  const budgetCheck = publicKey && parsed > 0n
+    ? checkBudget(publicKey, parsed)
+    : null;
+  const showBudgetWarning = !budgetDismissed && !!budgetCheck?.wouldExceed;
+
+  useEffect(() => {
+    if (publicKey) {
+      const existing = getBudgetLimit(publicKey);
+      if (existing !== null) setBudgetInput(String(existing));
+    }
+  }, [publicKey]);
 
   const previewFunded = invoice.funded + parsed;
   const currentPct = total > 0n ? Number((invoice.funded * 100n) / total) : 0;
@@ -115,6 +131,33 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
           </div>
         )}
 
+        {showBudgetWarning && budgetCheck && (
+          <div
+            role="alert"
+            className="flex items-start justify-between gap-3 bg-amber-950/60 border border-amber-700 rounded-lg px-4 py-3 text-sm text-amber-300"
+          >
+            <p>
+              This payment would exceed your{" "}
+              <span className="font-semibold">
+                {budgetCheck.limitUnits / 10_000_000n} USDC
+              </span>{" "}
+              monthly budget. You have spent{" "}
+              <span className="font-semibold">
+                {formatAmount(budgetCheck.spent)} USDC
+              </span>{" "}
+              in the last 30 days.
+            </p>
+            <button
+              type="button"
+              onClick={() => setBudgetDismissed(true)}
+              aria-label="Dismiss budget warning"
+              className="shrink-0 text-amber-400 hover:text-amber-200 text-lg leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
 
         {/* Email input (optional) */}
@@ -141,6 +184,62 @@ export default function PayModal({ invoice, total, onPay, onClose }: Props) {
         >
           {paying ? "Sending…" : "Review & Pay"}
         </button>
+
+        {publicKey && (
+          <div className="border-t border-gray-800 pt-3">
+            <button
+              type="button"
+              onClick={() => setShowBudgetSettings((v) => !v)}
+              className="text-xs text-gray-500 hover:text-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              {showBudgetSettings ? "Hide" : "Configure"} monthly budget limit
+            </button>
+            {showBudgetSettings && (
+              <div className="mt-3 flex flex-col gap-2">
+                <label htmlFor="budget-limit" className="text-xs font-medium text-gray-400">
+                  Monthly limit (USDC)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="budget-limit"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 1000"
+                    value={budgetInput}
+                    onChange={(e) => setBudgetInput(e.target.value)}
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const n = parseFloat(budgetInput);
+                      if (!isNaN(n) && n > 0) setBudgetLimit(publicKey, n);
+                      setShowBudgetSettings(false);
+                      setBudgetDismissed(false);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  >
+                    Save
+                  </button>
+                  {getBudgetLimit(publicKey) !== null && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearBudgetLimit(publicKey);
+                        setBudgetInput("");
+                        setShowBudgetSettings(false);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         </div>
       </FocusTrap>
 
