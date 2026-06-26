@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { computeWebhookSignature } from "@/lib/webhookSignature";
 import {
   getDeadLettered,
   retryDeadLettered,
@@ -30,6 +31,21 @@ export default function WebhookTesterPage() {
   const [dlq, setDlq] = useState<DeadLetteredDelivery[]>([]);
   const [retrying, setRetrying] = useState<string | null>(null);
   const [retryResult, setRetryResult] = useState<Record<string, string>>({});
+
+  const [testerSecret, setTesterSecret] = useState("");
+  const [testerPayload, setTesterPayload] = useState('{\n  "event": "invoice.created",\n  "invoiceId": "INV-SAMPLE-001"\n}');
+  const [computedSignature, setComputedSignature] = useState("");
+  const [userSignature, setUserSignature] = useState("");
+
+  useEffect(() => {
+    if (testerSecret && testerPayload) {
+      computeWebhookSignature(testerSecret, testerPayload)
+        .then(setComputedSignature)
+        .catch(() => setComputedSignature("Error computing signature"));
+    } else {
+      setComputedSignature("");
+    }
+  }, [testerSecret, testerPayload]);
 
   const refreshDlq = useCallback(() => setDlq(getDeadLettered()), []);
 
@@ -181,6 +197,89 @@ export default function WebhookTesterPage() {
           )}
         </section>
       )}
+
+      {/* Signature Verification Tester */}
+      <section aria-labelledby="sig-heading" className="border-t border-gray-800 pt-8 mb-12">
+        <h2 id="sig-heading" className="text-lg font-semibold mb-4">
+          Verify Signature
+        </h2>
+        <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="tester-secret" className="block text-sm font-medium text-gray-300 mb-1">
+                Webhook Secret
+              </label>
+              <input
+                id="tester-secret"
+                type="text"
+                placeholder="Enter secret"
+                value={testerSecret}
+                onChange={(e) => setTesterSecret(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="user-signature" className="block text-sm font-medium text-gray-300 mb-1">
+                Test Your Computed Signature
+              </label>
+              <div className="relative">
+                <input
+                  id="user-signature"
+                  type="text"
+                  placeholder="Paste your server's signature to compare"
+                  value={userSignature}
+                  onChange={(e) => setUserSignature(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-24"
+                />
+                {userSignature && computedSignature && (
+                  <span className={`absolute right-3 top-2 text-xs font-bold ${userSignature === computedSignature ? "text-green-400" : "text-red-400"}`}>
+                    {userSignature === computedSignature ? "✓ Match" : "✗ Mismatch"}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="tester-payload" className="block text-sm font-medium text-gray-300 mb-1">
+              Sample Payload
+            </label>
+            <textarea
+              id="tester-payload"
+              value={testerPayload}
+              onChange={(e) => setTesterPayload(e.target.value)}
+              rows={4}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Expected Header (X-Webhook-Signature)
+            </label>
+            <div className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-sm font-mono text-green-400 break-all min-h-[46px]">
+              {computedSignature || <span className="text-gray-500">Enter secret and payload to compute</span>}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-300 mb-2">Server-Side Verification Example (Node.js)</h3>
+            <pre className="bg-gray-900 rounded-lg px-4 py-3 text-xs text-gray-300 overflow-x-auto">
+{`const crypto = require('crypto');
+
+function verifySignature(reqBody, secret, signatureHeader) {
+  const payloadStr = typeof reqBody === 'string' ? reqBody : JSON.stringify(reqBody);
+  const computed = crypto
+    .createHmac('sha256', secret)
+    .update(payloadStr)
+    .digest('hex');
+    
+  return computed === signatureHeader;
+}`}
+            </pre>
+          </div>
+        </div>
+      </section>
 
       {/* Dead-Letter Queue */}
       <section aria-labelledby="dlq-heading" className="border-t border-gray-800 pt-8">
