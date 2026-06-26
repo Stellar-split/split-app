@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import Link from "next/link"
 
 type ApiKey = {
   id: string
@@ -78,7 +79,27 @@ export default function ApiKeysPage() {
 
   return (
     <div className="p-4 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-4">API Keys</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold">API Keys</h1>
+        <Link href="/settings/api" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+          Go to API Dashboard
+        </Link>
+      </div>
+
+      <div className="flex border-b border-gray-200 dark:border-gray-800 mb-6">
+        <Link
+          href="/settings/api-keys"
+          className="px-4 py-2 border-b-2 border-indigo-600 dark:border-indigo-400 font-medium text-sm text-indigo-600 dark:text-indigo-400"
+        >
+          API Keys
+        </Link>
+        <Link
+          href="/settings/api-logs"
+          className="px-4 py-2 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          Request Logs
+        </Link>
+      </div>
 
       <div className="bg-white dark:bg-neutral-900 rounded-md p-4 shadow-sm mb-6">
         <label className="block text-sm font-medium mb-2">Key Name</label>
