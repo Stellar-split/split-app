@@ -52,6 +52,7 @@ import CancelModal from "@/components/CancelModal";
 import DuplicateModal from "@/components/DuplicateModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
+import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import FlowDiagram from "@/components/FlowDiagram";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import type { Invoice, Payment } from "@stellar-split/sdk";
@@ -789,6 +790,16 @@ export default function InvoiceDetailPage({ params }: Props) {
         <VotingPanel invoice={invoice} publicKey={publicKey} />
       )}
 
+      {/* Deadline extension request/approval flow */}
+      {invoice.status === "Pending" && (
+        <DeadlineExtensionPanel
+          invoiceId={id}
+          invoiceCreator={invoice.creator}
+          invoiceDeadline={invoice.deadline}
+          currentAddress={publicKey}
+        />
+      )}
+
       {/* Co-Creator Management — only shown to primary creator */}
       {publicKey && (
         <CoCreatorPanel invoice={invoice} publicKey={publicKey} onUpdate={load} />
@@ -969,7 +980,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       )}
 
       {/* Audit Log */}
-      <AuditLogTable invoiceId={id} />
+      <AuditLogTable invoiceId={id} invoice={invoice ?? undefined} />
 
       {/* Private notes — only visible to the connected wallet */}
       {publicKey && (

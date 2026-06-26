@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { splitClient } from "@/lib/stellar";
 import { truncateAddress } from "@stellar-split/sdk";
+import {
+  buildInvoiceArchive,
+  generateArchiveFilename,
+  downloadInvoiceArchive,
+} from "@/lib/invoiceArchiveExport";
 
 interface AuditLogEntry {
   action: string;
@@ -12,15 +17,32 @@ interface AuditLogEntry {
 
 interface Props {
   invoiceId: string;
+  invoice?: {
+    id: string;
+    creator: string;
+    status: string;
+    deadline: number;
+    funded: bigint;
+    recipients: Array<{ address: string; amount: bigint }>;
+    payments: Array<{ payer: string; amount: bigint; pending?: boolean }>;
+  };
 }
 
 const ENTRIES_PER_PAGE = 10;
 
-export default function AuditLogTable({ invoiceId }: Props) {
+export default function AuditLogTable({ invoiceId, invoice }: Props) {
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const handleExportJSON = () => {
+    if (!invoice) return;
+    const nonPendingPayments = invoice.payments.filter((p) => !p.pending);
+    const archive = buildInvoiceArchive(invoice, entries, nonPendingPayments);
+    const filename = generateArchiveFilename(invoiceId);
+    downloadInvoiceArchive(archive, filename);
+  };
 
   useEffect(() => {
     const fetchAuditLog = async () => {
@@ -37,10 +59,22 @@ export default function AuditLogTable({ invoiceId }: Props) {
     fetchAuditLog();
   }, [invoiceId]);
 
+  const exportButton = invoice ? (
+    <button
+      onClick={handleExportJSON}
+      className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-sm text-white"
+    >
+      Export JSON
+    </button>
+  ) : null;
+
   if (loading) {
     return (
       <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-4">Audit Log</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Audit Log</h2>
+          {exportButton}
+        </div>
         <p className="text-gray-400 text-sm">Loading audit log…</p>
       </section>
     );
@@ -49,7 +83,10 @@ export default function AuditLogTable({ invoiceId }: Props) {
   if (error) {
     return (
       <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-4">Audit Log</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Audit Log</h2>
+          {exportButton}
+        </div>
         <p className="text-red-400 text-sm">{error}</p>
       </section>
     );
@@ -58,7 +95,10 @@ export default function AuditLogTable({ invoiceId }: Props) {
   if (entries.length === 0) {
     return (
       <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-4">Audit Log</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Audit Log</h2>
+          {exportButton}
+        </div>
         <p className="text-gray-400 text-sm">No audit log entries.</p>
       </section>
     );
@@ -86,7 +126,10 @@ export default function AuditLogTable({ invoiceId }: Props) {
 
   return (
     <section className="mb-8">
-      <h2 className="text-lg font-semibold mb-4">Audit Log</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">Audit Log</h2>
+        {exportButton}
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
