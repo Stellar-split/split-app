@@ -1,18 +1,13 @@
-import { formatAmount, truncateAddress } from "@stellar-split/sdk";
+import { truncateAddress } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
-import PaymentProgress from "./PaymentProgress";
+import FundingProgress from "./FundingProgress";
+import StatusBadge from "./StatusBadge";
 import CountdownTimer from "./CountdownTimer";
 
 interface Props {
   invoice: Invoice;
   displayNumber?: string;
 }
-
-const STATUS_STYLES: Record<string, string> = {
-  Pending: "bg-yellow-500/20 text-yellow-600 dark:text-yellow-300",
-  Released: "bg-green-500/20 text-green-600 dark:text-green-300",
-  Refunded: "bg-gray-500/20 text-gray-600 dark:text-gray-300",
-};
 
 /**
  * InvoiceCard — summary card showing recipients, total, funded %, and status.
@@ -30,11 +25,7 @@ export default function InvoiceCard({ invoice, displayNumber }: Props) {
             <span className="ml-2 text-xs font-mono text-indigo-400">({displayNumber})</span>
           )}
         </span>
-        <span
-          className={`text-xs px-2 py-0.5 rounded-full font-semibold shrink-0 ${STATUS_STYLES[invoice.status]}`}
-        >
-          {invoice.status}
-        </span>
+        <StatusBadge status={invoice.status as any} size="sm" />
       </div>
       <p className="text-xs text-gray-500 mb-3">Due {deadlineLabel}</p>
 
@@ -50,13 +41,8 @@ export default function InvoiceCard({ invoice, displayNumber }: Props) {
         ))}
       </div>
 
-      {/* Progress */}
-      <PaymentProgress funded={invoice.funded} total={total} />
-
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500 mt-1">
-        <span>{formatAmount(invoice.funded)} USDC funded</span>
-        <span>Total: {formatAmount(total)} USDC</span>
-      </div>
+      {/* Progress — compact (no label) */}
+      <FundingProgress funded={invoice.funded} total={total} token={invoice.token || "USDC"} compact />
 
       {invoice.deadline > 0 && (
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-800">

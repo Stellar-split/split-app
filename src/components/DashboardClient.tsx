@@ -6,7 +6,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
-import { SkeletonCard } from "@/components/Skeleton";
+import { InvoiceListSkeleton } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
 import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
 import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
@@ -339,11 +339,7 @@ export default function DashboardClient() {
       )}
 
       {loading && invoices.length === 0 ? (
-        <div className="flex flex-col gap-4">
-          {[...Array(3)].map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
+        <InvoiceListSkeleton />
       ) : invoices.length === 0 ? (
         <p className="text-gray-400">
           No invoices found. Create your first one!

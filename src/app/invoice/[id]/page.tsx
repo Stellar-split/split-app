@@ -15,7 +15,9 @@ import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
 import { useInvoiceCustomization } from "@/lib/customization";
 import type { Locale } from "@/lib/i18n";
 import PaymentSuggestions from "@/components/PaymentSuggestions";
-import PaymentProgress from "@/components/PaymentProgress";
+import FundingProgress from "@/components/FundingProgress";
+import StatusBadge from "@/components/StatusBadge";
+import { InvoiceDetailSkeleton } from "@/components/Skeleton";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
 import PaymentChannelPanel from "@/components/PaymentChannelPanel";
@@ -517,19 +519,13 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (!invoice) {
     return (
-      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
-        <p className="text-gray-400" aria-live="polite">Loading invoice…</p>
+      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 overflow-x-hidden">
+        <InvoiceDetailSkeleton />
       </main>
     );
   }
 
   const isCreator = publicKey === invoice.creator;
-
-  const statusColor: Record<string, string> = {
-    Pending: "bg-yellow-500",
-    Released: "bg-green-500",
-    Refunded: "bg-gray-500",
-  };
 
   return (
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
@@ -554,12 +550,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       </div>
 
       <CloneLineageTree invoiceId={id} />
-        <span
-          className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
-          aria-label={`Status: ${invoice.status}`}
-        >
-          {invoice.status}
-        </span>
+        <StatusBadge status={invoice.status as any} size="md" />
         <div className="ml-auto flex items-center gap-2 print:hidden flex-wrap justify-end">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
           <select
@@ -669,15 +660,12 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Progress */}
       <section aria-labelledby="progress-heading" className="mb-8">
         <h2 id="progress-heading" className="sr-only">Payment Progress</h2>
-        <PaymentProgress funded={invoice.funded} total={total} />
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          {formatAmount(invoice.funded)} / {formatAmount(total)} USDC funded
-          {channelState?.opened && (
-            <span className="text-indigo-300 ml-2">
-              · Channel balance: {formatAmount(channelState.balance)} USDC
-            </span>
-          )}
-        </p>
+        <FundingProgress funded={invoice.funded} total={total} token={invoice.token || "USDC"} />
+        {channelState?.opened && (
+          <p className="text-sm text-indigo-300 mt-1">
+            · Channel balance: {formatAmount(channelState.balance)} USDC
+          </p>
+        )}
         {invoice.deadline > 0 && (
           <div className="flex items-center gap-2 mt-3">
             <span className="text-sm text-gray-400">Time remaining:</span>
