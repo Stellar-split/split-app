@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { splitClient } from "@/lib/stellar";
+import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
@@ -63,7 +63,7 @@ export default function DeepLinkPayPage({ params }: Props) {
     setPayError(null);
     setPaying(true);
     try {
-      const result = await splitClient.pay({
+      const result = await payWithNonce({
         payer: publicKey,
         invoiceId,
         amount: parseAmount(decodedAmount),
