@@ -3,17 +3,15 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
-import ThemeToggle from "@/components/ThemeToggle";
-import NotificationCenter from "@/components/NotificationCenter";
+import Navbar from "@/components/Navbar";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import UpgradeBanner from "@/components/UpgradeBanner";
 import { I18nProvider } from "@/components/I18nProvider";
-import SimulationModeToggle from "@/components/SimulationModeToggle";
 import SimulationBanner from "@/components/SimulationBanner";
 import RecipientOnboarding from "@/components/RecipientOnboarding";
-import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 import { SessionLockProvider } from "@/contexts/SessionLockContext";
+import CommandPalette from "@/components/CommandPalette";
 
 const accessibilityBootstrap = `
 (function () {
@@ -74,39 +72,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AccessibilityProvider>
             <I18nProvider>
-            <header className="sticky top-0 z-40 flex items-center justify-between gap-2 px-4 sm:px-6 py-3 bg-gray-950/80 backdrop-blur border-b border-gray-800 min-w-0">
-              <a href="/" className="font-bold text-base sm:text-lg tracking-tight shrink-0 min-h-11 inline-flex items-center">
-                StellarSplit
-              </a>
-              <a
-                href="/groups"
-                className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
-              >
-                Groups
-              </a>
-              <a
-                href="/address-book"
-                className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center whitespace-nowrap"
-              >
-                <span className="sm:hidden">Contacts</span>
-                <span className="hidden sm:inline">Address Book</span>
-              </a>
-              <a
-                href="/leaderboard"
-                className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
-              >
-                Leaderboard
-              </a>
-              <a
-                href="/settings/accessibility"
-                className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
-              >
-                Accessibility
-              </a>
-              <ThemeToggle />
-              <SimulationModeToggle />
-              <NotificationCenter />
-            </header>
+            <Navbar />
             <SessionLockProvider>
             <SimulationBanner />
             <UpgradeBanner />
