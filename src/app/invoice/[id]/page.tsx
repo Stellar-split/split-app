@@ -51,6 +51,7 @@ import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import DuplicateModal from "@/components/DuplicateModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import ShareModal from "@/components/ShareModal";
 import VotingPanel from "@/components/VotingPanel";
 import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import FlowDiagram from "@/components/FlowDiagram";
@@ -120,6 +121,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [disputing, setDisputing] = useState(false);
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -450,6 +452,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   };
 
   const handleCancelInvoice = async () => {
+    // as any: cancelInvoice is not yet declared in the published @stellar-split/sdk types
     await (splitClient as any).cancelInvoice(id);
     await load();
     setShowCancelModal(false);
@@ -457,6 +460,7 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   const handleTransferOwnership = async (newOwner: string) => {
     setTransferError(null);
+    // as any: forwardInvoice is not yet declared in the published @stellar-split/sdk types
     await (splitClient as any).forwardInvoice({ invoiceId: id, newOwner });
     await load();
     setShowTransferModal(false);
@@ -562,6 +566,14 @@ export default function InvoiceDetailPage({ params }: Props) {
         </span>
         <div className="ml-auto flex items-center gap-2 print:hidden flex-wrap justify-end">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
+          <button
+            type="button"
+            onClick={() => setShowShareModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+            aria-label="Share invoice"
+          >
+            Share
+          </button>
           <select
             value={locale}
             onChange={(e) => setLocale(e.target.value as Locale)}
@@ -847,6 +859,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             setChannelLoading(true);
             setChannelError(null);
             try {
+              // as any: openChannel/closeChannel are not yet declared in the published @stellar-split/sdk types
               const result = await (splitClient as any).openChannel({ payer: publicKey, invoiceId: id });
               const balance = result?.balance != null ? BigInt(result.balance) : 0n;
               syncChannelState({ invoiceId: id, payer: publicKey, balance, opened: true });
@@ -862,6 +875,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             setChannelLoading(true);
             setChannelError(null);
             try {
+              // as any: openChannel/closeChannel are not yet declared in the published @stellar-split/sdk types
               await (splitClient as any).closeChannel({ payer: publicKey, invoiceId: id });
               syncChannelState(null);
               await load();
@@ -1007,9 +1021,11 @@ export default function InvoiceDetailPage({ params }: Props) {
       )}
 
       {/* Dispute Timeline — shown when invoice has an active or resolved dispute */}
+      {/* as any: disputeStatus is not yet declared in the published @stellar-split/sdk Invoice type */}
       {(invoice as any).disputeStatus && (
         <DisputeTimeline
           invoiceId={id}
+          // as any: disputeStatus is not yet declared in the published @stellar-split/sdk Invoice type
           disputeStatus={(invoice as any).disputeStatus}
         />
       )}
@@ -1079,6 +1095,12 @@ export default function InvoiceDetailPage({ params }: Props) {
           onDismiss={() => setShowSuccess(false)}
         />
       )}
+
+      <ShareModal
+        open={showShareModal}
+        url={`${typeof window !== "undefined" ? window.location.origin : ""}/invoice/${id}`}
+        onClose={() => setShowShareModal(false)}
+      />
     </main>
   );
 }

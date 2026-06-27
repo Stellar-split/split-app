@@ -143,6 +143,7 @@ function NewInvoiceForm() {
     if (fromId || sessionStorage.getItem("invoiceTemplate")) return;
 
     getFreighterPublicKey()
+      // as any: getInvoicesByCreator is not yet declared in the published @stellar-split/sdk types
       .then((pk) => (splitClient as any).getInvoicesByCreator(pk))
       .then((invoices: import("@stellar-split/sdk").Invoice[]) => {
         if (!invoices || invoices.length === 0) return;
@@ -245,6 +246,7 @@ function NewInvoiceForm() {
         // Compute deadline from ISO string
         const deadlineTs = Math.floor(new Date(cloneDeadlineIso).getTime() / 1000);
 
+        // as any: cloneInvoice is not yet declared in the published @stellar-split/sdk types
         const { invoiceId, txHash } = await (splitClient as any).cloneInvoice({
           creator,
           sourceInvoiceId: cloneSourceId,

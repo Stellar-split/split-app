@@ -12,7 +12,7 @@ export const NETWORK_PASSPHRASE =
 
 export type WalletType = "freighter" | "walletconnect";
 
-let walletConnectKit: any = null;
+let walletConnectKit: WalletConnectKit | null = null;
 
 /** Initialize WalletConnect kit */
 async function initWalletConnectKit() {
