@@ -13,6 +13,7 @@ import SimulationModeToggle from "@/components/SimulationModeToggle";
 import SimulationBanner from "@/components/SimulationBanner";
 import RecipientOnboarding from "@/components/RecipientOnboarding";
 import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
+import CommandPalette from "@/components/CommandPalette";
 import { SessionLockProvider } from "@/contexts/SessionLockContext";
 
 const accessibilityBootstrap = `
