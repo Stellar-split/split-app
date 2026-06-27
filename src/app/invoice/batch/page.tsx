@@ -83,7 +83,9 @@ export default function BatchInvoicePage() {
 
       // splitClient.createBatch — sequential fallback if not available
       const ids: string[] = [];
+      // as any: createBatch is not yet declared in the published @stellar-split/sdk types
       if (typeof (splitClient as any).createBatch === "function") {
+        // as any: createBatch is not yet declared in the published @stellar-split/sdk types
         const results = await (splitClient as any).createBatch(params);
         ids.push(...results.map((r: any) => r.invoiceId));
       } else {

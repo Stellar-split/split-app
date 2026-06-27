@@ -59,6 +59,7 @@ export default function RevenuePage() {
           return;
         }
         setPublicKey(pk);
+        // as any: getInvoicesByRecipient is not yet declared in the published @stellar-split/sdk types
         const result: Invoice[] = (await (splitClient as any).getInvoicesByRecipient(pk)) ?? [];
         setInvoices(result);
       } catch (err) {

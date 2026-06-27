@@ -2,17 +2,19 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
-import RecipientForm from "@/components/RecipientForm";
-import TemplateManager from "@/components/TemplateManager";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
 import { useI18n } from "@/components/I18nProvider";
 import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
 import { decodeTemplate } from "@/lib/templateSharing";
+
+const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
+const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
 
 interface RecipientRow {
   address: string;
@@ -140,6 +142,7 @@ function NewInvoiceForm() {
     if (fromId || sessionStorage.getItem("invoiceTemplate") || searchParams.get("address")) return;
 
     getFreighterPublicKey()
+      // as any: getInvoicesByCreator is not yet declared in the published @stellar-split/sdk types
       .then((pk) => (splitClient as any).getInvoicesByCreator(pk))
       .then((invoices: import("@stellar-split/sdk").Invoice[]) => {
         if (!invoices || invoices.length === 0) return;
@@ -283,6 +286,7 @@ function NewInvoiceForm() {
       if (cloneSourceId) {
         const deadlineTs = Math.floor(new Date(cloneDeadlineIso).getTime() / 1000);
 
+        // as any: cloneInvoice is not yet declared in the published @stellar-split/sdk types
         const { invoiceId, txHash } = await (splitClient as any).cloneInvoice({
           creator,
           sourceInvoiceId: cloneSourceId,
