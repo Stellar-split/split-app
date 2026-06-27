@@ -13,8 +13,8 @@ import RecipientOnboarding from "@/components/RecipientOnboarding";
 import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 import CommandPalette from "@/components/CommandPalette";
 import { SessionLockProvider } from "@/contexts/SessionLockContext";
-import CommandPalette from "@/components/CommandPalette";
 import { ToastProvider } from "@/contexts/ToastContext";
+import InstallBanner from "@/components/InstallBanner";
 
 const accessibilityBootstrap = `
 (function () {
@@ -84,6 +84,7 @@ export default function RootLayout({
             <CommandPalette />
             <OnboardingFlow />
             <RecipientOnboarding />
+            <InstallBanner />
             </ToastProvider>
             </SessionLockProvider>
             <Script id="register-sw" strategy="afterInteractive">
