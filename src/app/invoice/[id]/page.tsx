@@ -50,6 +50,7 @@ import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import DuplicateModal from "@/components/DuplicateModal";
+import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
 import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
@@ -994,7 +995,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           total={total}
           publicKey={publicKey}
           onPay={async (amount, email) => {
-            await payWithChannel(amount, email);
+            return payWithChannel(amount, email);
           }}
           onClose={() => setShowPayModal(false)}
         />
