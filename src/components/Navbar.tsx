@@ -7,6 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import SimulationModeToggle from "@/components/SimulationModeToggle";
 import NotificationCenter from "@/components/NotificationCenter";
 import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
+import NetworkStatus from "@/components/NetworkStatus";
 
 const NAV_LINKS = [
   { href: "/dashboard",    label: "Dashboard" },
@@ -63,7 +64,8 @@ export default function Navbar() {
 
         {/* Right-side actions */}
         <div className="ml-auto flex items-center gap-1">
-          <div className="hidden sm:flex items-center gap-1">
+          <div className="hidden sm:flex items-center gap-2">
+            <NetworkStatus />
             <SimulationModeToggle />
             <NotificationCenter />
             <HeaderShortcutsButton />
