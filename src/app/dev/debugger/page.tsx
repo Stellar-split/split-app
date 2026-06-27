@@ -49,7 +49,9 @@ function DebuggerContent() {
 
       let simResult: SimResult;
 
+      // as any: simulateCreateInvoice is not yet declared in the published @stellar-split/sdk types
       if (fnName === "createInvoice" && typeof (splitClient as any).simulateCreateInvoice === "function") {
+        // as any: simulateCreateInvoice is not yet declared in the published @stellar-split/sdk types
         const raw = await (splitClient as any).simulateCreateInvoice(params);
         simResult = {
           rawXdr: raw?.transactionData?.toXDR?.() ?? raw?.result?.toXDR?.() ?? JSON.stringify(raw),
@@ -61,9 +63,11 @@ function DebuggerContent() {
         const { rpc } = await import("@stellar/stellar-sdk");
         const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
         const server = new rpc.Server(rpcUrl);
+        // as any: simulateTransaction overload with plain object args is not in @stellar/stellar-sdk RPC types
         const raw = await (server as any).simulateTransaction({
           functionName: fnName,
           args: params,
+        // as any: plain params object doesn't match the typed TransactionBuilder overload
         } as any);
         simResult = {
           rawXdr: raw?.transactionData?.toXDR?.() ?? JSON.stringify(raw),

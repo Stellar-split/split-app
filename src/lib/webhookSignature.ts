@@ -3,6 +3,7 @@ export async function computeWebhookSignature(secret: string, payload: string): 
   const keyData = encoder.encode(secret);
 
   // Use crypto from global context (works in Browser and Node.js 18+)
+  // as any: globalThis.crypto is typed as Crypto in Node 19+ but may lack typings in older Node @types
   const cryptoAPI = typeof window !== "undefined" ? window.crypto : (globalThis as any).crypto;
   if (!cryptoAPI || !cryptoAPI.subtle) {
     throw new Error("Web Crypto API is not available in this environment.");

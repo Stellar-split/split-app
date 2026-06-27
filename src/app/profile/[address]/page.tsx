@@ -14,6 +14,7 @@ export default async function ProfilePage({ params }: Props) {
 
   let invoices: Invoice[] = [];
   try {
+    // as any: getInvoicesByCreator is not yet declared in the published @stellar-split/sdk types
     invoices = await (splitClient as any).getInvoicesByCreator(address);
   } catch {
     // SDK doesn't expose this method yet; show empty state
