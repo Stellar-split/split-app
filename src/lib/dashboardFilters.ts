@@ -1,15 +1,6 @@
 import type { Invoice } from "@stellar-split/sdk";
 
-export type DashboardPresetId =
-  | "all"
-  | "overdue"
-  | "awaiting-payment"
-  | "needs-approval";
-
-export type DashboardInvoice = Invoice & {
-  approved?: boolean;
-  approver?: string;
-};
+export type DashboardPresetId = "all" | "active" | "funded" | "refunded" | "expired";
 
 export interface DashboardPresetDefinition {
   id: Exclude<DashboardPresetId, "all">;
@@ -19,87 +10,66 @@ export interface DashboardPresetDefinition {
 
 export const DASHBOARD_PRESETS: DashboardPresetDefinition[] = [
   {
-    id: "overdue",
-    label: "Overdue",
-    emptyState: "No invoices are overdue right now.",
+    id: "active",
+    label: "Active",
+    emptyState: "No active invoices right now.",
   },
   {
-    id: "awaiting-payment",
-    label: "Awaiting my payment",
-    emptyState: "Nothing is awaiting your payment right now.",
+    id: "funded",
+    label: "Funded",
+    emptyState: "No funded invoices right now.",
   },
   {
-    id: "needs-approval",
-    label: "Needs my approval",
-    emptyState: "Nothing is waiting for your approval right now.",
+    id: "refunded",
+    label: "Refunded",
+    emptyState: "No refunded invoices.",
+  },
+  {
+    id: "expired",
+    label: "Expired",
+    emptyState: "No expired invoices right now.",
   },
 ];
 
 export function matchesDashboardPreset(
-  invoice: DashboardInvoice,
-  publicKey: string | null | undefined,
+  invoice: Invoice,
   preset: DashboardPresetId,
   now = Math.floor(Date.now() / 1000),
 ): boolean {
   if (preset === "all") return true;
 
-  if (invoice.status !== "Pending") return false;
-
   switch (preset) {
-    case "overdue":
-      return (
-        typeof invoice.deadline === "number" &&
-        invoice.deadline > 0 &&
-        invoice.deadline < now &&
-        Boolean(invoice.approver) &&
-        invoice.approved === false
-      );
-    case "awaiting-payment":
-      return invoice.recipients.some((recipient) => recipient.address === publicKey);
-    case "needs-approval":
-      return invoice.approver === publicKey && invoice.approved === false;
+    case "active":
+      return invoice.status === "Pending" && invoice.deadline > now;
+    case "funded":
+      return invoice.status === "Pending" && invoice.funded > 0n;
+    case "refunded":
+      return invoice.status === "Refunded";
+    case "expired":
+      return invoice.status === "Pending" && invoice.deadline <= now;
     default:
       return false;
   }
 }
 
-export function matchesTextSearch(invoice: DashboardInvoice, query: string): boolean {
-  const trimmed = query.trim();
-  if (!trimmed) return true;
-
-  if (/^\d+$/.test(trimmed)) {
-    return String(invoice.id) === trimmed;
-  }
-
-  const haystack = trimmed.toLowerCase();
-  return invoice.recipients.some((recipient) =>
-    recipient.address.toLowerCase().includes(haystack),
+export function filterDashboardInvoices(
+  invoices: Invoice[],
+  preset: DashboardPresetId,
+  now = Math.floor(Date.now() / 1000),
+): Invoice[] {
+  return invoices.filter((invoice) =>
+    matchesDashboardPreset(invoice, preset, now),
   );
 }
 
-export function filterDashboardInvoices(
-  invoices: DashboardInvoice[],
-  publicKey: string | null | undefined,
-  preset: DashboardPresetId,
-  query: string,
-  now = Math.floor(Date.now() / 1000),
-): DashboardInvoice[] {
-  return invoices.filter((invoice) => {
-    const matchesPreset = matchesDashboardPreset(invoice, publicKey, preset, now);
-    const matchesQuery = matchesTextSearch(invoice, query);
-    return matchesPreset && matchesQuery;
-  });
-}
-
 export function getDashboardPresetCounts(
-  invoices: DashboardInvoice[],
-  publicKey: string | null | undefined,
+  invoices: Invoice[],
   now = Math.floor(Date.now() / 1000),
 ): Record<Exclude<DashboardPresetId, "all">, number> {
   return DASHBOARD_PRESETS.reduce(
     (counts, preset) => {
       counts[preset.id] = invoices.filter((invoice) =>
-        matchesDashboardPreset(invoice, publicKey, preset.id, now),
+        matchesDashboardPreset(invoice, preset.id, now),
       ).length;
       return counts;
     },
