@@ -61,13 +61,24 @@
   "addressBook": {
     "title": "Libreta de Direcciones",
     "addAddress": "Agregar Dirección",
+    "addContact": "Agregar Contacto",
+    "addContactTitle": "Agregar Contacto",
+    "editContactTitle": "Editar Contacto",
+    "deleteContact": "Eliminar",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar \"{name}\"?",
+    "search": "Buscar contactos...",
+    "noSearchResults": "No hay contactos que coincidan con tu búsqueda.",
     "nickname": "Apodo",
     "stellarAddress": "Dirección G... de Stellar",
     "save": "Guardar Dirección",
     "limitReached": "Límite alcanzado (50)",
     "noSaved": "Aún no hay direcciones guardadas.",
     "edit": "Editar",
-    "remove": "Eliminar"
+    "remove": "Eliminar",
+    "copy": "Copiar",
+    "copied": "¡Copiado!",
+    "useInInvoice": "Usar en Factura",
+    "invalidAddress": "Ingresa una clave pública de Stellar válida (comienza con G, 56 caracteres)"
   },
   "leaderboard": {
     "title": "Tabla de Clasificación",

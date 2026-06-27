@@ -108,7 +108,14 @@ function NewInvoiceForm() {
   const { toasts, addToast } = useToasts();
 
   useEffect(() => {
+    const address = searchParams.get("address");
     const templateParam = searchParams.get("template");
+
+    if (address) {
+      setRecipients([{ address, amount: "" }]);
+      return;
+    }
+
     if (templateParam) {
       const decoded = decodeTemplate(templateParam);
       if (decoded) {
@@ -138,9 +145,9 @@ function NewInvoiceForm() {
 
   const [autofilled, setAutofilled] = useState(false);
 
-  // Autofill from invoice history on first load (skip if duplicating or using a template)
+  // Autofill from invoice history on first load (skip if duplicating or using a template or pre-filled address)
   useEffect(() => {
-    if (fromId || sessionStorage.getItem("invoiceTemplate")) return;
+    if (fromId || sessionStorage.getItem("invoiceTemplate") || searchParams.get("address")) return;
 
     getFreighterPublicKey()
       .then((pk) => (splitClient as any).getInvoicesByCreator(pk))
@@ -335,9 +342,15 @@ function NewInvoiceForm() {
         </div>
       )}
 
-      {autofilled && !cloneSourceId && (
+      {autofilled && !cloneSourceId && !searchParams.get("address") && (
         <p className="mb-6 text-xs text-indigo-400 bg-indigo-950/50 border border-indigo-800 rounded-lg px-3 py-2">
           ✦ Autofilled from history — you can override any value below.
+        </p>
+      )}
+
+      {searchParams.get("address") && !cloneSourceId && (
+        <p className="mb-6 text-xs text-indigo-400 bg-indigo-950/50 border border-indigo-800 rounded-lg px-3 py-2">
+          ✦ Address pre-filled from address book — you can override any value below.
         </p>
       )}
 

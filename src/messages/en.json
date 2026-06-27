@@ -61,13 +61,24 @@
   "addressBook": {
     "title": "Address Book",
     "addAddress": "Add Address",
+    "addContact": "Add Contact",
+    "addContactTitle": "Add Contact",
+    "editContactTitle": "Edit Contact",
+    "deleteContact": "Delete",
+    "confirmDelete": "Are you sure you want to delete \"{name}\"?",
+    "search": "Search contacts...",
+    "noSearchResults": "No contacts match your search.",
     "nickname": "Nickname",
     "stellarAddress": "G... Stellar address",
     "save": "Save Address",
     "limitReached": "Limit reached (50)",
     "noSaved": "No saved addresses yet.",
     "edit": "Edit",
-    "remove": "Remove"
+    "remove": "Remove",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "useInInvoice": "Use in Invoice",
+    "invalidAddress": "Please enter a valid Stellar public key (starts with G, 56 characters)"
   },
   "leaderboard": {
     "title": "Leaderboard",
