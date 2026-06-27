@@ -6,7 +6,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
-import { SkeletonCard } from "@/components/Skeleton";
+import { InvoiceListSkeleton } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
 import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
 import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
@@ -390,11 +390,7 @@ export default function DashboardClient() {
 
       {/* Invoice Grid / Empty State */}
       {loading && invoices.length === 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
+        <InvoiceListSkeleton />
       ) : invoices.length === 0 ? (
         <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-12 text-center">
           <h2 className="text-xl font-semibold text-gray-300 mb-2">No invoices yet</h2>
