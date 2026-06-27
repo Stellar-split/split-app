@@ -132,6 +132,25 @@ export async function convertXlmToUsdc(
 }
 
 /**
+ * Pay toward an invoice with automatic nonce management.
+ * Fetches the current nonce for the payer, increments it, and includes it
+ * in the pay transaction to prevent replay attacks.
+ */
+export async function payWithNonce(params: {
+  payer: string;
+  invoiceId: string;
+  amount: bigint;
+}): Promise<{ txHash: string }> {
+  const { getPayerNonce } = await import("./paymentNonce");
+  const client = getSplitClient();
+  const nonce = await getPayerNonce(params.payer);
+  return (client as any).pay({
+    ...params,
+    nonce: nonce + 1n,
+  });
+}
+
+/**
  * Fetch the USDC token balance for a given address.
  *
  * Calls the SEP-41 `balance(address)` function on the token contract
