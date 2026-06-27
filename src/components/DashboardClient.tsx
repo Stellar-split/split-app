@@ -10,6 +10,7 @@ import { InvoiceListSkeleton } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
 import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
 import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
+import { formatAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 import {
   DASHBOARD_PRESETS,
@@ -18,11 +19,6 @@ import {
   type DashboardPresetId,
 } from "@/lib/dashboardFilters";
 
-/**
- * Client component for dashboard with streaming invoice list.
- * The invoice list is fetched and rendered progressively while
- * the page shell is immediately visible.
- */
 export default function DashboardClient() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -39,6 +35,7 @@ export default function DashboardClient() {
   const [showReminderPicker, setShowReminderPicker] = useState(false);
   const [reminderDateTime, setReminderDateTime] = useState("");
   const [bulkReminderResults, setBulkReminderResults] = useState<BulkReminderResult[] | null>(null);
+  const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
 
   // Get wallet public key
   useEffect(() => {
@@ -56,8 +53,7 @@ export default function DashboardClient() {
     const fetchInvoices = async () => {
       setLoading(true);
       const results: Invoice[] = [];
-      
-      // Fetch invoices one by one and update state progressively
+
       for (let id = 1; id <= 50; id++) {
         try {
           const inv = await splitClient.getInvoice(String(id));
@@ -67,7 +63,6 @@ export default function DashboardClient() {
           );
           if (isCreator || isRecipient) {
             results.push(inv);
-            // Update state after each invoice to enable progressive rendering
             setInvoices([...results]);
           }
         } catch {
@@ -118,6 +113,19 @@ export default function DashboardClient() {
     };
   }, [searchValue]);
 
+  const handlePresetToggle = (preset: DashboardPresetId) => {
+    setActivePreset(preset);
+  };
+
+  const clearFilters = () => {
+    setActivePreset("all");
+    setSearchValue("");
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+  };
+
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -162,13 +170,33 @@ export default function DashboardClient() {
   const pendingInvoices = invoices.filter((inv) => inv.status === "Pending");
   const selectedInvoices = invoices.filter((inv) => selected.has(inv.id));
   const presetCounts = useMemo(
-    () => getDashboardPresetCounts(invoices, publicKey),
-    [invoices, publicKey],
+    () => getDashboardPresetCounts(invoices),
+    [invoices],
   );
   const visibleInvoices = useMemo(
-    () => filterDashboardInvoices(invoices, publicKey, activePreset, searchValue),
-    [invoices, publicKey, activePreset, searchValue],
+    () => filterDashboardInvoices(invoices, activePreset),
+    [invoices, activePreset],
   );
+
+  // Summary stats
+  const { totalActive, totalValueLocked, totalReleased } = useMemo(() => {
+    const now = Math.floor(Date.now() / 1000);
+    let totalValueLocked = 0n;
+    let totalReleased = 0n;
+    let totalActive = 0;
+
+    for (const inv of invoices) {
+      const total = inv.recipients.reduce((s, r) => s + r.amount, 0n);
+      if (inv.status === "Pending") {
+        if (inv.deadline > now) totalActive++;
+        totalValueLocked += total;
+      } else if (inv.status === "Released") {
+        totalReleased += total;
+      }
+    }
+
+    return { totalActive, totalValueLocked, totalReleased };
+  }, [invoices]);
 
   if (error) {
     return (
@@ -180,7 +208,8 @@ export default function DashboardClient() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-10 flex-wrap gap-3">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <div className="flex gap-2 flex-wrap">
           {!multiSelect && !reminderSelect && pendingInvoices.length > 0 && (
@@ -246,6 +275,25 @@ export default function DashboardClient() {
         </div>
       </div>
 
+      {/* Summary Stats */}
+      {!loading && invoices.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="rounded-xl bg-gray-900 border border-gray-800 p-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Active</p>
+            <p className="text-2xl font-bold text-gray-100">{totalActive}</p>
+          </div>
+          <div className="rounded-xl bg-gray-900 border border-gray-800 p-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Value Locked</p>
+            <p className="text-2xl font-bold text-gray-100">{formatAmount(totalValueLocked)} USDC</p>
+          </div>
+          <div className="rounded-xl bg-gray-900 border border-gray-800 p-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Released</p>
+            <p className="text-2xl font-bold text-green-400">{formatAmount(totalReleased)} USDC</p>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Tabs */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <button
           type="button"
@@ -293,6 +341,7 @@ export default function DashboardClient() {
         )}
       </div>
 
+      {/* Search */}
       <InvoiceSearch
         invoices={invoices}
         searchValue={searchValue}
@@ -302,6 +351,7 @@ export default function DashboardClient() {
         onNumericResult={setNumericResult}
       />
 
+      {/* Multi-select / reminder selection messages */}
       {multiSelect && (
         <p className="text-sm text-gray-400 mb-4" role="status">
           Select pending invoices to pay in a single transaction.
@@ -338,25 +388,35 @@ export default function DashboardClient() {
         </div>
       )}
 
+      {/* Invoice Grid / Empty State */}
       {loading && invoices.length === 0 ? (
         <InvoiceListSkeleton />
       ) : invoices.length === 0 ? (
-        <p className="text-gray-400">
-          No invoices found. Create your first one!
-        </p>
+        <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-12 text-center">
+          <h2 className="text-xl font-semibold text-gray-300 mb-2">No invoices yet</h2>
+          <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+            Create your first invoice to start receiving payments on-chain.
+          </p>
+          <Link
+            href="/invoice/new"
+            className="inline-flex items-center px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+          >
+            + Create your first invoice
+          </Link>
+        </div>
       ) : visibleInvoices.length === 0 ? (
         <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 text-center">
           <p className="text-gray-400">
             {activePreset === "all"
               ? searchValue.trim()
                 ? "No invoices match your search."
-                : "No invoices found. Create your first one!"
+                : "No invoices found."
               : DASHBOARD_PRESETS.find((preset) => preset.id === activePreset)
-                  ?.emptyState ?? "No invoices match this view."}
+                ?.emptyState ?? "No invoices match this view."}
           </p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-4" aria-label="Invoice list">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleInvoices.map((inv) => {
             const isSelectable = multiSelect && inv.status === "Pending";
             const isSelected = selected.has(inv.id);
@@ -364,7 +424,7 @@ export default function DashboardClient() {
             const isReminderSelected = reminderSelected.has(inv.id);
 
             return (
-              <li key={inv.id}>
+              <div key={inv.id}>
                 {isSelectable ? (
                   <button
                     type="button"
@@ -386,7 +446,10 @@ export default function DashboardClient() {
                           ✓
                         </span>
                       )}
-                      <InvoiceCard invoice={inv} displayNumber={getOrAssignDisplayNumber(inv.id)} />
+                      <InvoiceCard
+                        invoice={inv}
+                        displayNumber={getOrAssignDisplayNumber(inv.id)}
+                      />
                     </div>
                   </button>
                 ) : isReminderSelectable ? (
@@ -410,32 +473,40 @@ export default function DashboardClient() {
                           ✓
                         </span>
                       )}
-                      <InvoiceCard invoice={inv} displayNumber={getOrAssignDisplayNumber(inv.id)} />
+                      <InvoiceCard
+                        invoice={inv}
+                        displayNumber={getOrAssignDisplayNumber(inv.id)}
+                      />
                     </div>
                   </button>
                 ) : (
                   <Link
                     href={`/invoice/${inv.id}`}
                     aria-label={`View Invoice #${inv.id}`}
+                    className="block"
                   >
-                    <InvoiceCard invoice={inv} />
+                    <InvoiceCard
+                      invoice={inv}
+                      displayNumber={getOrAssignDisplayNumber(inv.id)}
+                    />
                   </Link>
                 )}
-              </li>
+              </div>
             );
           })}
           {loading && (
             <>
-              {[...Array(2)].map((_, i) => (
-                <li key={`skeleton-${i}`}>
+              {[...Array(3)].map((_, i) => (
+                <div key={`skeleton-${i}`}>
                   <SkeletonCard />
-                </li>
+                </div>
               ))}
             </>
           )}
-        </ul>
+        </div>
       )}
 
+      {/* Batch Pay Modal */}
       {showBatchModal && publicKey && selectedInvoices.length > 0 && (
         <BatchPayModal
           invoices={selectedInvoices}
@@ -447,6 +518,7 @@ export default function DashboardClient() {
         />
       )}
 
+      {/* Reminder Picker Modal */}
       {showReminderPicker && (
         <div
           role="dialog"
