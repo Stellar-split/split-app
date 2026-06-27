@@ -22,12 +22,12 @@ export default function InvoiceCard({ invoice, displayNumber }: Props) {
   const deadlineLabel = new Date(invoice.deadline * 1000).toLocaleDateString();
 
   return (
-    <div className="bg-gray-900 rounded-xl p-4 sm:p-5 hover:bg-gray-800 transition-colors cursor-pointer min-w-0">
+    <div className="bg-gray-100 dark:bg-gray-900 rounded-xl p-4 sm:p-5 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors cursor-pointer min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <span className="text-sm font-semibold text-gray-300">
+        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
           Invoice #{invoice.id}
           {displayNumber && (
-            <span className="ml-2 text-xs font-mono text-indigo-400">({displayNumber})</span>
+            <span className="ml-2 text-xs font-mono text-indigo-600 dark:text-indigo-400">({displayNumber})</span>
           )}
         </span>
         <span
@@ -53,13 +53,13 @@ export default function InvoiceCard({ invoice, displayNumber }: Props) {
       {/* Progress */}
       <PaymentProgress funded={invoice.funded} total={total} />
 
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500 mt-1">
+      <div className="flex justify-between text-xs text-gray-500 mt-1">
         <span>{formatAmount(invoice.funded)} USDC funded</span>
         <span>Total: {formatAmount(total)} USDC</span>
       </div>
 
       {invoice.deadline > 0 && (
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-800">
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-800">
           <span className="text-xs text-gray-500">Deadline</span>
           <CountdownTimer deadline={invoice.deadline} compact />
         </div>

@@ -40,7 +40,7 @@ export default function HomePage() {
               : [<span key="instant" className="text-indigo-400">Instantly.</span>, part]
           )}
       </h1>
-      <p className="max-w-xl text-lg text-gray-400 mb-10">
+      <p className="max-w-xl text-lg text-gray-600 dark:text-gray-400 mb-10">
         {t("home.description")}
       </p>
 
@@ -60,17 +60,17 @@ export default function HomePage() {
         <h2 id="features-heading" className="sr-only">Features</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl w-full text-left">
           {features.map((f) => (
-            <div key={f.title} className="bg-gray-900 rounded-xl p-6">
+            <div key={f.title} className="bg-gray-100 dark:bg-gray-900 rounded-xl p-6">
               <div className="text-3xl mb-3" aria-hidden="true">{f.icon}</div>
               <h3 className="font-semibold text-lg mb-1">{f.title}</h3>
-              <p className="text-gray-400 text-sm">{f.body}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">{f.body}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Use cases */}
-      <p className="mt-16 text-gray-500 text-sm">
+      <p className="mt-16 text-gray-500 dark:text-gray-500 text-sm">
         {t("home.useCases")}
       </p>
     </main>
