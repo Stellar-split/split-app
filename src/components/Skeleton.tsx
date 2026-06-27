@@ -1,10 +1,10 @@
 /** Shared animated shimmer base */
-const shimmer = "animate-pulse bg-gray-700 rounded";
+const shimmer = "animate-pulse bg-gray-200 dark:bg-gray-700 rounded";
 
 /** Matches InvoiceCard dimensions */
 export function SkeletonCard() {
   return (
-    <div className="bg-gray-900 rounded-xl p-5">
+    <div className="bg-gray-100 dark:bg-gray-900 rounded-xl p-5">
       <div className="flex items-center justify-between mb-3">
         <div className={`${shimmer} h-4 w-24`} />
         <div className={`${shimmer} h-4 w-16`} />
@@ -25,7 +25,7 @@ export function SkeletonCard() {
 /** Matches a table/list row */
 export function SkeletonRow() {
   return (
-    <div className="flex justify-between bg-gray-900 rounded-lg px-4 py-2">
+    <div className="flex justify-between bg-gray-100 dark:bg-gray-900 rounded-lg px-4 py-2">
       <div className={`${shimmer} h-4 w-48`} />
       <div className={`${shimmer} h-4 w-20`} />
     </div>

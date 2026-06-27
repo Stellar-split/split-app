@@ -42,6 +42,18 @@ body {
   max-width: 100%;
 }
 
+/* Light mode base */
+body {
+  background-color: #ffffff;
+  color: #111827;
+}
+
+/* Dark mode base */
+.dark body {
+  background-color: #030712;
+  color: #f3f4f6;
+}
+
 * {
   transition: color 200ms, background-color 200ms, border-color 200ms;
 }

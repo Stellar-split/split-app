@@ -215,7 +215,7 @@ export default function DashboardClient() {
           {!multiSelect && !reminderSelect && pendingInvoices.length > 0 && (
             <button
               onClick={() => setMultiSelect(true)}
-              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition-colors"
               aria-label="Enter multi-select mode to pay multiple invoices"
             >
               Pay Multiple
@@ -224,7 +224,7 @@ export default function DashboardClient() {
           {!multiSelect && !reminderSelect && invoices.length > 0 && (
             <button
               onClick={() => { setBulkReminderResults(null); setReminderSelect(true); }}
-              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition-colors"
               aria-label="Enter multi-select mode to schedule reminders"
             >
               Schedule Reminders
@@ -234,7 +234,7 @@ export default function DashboardClient() {
             <>
               <button
                 onClick={exitMultiSelect}
-                className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+                className="min-h-11 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition-colors"
               >
                 Cancel
               </button>
@@ -252,7 +252,7 @@ export default function DashboardClient() {
             <>
               <button
                 onClick={exitReminderSelect}
-                className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+                className="min-h-11 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition-colors"
               >
                 Cancel
               </button>
@@ -301,7 +301,7 @@ export default function DashboardClient() {
           className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
             activePreset === "all"
               ? "bg-indigo-600 text-white"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"
           }`}
           aria-pressed={activePreset === "all"}
         >
@@ -319,7 +319,7 @@ export default function DashboardClient() {
               className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
                 isActive
                   ? "bg-indigo-600 text-white"
-                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                  : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"
               }`}
               aria-pressed={isActive}
             >
@@ -334,7 +334,7 @@ export default function DashboardClient() {
           <button
             type="button"
             onClick={clearFilters}
-            className="rounded-full border border-gray-700 px-3 py-1.5 text-sm font-semibold text-gray-300 transition-colors hover:bg-gray-800"
+            className="rounded-full border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             Clear filters
           </button>
@@ -363,15 +363,15 @@ export default function DashboardClient() {
         </p>
       )}
       {bulkReminderResults && (
-        <div className="mb-4 rounded-lg bg-gray-800 border border-gray-700 p-4">
-          <p className="text-sm font-medium text-gray-300 mb-2">Reminder scheduling results:</p>
+        <div className="mb-4 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reminder scheduling results:</p>
           <ul className="flex flex-col gap-1">
             {bulkReminderResults.map((r) => (
               <li key={r.invoiceId} className="text-xs flex items-center gap-2">
                 <span className={r.success ? "text-green-400" : "text-red-400"}>
                   {r.success ? "✓" : "✗"}
                 </span>
-                <span className="text-gray-300">Invoice #{r.invoiceId}</span>
+                <span className="text-gray-700 dark:text-gray-300">Invoice #{r.invoiceId}</span>
                 {!r.success && r.error && (
                   <span className="text-red-400">{r.error}</span>
                 )}
@@ -405,7 +405,7 @@ export default function DashboardClient() {
           </Link>
         </div>
       ) : visibleInvoices.length === 0 ? (
-        <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 text-center">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 p-6 text-center">
           <p className="text-gray-400">
             {activePreset === "all"
               ? searchValue.trim()
@@ -526,12 +526,12 @@ export default function DashboardClient() {
           aria-label="Schedule bulk reminders"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
         >
-          <div className="bg-gray-900 rounded-2xl border border-gray-700 p-6 w-full max-w-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 w-full max-w-sm">
             <h2 className="text-lg font-bold mb-4">Schedule Reminders</h2>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Applies to {reminderSelected.size} selected invoice{reminderSelected.size !== 1 ? "s" : ""}.
             </p>
-            <label htmlFor="bulk-reminder-dt" className="block text-sm font-medium text-gray-300 mb-1">
+            <label htmlFor="bulk-reminder-dt" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Reminder date &amp; time
             </label>
             <input
@@ -539,13 +539,13 @@ export default function DashboardClient() {
               type="datetime-local"
               value={reminderDateTime}
               onChange={(e) => setReminderDateTime(e.target.value)}
-              className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full min-h-11 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <div className="flex gap-3 justify-end">
               <button
                 type="button"
                 onClick={() => { setShowReminderPicker(false); setReminderDateTime(""); }}
-                className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-medium transition-colors"
+                className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-medium transition-colors"
               >
                 Cancel
               </button>
