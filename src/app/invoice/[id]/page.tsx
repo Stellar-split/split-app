@@ -50,6 +50,7 @@ import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import DuplicateModal from "@/components/DuplicateModal";
+import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
 import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
@@ -145,6 +146,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [amountLocked, setAmountLocked] = useState(false);
   const prevPayAmountRef = useRef("");
   const [cooldownExpiresAt, setCooldownExpiresAt] = useState<number | null>(null);
+  const [activeDetailsTab, setActiveDetailsTab] = useState<"audit" | "history" | "notes">("audit");
 
   const prevStatusRef = useRef<string | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -1014,13 +1016,35 @@ export default function InvoiceDetailPage({ params }: Props) {
         />
       )}
 
-      {/* Audit Log */}
-      <AuditLogTable invoiceId={id} invoice={invoice ?? undefined} />
-
-      {/* Private notes — only visible to the connected wallet */}
-      {publicKey && (
-        <CommentSection invoiceId={id} walletAddress={publicKey} />
-      )}
+      {/* Tabbed detail section: Audit Log / History / Notes */}
+      <section className="mb-8">
+        <div className="flex gap-1 border-b border-gray-700 mb-4" role="tablist" aria-label="Invoice details">
+          {(["audit", "history", "notes"] as const).map((tab) => {
+            const labels: Record<string, string> = { audit: "Audit Log", history: "History", notes: "Notes" };
+            return (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeDetailsTab === tab}
+                onClick={() => setActiveDetailsTab(tab)}
+                className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg -mb-px border-b-2 ${
+                  activeDetailsTab === tab
+                    ? "border-indigo-500 text-indigo-300"
+                    : "border-transparent text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                {labels[tab]}
+              </button>
+            );
+          })}
+        </div>
+        {activeDetailsTab === "audit" && <AuditLogTable invoiceId={id} invoice={invoice ?? undefined} />}
+        {activeDetailsTab === "history" && <VersionHistory invoiceId={id} />}
+        {activeDetailsTab === "notes" && publicKey && (
+          <CommentSection invoiceId={id} walletAddress={publicKey} />
+        )}
+      </section>
       
 
       {showCancelModal && invoice && (
