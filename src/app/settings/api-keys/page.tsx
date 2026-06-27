@@ -1,35 +1,19 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-
-type ApiKey = {
-  id: string
-  name: string
-  key: string
-  createdAt: number
-  lastUsed?: number | null
-}
-
-const STORAGE_KEY = "apiKeys"
-
-function loadKeys(): ApiKey[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    return JSON.parse(raw) as ApiKey[]
-  } catch (e) {
-    return []
-  }
-}
-
-function saveKeys(keys: ApiKey[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(keys))
-}
+import {
+  type ApiKey,
+  type ApiKeyScope,
+  buildApiKey,
+  dismissMigrationBanner,
+  isMigrationBannerDismissed,
+  loadKeys,
+  saveKeys,
+} from "@/lib/apiKeys"
 
 function maskKey(key: string) {
   if (!key) return ""
-  // show prefix then masked middle and trailing stars
-  const prefix = key.startsWith("sk_") ? "sk_" : ""
+  const prefix = key.startsWith("sk_") ? key.match(/^sk_(?:read|write)_/)?.[0] ?? "sk_" : ""
   const rest = key.slice(prefix.length)
   if (rest.length <= 8) return prefix + "****...****"
   const start = rest.slice(0, 2)
@@ -37,14 +21,36 @@ function maskKey(key: string) {
   return `${prefix}${start}****...****${end}`
 }
 
+function ScopeBadge({ scope }: { scope: ApiKeyScope }) {
+  const isWrite = scope === "write"
+  return (
+    <span
+      className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+        isWrite
+          ? "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200"
+          : "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200"
+      }`}
+    >
+      {isWrite ? "Write" : "Read-only"}
+    </span>
+  )
+}
+
 export default function ApiKeysPage() {
   const [keys, setKeys] = useState<ApiKey[]>([])
   const [name, setName] = useState("")
+  const [scope, setScope] = useState<ApiKeyScope>("read")
   const [showNewKey, setShowNewKey] = useState<string | null>(null)
+  const [showMigrationBanner, setShowMigrationBanner] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    setKeys(loadKeys())
+    const { keys: loaded, migratedLegacy } = loadKeys()
+    setKeys(loaded)
+    if (migratedLegacy && !isMigrationBannerDismissed()) {
+      setShowMigrationBanner(true)
+    }
   }, [])
 
   useEffect(() => {
@@ -52,18 +58,32 @@ export default function ApiKeysPage() {
     saveKeys(keys)
   }, [keys])
 
-  function handleGenerate() {
+  async function handleGenerate() {
     if (!name.trim()) {
       alert("Please provide a name for the key")
       return
     }
-    const id = crypto.randomUUID()
-    const key = `sk_${crypto.randomUUID()}`
-    const item: ApiKey = { id, name: name.trim(), key, createdAt: Date.now(), lastUsed: null }
-    const updated = [item, ...keys]
-    setKeys(updated)
-    setShowNewKey(key)
-    setName("")
+    setIsGenerating(true)
+    try {
+      const response = await fetch("/api/api-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope }),
+      })
+      const body = await response.json().catch(() => null)
+      if (!response.ok || !body?.id || !body?.key) {
+        throw new Error(body?.error ?? "Failed to generate API key")
+      }
+      const item = buildApiKey({ id: body.id, name, key: body.key, scope })
+      const updated = [item, ...keys]
+      setKeys(updated)
+      setShowNewKey(item.key)
+      setName("")
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to generate API key")
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   function handleRevoke(id: string) {
@@ -76,9 +96,34 @@ export default function ApiKeysPage() {
     navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard"))
   }
 
+  function handleDismissMigrationBanner() {
+    dismissMigrationBanner()
+    setShowMigrationBanner(false)
+  }
+
   return (
     <div className="p-4 max-w-3xl mx-auto">
       <h1 className="text-2xl font-semibold mb-4">API Keys</h1>
+
+      {showMigrationBanner && (
+        <div className="mb-6 bg-blue-50 dark:bg-blue-950/40 border-l-4 border-blue-400 p-4 rounded">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <strong className="block">Existing keys updated</strong>
+              <p className="mt-1 text-sm">
+                Keys created before scoped permissions were added have been assigned write access.
+                Review your keys and revoke or replace any that should be read-only.
+              </p>
+            </div>
+            <button
+              onClick={handleDismissMigrationBanner}
+              className="text-sm text-gray-600 dark:text-gray-400 shrink-0"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-neutral-900 rounded-md p-4 shadow-sm mb-6">
         <label className="block text-sm font-medium mb-2">Key Name</label>
@@ -91,11 +136,42 @@ export default function ApiKeysPage() {
           />
           <button
             onClick={handleGenerate}
+            disabled={isGenerating}
             className="bg-indigo-600 text-white px-4 py-2 rounded"
           >
-            Generate Key
+            {isGenerating ? "Generating..." : "Generate Key"}
           </button>
         </div>
+
+        <fieldset className="mt-4">
+          <legend className="text-sm font-medium mb-2">Permission scope</legend>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="scope"
+                value="read"
+                checked={scope === "read"}
+                onChange={() => setScope("read")}
+              />
+              Read-only
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="scope"
+                value="write"
+                checked={scope === "write"}
+                onChange={() => setScope("write")}
+              />
+              Write
+            </label>
+          </div>
+          <p className="text-sm text-muted-foreground mt-2">
+            Read-only keys can access read endpoints. Write keys are required for mutating operations.
+          </p>
+        </fieldset>
+
         <p className="text-sm text-muted-foreground mt-2">Generated keys are shown only once.</p>
       </div>
 
@@ -134,6 +210,7 @@ export default function ApiKeysPage() {
             <div className="flex-1">
               <div className="flex items-center gap-3">
                 <div className="font-medium">{k.name}</div>
+                <ScopeBadge scope={k.scope} />
                 <div className="text-xs text-gray-500">{new Date(k.createdAt).toLocaleString()}</div>
               </div>
               <div className="text-sm text-gray-600 mt-1 break-all">
