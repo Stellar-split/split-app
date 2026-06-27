@@ -36,7 +36,7 @@ function getColorClass(timeLeft: number) {
   return "text-emerald-500";
 }
 
-export default function CountdownTimer({ deadline, compact = false }: Props) {
+export default function DeadlineCountdown({ deadline, compact = false }: Props) {
   const [timeLeft, setTimeLeft] = useState(() => calcTimeLeft(deadline));
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 

@@ -9,7 +9,7 @@ import type { Invoice, Payment } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
-import CountdownTimer from "@/components/CountdownTimer";
+import DeadlineCountdown from "@/components/DeadlineCountdown";
 import RecipientPieChart from "@/components/RecipientPieChart";
 import InvoiceQR from "@/components/InvoiceQR";
 import CopyLinkButton from "@/components/CopyLinkButton";
@@ -208,7 +208,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Deadline</p>
           <div className="text-sm font-medium text-gray-200">
             {invoice.deadline > 0 ? (
-              <CountdownTimer deadline={invoice.deadline} />
+              <DeadlineCountdown deadline={invoice.deadline} />
             ) : (
               "No deadline"
             )}
