@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { splitClient } from "@/lib/stellar";
+import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { parseAmount } from "@stellar-split/sdk";
 import BatchPayQueue from "@/components/BatchPayQueue";
@@ -87,7 +87,7 @@ export default function BatchPayPage() {
         lastTxHash = result.txHash;
       } else {
         for (const pair of pairs) {
-          const result = await splitClient.pay({
+          const result = await payWithNonce({
             payer: publicKey,
             invoiceId: pair.invoiceId,
             amount: pair.amount,
