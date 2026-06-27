@@ -5,8 +5,12 @@ import { useRouter } from "next/navigation";
 import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
-import type { Invoice, Payment } from "@stellar-split/sdk";
-import PaymentProgress from "@/components/PaymentProgress";
+import { useInvoiceCustomization } from "@/lib/customization";
+import type { Locale } from "@/lib/i18n";
+import PaymentSuggestions from "@/components/PaymentSuggestions";
+import FundingProgress from "@/components/FundingProgress";
+import StatusBadge from "@/components/StatusBadge";
+import { InvoiceDetailSkeleton } from "@/components/Skeleton";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
 import CountdownTimer from "@/components/CountdownTimer";
@@ -127,28 +131,13 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (error && !invoice) {
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
-        <div className="bg-red-950/40 border border-red-800 rounded-xl p-6">
-          <p className="text-red-400 text-lg mb-2">Failed to load invoice</p>
-          <p className="text-red-300/70 text-sm">{error}</p>
-          <button
-            type="button"
-            onClick={() => { setLoading(true); setError(null); load(); }}
-            className="mt-4 px-4 py-2 rounded-lg bg-red-700 hover:bg-red-600 text-sm font-medium transition-colors"
-          >
-            Retry
-          </button>
-        </div>
+      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 overflow-x-hidden">
+        <InvoiceDetailSkeleton />
       </main>
     );
   }
 
   if (!invoice) return null;
-
-  const isCreator = publicKey === invoice.creator;
-  const status = statusConfig[invoice.status] ?? statusConfig.Pending;
-  const remaining = total - invoice.funded;
-  const percentFunded = total > 0n ? Number((invoice.funded * 100n) / total) : 0;
 
   return (
     <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
@@ -165,7 +154,14 @@ export default function InvoiceDetailPage({ params }: Props) {
             <span>{status.label}</span>
           </span>
         </div>
-        <div className="flex items-center gap-2">
+
+      <div className="mb-6">
+        <FlowDiagram invoice={invoice} />
+      </div>
+
+      <CloneLineageTree invoiceId={id} />
+        <StatusBadge status={invoice.status as any} size="md" />
+        <div className="ml-auto flex items-center gap-2 print:hidden flex-wrap justify-end">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
           {isCreator && invoice.status === "Pending" && (
             <>
@@ -217,22 +213,20 @@ export default function InvoiceDetailPage({ params }: Props) {
       </div>
 
       {/* Progress */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-white">Funding Progress</h2>
-          <span className="text-sm text-gray-400">{percentFunded}%</span>
-        </div>
-        <PaymentProgress funded={invoice.funded} total={total} />
-        <div className="flex justify-between mt-2">
-          <p className="text-sm text-gray-400">
-            <span className="text-indigo-300 font-medium">{formatAmount(invoice.funded)} USDC</span>
-            {" / "}
-            {formatAmount(total)} USDC
+      <section aria-labelledby="progress-heading" className="mb-8">
+        <h2 id="progress-heading" className="sr-only">Payment Progress</h2>
+        <FundingProgress funded={invoice.funded} total={total} token={invoice.token || "USDC"} />
+        {channelState?.opened && (
+          <p className="text-sm text-indigo-300 mt-1">
+            · Channel balance: {formatAmount(channelState.balance)} USDC
           </p>
-          {remaining > 0n && (
-            <p className="text-sm text-gray-500">{formatAmount(remaining)} USDC remaining</p>
-          )}
-        </div>
+        )}
+        {invoice.deadline > 0 && (
+          <div className="flex items-center gap-2 mt-3">
+            <span className="text-sm text-gray-400">Time remaining:</span>
+            <CountdownTimer deadline={invoice.deadline} />
+          </div>
+        )}
       </section>
 
       {/* QR */}
