@@ -2,17 +2,19 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
-import RecipientForm from "@/components/RecipientForm";
-import TemplateManager from "@/components/TemplateManager";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
 import { useI18n } from "@/components/I18nProvider";
 import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
 import { decodeTemplate } from "@/lib/templateSharing";
+
+const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
+const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
 
 interface RecipientRow {
   address: string;

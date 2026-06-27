@@ -1,5 +1,7 @@
 import { truncateAddress } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
+import PaymentProgress from "./PaymentProgress";
+import DeadlineCountdown from "./DeadlineCountdown";
 import FundingProgress from "./FundingProgress";
 import StatusBadge from "./StatusBadge";
 import CountdownTimer from "./CountdownTimer";
@@ -61,7 +63,7 @@ export default function InvoiceCard({ invoice, displayNumber }: Props) {
         {invoice.deadline > 0 && (
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-800">
             <span className="text-xs text-gray-500">Deadline</span>
-            <CountdownTimer deadline={invoice.deadline} compact />
+            <DeadlineCountdown deadline={invoice.deadline} compact />
           </div>
         )}
       </div>
