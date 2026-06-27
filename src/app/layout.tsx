@@ -17,6 +17,21 @@ import CommandPalette from "@/components/CommandPalette";
 import { ToastProvider } from "@/contexts/ToastContext";
 import QueryProvider from "@/contexts/QueryProvider";
 
+const themeBootstrap = `
+(function () {
+  try {
+    var stored = window.localStorage.getItem("theme");
+    var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var isDark = stored === "dark" || (!stored && prefersDark) || (stored === "system" && prefersDark);
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  } catch (e) {}
+})();
+`;
+
 const accessibilityBootstrap = `
 (function () {
   try {
@@ -88,16 +103,54 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <Script
+        id="theme-bootstrap"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{ __html: themeBootstrap }}
+      />
+      <Script
         id="accessibility-bootstrap"
         strategy="beforeInteractive"
         dangerouslySetInnerHTML={{ __html: accessibilityBootstrap }}
       />
       <body className="min-h-screen bg-gray-950 text-gray-100 antialiased overflow-x-hidden">
         <QueryProvider>
+      <body className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased overflow-x-hidden">
         <ThemeProvider>
           <AccessibilityProvider>
             <I18nProvider>
-            <Navbar />
+            <header className="sticky top-0 z-40 flex items-center justify-between gap-2 px-4 sm:px-6 py-3 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-gray-200 dark:border-gray-800 min-w-0">
+              <a href="/" className="font-bold text-base sm:text-lg tracking-tight shrink-0 min-h-11 inline-flex items-center">
+                StellarSplit
+              </a>
+              <a
+                href="/groups"
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
+              >
+                Groups
+              </a>
+              <a
+                href="/address-book"
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center whitespace-nowrap"
+              >
+                <span className="sm:hidden">Contacts</span>
+                <span className="hidden sm:inline">Address Book</span>
+              </a>
+              <a
+                href="/leaderboard"
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
+              >
+                Leaderboard
+              </a>
+              <a
+                href="/settings/accessibility"
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
+              >
+                Accessibility
+              </a>
+              <ThemeToggle />
+              <SimulationModeToggle />
+              <NotificationCenter />
+            </header>
             <SessionLockProvider>
             <ToastProvider>
             <SimulationBanner />

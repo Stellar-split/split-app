@@ -6,8 +6,12 @@ import dynamic from "next/dynamic";
 import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
-import type { Invoice, Payment } from "@stellar-split/sdk";
-import PaymentProgress from "@/components/PaymentProgress";
+import { useInvoiceCustomization } from "@/lib/customization";
+import type { Locale } from "@/lib/i18n";
+import PaymentSuggestions from "@/components/PaymentSuggestions";
+import FundingProgress from "@/components/FundingProgress";
+import StatusBadge from "@/components/StatusBadge";
+import { InvoiceDetailSkeleton } from "@/components/Skeleton";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
 import DeadlineCountdown from "@/components/DeadlineCountdown";
@@ -17,6 +21,7 @@ import CancelModal from "@/components/CancelModal";
 import DuplicateModal from "@/components/DuplicateModal";
 import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import ShareModal from "@/components/ShareModal";
 import VotingPanel from "@/components/VotingPanel";
 import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
@@ -50,6 +55,11 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [paying, setPaying] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showAchievement, setShowAchievement] = useState(false);
+  const [disputing, setDisputing] = useState(false);
+  const [disputeError, setDisputeError] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -106,6 +116,142 @@ export default function InvoiceDetailPage({ params }: Props) {
       });
       setTxHash(result.txHash);
       setShowSuccess(true);
+      setLastFailedPayment(null);
+      setRetryCount(0);
+      try {
+        const existing = JSON.parse(localStorage.getItem("stellarsplit_adapter_usage") ?? "[]");
+        existing.push({ adapter: paymentMethod, timestamp: Date.now() });
+        localStorage.setItem("stellarsplit_adapter_usage", JSON.stringify(existing));
+      } catch { /* ignore storage errors */ }
+      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+      if (publicKey) {
+        const expiry = recordCooldown(id, publicKey);
+        setCooldownExpiresAt(expiry);
+      }
+      await load();
+    } catch (err) {
+      if (channelUsed && originalChannel) {
+        syncChannelState(originalChannel);
+      }
+      setInvoice((prev) => {
+        if (!prev) return prev;
+        const pending = prev.payments.find((p) => p.clientKey === clientKey);
+        if (!pending?.pending) return prev;
+        return {
+          ...prev,
+          funded: prev.funded - pending.amount,
+          payments: prev.payments.filter((p) => p.clientKey !== clientKey),
+        };
+      });
+      setError(String(err));
+      setLastFailedPayment({ amount });
+      setRetryCount((prev) => prev + 1);
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const payWithChannel = async (amount: bigint, email?: string) => {
+    if (!publicKey) return;
+    const originalChannel = channelState;
+    const channelUsed = applyChannelBalance(amount);
+    try {
+      const result = await splitClient.pay({ payer: publicKey, invoiceId: id, amount });
+      setTxHash(result.txHash);
+      if (email) {
+        try {
+          await fetch("/api/send-confirmation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              invoiceId: id,
+              txHash: result.txHash,
+              amount: formatAmount(amount),
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to send confirmation email:", err);
+        }
+      }
+      await load();
+      return result;
+    } catch (err) {
+      if (channelUsed && originalChannel) {
+        syncChannelState(originalChannel);
+      }
+      throw err;
+    }
+  };
+
+  const handleSetReminder = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reminderDate) return;
+    setReminder({
+      invoiceId: id,
+      reminderDate: new Date(reminderDate).toISOString(),
+      message: reminderMsg || `Invoice #${id} payment reminder`,
+    });
+    setHasReminder(true);
+    setReminderSaved(true);
+    // Request notification permission proactively
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  };
+
+  const handleExportTimeline = async () => {
+    if (!timelineRef.current || !invoice) return;
+    setExportingTimeline(true);
+    try {
+      await exportTimelineAsImage(timelineRef.current, id, invoice.status);
+    } finally {
+      setExportingTimeline(false);
+    }
+  };
+
+  const handleCancelReminder = () => {
+    cancelReminder(id);
+    setHasReminder(false);
+    setReminderDate("");
+    setReminderMsg("");
+    setReminderSaved(false);
+  };
+
+  const handleCancelInvoice = async () => {
+    // as any: cancelInvoice is not yet declared in the published @stellar-split/sdk types
+    await (splitClient as any).cancelInvoice(id);
+    await load();
+    setShowCancelModal(false);
+  };
+
+  const handleTransferOwnership = async (newOwner: string) => {
+    setTransferError(null);
+    // as any: forwardInvoice is not yet declared in the published @stellar-split/sdk types
+    await (splitClient as any).forwardInvoice({ invoiceId: id, newOwner });
+    await load();
+    setShowTransferModal(false);
+  };
+
+  const handleRetryPayment = async () => {
+    if (!lastFailedPayment || !publicKey) return;
+    setError(null);
+    setPaying(true);
+    try {
+      const result = await splitClient.pay({
+        payer: publicKey,
+        invoiceId: id,
+        amount: lastFailedPayment.amount,
+      });
+      setTxHash(result.txHash);
+      setShowSuccess(true);
+      setLastFailedPayment(null);
+      setRetryCount(0);
+      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+      if (publicKey) {
+        const expiry = recordCooldown(id, publicKey);
+        setCooldownExpiresAt(expiry);
+      }
       await load();
     } catch (err) {
       setPaymentError(String(err));
@@ -130,28 +276,13 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (error && !invoice) {
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
-        <div className="bg-red-950/40 border border-red-800 rounded-xl p-6">
-          <p className="text-red-400 text-lg mb-2">Failed to load invoice</p>
-          <p className="text-red-300/70 text-sm">{error}</p>
-          <button
-            type="button"
-            onClick={() => { setLoading(true); setError(null); load(); }}
-            className="mt-4 px-4 py-2 rounded-lg bg-red-700 hover:bg-red-600 text-sm font-medium transition-colors"
-          >
-            Retry
-          </button>
-        </div>
+      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 overflow-x-hidden">
+        <InvoiceDetailSkeleton />
       </main>
     );
   }
 
   if (!invoice) return null;
-
-  const isCreator = publicKey === invoice.creator;
-  const status = statusConfig[invoice.status] ?? statusConfig.Pending;
-  const remaining = total - invoice.funded;
-  const percentFunded = total > 0n ? Number((invoice.funded * 100n) / total) : 0;
 
   return (
     <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
@@ -168,26 +299,40 @@ export default function InvoiceDetailPage({ params }: Props) {
             <span>{status.label}</span>
           </span>
         </div>
-        <div className="flex items-center gap-2">
+
+      <div className="mb-6">
+        <FlowDiagram invoice={invoice} />
+      </div>
+
+      <CloneLineageTree invoiceId={id} />
+        <StatusBadge status={invoice.status as any} size="md" />
+        <div className="ml-auto flex items-center gap-2 print:hidden flex-wrap justify-end">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
-          {isCreator && invoice.status === "Pending" && (
-            <>
-              <button
-                type="button"
-                onClick={() => setShowDuplicateModal(true)}
-                className="px-3 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-sm transition-colors"
-              >
-                Duplicate
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCancelModal(true)}
-                className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-sm transition-colors"
-              >
-                Cancel
-              </button>
-            </>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowShareModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+            aria-label="Share invoice"
+          >
+            Share
+          </button>
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm transition-colors"
+            aria-label="Receipt language"
+          >
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+          >
+            Print Invoice
+          </button>
         </div>
       </div>
 
@@ -220,22 +365,20 @@ export default function InvoiceDetailPage({ params }: Props) {
       </div>
 
       {/* Progress */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-white">Funding Progress</h2>
-          <span className="text-sm text-gray-400">{percentFunded}%</span>
-        </div>
-        <PaymentProgress funded={invoice.funded} total={total} />
-        <div className="flex justify-between mt-2">
-          <p className="text-sm text-gray-400">
-            <span className="text-indigo-300 font-medium">{formatAmount(invoice.funded)} USDC</span>
-            {" / "}
-            {formatAmount(total)} USDC
+      <section aria-labelledby="progress-heading" className="mb-8">
+        <h2 id="progress-heading" className="sr-only">Payment Progress</h2>
+        <FundingProgress funded={invoice.funded} total={total} token={invoice.token || "USDC"} />
+        {channelState?.opened && (
+          <p className="text-sm text-indigo-300 mt-1">
+            · Channel balance: {formatAmount(channelState.balance)} USDC
           </p>
-          {remaining > 0n && (
-            <p className="text-sm text-gray-500">{formatAmount(remaining)} USDC remaining</p>
-          )}
-        </div>
+        )}
+        {invoice.deadline > 0 && (
+          <div className="flex items-center gap-2 mt-3">
+            <span className="text-sm text-gray-400">Time remaining:</span>
+            <CountdownTimer deadline={invoice.deadline} />
+          </div>
+        )}
       </section>
 
       {/* QR */}
@@ -281,7 +424,95 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Recipients */}
       <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
 
-      {/* Pay Section */}
+      {/* Split Calculator */}
+      {invoice.status === "Pending" && <SplitCalculator invoice={invoice} />}
+
+      <ActivityFeed
+        invoice={{
+          ...invoice,
+          payments: invoice.payments.filter((p) => !p.pending),
+        }}
+        previousInvoice={previousInvoice}
+      />
+
+      {/* Installment schedule — only shown to payers with a registered plan */}
+      {publicKey && (
+        <>
+          <InstallmentTracker
+            invoice={invoice}
+            publicKey={publicKey}
+            onPayNow={(amount) => {
+              setPayAmount(formatAmount(amount));
+              setShowPayModal(true);
+            }}
+          />
+          <InstallmentPanel invoiceId={id} publicKey={publicKey} />
+        </>
+      )}
+
+      {/* Deadline extension voting — shown to payers on Pending invoices */}
+      {publicKey && (
+        <VotingPanel invoice={invoice} publicKey={publicKey} />
+      )}
+
+      {/* Deadline extension request/approval flow */}
+      {invoice.status === "Pending" && (
+        <DeadlineExtensionPanel
+          invoiceId={id}
+          invoiceCreator={invoice.creator}
+          invoiceDeadline={invoice.deadline}
+          currentAddress={publicKey}
+        />
+      )}
+
+      {/* Co-Creator Management — only shown to primary creator */}
+      {publicKey && (
+        <CoCreatorPanel invoice={invoice} publicKey={publicKey} onUpdate={load} />
+      )}
+
+      {/* Payment channel panel for frequent payers */}
+      {invoice.status === "Pending" && publicKey && publicKey !== invoice.creator && (
+        <PaymentChannelPanel
+          invoiceId={id}
+          publicKey={publicKey}
+          channelState={channelState}
+          onOpen={async () => {
+            if (!publicKey) return;
+            setChannelLoading(true);
+            setChannelError(null);
+            try {
+              // as any: openChannel/closeChannel are not yet declared in the published @stellar-split/sdk types
+              const result = await (splitClient as any).openChannel({ payer: publicKey, invoiceId: id });
+              const balance = result?.balance != null ? BigInt(result.balance) : 0n;
+              syncChannelState({ invoiceId: id, payer: publicKey, balance, opened: true });
+              await load();
+            } catch (err) {
+              setChannelError(String(err));
+            } finally {
+              setChannelLoading(false);
+            }
+          }}
+          onClose={async () => {
+            if (!publicKey) return;
+            setChannelLoading(true);
+            setChannelError(null);
+            try {
+              // as any: openChannel/closeChannel are not yet declared in the published @stellar-split/sdk types
+              await (splitClient as any).closeChannel({ payer: publicKey, invoiceId: id });
+              syncChannelState(null);
+              await load();
+            } catch (err) {
+              setChannelError(String(err));
+            } finally {
+              setChannelLoading(false);
+            }
+          }}
+          loading={channelLoading}
+          error={channelError}
+        />
+      )}
+
+      {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
         <section className="mb-8 bg-gray-800/60 border border-gray-700 rounded-xl p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Pay Toward Invoice</h2>
@@ -335,11 +566,19 @@ export default function InvoiceDetailPage({ params }: Props) {
       )}
 
       {invoice.status !== "Pending" && (
-        <div className="mb-8 bg-gray-800/40 border border-gray-700 rounded-xl px-4 py-4 text-center">
-          <p className="text-gray-400 text-sm">
-            This invoice is <span className="font-semibold text-white">{invoice.status.toLowerCase()}</span> and no longer accepts payments.
-          </p>
-        </div>
+        <p className="text-gray-400 text-sm mb-8">
+          This invoice is {invoice.status.toLowerCase()} and no longer accepts payments.
+        </p>
+      )}
+
+      {/* Dispute Timeline — shown when invoice has an active or resolved dispute */}
+      {/* as any: disputeStatus is not yet declared in the published @stellar-split/sdk Invoice type */}
+      {(invoice as any).disputeStatus && (
+        <DisputeTimeline
+          invoiceId={id}
+          // as any: disputeStatus is not yet declared in the published @stellar-split/sdk Invoice type
+          disputeStatus={(invoice as any).disputeStatus}
+        />
       )}
 
       {/* Token & Contract Info */}
@@ -426,6 +665,12 @@ export default function InvoiceDetailPage({ params }: Props) {
           onClose={() => setTxHash(null)}
         />
       )}
+
+      <ShareModal
+        open={showShareModal}
+        url={`${typeof window !== "undefined" ? window.location.origin : ""}/invoice/${id}`}
+        onClose={() => setShowShareModal(false)}
+      />
     </main>
   );
 }
