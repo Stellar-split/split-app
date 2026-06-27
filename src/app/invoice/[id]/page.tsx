@@ -16,6 +16,11 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import DuplicateModal from "@/components/DuplicateModal";
+import TransferOwnershipModal from "@/components/TransferOwnershipModal";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import VotingPanel from "@/components/VotingPanel";
+import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
+import FlowDiagram from "@/components/FlowDiagram";
 import SuccessAnimation from "@/components/SuccessAnimation";
 
 const POLL_MS = 10_000;
@@ -335,6 +340,18 @@ export default function InvoiceDetailPage({ params }: Props) {
             </button>
           </form>
         </section>
+      )}
+
+      {showPayModal && invoice && publicKey && (
+        <PayModal
+          invoice={invoice}
+          total={total}
+          publicKey={publicKey}
+          onPay={async (amount, email) => {
+            return payWithChannel(amount, email);
+          }}
+          onClose={() => setShowPayModal(false)}
+        />
       )}
 
       {invoice.status !== "Pending" && (

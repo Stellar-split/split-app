@@ -95,7 +95,14 @@ function NewInvoiceForm() {
   const { toasts, addToast } = useToasts();
 
   useEffect(() => {
+    const address = searchParams.get("address");
     const templateParam = searchParams.get("template");
+
+    if (address) {
+      setRecipients([{ address, amount: "" }]);
+      return;
+    }
+
     if (templateParam) {
       const decoded = decodeTemplate(templateParam);
       if (decoded) {
@@ -128,6 +135,10 @@ function NewInvoiceForm() {
 
   useEffect(() => {
     if (fromId || sessionStorage.getItem("invoiceTemplate")) return;
+  // Autofill from invoice history on first load (skip if duplicating or using a template or pre-filled address)
+  useEffect(() => {
+    if (fromId || sessionStorage.getItem("invoiceTemplate") || searchParams.get("address")) return;
+
     getFreighterPublicKey()
       .then((pk) => (splitClient as any).getInvoicesByCreator(pk))
       .then((invoices: import("@stellar-split/sdk").Invoice[]) => {
@@ -683,6 +694,32 @@ function NewInvoiceForm() {
       )}
 
       <h1 className="text-3xl font-bold mb-2">Create Invoice</h1>
+      <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+
+      {/* Cloned-from banner */}
+      {cloneSourceId && (
+        <div className="mb-6 flex items-center gap-2 text-sm bg-indigo-950/60 border border-indigo-700 text-indigo-300 rounded-lg px-3 py-2">
+          <span>🔁 Cloned from</span>
+          <a
+            href={`/invoice/${cloneSourceId}`}
+            className="underline hover:text-indigo-200 font-mono"
+          >
+            #{cloneSourceId}
+          </a>
+        </div>
+      )}
+
+      {autofilled && !cloneSourceId && !searchParams.get("address") && (
+        <p className="mb-6 text-xs text-indigo-400 bg-indigo-950/50 border border-indigo-800 rounded-lg px-3 py-2">
+          ✦ Autofilled from history — you can override any value below.
+        </p>
+      )}
+
+      {searchParams.get("address") && !cloneSourceId && (
+        <p className="mb-6 text-xs text-indigo-400 bg-indigo-950/50 border border-indigo-800 rounded-lg px-3 py-2">
+          ✦ Address pre-filled from address book — you can override any value below.
+        </p>
+      )}
 
       {loading && (
         <div className="text-center py-8">
