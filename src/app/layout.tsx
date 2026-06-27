@@ -10,6 +10,8 @@ import UpgradeBanner from "@/components/UpgradeBanner";
 import { I18nProvider } from "@/components/I18nProvider";
 import SimulationBanner from "@/components/SimulationBanner";
 import RecipientOnboarding from "@/components/RecipientOnboarding";
+import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
+import CommandPalette from "@/components/CommandPalette";
 import { SessionLockProvider } from "@/contexts/SessionLockContext";
 import CommandPalette from "@/components/CommandPalette";
 
