@@ -14,6 +14,7 @@ import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 import CommandPalette from "@/components/CommandPalette";
 import { SessionLockProvider } from "@/contexts/SessionLockContext";
 import CommandPalette from "@/components/CommandPalette";
+import { ToastProvider } from "@/contexts/ToastContext";
 
 const accessibilityBootstrap = `
 (function () {
@@ -76,12 +77,14 @@ export default function RootLayout({
             <I18nProvider>
             <Navbar />
             <SessionLockProvider>
+            <ToastProvider>
             <SimulationBanner />
             <UpgradeBanner />
             <ErrorBoundary>{children}</ErrorBoundary>
             <CommandPalette />
             <OnboardingFlow />
             <RecipientOnboarding />
+            </ToastProvider>
             </SessionLockProvider>
             <Script id="register-sw" strategy="afterInteractive">
               {`if ("serviceWorker" in navigator) {
