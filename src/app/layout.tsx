@@ -15,6 +15,7 @@ import CommandPalette from "@/components/CommandPalette";
 import { SessionLockProvider } from "@/contexts/SessionLockContext";
 import CommandPalette from "@/components/CommandPalette";
 import { ToastProvider } from "@/contexts/ToastContext";
+import QueryProvider from "@/contexts/QueryProvider";
 
 const accessibilityBootstrap = `
 (function () {
@@ -38,9 +39,13 @@ const accessibilityBootstrap = `
 `;
 
 export const metadata: Metadata = {
-  title: "StellarSplit — On-chain Invoice Splitting",
+  title: "StellarSplit — Split invoices on-chain",
   description:
     "Create on-chain invoices on Stellar where multiple payers each owe a share. USDC auto-routes to recipients when fully funded.",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ??
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://splitapp-steel.vercel.app")
+  ),
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -50,6 +55,22 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icons/icon-192.png",
     apple: "/icons/icon-192.png",
+  },
+  openGraph: {
+    title: "StellarSplit — Split invoices on-chain",
+    description:
+      "Create on-chain invoices on Stellar where multiple payers each owe a share. USDC auto-routes to recipients when fully funded.",
+    url: "/",
+    siteName: "StellarSplit",
+    images: [`/icons/icon-192.png`],
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "StellarSplit — Split invoices on-chain",
+    description:
+      "Create on-chain invoices on Stellar where multiple payers each owe a share. USDC auto-routes to recipients when fully funded.",
+    images: [`/icons/icon-192.png`],
   },
 };
 
@@ -72,6 +93,7 @@ export default function RootLayout({
         dangerouslySetInnerHTML={{ __html: accessibilityBootstrap }}
       />
       <body className="min-h-screen bg-gray-950 text-gray-100 antialiased overflow-x-hidden">
+        <QueryProvider>
         <ThemeProvider>
           <AccessibilityProvider>
             <I18nProvider>
@@ -96,6 +118,7 @@ export default function RootLayout({
             </I18nProvider>
           </AccessibilityProvider>
         </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

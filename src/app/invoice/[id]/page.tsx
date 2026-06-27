@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
@@ -10,8 +11,6 @@ import PaymentProgress from "@/components/PaymentProgress";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
 import DeadlineCountdown from "@/components/DeadlineCountdown";
-import RecipientPieChart from "@/components/RecipientPieChart";
-import InvoiceQR from "@/components/InvoiceQR";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
@@ -20,8 +19,12 @@ import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import VotingPanel from "@/components/VotingPanel";
 import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
-import FlowDiagram from "@/components/FlowDiagram";
 import SuccessAnimation from "@/components/SuccessAnimation";
+import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
+
+const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
+const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
+const FlowDiagram = dynamic(() => import("@/components/FlowDiagram"), { ssr: false });
 
 const POLL_MS = 10_000;
 
@@ -276,30 +279,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       </section>
 
       {/* Recipients */}
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold text-white mb-3">Recipients</h2>
-        <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-4">
-          <RecipientPieChart recipients={invoice.recipients} total={total} />
-          <ul className="flex flex-col gap-2 mt-4">
-            {invoice.recipients.map((r, i) => (
-              <li
-                key={i}
-                className="flex justify-between items-center gap-2 bg-gray-900/60 rounded-lg px-4 py-2.5"
-              >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-                  <span className="font-mono text-gray-300 truncate text-sm" title={r.address}>
-                    {truncateAddress(r.address, 8)}
-                  </span>
-                </div>
-                <span className="text-indigo-300 font-medium text-sm shrink-0">
-                  {formatAmount(r.amount)} USDC
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
 
       {/* Pay Section */}
       {invoice.status === "Pending" && publicKey && (
