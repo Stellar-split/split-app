@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireWriteScope } from "@/lib/apiKeyAuth";
 
 interface ConfirmationRequest {
   email: string;
@@ -8,6 +9,9 @@ interface ConfirmationRequest {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = requireWriteScope(request);
+  if (authError) return authError;
+
   try {
     const body: ConfirmationRequest = await request.json();
     const { email, invoiceId, txHash, amount } = body;

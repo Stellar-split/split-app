@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireWriteScope } from "@/lib/apiKeyAuth";
 
 const SAMPLE_PAYLOADS: Record<string, object> = {
   "invoice.created": {
@@ -37,6 +38,9 @@ const SAMPLE_PAYLOADS: Record<string, object> = {
 };
 
 export async function POST(req: NextRequest) {
+  const authError = requireWriteScope(req);
+  if (authError) return authError;
+
   const body = await req.json().catch(() => null);
   if (!body || typeof body.url !== "string" || !body.url) {
     return NextResponse.json({ error: "url is required" }, { status: 400 });
