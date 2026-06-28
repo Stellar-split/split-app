@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { splitClient } from "@/lib/stellar";
+import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { parseAmount } from "@stellar-split/sdk";
 
@@ -28,7 +28,7 @@ export default function VerifyPayButton({ invoiceId, status }: Props) {
     setError(null);
     setPaying(true);
     try {
-      const result = await splitClient.pay({
+      const result = await payWithNonce({
         payer: publicKey,
         invoiceId,
         amount: parseAmount(payAmount),
@@ -64,7 +64,7 @@ export default function VerifyPayButton({ invoiceId, status }: Props) {
       <button
         type="submit"
         disabled={paying}
-        className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+        className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         {paying ? "Sending…" : "Pay"}
       </button>

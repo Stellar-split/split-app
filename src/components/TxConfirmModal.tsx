@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import FocusTrap from "./FocusTrap";
 
 const EXPLORER_BASE =
   process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
@@ -16,12 +17,7 @@ interface Props {
 export default function TxConfirmModal({ txHash, action, onClose }: Props) {
   const [copied, setCopied] = useState(false);
 
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
+  // Focus trap and Escape handled by FocusTrap
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(txHash);
@@ -37,17 +33,18 @@ export default function TxConfirmModal({ txHash, action, onClose }: Props) {
       aria-labelledby="tx-modal-title"
       onClick={onClose}
     >
-      <div
-        className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <FocusTrap onClose={onClose}>
+        <div
+          className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md"
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="flex items-center justify-between mb-4">
           <h2 id="tx-modal-title" className="text-lg font-semibold text-green-400">
             ✓ {action} confirmed
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-200 text-xl leading-none"
+            className="text-gray-400 hover:text-gray-200 text-xl leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-label="Close"
           >
             ×
@@ -59,7 +56,7 @@ export default function TxConfirmModal({ txHash, action, onClose }: Props) {
           <span className="font-mono text-xs text-gray-200 break-all flex-1">{txHash}</span>
           <button
             onClick={handleCopy}
-            className="shrink-0 text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
+            className="shrink-0 text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-label="Copy transaction hash"
           >
             {copied ? "Copied!" : "Copy"}
@@ -70,11 +67,12 @@ export default function TxConfirmModal({ txHash, action, onClose }: Props) {
           href={`${EXPLORER_BASE}/${txHash}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="block w-full text-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+          className="block w-full text-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           View on Stellar Expert ↗
         </a>
-      </div>
+        </div>
+      </FocusTrap>
     </div>
   );
 }

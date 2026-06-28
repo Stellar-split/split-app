@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { splitClient } from "@/lib/stellar";
+import FocusTrap from "./FocusTrap";
+import { splitClient, payWithNonce } from "@/lib/stellar";
 import { parseAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 
@@ -41,7 +42,7 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
       // surface the last tx hash as the batch result.
       let lastTxHash = "";
       for (const pair of pairs) {
-        const result = await splitClient.pay({ payer: publicKey, invoiceId: pair.invoiceId, amount: pair.amount });
+        const result = await payWithNonce({ payer: publicKey, invoiceId: pair.invoiceId, amount: pair.amount });
         lastTxHash = result.txHash;
       }
       setTxHash(lastTxHash);
@@ -59,7 +60,8 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
       aria-labelledby="batch-pay-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
     >
-      <div className="bg-gray-900 rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
+      <FocusTrap onClose={onClose}>
+        <div className="bg-gray-900 rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
         <div className="flex items-center justify-between">
           <h2 id="batch-pay-title" className="text-xl font-bold">
             Batch Pay
@@ -96,7 +98,7 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
                 onChange={(e) =>
                   setAmounts((prev) => ({ ...prev, [inv.id]: e.target.value }))
                 }
-                className="flex-1 min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-0"
+                className="flex-1 min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 min-w-0"
               />
             </li>
           ))}
@@ -111,7 +113,7 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
             </p>
             <button
               onClick={onClose}
-              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               Close
             </button>
@@ -120,20 +122,21 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
+              className="flex-1 min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               Cancel
             </button>
             <button
               onClick={handleConfirm}
               disabled={paying}
-              className="flex-1 min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+              className="flex-1 min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               {paying ? "Sending…" : "Confirm Payment"}
             </button>
           </div>
         )}
-      </div>
+        </div>
+      </FocusTrap>
     </div>
   );
 }
