@@ -129,3 +129,31 @@ export function notifyInvoiceRefunded(invoiceId: string): void {
     tag: `invoice-refunded-${invoiceId}`,
   });
 }
+
+/** Stellar address regex: G followed by 55 uppercase alphanumeric chars. */
+const STELLAR_ADDRESS_RE = /\bG[A-Z0-9]{55}\b/g;
+
+/**
+ * Parse @G... mentions from comment text.
+ * Returns unique valid Stellar addresses that were mentioned.
+ */
+export function parseMentions(text: string): string[] {
+  const matches = text.match(STELLAR_ADDRESS_RE) ?? [];
+  return [...new Set(matches)];
+}
+
+/**
+ * Fire a browser notification to the mentioned address (current user).
+ * Skips if mentionedAddress === commenterAddress (self-mention).
+ */
+export function notifyMention(
+  mentionedAddress: string,
+  commenterAddress: string,
+  invoiceId: string
+): void {
+  if (mentionedAddress === commenterAddress) return;
+  sendBrowserNotification(`You were mentioned on Invoice #${invoiceId}`, {
+    body: `${commenterAddress.slice(0, 8)}… mentioned you in a comment.`,
+    tag: `mention-${invoiceId}-${mentionedAddress}`,
+  });
+}
