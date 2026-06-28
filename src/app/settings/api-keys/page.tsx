@@ -12,6 +12,30 @@ import {
   saveKeys,
 } from "@/lib/apiKeys"
 
+type ApiKey = {
+  id: string
+  name: string
+  key: string
+  createdAt: number
+  lastUsed?: number | null
+}
+
+const STORAGE_KEY = "apiKeys"
+
+function loadKeys(): ApiKey[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    return JSON.parse(raw) as ApiKey[]
+  } catch (e) {
+    return []
+  }
+}
+
+function saveKeys(keys: ApiKey[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(keys))
+}
+
 function maskKey(key: string) {
   if (!key) return ""
   const prefix = key.startsWith("sk_") ? key.match(/^sk_(?:read|write)_/)?.[0] ?? "sk_" : ""

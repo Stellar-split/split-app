@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const invoice = await splitClient.getInvoice(id);
     const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
     const pct = total === 0n ? 0 : Number((invoice.funded * 100n) / total);
-    const title = `Invoice #${id} — ${invoice.status} | StellarSplit`;
+    const title = `Invoice #${id}: ${invoice.status} — StellarSplit`;
     const description = `${pct}% funded · ${formatAmount(invoice.funded)} / ${formatAmount(total)} USDC · Status: ${invoice.status}`;
     const url = `${appUrl}/verify/${id}`;
     return {

@@ -127,18 +127,18 @@ export default function WalletConnect() {
     return (
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
-          <span className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-gray-800 text-sm font-mono text-gray-300">
+          <span className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-mono text-gray-700 dark:text-gray-300">
             {truncateAddress(address)}
           </span>
           <button
             onClick={handleDisconnect}
-            className="min-h-11 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+            className="min-h-11 px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm transition-colors"
             aria-label="Disconnect wallet"
           >
             Disconnect
           </button>
         </div>
-        <div className="text-sm text-gray-400">
+        <div className="text-sm text-gray-600 dark:text-gray-400">
           {balanceLoading
             ? "Loading USDC…"
             : balance !== null
@@ -158,7 +158,7 @@ export default function WalletConnect() {
         <button
           onClick={handleConnect}
           disabled={loading}
-          className="min-h-11 px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="min-h-11 px-6 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           aria-label="Connect Wallet via QR"
         >
           {loading ? "Connecting…" : "Connect with Freighter"}
@@ -167,7 +167,7 @@ export default function WalletConnect() {
         <button
           onClick={handleConnectWalletConnect}
           disabled={loading}
-          className="min-h-11 px-6 py-3 rounded-lg bg-gray-900 hover:bg-gray-800 font-semibold transition-colors disabled:opacity-50 border border-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="min-h-11 px-6 py-3 rounded-lg bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 font-semibold transition-colors disabled:opacity-50 border border-gray-200 dark:border-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           aria-label="Connect Freighter wallet"
         >
           {loading ? "Connecting…" : "Connect with WalletConnect"}
