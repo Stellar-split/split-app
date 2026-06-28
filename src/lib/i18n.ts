@@ -1,9 +1,16 @@
-const messages: Record<string, Record<string, any>> = {
-  en: require("@/messages/en.json"),
-  es: require("@/messages/es.json"),
-};
+import enMessages from "@/messages/en.json";
+import esMessages from "@/messages/es.json";
+import ptMessages from "@/messages/pt.json";
+import frMessages from "@/messages/fr.json";
 
-export type Locale = "en" | "es";
+export type Locale = "en" | "es" | "pt" | "fr";
+
+const messages: Record<Locale, any> = {
+  en: enMessages,
+  es: esMessages,
+  pt: ptMessages,
+  fr: frMessages,
+};
 
 export function getMessages(locale: Locale) {
   return messages[locale] || messages.en;
