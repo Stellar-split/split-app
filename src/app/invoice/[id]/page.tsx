@@ -65,7 +65,29 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"freighter" | "walletconnect">("freighter");
-  const [payerNonce, setPayerNonce] = useState<bigint | null>(null);
+  const [amountLocked, setAmountLocked] = useState(false);
+  const prevPayAmountRef = useRef("");
+  const [cooldownExpiresAt, setCooldownExpiresAt] = useState<number | null>(null);
+  const [activeDetailsTab, setActiveDetailsTab] = useState<"audit" | "history" | "notes">("audit");
+
+  const prevStatusRef = useRef<string | null>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [exportingTimeline, setExportingTimeline] = useState(false);
+
+  useEffect(() => {
+    setNotifySubscribed(isSubscribedToInvoice(id));
+  }, [id]);
+
+  const handleNotifyMe = async () => {
+    const permission = await requestNotificationPermission();
+    if (permission !== "granted") {
+      setNotifyDenied(true);
+      return;
+    }
+    subscribeToInvoice(id);
+    setNotifySubscribed(true);
+    setNotifyDenied(false);
+  };
 
   const load = async () => {
     const inv = await splitClient.getInvoice(id);
@@ -581,50 +603,36 @@ export default function InvoiceDetailPage({ params }: Props) {
         />
       )}
 
-      {/* Token & Contract Info */}
+      {/* Tabbed detail section: Audit Log / History / Notes */}
       <section className="mb-8">
-        <h2 className="text-lg font-semibold text-white mb-3">Details</h2>
-        <div className="bg-gray-800/40 border border-gray-700 rounded-xl divide-y divide-gray-700">
-          <div className="flex justify-between items-center px-4 py-3">
-            <span className="text-sm text-gray-400">Invoice ID</span>
-            <span className="text-sm font-mono text-gray-200">#{id}</span>
-          </div>
-          <div className="flex justify-between items-center px-4 py-3">
-            <span className="text-sm text-gray-400">Token</span>
-            <span className="text-sm font-mono text-gray-200 truncate ml-4" title={invoice.token}>
-              {truncateAddress(invoice.token, 8)}
-            </span>
-          </div>
-          <div className="flex justify-between items-center px-4 py-3">
-            <span className="text-sm text-gray-400">Deadline</span>
-            <span className="text-sm text-gray-200">
-              {invoice.deadline > 0
-                ? new Date(invoice.deadline * 1000).toLocaleString()
-                : "No deadline"}
-            </span>
-          </div>
-          <div className="flex justify-between items-center px-4 py-3">
-            <span className="text-sm text-gray-400">Total Amount</span>
-            <span className="text-sm font-semibold text-indigo-300">{formatAmount(total)} USDC</span>
-          </div>
-          <div className="flex justify-between items-center px-4 py-3">
-            <span className="text-sm text-gray-400">Funded</span>
-            <span className="text-sm font-medium text-green-400">{formatAmount(invoice.funded)} USDC</span>
-          </div>
-          <div className="flex justify-between items-center px-4 py-3">
-            <span className="text-sm text-gray-400">Status</span>
-            <span className={`text-sm font-medium ${status.color.replace("bg-", "text-")}`}>
-              {invoice.status}
-            </span>
-          </div>
-          {payerNonce !== null && (
-            <div className="flex justify-between items-center px-4 py-3">
-              <span className="text-sm text-gray-400">Your Nonce</span>
-              <span className="text-sm font-mono text-gray-200">{payerNonce.toString()}</span>
-            </div>
-          )}
+        <div className="flex gap-1 border-b border-gray-700 mb-4" role="tablist" aria-label="Invoice details">
+          {(["audit", "history", "notes"] as const).map((tab) => {
+            const labels: Record<string, string> = { audit: "Audit Log", history: "History", notes: "Notes" };
+            return (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeDetailsTab === tab}
+                onClick={() => setActiveDetailsTab(tab)}
+                className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg -mb-px border-b-2 ${
+                  activeDetailsTab === tab
+                    ? "border-indigo-500 text-indigo-300"
+                    : "border-transparent text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                {labels[tab]}
+              </button>
+            );
+          })}
         </div>
+        {activeDetailsTab === "audit" && <AuditLogTable invoiceId={id} invoice={invoice ?? undefined} />}
+        {activeDetailsTab === "history" && <VersionHistory invoiceId={id} />}
+        {activeDetailsTab === "notes" && publicKey && (
+          <CommentSection invoiceId={id} walletAddress={publicKey} />
+        )}
       </section>
+      
 
       {showCancelModal && (
         <CancelModal
