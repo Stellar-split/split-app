@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import FocusTrap from "./FocusTrap";
+
+const ReceiptPDF = lazy(() => import("./ReceiptPDF"));
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "./PaymentProgress";
 import PaymentBreakdownModal from "./PaymentBreakdownModal";
 import type { Invoice } from "@stellar-split/sdk";
 import { checkBudget, getBudgetLimit, setBudgetLimit, clearBudgetLimit } from "@/lib/budgetTracker";
 import { fetchUsdcBalance, USDC_CONTRACT_ID } from "@/lib/stellar";
+import { saveReceipt } from "@/lib/receiptStore";
 
 const STELLAR_EXPERT_BASE =
   process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
@@ -75,6 +78,8 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
+  const [receiptPaymentAmount, setReceiptPaymentAmount] = useState<bigint>(0n);
+  const [receiptTipAmount, setReceiptTipAmount] = useState<bigint>(0n);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [budgetDismissed, setBudgetDismissed] = useState(false);
   const [showBudgetSettings, setShowBudgetSettings] = useState(false);
@@ -188,6 +193,18 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
       });
       const txHash = result && "txHash" in result ? result.txHash : undefined;
       setSuccessTxHash(txHash || "pending");
+      setReceiptPaymentAmount(parsed);
+      setReceiptTipAmount(parsedTip);
+      if (txHash) {
+        saveReceipt({
+          txHash,
+          date: Date.now(),
+          payerAddress: publicKey,
+          invoiceId: invoice.id,
+          amountPaid: String(parsed),
+          tipAmount: String(parsedTip),
+        });
+      }
       setShowBreakdown(false);
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
     } catch (err) {
@@ -243,6 +260,21 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
               >
                 View on Stellar Expert
               </a>
+            )}
+
+            {hasExplorerHash && (
+              <Suspense fallback={null}>
+                <ReceiptPDF
+                  data={{
+                    txHash: successTxHash,
+                    date: new Date(),
+                    payerAddress: publicKey,
+                    invoiceId: invoice.id,
+                    amountPaid: receiptPaymentAmount,
+                    tipAmount: receiptTipAmount,
+                  }}
+                />
+              </Suspense>
             )}
 
             <button

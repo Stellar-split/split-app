@@ -1,1 +1,1 @@
-export type Locale = "en" | "es";
+export type Locale = "en" | "es" | "pt" | "fr";

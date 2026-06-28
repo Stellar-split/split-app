@@ -11,31 +11,41 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
-// Import translations
 import enMessages from "@/messages/en.json";
 import esMessages from "@/messages/es.json";
+import ptMessages from "@/messages/pt.json";
+import frMessages from "@/messages/fr.json";
 
 const messages: Record<Locale, any> = {
   en: enMessages,
   es: esMessages,
+  pt: ptMessages,
+  fr: frMessages,
 };
+
+const LOCALE_KEY = "split-locale";
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Load saved locale from localStorage
-    const saved = (localStorage.getItem("locale") || "en") as Locale;
-    setLocaleState(saved);
-    document.documentElement.lang = saved;
+    const saved = (localStorage.getItem(LOCALE_KEY) || "en") as Locale;
+    const valid: Locale[] = ["en", "es", "pt", "fr"];
+    const resolved: Locale = valid.includes(saved) ? saved : "en";
+    setLocaleState(resolved);
+    document.documentElement.lang = resolved;
+    // RTL scaffold: set dir attribute (Arabic/Hebrew future support)
+    document.documentElement.dir = "ltr";
     setMounted(true);
   }, []);
 
   const setLocale = (newLocale: Locale) => {
-    localStorage.setItem("locale", newLocale);
+    localStorage.setItem(LOCALE_KEY, newLocale);
     setLocaleState(newLocale);
     document.documentElement.lang = newLocale;
+    // RTL scaffold — extend here when adding ar/he
+    document.documentElement.dir = "ltr";
   };
 
   const t = (key: string): string => {
@@ -67,7 +77,6 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 export function useI18n() {
   const context = useContext(I18nContext);
   if (!context) {
-    // SSR fallback — return a no-op t function
     return {
       locale: "en" as Locale,
       setLocale: (_: Locale) => {},
