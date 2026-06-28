@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { parseMentions, notifyMention } from "@/lib/notifications";
 
 interface Comment {
   id: string;
@@ -54,9 +55,35 @@ function relativeTime(timestamp: number): string {
   return `${Math.floor(diff / 86400)} days ago`;
 }
 
+/** Stellar address pattern — must match parseMentions regex. */
+const MENTION_SPLIT_RE = /(\bG[A-Z0-9]{55}\b)/g;
+const MENTION_TEST_RE  = /^G[A-Z0-9]{55}$/;
+
+/**
+ * Render comment text with @G... addresses as styled chips.
+ * Anything that doesn't match the pattern renders as plain text.
+ */
+export function renderCommentText(text: string): React.ReactNode[] {
+  const parts = text.split(MENTION_SPLIT_RE);
+  return parts.map((part, i) =>
+    MENTION_TEST_RE.test(part) ? (
+      <span
+        key={i}
+        className="inline-flex items-center rounded-full bg-indigo-900/60 text-indigo-300 text-xs font-mono px-2 py-0.5 mx-0.5"
+        aria-label={`Mentioned address ${part}`}
+      >
+        @{part.slice(0, 6)}…{part.slice(-4)}
+      </span>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
 /**
  * CommentSection — off-chain per-invoice notes stored in localStorage.
  * Only shows comments belonging to the connected wallet address.
+ * Supports @G... mention chips and fires browser notifications to mentioned addresses.
  */
 export default function CommentSection({ invoiceId, walletAddress }: Props) {
   const [comments, setComments] = useState<Comment[]>([]);
@@ -80,6 +107,12 @@ export default function CommentSection({ invoiceId, walletAddress }: Props) {
     };
     saveComment(comment);
     setComments((prev) => [...prev, comment]);
+
+    // Fire notifications for each unique mentioned address (skip self).
+    for (const addr of parseMentions(trimmed)) {
+      notifyMention(addr, walletAddress, invoiceId);
+    }
+
     setText("");
     inputRef.current?.focus();
   };
@@ -103,7 +136,7 @@ export default function CommentSection({ invoiceId, walletAddress }: Props) {
               className="flex items-start justify-between gap-3 bg-gray-900 rounded-lg px-4 py-3 text-sm"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-gray-200 break-words">{c.text}</p>
+                <p className="text-gray-200 break-words">{renderCommentText(c.text)}</p>
                 <p className="text-xs text-gray-500 mt-1">{relativeTime(c.timestamp)}</p>
               </div>
               <button
@@ -123,7 +156,7 @@ export default function CommentSection({ invoiceId, walletAddress }: Props) {
           ref={inputRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Add a private note…"
+          placeholder="Add a private note… use @G... to mention a Stellar address"
           rows={2}
           className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         />
