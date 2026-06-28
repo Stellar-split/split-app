@@ -1,15 +1,12 @@
-import { truncateAddress } from "@stellar-split/sdk";
+import { truncateAddress, formatAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
-import PaymentProgress from "./PaymentProgress";
-import DeadlineCountdown from "./DeadlineCountdown";
 import FundingProgress from "./FundingProgress";
 import StatusBadge from "./StatusBadge";
-import CountdownTimer from "./CountdownTimer";
+import DeadlineCountdown from "./DeadlineCountdown";
 
 interface Props {
   invoice: Invoice;
   displayNumber?: string;
-  title?: string;
 }
 
 /**
@@ -25,7 +22,9 @@ export default function InvoiceCard({ invoice, displayNumber }: Props) {
         <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
           Invoice #{invoice.id}
           {displayNumber && (
-            <span className="ml-2 text-xs font-mono text-indigo-600 dark:text-indigo-400">({displayNumber})</span>
+            <span className="ml-2 text-xs font-mono text-indigo-600 dark:text-indigo-400">
+              ({displayNumber})
+            </span>
           )}
         </span>
         <StatusBadge status={invoice.status as any} size="sm" />
@@ -44,8 +43,12 @@ export default function InvoiceCard({ invoice, displayNumber }: Props) {
         ))}
       </div>
 
-      {/* Progress — compact (no label) */}
-      <FundingProgress funded={invoice.funded} total={total} token={invoice.token || "USDC"} compact />
+      <FundingProgress
+        funded={invoice.funded}
+        total={total}
+        token={invoice.token || "USDC"}
+        compact
+      />
 
       <div className="flex justify-between text-xs text-gray-500 mt-1">
         <span>{formatAmount(invoice.funded)} USDC funded</span>
@@ -54,19 +57,10 @@ export default function InvoiceCard({ invoice, displayNumber }: Props) {
 
       {invoice.deadline > 0 && (
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-800">
-      {invoice.deadline > 0 && (
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-800">
           <span className="text-xs text-gray-500">Deadline</span>
-          <CountdownTimer deadline={invoice.deadline} compact />
+          <DeadlineCountdown deadline={invoice.deadline} compact />
         </div>
-
-        {invoice.deadline > 0 && (
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-800">
-            <span className="text-xs text-gray-500">Deadline</span>
-            <DeadlineCountdown deadline={invoice.deadline} compact />
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
