@@ -1,165 +1,150 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import WalletConnect from "@/components/WalletConnect";
 
-const ONBOARDING_KEY = "stellarsplit_onboarded";
+const ONBOARDING_KEY = "split-onboarded";
 const ONBOARDING_STEP_KEY = "stellarsplit_onboarding_step";
+const TOTAL_STEPS = 3;
+
+const STEPS = [
+  {
+    icon: "🔗",
+    title: "Connect your Freighter wallet",
+    description:
+      "Freighter is a browser extension wallet for Stellar. Connect it to create and pay invoices on-chain.",
+  },
+  {
+    icon: "📄",
+    title: "Create your first invoice",
+    description:
+      "Fill in recipients, amounts, and a deadline. We'll pre-fill an example to get you started fast.",
+  },
+  {
+    icon: "🔗",
+    title: "Share and get paid",
+    description:
+      "Every invoice gets a unique link. Share it with payers — when the invoice is fully funded, USDC routes automatically to all recipients.",
+  },
+];
 
 export default function OnboardingFlow() {
   const [show, setShow] = useState(false);
   const [step, setStep] = useState(1);
 
   useEffect(() => {
-    const onboarded = localStorage.getItem(ONBOARDING_KEY);
-    const savedStep = localStorage.getItem(ONBOARDING_STEP_KEY);
-
-    if (onboarded === "true") {
-      setShow(false);
-      return;
-    }
-
-    setShow(true);
-    if (savedStep) {
-      setStep(parseInt(savedStep, 10));
-    }
+    try {
+      const onboarded = localStorage.getItem(ONBOARDING_KEY);
+      if (onboarded === "true") return;
+      const savedStep = localStorage.getItem(ONBOARDING_STEP_KEY);
+      setShow(true);
+      if (savedStep) setStep(Math.min(parseInt(savedStep, 10), TOTAL_STEPS));
+    } catch {}
   }, []);
 
   const handleSkip = () => {
-    localStorage.setItem(ONBOARDING_KEY, "true");
-    localStorage.removeItem(ONBOARDING_STEP_KEY);
+    try {
+      localStorage.setItem(ONBOARDING_KEY, "true");
+      localStorage.removeItem(ONBOARDING_STEP_KEY);
+    } catch {}
     setShow(false);
   };
 
   const handleNext = () => {
-    const nextStep = step < 4 ? step + 1 : 4;
-    if (step === 4) {
+    if (step >= TOTAL_STEPS) {
       handleSkip();
-    } else {
-      setStep(nextStep);
-      localStorage.setItem(ONBOARDING_STEP_KEY, nextStep.toString());
+      return;
     }
+    const next = step + 1;
+    setStep(next);
+    try {
+      localStorage.setItem(ONBOARDING_STEP_KEY, String(next));
+    } catch {}
   };
 
   if (!show) return null;
 
+  const current = STEPS[step - 1];
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-lg border border-gray-800 max-w-md w-full p-6 sm:p-8">
-        {/* Progress indicator */}
-        <div className="flex gap-1 mb-6">
-          {[1, 2, 3, 4].map((i) => (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Welcome to StellarSplit"
+    >
+      <div className="w-full max-w-md bg-surface-800 rounded-2xl border border-white/[0.08] shadow-2xl overflow-hidden">
+        {/* Header bar */}
+        <div className="px-6 pt-6 pb-0 flex items-center justify-between">
+          <span className="text-xs text-slate-500 font-medium">
+            Step {step} of {TOTAL_STEPS}
+          </span>
+          <button
+            onClick={handleSkip}
+            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            aria-label="Skip onboarding"
+          >
+            Skip for now
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="flex gap-1.5 px-6 mt-3">
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <div
               key={i}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                i <= step ? "bg-indigo-600" : "bg-gray-700"
+              className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                i < step ? "bg-brand-500" : "bg-white/[0.08]"
               }`}
             />
           ))}
         </div>
 
-        {/* Step 1: Connect Wallet */}
-        {step === 1 && (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-xl font-bold">Welcome to StellarSplit</h2>
-            <p className="text-sm text-gray-400">
-              Let&apos;s get you started. First, connect your Freighter wallet.
-            </p>
-            <WalletConnect />
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={handleSkip}
-                className="flex-1 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm font-semibold transition-colors"
-              >
-                Skip
-              </button>
-              <button
-                onClick={handleNext}
-                className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
-              >
-                Next
-              </button>
-            </div>
+        {/* Content */}
+        <div className="px-6 py-8 flex flex-col gap-4">
+          <div className="flex flex-col items-center text-center gap-3">
+            <span className="text-5xl" aria-hidden="true">{current.icon}</span>
+            <h2 className="text-xl font-bold text-white">{current.title}</h2>
+            <p className="text-sm text-slate-400 leading-relaxed">{current.description}</p>
           </div>
-        )}
 
-        {/* Step 2: What is StellarSplit */}
-        {step === 2 && (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-xl font-bold">What is StellarSplit?</h2>
-            <div className="text-sm text-gray-400 space-y-3">
-              <p>
-                StellarSplit lets you create on-chain invoices where multiple payers each owe a share.
-              </p>
-              <p>
-                When the invoice is fully funded, USDC automatically routes to all recipients.
-              </p>
-              <p>
-                Perfect for splitting bills, group expenses, or shared projects.
-              </p>
+          {/* Step 1: wallet connect inline */}
+          {step === 1 && (
+            <div className="mt-2">
+              <WalletConnect />
             </div>
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={handleSkip}
-                className="flex-1 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm font-semibold transition-colors"
-              >
-                Skip
-              </button>
-              <button
-                onClick={handleNext}
-                className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Step 3: Create First Invoice */}
-        {step === 3 && (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-xl font-bold">Create Your First Invoice</h2>
-            <p className="text-sm text-gray-400">
-              Ready to create your first invoice? Click the button below to get started.
-            </p>
-            <a
-              href="/invoice/new"
-              className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors text-center"
+          {/* Step 2: CTA to create invoice with example values */}
+          {step === 2 && (
+            <Link
+              href="/invoice/new?prefill=example"
+              onClick={handleNext}
+              className="mt-2 flex items-center justify-center h-10 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold transition-colors"
             >
-              Create Invoice
-            </a>
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={handleSkip}
-                className="flex-1 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm font-semibold transition-colors"
-              >
-                Skip
-              </button>
-              <button
-                onClick={handleNext}
-                className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        )}
+              Create example invoice →
+            </Link>
+          )}
 
-        {/* Step 4: Done */}
-        {step === 4 && (
-          <div className="flex flex-col gap-4 text-center">
-            <h2 className="text-xl font-bold">You&apos;re All Set!</h2>
-            <p className="text-sm text-gray-400">
-              You can now create invoices and manage payments. Visit your dashboard anytime.
-            </p>
-            <button
-              onClick={handleSkip}
-              className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
-            >
-              Go to Dashboard
-            </button>
-          </div>
-        )}
+          {/* Step 3: share explanation, no extra widget needed */}
+        </div>
+
+        {/* Footer actions */}
+        <div className="px-6 pb-6 flex gap-3">
+          <button
+            onClick={handleSkip}
+            className="flex-1 h-10 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 text-sm font-medium transition-colors"
+          >
+            Skip
+          </button>
+          <button
+            onClick={handleNext}
+            className="flex-1 h-10 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold transition-colors"
+          >
+            {step === TOTAL_STEPS ? "Get started" : "Next"}
+          </button>
+        </div>
       </div>
     </div>
   );
