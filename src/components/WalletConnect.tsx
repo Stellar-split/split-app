@@ -1,21 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { connectFreighter, getFreighterPublicKey, getWalletConnectPublicKey, connectWalletConnect, disconnectWalletConnect } from "@/lib/freighter";
 import type { WalletType } from "@/lib/freighter";
 import { truncateAddress, formatAmount } from "@stellar-split/sdk";
-import { fetchUsdcBalance, USDC_CONTRACT_ID } from "@/lib/stellar";
+import { fetchUsdcBalance } from "@/lib/stellar";
 import QRModal from "@/components/QRModal";
+import WalletErrorModal, { type WalletErrorType } from "@/components/WalletErrorModal";
+import { useToast } from "@/contexts/ToastContext";
 
 /**
  * WalletConnect — Connect via Freighter or WalletConnect
  * Displays truncated address when connected, supports both wallet types
  */
+function classifyWalletError(e: unknown): WalletErrorType {
+  const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
+  if (msg.includes("not installed") || msg.includes("freighter is not") || msg.includes("no freighter")) return "not_installed";
+  if (msg.includes("locked") || msg.includes("unlock")) return "locked";
+  if (msg.includes("reject") || msg.includes("declin") || msg.includes("cancel") || msg.includes("denied")) return "rejected";
+  if (msg.includes("network") || msg.includes("passphrase") || msg.includes("mismatch")) return "network_mismatch";
+  return "not_installed";
+}
+
 export default function WalletConnect() {
+  const { toast } = useToast();
   const [address, setAddress] = useState<string | null>(null);
   const [walletType, setWalletType] = useState<WalletType | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [modalError, setModalError] = useState<WalletErrorType>(null);
   const [balance, setBalance] = useState<bigint | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
 
@@ -84,14 +96,18 @@ export default function WalletConnect() {
 
   const handleConnect = async () => {
     setLoading(true);
-    setError(null);
+    setModalError(null);
     try {
       const pk = await connectFreighter();
       setAddress(pk);
       setWalletType("freighter");
     } catch (e) {
-      setError("Could not connect Freighter wallet.");
-      console.error(e);
+      const errType = classifyWalletError(e);
+      if (errType === "rejected") {
+        toast.error("Connection rejected. Try again when you're ready.");
+      } else {
+        setModalError(errType);
+      }
     } finally {
       setLoading(false);
     }
@@ -99,7 +115,7 @@ export default function WalletConnect() {
 
   const handleConnectWalletConnect = async () => {
     setLoading(true);
-    setError(null);
+    setModalError(null);
     try {
       const { publicKey, uri } = await connectWalletConnect();
       setAddress(publicKey);
@@ -107,7 +123,7 @@ export default function WalletConnect() {
       setQrUri(uri);
       setQrOpen(true);
     } catch (e) {
-      setError("Could not initiate WalletConnect.");
+      toast.error("Could not initiate WalletConnect. Please try again.");
       console.error(e);
     } finally {
       setLoading(false);
@@ -181,6 +197,12 @@ export default function WalletConnect() {
         uri={qrUri}
         onClose={() => setQrOpen(false)}
         onConnected={() => setQrOpen(false)}
+      />
+
+      <WalletErrorModal
+        errorType={modalError}
+        onDismiss={() => setModalError(null)}
+        onRetry={() => { setModalError(null); handleConnect(); }}
       />
     </div>
   );

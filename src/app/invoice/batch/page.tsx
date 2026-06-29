@@ -8,10 +8,7 @@ import RecipientForm from "@/components/RecipientForm";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
 import { findBatchDuplicates, type DuplicateGroup, type InvoiceRow } from "@/lib/batchUtils";
 
-interface RecipientRow {
-  address: string;
-  amount: string;
-}
+
 
 const MAX_ROWS = 5;
 
