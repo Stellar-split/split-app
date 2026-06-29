@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import FocusTrap from './FocusTrap';
+import CopyButton from './CopyButton';
 
 interface ShareModalProps {
   open: boolean;
@@ -14,22 +15,10 @@ type Tab = 'link' | 'qr' | 'embed';
 
 export default function ShareModal({ open, url, onClose }: ShareModalProps) {
   const [tab, setTab] = useState<Tab>('link');
-  const [linkCopied, setLinkCopied] = useState(false);
-  const [embedCopied, setEmbedCopied] = useState(false);
 
   if (!open) return null;
 
   const embedSnippet = `<iframe src="${url}/embed" width="100%" height="400" frameborder="0"></iframe>`;
-
-  const copy = async (text: string, setCopied: (v: boolean) => void) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      window.prompt('Copy:', text);
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const downloadQR = () => {
     const canvas = document.querySelector<HTMLCanvasElement>('#share-qr-canvas');
@@ -92,12 +81,7 @@ export default function ShareModal({ open, url, onClose }: ShareModalProps) {
             {tab === 'link' && (
               <div className="flex flex-col gap-3">
                 <p className="text-xs text-gray-400 break-all font-mono">{url}</p>
-                <button
-                  onClick={() => copy(url, setLinkCopied)}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm font-semibold transition-colors"
-                >
-                  {linkCopied ? 'Copied!' : 'Copy link'}
-                </button>
+                <CopyButton text={url} className="w-full justify-center py-3" />
               </div>
             )}
 
@@ -120,12 +104,7 @@ export default function ShareModal({ open, url, onClose }: ShareModalProps) {
                 <pre className="text-xs text-gray-400 font-mono break-all whitespace-pre-wrap bg-gray-800 rounded-lg p-3">
                   {embedSnippet}
                 </pre>
-                <button
-                  onClick={() => copy(embedSnippet, setEmbedCopied)}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm font-semibold transition-colors"
-                >
-                  {embedCopied ? 'Copied!' : 'Copy snippet'}
-                </button>
+                <CopyButton text={embedSnippet} className="w-full justify-center py-3" />
               </div>
             )}
           </div>

@@ -8,6 +8,7 @@ import Link from "next/link";
 interface Props {
   invoice: Invoice;
   displayNumber?: string;
+  onShareQR?: () => void;
   onCompareToggle?: (id: string, checked: boolean) => void;
   isComparing?: boolean;
   isChecked?: boolean;
@@ -17,7 +18,7 @@ interface Props {
  * InvoiceCard — summary card showing recipients, total, funded %, and status.
  * Optionally includes a compare checkbox when in compare mode.
  */
-export default function InvoiceCard({ invoice, displayNumber, onCompareToggle, isComparing, isChecked }: Props) {
+export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompareToggle, isComparing, isChecked }: Props) {
   const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
   const deadlineLabel = new Date(invoice.deadline * 1000).toLocaleDateString();
 
@@ -43,7 +44,26 @@ export default function InvoiceCard({ invoice, displayNumber, onCompareToggle, i
             )}
           </span>
         </div>
-        <StatusBadge status={invoice.status as any} size="sm" />
+        <div className="flex items-center gap-2 relative z-20 pointer-events-auto">
+          {onShareQR && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onShareQR();
+              }}
+              className="p-1 rounded-md bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-750 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors border border-gray-300 dark:border-gray-700"
+              aria-label={`Share Invoice #${invoice.id} via QR code`}
+              title="Share via QR Code"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zM17 5h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1V6a1 1 0 011-1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              </svg>
+            </button>
+          )}
+          <StatusBadge status={invoice.status as any} size="sm" />
+        </div>
       </div>
 
       <p className="text-xs text-gray-500 mb-3">Due {deadlineLabel}</p>
