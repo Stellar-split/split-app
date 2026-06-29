@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { searchEntries, addEntry, type AddressEntry } from "@/lib/addressBook";
 import { searchAddressHistory, searchAmountHistory } from "@/lib/invoiceHistory";
+import CsvRecipientImport from "@/components/CsvRecipientImport";
 
 interface RecipientRow {
   address: string;
@@ -299,6 +300,19 @@ export default function RecipientForm({
         {importError && (
           <p className="text-red-400 text-sm self-start">{importError}</p>
         )}
+      </div>
+
+      {/* CSV import with full validation and preview */}
+      <div className="pt-2 border-t border-gray-700">
+        <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">
+          Import CSV with validation
+        </p>
+        <CsvRecipientImport
+          existingCount={recipients.length}
+          onImport={(rows) => {
+            onChange([...recipients, ...rows]);
+          }}
+        />
       </div>
     </div>
   );

@@ -136,9 +136,6 @@ function NewInvoiceForm() {
   const [stepErrors, setStepErrors] = useState<Record<number, string | null>>({});
 
   useEffect(() => {
-    if (fromId || sessionStorage.getItem("invoiceTemplate")) return;
-  // Autofill from invoice history on first load (skip if duplicating or using a template or pre-filled address)
-  useEffect(() => {
     if (fromId || sessionStorage.getItem("invoiceTemplate") || searchParams.get("address")) return;
 
     getFreighterPublicKey()
