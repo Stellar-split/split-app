@@ -11,6 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^3.4.4",
     "@sentry/nextjs": "^10.62.0",
     "@stellar-split/sdk": "^0.1.0",
     "@stellar/freighter-api": "^3.0.0",
