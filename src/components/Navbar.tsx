@@ -8,6 +8,7 @@ import SimulationModeToggle from "@/components/SimulationModeToggle";
 import NotificationCenter from "@/components/NotificationCenter";
 import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 import NetworkStatus from "@/components/NetworkStatus";
+import GlobalSearch from "@/components/GlobalSearch";
 
 const NAV_LINKS = [
   { href: "/dashboard",    label: "Dashboard" },
