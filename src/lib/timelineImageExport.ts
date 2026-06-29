@@ -1,5 +1,4 @@
-// html2canvas not installed - feature disabled
-// import html2canvas from "html2canvas";
+import html2canvas from "html2canvas";
 
 export function getTimelineFilename(invoiceId: string): string {
   return `invoice-${invoiceId}-timeline.png`;
@@ -14,12 +13,11 @@ export async function exportTimelineAsImage(
   invoiceId: string,
   status: string
 ): Promise<void> {
-  // TODO: html2canvas not installed
-  // const canvas = await html2canvas(element, {
-  //   backgroundColor: "#111827",
-  //   scale: 2,
-  //   useCORS: true,
-  // });
+  const canvas = await html2canvas(element, {
+    backgroundColor: "#111827",
+    scale: 2,
+    useCORS: true,
+  });
 
   const captionHeight = 48;
   const out = document.createElement("canvas");

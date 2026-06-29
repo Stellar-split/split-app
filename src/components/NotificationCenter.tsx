@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
 
-export type NotificationType = "payment" | "funded" | "released" | "expired";
+export type NotificationType = "payment" | "funded" | "released" | "expired" | "reminder";
 
 export interface AppNotification {
   id: string;
@@ -62,13 +62,14 @@ const TYPE_ICONS: Record<NotificationType, string> = {
   funded: "✅",
   released: "🚀",
   expired: "⏰",
+  reminder: "📅",
 };
 
 export default function NotificationCenter() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const firstItemRef = useRef<HTMLButtonElement>(null);
+  const firstItemRef = useRef<HTMLAnchorElement>(null);
 
   const syncFromStorage = useCallback(() => {
     setNotifications(loadNotifications());
@@ -288,7 +289,7 @@ export default function NotificationCenter() {
                 <li key={n.id} role="listitem">
                   <Link
                     href={`/invoice/${n.invoiceId}`}
-                    ref={idx === 0 ? (firstItemRef as React.Ref<HTMLAnchorElement>) : undefined}
+                    ref={idx === 0 ? firstItemRef : undefined}
                     onClick={() => { markRead(n.id); setOpen(false); }}
                     className={`flex items-start gap-3 w-full px-4 py-3 hover:bg-white/[0.04] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${
                       !n.read ? "bg-brand-600/10" : ""

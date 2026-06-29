@@ -20,6 +20,7 @@ const TYPE_LABELS: Record<AppNotification["type"], string> = {
   funded: "Funded",
   released: "Released",
   reminder: "Reminder",
+  expired: "Expired",
 };
 
 const TYPE_COLORS: Record<AppNotification["type"], string> = {
@@ -27,6 +28,7 @@ const TYPE_COLORS: Record<AppNotification["type"], string> = {
   funded: "bg-yellow-500/20 text-yellow-300",
   released: "bg-green-500/20 text-green-300",
   reminder: "bg-purple-500/20 text-purple-300",
+  expired: "bg-red-500/20 text-red-300",
 };
 
 function load(): AppNotification[] {

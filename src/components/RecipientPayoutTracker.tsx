@@ -21,7 +21,7 @@ export default function RecipientPayoutTracker({ invoice, publicKey }: Props) {
   const [claimTx, setClaimTx] = useState<string | null>(null);
 
   const { recipients } = invoice;
-  const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
+  const total = recipients.reduce((s, r) => s + r.amount, 0n);
 
   const getStatus = (recipient: Recipient): PayoutStatus => {
     if (invoice.status === "Refunded") return "Refunded";

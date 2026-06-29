@@ -6,7 +6,7 @@ import { formatAmount } from "@stellar-split/sdk";
 interface Props {
   funded: bigint;
   total: bigint;
-  token: string;
+  token?: string;
   /** compact hides the text label */
   compact?: boolean;
 }
@@ -22,7 +22,7 @@ function getBarColor(pct: number): string {
  * FundingProgress — animated horizontal bar with colour transitions.
  * Animates from 0 → actual value on first render (600 ms).
  */
-export default function FundingProgress({ funded, total, token, compact = false }: Props) {
+export default function FundingProgress({ funded, total, token = "USDC", compact = false }: Props) {
   const rawPct = total === 0n ? 0 : Number((funded * 100n) / total);
   const clamped = Math.min(100, Math.max(0, rawPct));
 

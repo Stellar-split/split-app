@@ -1,41 +1,32 @@
 import { render, screen } from '@testing-library/react';
 import InvoiceCard from '@/components/InvoiceCard';
 import type { Invoice } from '@stellar-split/sdk';
+import { vi } from 'vitest';
 
-jest.mock('@stellar-split/sdk', () => ({
-  formatAmount: (n: bigint) => `${n}`,
-  truncateAddress: (s: string) => `${s.slice(0, 4)}...${s.slice(-4)}`,
+vi.mock('@stellar-split/sdk', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@stellar-split/sdk')>();
+  return {
+    ...actual,
+    formatAmount: (n: bigint) => `${n}`,
+    truncateAddress: (s: string) => `${s.slice(0, 4)}...${s.slice(-4)}`,
+  };
+});
+
+vi.mock('@/components/PaymentProgress', () => ({
+  default: () => <div data-testid="payment-progress" />
 }));
-
-jest.mock('@/components/PaymentProgress', () => {
-  const Component = () => <div data-testid="payment-progress" />;
-  Component.displayName = 'PaymentProgress';
-  return Component;
-});
-
-jest.mock('@/components/CountdownTimer', () => {
-  const Component = () => <div data-testid="countdown-timer" />;
-  Component.displayName = 'CountdownTimer';
-  return Component;
-});
-
-jest.mock('@/components/FundingProgress', () => {
-  const Component = () => <div data-testid="funding-progress" />;
-  Component.displayName = 'FundingProgress';
-  return Component;
-});
-
-jest.mock('@/components/StatusBadge', () => {
-  const Component = () => <div data-testid="status-badge">Pending</div>;
-  Component.displayName = 'StatusBadge';
-  return Component;
-});
-
-jest.mock('@/components/DeadlineCountdown', () => {
-  const Component = () => <div data-testid="deadline-countdown" />;
-  Component.displayName = 'DeadlineCountdown';
-  return Component;
-});
+vi.mock('@/components/CountdownTimer', () => ({
+  default: () => <div data-testid="countdown-timer" />
+}));
+vi.mock('@/components/FundingProgress', () => ({
+  default: () => <div data-testid="funding-progress" />
+}));
+vi.mock('@/components/StatusBadge', () => ({
+  default: () => <div data-testid="status-badge">Pending</div>
+}));
+vi.mock('@/components/DeadlineCountdown', () => ({
+  default: () => <div data-testid="deadline-countdown" />
+}));
 
 const invoice: Invoice = {
   id: '42',

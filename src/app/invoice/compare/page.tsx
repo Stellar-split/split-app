@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import type { Invoice } from "@stellar-split/sdk";
 import CompareInvoicesView from "@/components/CompareInvoicesView";
 import { InvoiceListSkeleton } from "@/components/Skeleton";
 
-export default function CompareInvoicesPage() {
+function CompareInvoicesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [invoiceA, setInvoiceA] = useState<Invoice | null>(null);
@@ -89,5 +89,21 @@ export default function CompareInvoicesPage() {
         onPayB={handlePayB}
       />
     </main>
+  );
+}
+
+export default function CompareInvoicesPage() {
+  return (
+    <Suspense fallback={
+      <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-16">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-48 bg-gray-700 rounded" />
+          <div className="h-4 w-full bg-gray-700 rounded" />
+          <div className="h-32 w-full bg-gray-700 rounded" />
+        </div>
+      </main>
+    }>
+      <CompareInvoicesContent />
+    </Suspense>
   );
 }

@@ -8,6 +8,11 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts', './src/__tests__/setup.ts'],
+    server: {
+      deps: {
+        inline: ['@stellar/freighter-api', '@stellar-split/sdk'],
+      },
+    },
   },
   resolve: {
     alias: {

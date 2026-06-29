@@ -3,11 +3,11 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
+import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 import { InvoiceListSkeleton, SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
 import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
@@ -96,9 +96,9 @@ export default function DashboardClient() {
 
   // ── Data fetching ───────────────────────────────────────────────────────────
   const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
+  const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
-  const router = useRouter();
 
   useEffect(() => {
     getFreighterPublicKey()
@@ -411,7 +411,6 @@ export default function DashboardClient() {
               </button>
             </>
           )}
-          <Link href="/invoice/new" className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors">
           {compareMode && (
             <>
               <button
@@ -560,30 +559,7 @@ export default function DashboardClient() {
               <InvoiceCard invoice={inv} displayNumber={getOrAssignDisplayNumber(inv.id)} />
             );
 
-            if (isSelectable) {
-              return (
-                <button key={inv.id} type="button" onClick={() => toggleSelect(inv.id)} aria-pressed={isSelected}
-                  className={`w-full text-left rounded-xl ring-2 transition-all ${isSelected ? "ring-indigo-500" : "ring-transparent hover:ring-gray-600"}`}>
-                  <div className="relative">
-                    {isSelected && <span aria-hidden="true" className="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold z-10">✓</span>}
-                    {card}
-                  </div>
-                </button>
-              );
-            }
-            if (isReminderSelectable) {
-              return (
-                <button key={inv.id} type="button" onClick={() => toggleReminderSelect(inv.id)} aria-pressed={isReminderSelected}
-                  className={`w-full text-left rounded-xl ring-2 transition-all ${isReminderSelected ? "ring-indigo-500" : "ring-transparent hover:ring-gray-600"}`}>
-                  <div className="relative">
-                    {isReminderSelected && <span aria-hidden="true" className="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold z-10">✓</span>}
-                    {card}
-                  </div>
-                </button>
-              );
-            }
             return (
-              <Link key={inv.id} href={`/invoice/${inv.id}`} className="block">{card}</Link>
               <div key={inv.id}>
                 {isSelectable ? (
                   <button
@@ -677,16 +653,18 @@ export default function DashboardClient() {
                     </div>
                   </div>
                 ) : (
-                  <Link
-                    href={`/invoice/${inv.id}`}
-                    aria-label={`View Invoice #${inv.id}`}
-                    className="block"
-                  >
+                  <div className="relative group">
+                    <Link
+                      href={`/invoice/${inv.id}`}
+                      aria-label={`View Invoice #${inv.id}`}
+                      className="absolute inset-0 rounded-xl z-0"
+                    />
                     <InvoiceCard
                       invoice={inv}
                       displayNumber={getOrAssignDisplayNumber(inv.id)}
+                      onShareQR={() => setShareQRInvoiceId(inv.id)}
                     />
-                  </Link>
+                  </div>
                 )}
               </div>
             );
@@ -731,6 +709,12 @@ export default function DashboardClient() {
           </div>
         </div>
       )}
+
+      <InvoiceShareQRModal
+        open={!!shareQRInvoiceId}
+        invoiceId={shareQRInvoiceId || ""}
+        onClose={() => setShareQRInvoiceId(null)}
+      />
     </>
   );
 }
