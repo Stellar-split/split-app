@@ -119,7 +119,7 @@ export default function CreatorProfileClient({
                     <StatusBadge status={inv.status} />
                   </div>
 
-                  <FundingProgress funded={inv.funded} total={inv.total} />
+                  <FundingProgress funded={inv.funded} total={inv.total} token="USDC" />
 
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs text-gray-500">

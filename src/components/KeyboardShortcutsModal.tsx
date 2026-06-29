@@ -8,11 +8,13 @@ interface ShortcutEntry {
 }
 
 const SHORTCUTS: ShortcutEntry[] = [
+  { keys: ["?"], description: "Open keyboard shortcuts reference" },
   { keys: ["⌘", "K"], description: "Open command palette" },
-  { keys: ["/"], description: "Focus search" },
-  { keys: ["T"], description: "Toggle theme" },
-  { keys: ["?"], description: "Open this shortcuts guide" },
+  { keys: ["N"], description: "Create new invoice (on dashboard)" },
   { keys: ["Esc"], description: "Close modal / dismiss overlay" },
+  { keys: ["G", "D"], description: "Navigate to Dashboard" },
+  { keys: ["G", "S"], description: "Navigate to Search" },
+  { keys: ["G", "L"], description: "Navigate to Leaderboard" },
 ];
 
 interface Props {
