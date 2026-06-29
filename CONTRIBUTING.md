@@ -67,6 +67,35 @@ feat: add invoice search to dashboard (#7)
 - Keep components small and focused (single responsibility).
 - All interactive elements must be keyboard-accessible.
 
+## Debugging State with Redux DevTools
+
+StellarSplit uses [Zustand](https://github.com/pmndrs/zustand) for client-side state. Three stores are available:
+
+| Store | Location | DevTools name |
+|---|---|---|
+| Wallet | `src/lib/stores/walletStore.ts` | `WalletStore` |
+| Invoice | `src/lib/stores/invoiceStore.ts` | `InvoiceStore` |
+| UI | `src/lib/stores/uiStore.ts` | `UIStore` |
+
+### Setting up the extension
+
+1. Install the [Redux DevTools browser extension](https://github.com/reduxjs/redux-devtools#browser-extension).
+2. Run the dev server: `npm run dev`.
+3. Open DevTools → **Redux** tab.
+
+The three stores appear by name. You can:
+- **Inspect** current state and individual action payloads.
+- **Time-travel** by clicking any action in the log to jump to that state snapshot.
+- **Replay** a sequence of actions to reproduce a bug.
+
+### DevTools is development-only
+
+The middleware is tree-shaken out in production (`NODE_ENV !== 'development'`). No DevTools overhead ships to users.
+
+### Named actions
+
+Each `set` call in the stores uses a named action (e.g. `"wallet/setConnected"`). When adding new state mutations, keep this convention so the DevTools log stays readable.
+
 ## Questions?
 
 Open a [Discussion](../../discussions) or ask in the issue thread.
