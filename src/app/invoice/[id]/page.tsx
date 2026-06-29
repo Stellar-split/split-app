@@ -22,6 +22,7 @@ import CancelModal from "@/components/CancelModal";
 import DuplicateModal from "@/components/DuplicateModal";
 import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import ShareModal from "@/components/ShareModal";
+import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 import VotingPanel from "@/components/VotingPanel";
 import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
@@ -38,6 +39,15 @@ import DisputeTimeline from "@/components/DisputeTimeline";
 import AuditLogTable from "@/components/AuditLogTable";
 import VersionHistory from "@/components/VersionHistory";
 import CommentSection from "@/components/CommentSection";
+import {
+  isSubscribedToInvoice,
+  subscribeToInvoice,
+  requestNotificationPermission,
+} from "@/lib/notifications";
+import { cancelReminder, setReminder } from "@/lib/reminders";
+import { recordCooldown } from "@/lib/cooldown";
+import { exportTimelineAsImage } from "@/lib/timelineImageExport";
+import type { PaymentChannelState } from "@/components/PaymentChannelPanel";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
 const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
@@ -72,6 +82,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showShareQRModal, setShowShareQRModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -80,10 +91,26 @@ export default function InvoiceDetailPage({ params }: Props) {
   const prevPayAmountRef = useRef("");
   const [cooldownExpiresAt, setCooldownExpiresAt] = useState<number | null>(null);
   const [activeDetailsTab, setActiveDetailsTab] = useState<"audit" | "history" | "notes">("audit");
+  const [payerNonce, setPayerNonce] = useState<bigint | null>(null);
 
   const prevStatusRef = useRef<string | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const [exportingTimeline, setExportingTimeline] = useState(false);
+  const [notifySubscribed, setNotifySubscribed] = useState(false);
+  const [notifyDenied, setNotifyDenied] = useState(false);
+  const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint } | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
+  const [channelLoading, setChannelLoading] = useState(false);
+  const [channelError, setChannelError] = useState<string | null>(null);
+  const [previousInvoice, setPreviousInvoice] = useState<Invoice | null>(null);
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderMsg, setReminderMsg] = useState("");
+  const [hasReminder, setHasReminder] = useState(false);
+  const [reminderSaved, setReminderSaved] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [locale, setLocale] = useState<Locale>("en");
 
   useEffect(() => {
     // TODO: implement notification subscription
@@ -125,7 +152,70 @@ export default function InvoiceDetailPage({ params }: Props) {
     //   getPayerNonce(publicKey).then((n) => setPayerNonce(n)).catch(() => null)
     // ).catch(() => null);
   }, [publicKey]);
+  const channelStorageKey = (invoiceId: string, payer: string) => `stellarsplit_channel_${invoiceId}_${payer}`;
 
+  const persistChannelState = (state: PaymentChannelState | null) => {
+    if (typeof window === "undefined" || !publicKey) return;
+    const key = channelStorageKey(id, publicKey);
+    if (!state) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          invoiceId: state.invoiceId,
+          payer: state.payer,
+          balance: state.balance.toString(),
+          opened: state.opened,
+        })
+      );
+    }
+  };
+
+  const loadChannelState = () => {
+    if (typeof window === "undefined" || !publicKey) return null;
+    const key = channelStorageKey(id, publicKey);
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.invoiceId !== id || parsed.payer !== publicKey) return null;
+      return {
+        invoiceId: parsed.invoiceId,
+        payer: parsed.payer,
+        balance: BigInt(parsed.balance),
+        opened: parsed.opened,
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const syncChannelState = (state: PaymentChannelState | null) => {
+    setChannelState(state);
+    persistChannelState(state);
+  };
+
+  useEffect(() => {
+    if (!publicKey) return;
+    const stored = loadChannelState();
+    if (stored) {
+      setChannelState(stored);
+    }
+  }, [id, publicKey]);
+
+  const applyChannelBalance = (amount: bigint) => {
+    if (!channelState?.opened || channelState.balance <= 0n) return null;
+    const used = amount <= channelState.balance ? amount : channelState.balance;
+    const remainingBalance = channelState.balance - used;
+    const nextState: PaymentChannelState = {
+      ...channelState,
+      balance: remainingBalance > 0n ? remainingBalance : 0n,
+      opened: remainingBalance > 0n,
+    };
+    syncChannelState(nextState.opened ? nextState : null);
+    return channelState;
+  };
   useEffect(() => {
     if (!invoice || invoice.status === "Released" || invoice.status === "Refunded") return;
     const pollId = setInterval(() => {
@@ -142,6 +232,9 @@ export default function InvoiceDetailPage({ params }: Props) {
     e.preventDefault();
     if (!publicKey || !invoice) return;
     const amount = parseAmount(payAmount);
+    const clientKey = `opt-${Date.now()}`;
+    const originalChannel = channelState;
+    const channelUsed = applyChannelBalance(amount);
     setPaymentError(null);
     setPaying(true);
     try {
@@ -160,6 +253,19 @@ export default function InvoiceDetailPage({ params }: Props) {
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
       await load();
     } catch (err) {
+      if (channelUsed && originalChannel) {
+        syncChannelState(originalChannel);
+      }
+      setInvoice((prev) => {
+        if (!prev) return prev;
+        const pending = prev.payments.find((p) => (p as any).clientKey === clientKey);
+        if (!pending || !(pending as any).pending) return prev;
+        return {
+          ...prev,
+          funded: prev.funded - pending.amount,
+          payments: prev.payments.filter((p) => (p as any).clientKey !== clientKey),
+        };
+      });
       setError(String(err));
     } finally {
       setPaying(false);
@@ -190,6 +296,9 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (!invoice) return null;
 
+  const remaining = total - invoice.funded;
+  const status = statusConfig[invoice.status] || { label: invoice.status, color: "bg-gray-500", icon: "⌛" };
+
   return (
     <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
       {/* Header */}
@@ -209,6 +318,31 @@ export default function InvoiceDetailPage({ params }: Props) {
             aria-label="Share invoice"
           >
             Share
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowShareQRModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+            aria-label="Share invoice via QR"
+          >
+            Share via QR
+          </button>
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm transition-colors"
+            aria-label="Receipt language"
+          >
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="fr">FR</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+          >
+            Print Invoice
           </button>
         </div>
       </div>
@@ -305,8 +439,13 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* Split Calculator */}
       {invoice.status === "Pending" && <SplitCalculator invoice={invoice} />}
 
-      {/* Activity Feed */}
-      {/* <ActivityFeed invoice={invoice} /> */}
+      <ActivityFeed
+        invoice={{
+          ...invoice,
+          payments: invoice.payments.filter((p) => !(p as any).pending),
+        }}
+        previousInvoice={previousInvoice}
+      />
 
       {/* Installment schedule — only shown to payers with a registered plan */}
       {publicKey && (
@@ -490,6 +629,12 @@ export default function InvoiceDetailPage({ params }: Props) {
         open={showShareModal}
         url={`${typeof window !== "undefined" ? window.location.origin : ""}/invoice/${id}`}
         onClose={() => setShowShareModal(false)}
+      />
+
+      <InvoiceShareQRModal
+        open={showShareQRModal}
+        invoiceId={id}
+        onClose={() => setShowShareQRModal(false)}
       />
     </main>
   );

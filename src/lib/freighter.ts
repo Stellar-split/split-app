@@ -21,7 +21,7 @@ async function initWalletConnectKit() {
 
   try {
     const { getStellarWalletKit } = await import("@/lib/walletconnect-kit-stub");
-    walletConnectKit = getStellarWalletKit();
+    walletConnectKit = getStellarWalletKit() as any;
     return walletConnectKit;
   } catch {
     throw new Error("WalletConnect kit not available");
@@ -54,8 +54,8 @@ export async function connectWalletConnect(): Promise<{ publicKey: string; uri: 
   if (typeof window === "undefined") throw new Error("Browser only");
 
   const kit = await initWalletConnectKit();
-  if (!kit) throw new Error("WalletConnect kit is not available");
-  const { uri, publicKey } = await kit.connect();
+  if (!kit) throw new Error("WalletConnect kit not initialized");
+  const { uri, publicKey } = await (kit as any).connect();
 
   return { publicKey, uri };
 }
@@ -67,7 +67,7 @@ export async function getWalletConnectPublicKey(): Promise<string | null> {
   try {
     const kit = await initWalletConnectKit();
     if (!kit) return null;
-    return kit.getPublicKey() || null;
+    return (kit as any).getPublicKey() || null;
   } catch {
     return null;
   }
@@ -78,8 +78,8 @@ export async function signWithWalletConnect(xdr: string): Promise<string> {
   if (typeof window === "undefined") throw new Error("Browser only");
 
   const kit = await initWalletConnectKit();
-  if (!kit) throw new Error("WalletConnect kit is not available");
-  return kit.signTransaction(xdr, NETWORK_PASSPHRASE);
+  if (!kit) throw new Error("WalletConnect kit not initialized");
+  return (kit as any).signTransaction(xdr, NETWORK_PASSPHRASE);
 }
 
 /** Disconnect WalletConnect. */
@@ -89,7 +89,7 @@ export async function disconnectWalletConnect(): Promise<void> {
   try {
     const kit = await initWalletConnectKit();
     if (!kit) return;
-    await kit.disconnect();
+    await (kit as any).disconnect();
   } catch {
     // Ignore errors on disconnect
   }
