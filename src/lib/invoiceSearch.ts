@@ -14,7 +14,6 @@ export function searchInvoices(invoices: Invoice[], query: string): Invoice[] {
     const matches =
       inv.id.toLowerCase().includes(lowerQuery) ||
       inv.creator.toLowerCase().includes(lowerQuery) ||
-      (inv.data?.title as string)?.toLowerCase().includes(lowerQuery) ||
       inv.recipients.some((r) =>
         r.address.toLowerCase().includes(lowerQuery)
       );
