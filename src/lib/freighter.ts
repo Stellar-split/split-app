@@ -54,6 +54,7 @@ export async function connectWalletConnect(): Promise<{ publicKey: string; uri: 
   if (typeof window === "undefined") throw new Error("Browser only");
 
   const kit = await initWalletConnectKit();
+  if (!kit) throw new Error("WalletConnect kit is not available");
   const { uri, publicKey } = await kit.connect();
 
   return { publicKey, uri };
@@ -65,6 +66,7 @@ export async function getWalletConnectPublicKey(): Promise<string | null> {
 
   try {
     const kit = await initWalletConnectKit();
+    if (!kit) return null;
     return kit.getPublicKey() || null;
   } catch {
     return null;
@@ -76,6 +78,7 @@ export async function signWithWalletConnect(xdr: string): Promise<string> {
   if (typeof window === "undefined") throw new Error("Browser only");
 
   const kit = await initWalletConnectKit();
+  if (!kit) throw new Error("WalletConnect kit is not available");
   return kit.signTransaction(xdr, NETWORK_PASSPHRASE);
 }
 
@@ -85,6 +88,7 @@ export async function disconnectWalletConnect(): Promise<void> {
 
   try {
     const kit = await initWalletConnectKit();
+    if (!kit) return;
     await kit.disconnect();
   } catch {
     // Ignore errors on disconnect

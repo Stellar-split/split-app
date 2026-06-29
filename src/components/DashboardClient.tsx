@@ -2,11 +2,12 @@
 
 import { Suspense, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
-import { InvoiceListSkeleton } from "@/components/Skeleton";
+import { InvoiceListSkeleton, SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
 import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
 import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
@@ -36,6 +37,9 @@ export default function DashboardClient() {
   const [reminderDateTime, setReminderDateTime] = useState("");
   const [bulkReminderResults, setBulkReminderResults] = useState<BulkReminderResult[] | null>(null);
   const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
+  const router = useRouter();
 
   // Get wallet public key
   useEffect(() => {
@@ -45,6 +49,18 @@ export default function DashboardClient() {
         setError("Connect your Freighter wallet to view your dashboard."),
       );
   }, []);
+
+  // Listen for N key to create invoice
+  useEffect(() => {
+    const handleCreateInvoice = () => {
+      router.push("/invoice/new");
+    };
+
+    window.addEventListener("keyboard:create-invoice", handleCreateInvoice);
+    return () => {
+      window.removeEventListener("keyboard:create-invoice", handleCreateInvoice);
+    };
+  }, [router]);
 
   // Fetch invoices progressively
   useEffect(() => {
@@ -157,6 +173,30 @@ export default function DashboardClient() {
     setBulkReminderResults(null);
   };
 
+  const toggleCompareSelect = (id: string) => {
+    if (compareSelected.size >= 2 && !compareSelected.has(id)) {
+      return; // Max 2 invoices
+    }
+    setCompareSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitCompareMode = () => {
+    setCompareMode(false);
+    setCompareSelected(new Set());
+  };
+
+  const handleCompare = () => {
+    if (compareSelected.size === 2) {
+      const [id1, id2] = Array.from(compareSelected);
+      router.push(`/invoice/compare?a=${id1}&b=${id2}`);
+    }
+  };
+
   const handleScheduleBulkReminders = () => {
     if (!reminderDateTime || reminderSelected.size === 0) return;
     const isoDate = new Date(reminderDateTime).toISOString();
@@ -212,7 +252,7 @@ export default function DashboardClient() {
       <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <div className="flex gap-2 flex-wrap">
-          {!multiSelect && !reminderSelect && pendingInvoices.length > 0 && (
+          {!multiSelect && !reminderSelect && !compareMode && pendingInvoices.length > 0 && (
             <button
               onClick={() => setMultiSelect(true)}
               className="min-h-11 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition-colors"
@@ -221,13 +261,22 @@ export default function DashboardClient() {
               Pay Multiple
             </button>
           )}
-          {!multiSelect && !reminderSelect && invoices.length > 0 && (
+          {!multiSelect && !reminderSelect && !compareMode && invoices.length > 0 && (
             <button
               onClick={() => { setBulkReminderResults(null); setReminderSelect(true); }}
               className="min-h-11 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition-colors"
               aria-label="Enter multi-select mode to schedule reminders"
             >
               Schedule Reminders
+            </button>
+          )}
+          {!multiSelect && !reminderSelect && !compareMode && invoices.length >= 2 && (
+            <button
+              onClick={() => setCompareMode(true)}
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition-colors"
+              aria-label="Enter compare mode to compare two invoices"
+            >
+              Compare
             </button>
           )}
           {multiSelect && (
@@ -263,6 +312,24 @@ export default function DashboardClient() {
                 aria-label={`Set reminder for ${reminderSelected.size} selected invoice${reminderSelected.size !== 1 ? "s" : ""}`}
               >
                 Set Reminder ({reminderSelected.size})
+              </button>
+            </>
+          )}
+          {compareMode && (
+            <>
+              <button
+                onClick={exitCompareMode}
+                className="min-h-11 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCompare}
+                disabled={compareSelected.size !== 2}
+                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                aria-label={`Compare ${compareSelected.size} selected invoices`}
+              >
+                Compare Selected ({compareSelected.size}/2)
               </button>
             </>
           )}
@@ -362,6 +429,11 @@ export default function DashboardClient() {
           Select invoices to schedule a reminder for.
         </p>
       )}
+      {compareMode && (
+        <p className="text-sm text-gray-400 mb-4" role="status">
+          Select up to 2 invoices to compare side-by-side.
+        </p>
+      )}
       {bulkReminderResults && (
         <div className="mb-4 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reminder scheduling results:</p>
@@ -422,6 +494,8 @@ export default function DashboardClient() {
             const isSelected = selected.has(inv.id);
             const isReminderSelectable = reminderSelect;
             const isReminderSelected = reminderSelected.has(inv.id);
+            const isCompareSelectable = compareMode;
+            const isCompareSelected = compareSelected.has(inv.id);
 
             return (
               <div key={inv.id}>
@@ -479,6 +553,43 @@ export default function DashboardClient() {
                       />
                     </div>
                   </button>
+                ) : isCompareSelectable ? (
+                  <div
+                    className={`rounded-xl ring-2 transition-all cursor-pointer ${
+                      isCompareSelected
+                        ? "ring-indigo-500"
+                        : "ring-transparent hover:ring-gray-600"
+                    }`}
+                    onClick={() => toggleCompareSelect(inv.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleCompareSelect(inv.id);
+                      }
+                    }}
+                    aria-pressed={isCompareSelected}
+                    aria-label={`${isCompareSelected ? "Deselect" : "Select"} Invoice #${inv.id} for comparison`}
+                  >
+                    <div className="relative">
+                      {isCompareSelected && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold z-10"
+                        >
+                          ✓
+                        </span>
+                      )}
+                      <InvoiceCard
+                        invoice={inv}
+                        displayNumber={getOrAssignDisplayNumber(inv.id)}
+                        isComparing={compareMode}
+                        isChecked={isCompareSelected}
+                        onCompareToggle={toggleCompareSelect}
+                      />
+                    </div>
+                  </div>
                 ) : (
                   <Link
                     href={`/invoice/${inv.id}`}
