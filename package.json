@@ -11,16 +11,19 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.62.0",
     "@stellar-split/sdk": "^0.1.0",
     "@stellar/freighter-api": "^3.0.0",
     "@tanstack/react-query": "5.80.7",
     "@types/canvas-confetti": "1.6.4",
     "canvas-confetti": "1.9.3",
+    "immer": "^11.1.8",
     "next": "14.2.3",
     "qrcode.react": "4.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^14.2.3",
