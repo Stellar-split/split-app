@@ -11,6 +11,7 @@ import type { Locale } from "@/lib/i18n";
 import PaymentSuggestions from "@/components/PaymentSuggestions";
 import FundingProgress from "@/components/FundingProgress";
 import StatusBadge from "@/components/StatusBadge";
+import StatusTimeline from "@/components/StatusTimeline";
 import { InvoiceDetailSkeleton } from "@/components/Skeleton";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
@@ -256,6 +257,12 @@ export default function InvoiceDetailPage({ params }: Props) {
       <div className="mb-8">
         <InvoiceQR invoiceId={id} />
       </div>
+
+      {/* Status Timeline */}
+      <section className="mb-8" aria-labelledby="timeline-heading">
+        <h2 id="timeline-heading" className="text-lg font-semibold text-white mb-4">Status Timeline</h2>
+        <StatusTimeline invoice={invoice} total={total} />
+      </section>
 
       {/* Payments */}
       <section className="mb-8">
