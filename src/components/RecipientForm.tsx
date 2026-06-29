@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { searchEntries, addEntry, type AddressEntry } from "@/lib/addressBook";
 import { searchAddressHistory, searchAmountHistory } from "@/lib/invoiceHistory";
+import { searchRecipients, touchRecipient, type RecipientEntry } from "@/lib/recipients";
+import { truncateAddress } from "@stellar-split/sdk";
 import CsvRecipientImport from "@/components/CsvRecipientImport";
 
 interface RecipientRow {
@@ -37,6 +39,9 @@ export default function RecipientForm({
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [activeField, setActiveField] = useState<"address" | "amount" | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [showSavedDropdown, setShowSavedDropdown] = useState(false);
+  const [savedSearchQuery, setSavedSearchQuery] = useState("");
+  const savedDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parseRecipientFile = async (file: File): Promise<RecipientRow[]> => {
@@ -163,6 +168,21 @@ export default function RecipientForm({
     }
   };
 
+  const savedRecipients = useMemo(() => searchRecipients(savedSearchQuery), [savedSearchQuery]);
+
+  const handleAddFromSaved = (recipient: RecipientEntry) => {
+    const emptyIndex = recipients.findIndex((r) => !r.address);
+    const targetIndex = emptyIndex >= 0 ? emptyIndex : recipients.length;
+    if (emptyIndex >= 0) {
+      update(targetIndex, "address", recipient.address);
+    } else {
+      onChange([...recipients, { address: recipient.address, amount: "" }]);
+    }
+    touchRecipient(recipient.address);
+    setShowSavedDropdown(false);
+    setSavedSearchQuery("");
+  };
+
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -284,6 +304,13 @@ export default function RecipientForm({
       <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-gray-700">
         <button
           type="button"
+          onClick={() => setShowSavedDropdown((v) => !v)}
+          className="self-start min-h-11 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors"
+        >
+          📌 Add from saved
+        </button>
+        <button
+          type="button"
           onClick={() => fileInputRef.current?.click()}
           className="self-start min-h-11 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors"
         >
@@ -301,6 +328,41 @@ export default function RecipientForm({
           <p className="text-red-400 text-sm self-start">{importError}</p>
         )}
       </div>
+
+      {showSavedDropdown && (
+        <div ref={savedDropdownRef} className="relative mt-2">
+          <input
+            type="search"
+            placeholder="Search saved recipients..."
+            value={savedSearchQuery}
+            onChange={(e) => setSavedSearchQuery(e.target.value)}
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            autoFocus
+          />
+          {savedRecipients.length > 0 && (
+            <ul className="absolute z-20 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-48 overflow-y-auto">
+              {savedRecipients.map((r) => (
+                <li key={r.address}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleAddFromSaved(r)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  >
+                    <span className="font-medium text-gray-200">{r.nickname}</span>
+                    <span className="text-xs text-gray-400 ml-2 font-mono">{truncateAddress(r.address)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {savedSearchQuery.trim() && savedRecipients.length === 0 && (
+            <div className="absolute z-20 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 px-3 py-2 text-sm text-gray-500">
+              No saved recipients match your search.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* CSV import with full validation and preview */}
       <div className="pt-2 border-t border-gray-700">

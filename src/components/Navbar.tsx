@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: "/dashboard",    label: "Dashboard" },
   { href: "/groups",       label: "Groups" },
   { href: "/address-book", label: "Contacts" },
+  { href: "/recipients",   label: "Recipients" },
   { href: "/leaderboard",  label: "Leaderboard" },
 ];
 
