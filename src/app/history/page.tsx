@@ -6,6 +6,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount } from "@stellar-split/sdk";
 import InvoiceCard from "@/components/InvoiceCard";
+import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 import { SkeletonCard } from "@/components/Skeleton";
 import type { Invoice } from "@stellar-split/sdk";
 import { loadReceipt } from "@/lib/receiptStore";
@@ -30,6 +31,7 @@ export default function HistoryPage() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
+  const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
 
   useEffect(() => {
     getFreighterPublicKey()
@@ -214,12 +216,17 @@ export default function HistoryPage() {
 
               return (
                 <li key={inv.id} className="flex flex-col gap-2">
-                  <Link
-                    href={`/invoice/${inv.id}`}
-                    aria-label={`View Invoice #${inv.id}`}
-                  >
-                    <InvoiceCard invoice={inv} />
-                  </Link>
+                  <div className="relative group">
+                    <Link
+                      href={`/invoice/${inv.id}`}
+                      aria-label={`View Invoice #${inv.id}`}
+                      className="absolute inset-0 rounded-xl z-0"
+                    />
+                    <InvoiceCard
+                      invoice={inv}
+                      onShareQR={() => setShareQRInvoiceId(inv.id)}
+                    />
+                  </div>
                   {storedReceipt && (
                     <Suspense fallback={null}>
                       <ReceiptPDF
@@ -267,6 +274,12 @@ export default function HistoryPage() {
           )}
         </>
       )}
+
+      <InvoiceShareQRModal
+        open={!!shareQRInvoiceId}
+        invoiceId={shareQRInvoiceId || ""}
+        onClose={() => setShareQRInvoiceId(null)}
+      />
     </main>
   );
 }

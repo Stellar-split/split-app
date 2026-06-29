@@ -18,6 +18,7 @@
     "@types/canvas-confetti": "1.6.4",
     "canvas-confetti": "1.9.3",
     "immer": "^11.1.8",
+    "html2canvas": "^1.4.1",
     "next": "14.2.3",
     "qrcode.react": "4.2.0",
     "react": "^18.3.0",
