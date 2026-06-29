@@ -6,7 +6,8 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
-import { InvoiceListSkeleton } from "@/components/Skeleton";
+import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
+import { InvoiceListSkeleton, SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
 import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
 import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
@@ -36,6 +37,7 @@ export default function DashboardClient() {
   const [reminderDateTime, setReminderDateTime] = useState("");
   const [bulkReminderResults, setBulkReminderResults] = useState<BulkReminderResult[] | null>(null);
   const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
+  const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
 
   // Get wallet public key
   useEffect(() => {
@@ -480,16 +482,18 @@ export default function DashboardClient() {
                     </div>
                   </button>
                 ) : (
-                  <Link
-                    href={`/invoice/${inv.id}`}
-                    aria-label={`View Invoice #${inv.id}`}
-                    className="block"
-                  >
+                  <div className="relative group">
+                    <Link
+                      href={`/invoice/${inv.id}`}
+                      aria-label={`View Invoice #${inv.id}`}
+                      className="absolute inset-0 rounded-xl z-0"
+                    />
                     <InvoiceCard
                       invoice={inv}
                       displayNumber={getOrAssignDisplayNumber(inv.id)}
+                      onShareQR={() => setShareQRInvoiceId(inv.id)}
                     />
-                  </Link>
+                  </div>
                 )}
               </div>
             );
@@ -561,6 +565,12 @@ export default function DashboardClient() {
           </div>
         </div>
       )}
+
+      <InvoiceShareQRModal
+        open={!!shareQRInvoiceId}
+        invoiceId={shareQRInvoiceId || ""}
+        onClose={() => setShareQRInvoiceId(null)}
+      />
     </>
   );
 }

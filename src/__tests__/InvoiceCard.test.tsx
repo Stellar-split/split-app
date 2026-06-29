@@ -1,14 +1,23 @@
 import { render, screen } from '@testing-library/react';
 import InvoiceCard from '@/components/InvoiceCard';
 import type { Invoice } from '@stellar-split/sdk';
+import { vi } from 'vitest';
 
-jest.mock('@stellar-split/sdk', () => ({
-  formatAmount: (n: bigint) => `${n}`,
-  truncateAddress: (s: string) => `${s.slice(0, 4)}...${s.slice(-4)}`,
+vi.mock('@stellar-split/sdk', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@stellar-split/sdk')>();
+  return {
+    ...actual,
+    formatAmount: (n: bigint) => `${n}`,
+    truncateAddress: (s: string) => `${s.slice(0, 4)}...${s.slice(-4)}`,
+  };
+});
+
+vi.mock('@/components/FundingProgress', () => ({
+  default: () => <div data-testid="payment-progress" />
 }));
-
-jest.mock('@/components/PaymentProgress', () => () => <div data-testid="payment-progress" />);
-jest.mock('@/components/CountdownTimer', () => () => <div data-testid="countdown-timer" />);
+vi.mock('@/components/DeadlineCountdown', () => ({
+  default: () => <div data-testid="countdown-timer" />
+}));
 
 const invoice: Invoice = {
   id: '42',
