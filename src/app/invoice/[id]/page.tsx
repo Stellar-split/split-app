@@ -17,6 +17,7 @@ import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
 import DeadlineCountdown from "@/components/DeadlineCountdown";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import CopyButton from "@/components/CopyButton";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import DuplicateModal from "@/components/DuplicateModal";
@@ -39,6 +40,8 @@ import DisputeTimeline from "@/components/DisputeTimeline";
 import AuditLogTable from "@/components/AuditLogTable";
 import VersionHistory from "@/components/VersionHistory";
 import CommentSection from "@/components/CommentSection";
+import InvoiceTimeline from "@/components/InvoiceTimeline";
+import InvoiceExportButton from "@/components/InvoiceExportButton";
 import {
   isSubscribedToInvoice,
   subscribeToInvoice,
@@ -308,6 +311,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             Invoice #{id}
           </h1>
           <StatusBadge status={invoice.status as any} size="sm" />
+          <CopyButton text={id} className="!py-1 !px-2 text-xs" />
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
@@ -319,6 +323,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           >
             Share
           </button>
+          <InvoiceExportButton invoice={invoice} total={total} />
           <button
             type="button"
             onClick={() => setShowShareQRModal(true)}
@@ -553,6 +558,12 @@ export default function InvoiceDetailPage({ params }: Props) {
           disputeStatus={(invoice as any).disputeStatus}
         />
       )}
+
+      {/* Activity Timeline */}
+      <section className="mb-8" aria-labelledby="activity-timeline-heading">
+        <h2 id="activity-timeline-heading" className="text-lg font-semibold text-white mb-4">Activity Timeline</h2>
+        <InvoiceTimeline invoiceId={id} />
+      </section>
 
       {/* Tabbed detail section: Audit Log / History / Notes */}
       <section className="mb-8">
