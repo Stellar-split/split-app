@@ -1,18 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useCallback } from "react";
+import Link from "next/link";
+import { splitClient } from "@/lib/stellar";
+
+export type NotificationType = "payment" | "funded" | "released" | "expired" | "reminder";
 
 export interface AppNotification {
   id: string;
-  type: "payment" | "funded" | "released" | "reminder";
+  type: NotificationType;
   invoiceId: string;
+  invoiceTitle: string;
   message: string;
   timestamp: number;
   read: boolean;
 }
 
-const STORAGE_KEY = "stellarsplit_notifications";
+const STORAGE_KEY = "stellarsplit_notifications_v2";
+const SUBSCRIBED_KEY = "stellarsplit_notify_invoices";
+const MAX_NOTIFICATIONS = 50;
+const POLL_INTERVAL_MS = 30_000;
 
 function loadNotifications(): AppNotification[] {
   if (typeof window === "undefined") return [];
@@ -27,28 +34,153 @@ function saveNotifications(notifications: AppNotification[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
 }
 
-/**
- * NotificationCenter — bell icon with unread badge, dropdown of recent events.
- * Notifications are written to localStorage by the polling mechanism.
- */
+function getSubscribedIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(SUBSCRIBED_KEY);
+    const parsed = JSON.parse(raw ?? "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function relativeTime(timestamp: number): string {
+  const diff = Math.floor((Date.now() - timestamp) / 1000);
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function absoluteTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleString();
+}
+
+const TYPE_ICONS: Record<NotificationType, string> = {
+  payment: "💳",
+  funded: "✅",
+  released: "🚀",
+  expired: "⏰",
+  reminder: "📅",
+};
+
 export default function NotificationCenter() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const router = useRouter();
+  const firstItemRef = useRef<HTMLAnchorElement>(null);
 
-  // Load on mount and listen for storage changes from other tabs/polling
-  useEffect(() => {
+  const syncFromStorage = useCallback(() => {
     setNotifications(loadNotifications());
+  }, []);
 
+  // Load on mount and listen for storage changes
+  useEffect(() => {
+    syncFromStorage();
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setNotifications(loadNotifications());
+      if (e.key === STORAGE_KEY) syncFromStorage();
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
+  }, [syncFromStorage]);
+
+  // Poll subscribed invoices every 30 seconds
+  useEffect(() => {
+    const poll = async () => {
+      const ids = getSubscribedIds();
+      if (ids.length === 0) return;
+      const existing = loadNotifications();
+      const newItems: AppNotification[] = [];
+
+      for (const invoiceId of ids) {
+        try {
+          const inv = await splitClient.getInvoice(invoiceId);
+          const total = inv.recipients.reduce((s: bigint, r: { amount: bigint }) => s + r.amount, 0n);
+          const title = (inv as any).title ?? `Invoice #${invoiceId}`;
+          const now = Math.floor(Date.now() / 1000);
+
+          // Payment received
+          if (inv.funded > 0n) {
+            const key = `payment-${invoiceId}-${inv.funded.toString()}`;
+            if (!existing.some((n) => n.id === key)) {
+              newItems.push({
+                id: key,
+                type: "payment",
+                invoiceId,
+                invoiceTitle: title,
+                message: `Payment received on ${title}`,
+                timestamp: Date.now(),
+                read: false,
+              });
+            }
+          }
+
+          // Fully funded
+          if (total > 0n && inv.funded >= total) {
+            const key = `funded-${invoiceId}`;
+            if (!existing.some((n) => n.id === key)) {
+              newItems.push({
+                id: key,
+                type: "funded",
+                invoiceId,
+                invoiceTitle: title,
+                message: `Invoice fully funded: ${title}`,
+                timestamp: Date.now(),
+                read: false,
+              });
+            }
+          }
+
+          // Released
+          if (inv.status === "Released") {
+            const key = `released-${invoiceId}`;
+            if (!existing.some((n) => n.id === key)) {
+              newItems.push({
+                id: key,
+                type: "released",
+                invoiceId,
+                invoiceTitle: title,
+                message: `Funds released for ${title}`,
+                timestamp: Date.now(),
+                read: false,
+              });
+            }
+          }
+
+          // Expired
+          if (inv.status === "Pending" && inv.deadline <= now) {
+            const key = `expired-${invoiceId}`;
+            if (!existing.some((n) => n.id === key)) {
+              newItems.push({
+                id: key,
+                type: "expired",
+                invoiceId,
+                invoiceTitle: title,
+                message: `Invoice expired: ${title}`,
+                timestamp: Date.now(),
+                read: false,
+              });
+            }
+          }
+        } catch {
+          // skip unavailable invoices
+        }
+      }
+
+      if (newItems.length > 0) {
+        const merged = [...newItems, ...existing].slice(0, MAX_NOTIFICATIONS);
+        saveNotifications(merged);
+        setNotifications(merged);
+      }
+    };
+
+    poll();
+    const id = setInterval(poll, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
   }, []);
 
-  // Close dropdown on outside click
+  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -59,7 +191,27 @@ export default function NotificationCenter() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Keyboard: Escape closes, focus management
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open]);
+
+  // Focus first item when opening
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => firstItemRef.current?.focus(), 50);
+    }
+  }, [open]);
+
   const unread = notifications.filter((n) => !n.read).length;
+  const badgeCount = unread > 99 ? "99+" : unread > 0 ? String(unread) : null;
 
   const markAllRead = () => {
     const updated = notifications.map((n) => ({ ...n, read: true }));
@@ -67,14 +219,10 @@ export default function NotificationCenter() {
     setNotifications(updated);
   };
 
-  const handleClick = (n: AppNotification) => {
-    const updated = notifications.map((x) =>
-      x.id === n.id ? { ...x, read: true } : x
-    );
+  const markRead = (id: string) => {
+    const updated = notifications.map((n) => n.id === id ? { ...n, read: true } : n);
     saveNotifications(updated);
     setNotifications(updated);
-    setOpen(false);
-    router.push(`/invoice/${n.invoiceId}`);
   };
 
   const sorted = [...notifications].sort((a, b) => b.timestamp - a.timestamp);
@@ -84,12 +232,13 @@ export default function NotificationCenter() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={`Notifications${unread > 0 ? `, ${unread} unread` : ""}`}
-        className="relative min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        aria-haspopup="true"
+        aria-expanded={open}
+        className="relative min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
       >
-        {/* Bell icon */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 text-gray-300"
+          className="h-5 w-5 text-slate-300"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -102,64 +251,81 @@ export default function NotificationCenter() {
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
           />
         </svg>
-        {unread > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">
-            {unread > 9 ? "9+" : unread}
+        {badgeCount && (
+          <span className="absolute top-1 right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-brand-500 px-0.5 text-[10px] font-bold text-white leading-none">
+            {badgeCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-            <span className="font-semibold text-sm">Notifications</span>
+        <div
+          role="dialog"
+          aria-label="Notifications panel"
+          className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-surface-900 border border-white/[0.08] rounded-xl shadow-xl z-50 flex flex-col"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+            <span className="font-semibold text-sm text-white">Notifications</span>
             {unread > 0 && (
               <button
                 onClick={markAllRead}
-                className="min-h-11 px-2 text-xs text-indigo-400 hover:text-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="text-xs text-brand-400 hover:text-brand-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 px-1"
               >
                 Mark all as read
               </button>
             )}
           </div>
 
+          {/* List */}
           {sorted.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-gray-400 text-center">
-              No notifications yet.
-            </p>
+            <p className="px-4 py-8 text-sm text-slate-400 text-center">No notifications yet.</p>
           ) : (
-            <ul className="max-h-80 overflow-y-auto divide-y divide-gray-800">
-              {sorted.map((n) => (
-                <li key={n.id}>
-                  <button
-                    onClick={() => handleClick(n)}
-                    className={`w-full min-h-11 text-left px-4 py-3 hover:bg-gray-800 transition-colors ${
-                      !n.read ? "bg-gray-800/50" : ""
-                    } focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
+            <ul
+              className="max-h-80 overflow-y-auto divide-y divide-white/[0.04]"
+              role="list"
+            >
+              {sorted.map((n, idx) => (
+                <li key={n.id} role="listitem">
+                  <Link
+                    href={`/invoice/${n.invoiceId}`}
+                    ref={idx === 0 ? firstItemRef : undefined}
+                    onClick={() => { markRead(n.id); setOpen(false); }}
+                    className={`flex items-start gap-3 w-full px-4 py-3 hover:bg-white/[0.04] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${
+                      !n.read ? "bg-brand-600/10" : ""
+                    }`}
+                    tabIndex={0}
                   >
-                    <div className="flex items-start gap-2">
-                      {!n.read && (
-                        <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-indigo-500" />
-                      )}
-                      <div className={!n.read ? "" : "pl-4"}>
-                        <p className="text-sm text-gray-200">{n.message}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {new Date(n.timestamp).toLocaleString()}
-                        </p>
-                      </div>
+                    <span className="text-lg leading-none mt-0.5 flex-shrink-0" aria-hidden="true">
+                      {TYPE_ICONS[n.type]}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-200 leading-snug">{n.message}</p>
+                      <p
+                        className="text-xs text-slate-500 mt-0.5"
+                        title={absoluteTime(n.timestamp)}
+                      >
+                        {relativeTime(n.timestamp)}
+                      </p>
                     </div>
-                  </button>
+                    {!n.read && (
+                      <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-brand-500" aria-label="Unread" />
+                    )}
+                  </Link>
                 </li>
               ))}
             </ul>
           )}
-          <div className="border-t border-gray-700 px-4 py-2">
-            <button
-              onClick={() => { setOpen(false); router.push("/notifications"); }}
-              className="w-full min-h-11 text-xs text-indigo-400 hover:text-indigo-300 transition-colors text-center"
+
+          {/* Footer */}
+          <div className="border-t border-white/[0.06] px-4 py-2">
+            <Link
+              href="/notifications"
+              onClick={() => setOpen(false)}
+              className="block w-full text-xs text-brand-400 hover:text-brand-300 transition-colors text-center py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               View all notifications
-            </button>
+            </Link>
           </div>
         </div>
       )}

@@ -6,12 +6,9 @@ import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
+import { findBatchDuplicates, type DuplicateGroup, type InvoiceRow } from "@/lib/batchUtils";
 
-import {
-  findBatchDuplicates,
-  type DuplicateGroup,
-  type InvoiceRow,
-} from "@/lib/batchDuplicates";
+
 
 const MAX_ROWS = 5;
 

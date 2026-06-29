@@ -12,11 +12,20 @@ vi.mock('@stellar-split/sdk', async (importOriginal) => {
   };
 });
 
-vi.mock('@/components/FundingProgress', () => ({
+vi.mock('@/components/PaymentProgress', () => ({
   default: () => <div data-testid="payment-progress" />
 }));
-vi.mock('@/components/DeadlineCountdown', () => ({
+vi.mock('@/components/CountdownTimer', () => ({
   default: () => <div data-testid="countdown-timer" />
+}));
+vi.mock('@/components/FundingProgress', () => ({
+  default: () => <div data-testid="funding-progress" />
+}));
+vi.mock('@/components/StatusBadge', () => ({
+  default: () => <div data-testid="status-badge">Pending</div>
+}));
+vi.mock('@/components/DeadlineCountdown', () => ({
+  default: () => <div data-testid="deadline-countdown" />
 }));
 
 const invoice: Invoice = {
@@ -38,7 +47,7 @@ describe('InvoiceCard', () => {
 
   it('renders status badge', () => {
     render(<InvoiceCard invoice={invoice} />);
-    expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByTestId('status-badge')).toBeInTheDocument();
   });
 
   it('renders truncated recipient addresses', () => {
@@ -52,9 +61,9 @@ describe('InvoiceCard', () => {
     expect(screen.getByText(/50.*USDC funded/)).toBeInTheDocument();
   });
 
-  it('renders PaymentProgress', () => {
+  it('renders FundingProgress', () => {
     render(<InvoiceCard invoice={invoice} />);
-    expect(screen.getByTestId('payment-progress')).toBeInTheDocument();
+    expect(screen.getByTestId('funding-progress')).toBeInTheDocument();
   });
 
   it('renders displayNumber when provided', () => {
@@ -62,14 +71,14 @@ describe('InvoiceCard', () => {
     expect(screen.getByText('(INV-001)')).toBeInTheDocument();
   });
 
-  it('renders CountdownTimer when deadline > 0', () => {
+  it('renders DeadlineCountdown when deadline > 0', () => {
     const withDeadline = { ...invoice, deadline: Math.floor(Date.now() / 1000) + 3600 };
     render(<InvoiceCard invoice={withDeadline} />);
-    expect(screen.getByTestId('countdown-timer')).toBeInTheDocument();
+    expect(screen.getByTestId('deadline-countdown')).toBeInTheDocument();
   });
 
-  it('does not render CountdownTimer when deadline is 0', () => {
+  it('does not render DeadlineCountdown when deadline is 0', () => {
     render(<InvoiceCard invoice={invoice} />);
-    expect(screen.queryByTestId('countdown-timer')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('deadline-countdown')).not.toBeInTheDocument();
   });
 });

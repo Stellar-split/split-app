@@ -88,7 +88,8 @@ export async function disconnectWalletConnect(): Promise<void> {
 
   try {
     const kit = await initWalletConnectKit();
-    if (kit) await (kit as any).disconnect();
+    if (!kit) return;
+    await (kit as any).disconnect();
   } catch {
     // Ignore errors on disconnect
   }

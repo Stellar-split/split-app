@@ -1,4 +1,4 @@
-import { findBatchDuplicates } from "@/lib/batchDuplicates";
+import { findBatchDuplicates } from "@/lib/batchUtils";
 
 describe("findBatchDuplicates", () => {
   test("detects exact-duplicate rows (same recipient, amount)", () => {

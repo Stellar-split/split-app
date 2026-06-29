@@ -1,11 +1,10 @@
-import { MetadataRoute } from "next";
 import { splitClient } from "@/lib/stellar";
 
 export async function generateImageMetadata({
   params,
 }: {
   params: { id: string };
-}): Promise<any> {
+}) {
   try {
     const invoice = await splitClient.getInvoice(params.id);
     const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
