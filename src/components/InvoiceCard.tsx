@@ -3,6 +3,7 @@ import type { Invoice } from "@stellar-split/sdk";
 import FundingProgress from "./FundingProgress";
 import StatusBadge from "./StatusBadge";
 import DeadlineCountdown from "./DeadlineCountdown";
+import Link from "next/link";
 
 interface Props {
   invoice: Invoice;
@@ -76,6 +77,14 @@ export default function InvoiceCard({ invoice, displayNumber, onCompareToggle, i
           <DeadlineCountdown deadline={invoice.deadline} compact />
         </div>
       )}
+      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-800">
+        <Link
+          href={`/invoice/new?from=${invoice.id}`}
+          className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
+        >
+          Duplicate
+        </Link>
+      </div>
     </div>
   );
 }
