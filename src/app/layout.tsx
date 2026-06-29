@@ -20,7 +20,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 const themeBootstrap = `
 (function () {
   try {
-    var stored = window.localStorage.getItem("theme");
+    var stored = window.localStorage.getItem("split-theme");
     var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     var isDark = stored === "dark" || (!stored && prefersDark) || (stored === "system" && prefersDark);
     if (isDark) {
