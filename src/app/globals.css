@@ -55,7 +55,7 @@ body {
 }
 
 * {
-  transition: color 200ms, background-color 200ms, border-color 200ms;
+  transition: color 150ms, background-color 150ms, border-color 150ms;
 }
 
 html[data-reduced-motion="true"],
