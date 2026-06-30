@@ -2,104 +2,65 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { splitClient } from "@/lib/stellar";
-import { getFreighterPublicKey } from "@/lib/freighter";
-import { formatAmount } from "@stellar-split/sdk";
-import PaymentProgress from "@/components/PaymentProgress";
-import TxConfirmModal from "@/components/TxConfirmModal";
+import { truncateAddress } from "@stellar-split/sdk";
 import { SkeletonCard } from "@/components/Skeleton";
-import type { Invoice } from "@stellar-split/sdk";
 
-interface GroupStatus {
+interface ContactGroup {
   id: string;
-  memberInvoices: Invoice[];
-  totalFunded: bigint;
-  totalRequired: bigint;
-  allFunded: boolean;
+  name: string;
+  members: string[];
+  lastActive: number; // ms
 }
 
-const POLL_MS = 10_000;
+function loadGroups(): ContactGroup[] {
+  try {
+    return JSON.parse(localStorage.getItem("contactGroups") || "[]");
+  } catch (e) {
+    return [];
+  }
+}
 
 export default function GroupsPage() {
-  const [publicKey, setPublicKey] = useState<string | null>(null);
-  const [groups, setGroups] = useState<GroupStatus[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [releasing, setReleasing] = useState<string | null>(null);
-  const [txModal, setTxModal] = useState<{ txHash: string; groupId: string } | null>(null);
+  const [groups, setGroups] = useState<ContactGroup[] | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const [memberInput, setMemberInput] = useState("");
+  const [members, setMembers] = useState<string[]>([]);
 
   useEffect(() => {
-    getFreighterPublicKey()
-      .then(setPublicKey)
-      .catch(() =>
-        setError("Connect your Freighter wallet to view groups."),
-      );
+    setGroups(loadGroups());
   }, []);
 
-  useEffect(() => {
-    if (!publicKey) return;
-
-    const fetchGroups = async () => {
-      setLoading(true);
-      try {
-        const groupIds = JSON.parse(
-          localStorage.getItem("groupIds") || "[]"
-        ) as string[];
-
-        const groupsData: GroupStatus[] = [];
-        for (const groupId of groupIds) {
-          const status = await (splitClient as any).getGroupStatus(groupId);
-          if (status) {
-            const memberInvoices: Invoice[] = status.memberInvoices || [];
-            const totalFunded = memberInvoices.reduce(
-              (sum: bigint, inv: Invoice) => sum + inv.funded,
-              0n
-            );
-            const totalRequired = memberInvoices.reduce(
-              (sum: bigint, inv: Invoice) =>
-                sum +
-                inv.recipients.reduce((s: bigint, r: { amount: bigint }) => s + r.amount, 0n),
-              0n
-            );
-
-            groupsData.push({
-              id: groupId,
-              memberInvoices,
-              totalFunded,
-              totalRequired,
-              allFunded: totalFunded >= totalRequired,
-            });
-          }
-        }
-        setGroups(groupsData);
-      } catch (err) {
-        setError(String(err));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGroups();
-    const interval = setInterval(fetchGroups, POLL_MS);
-    return () => clearInterval(interval);
-  }, [publicKey]);
-
-  const handleReleaseGroup = async (groupId: string) => {
-    setReleasing(groupId);
-    try {
-      const txHash = await (splitClient as any).releaseGroup(groupId);
-      setTxModal({ txHash, groupId });
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setReleasing(null);
-    }
+  const openCreate = () => {
+    setName("");
+    setMembers([]);
+    setMemberInput("");
+    setCreating(true);
   };
 
-  if (loading) {
+  const addMember = () => {
+    const a = memberInput.trim();
+    if (!a) return;
+    if (!members.includes(a)) setMembers((m) => [...m, a]);
+    setMemberInput("");
+  };
+
+  const removeMember = (addr: string) => setMembers((m) => m.filter((x) => x !== addr));
+
+  const saveGroup = () => {
+    const id = (crypto && (crypto as any).randomUUID ? (crypto as any).randomUUID() : String(Date.now()));
+    const g: ContactGroup = { id, name: name || `Group ${id.slice(0, 6)}`, members, lastActive: Date.now() };
+    const all = loadGroups();
+    const next = [g, ...all];
+    localStorage.setItem("contactGroups", JSON.stringify(next));
+    setGroups(next);
+    setCreating(false);
+  };
+
+  if (groups === null) {
     return (
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
-        <h1 className="text-3xl font-bold mb-8">Invoice Groups</h1>
+        <h1 className="text-3xl font-bold mb-8">Groups</h1>
         <div className="grid gap-6">
           {[1, 2, 3].map((i) => (
             <SkeletonCard key={i} />
@@ -111,113 +72,84 @@ export default function GroupsPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
-      {txModal && (
-        <TxConfirmModal
-          txHash={txModal.txHash}
-          action="Group released"
-          onClose={() => {
-            setTxModal(null);
-            window.location.reload();
-          }}
-        />
-      )}
+      <h1 className="text-3xl font-bold mb-8">Groups</h1>
 
-      <h1 className="text-3xl font-bold mb-8">Invoice Groups</h1>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <p className="text-red-400 text-sm">{error}</p>
+      <div className="mb-6 flex items-center justify-between">
+        <p className="text-sm text-gray-400">Organize contacts for recurring collaboration.</p>
+        <div>
+          <button onClick={openCreate} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold">New Group</button>
         </div>
-      )}
+      </div>
 
       {groups.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-400 mb-4">No invoice groups yet</p>
-          <Link
-            href="/invoice/new"
-            className="inline-block px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors"
-          >
-            Create Invoice
-          </Link>
+          <p className="text-gray-400 mb-4">You have no groups yet.</p>
+          <button onClick={openCreate} className="inline-block px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors">New Group</button>
         </div>
       ) : (
         <div className="grid gap-6">
-          {groups.map((group) => (
-            <div
-              key={group.id}
-              className="bg-gray-800 border border-gray-700 rounded-lg p-6"
-            >
-              <div className="flex items-start justify-between mb-4">
+          {groups.map((g) => (
+            <Link key={g.id} href={`/groups/${g.id}`} className="block bg-gray-800 border border-gray-700 rounded-lg p-6 hover:bg-gray-850 transition-colors">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold">Group {group.id}</h2>
-                  <p className="text-sm text-gray-400">
-                    {group.memberInvoices.length} member invoice
-                    {group.memberInvoices.length !== 1 ? "s" : ""}
-                  </p>
+                  <h2 className="text-lg font-semibold">{g.name}</h2>
+                  <p className="text-sm text-gray-400">{g.members.length} member{g.members.length !== 1 ? "s" : ""}</p>
                 </div>
-                {group.allFunded && (
-                  <button
-                    type="button"
-                    onClick={() => handleReleaseGroup(group.id)}
-                    disabled={releasing === group.id}
-                    className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-sm font-medium disabled:opacity-50"
-                  >
-                    {releasing === group.id ? "Releasing…" : "Release Group"}
-                  </button>
-                )}
-              </div>
-
-              {/* Combined progress */}
-              <div className="mb-6">
-                <div className="flex justify-between text-xs text-gray-400 mb-2">
-                  <span>Overall Progress</span>
-                  <span>
-                    {formatAmount(group.totalFunded)} /{" "}
-                    {formatAmount(group.totalRequired)} USDC
-                  </span>
+                <div className="text-sm text-gray-400 text-right">
+                  <div>Last active</div>
+                  <div className="font-mono text-xs">{new Date(g.lastActive).toLocaleString()}</div>
                 </div>
-                <PaymentProgress
-                  funded={group.totalFunded}
-                  total={group.totalRequired}
-                />
               </div>
 
-              {/* Member invoices */}
-              <div className="space-y-3">
-                <p className="text-xs font-medium text-gray-400 uppercase">
-                  Member Invoices
-                </p>
-                {group.memberInvoices.map((invoice) => {
-                  const total = invoice.recipients.reduce(
-                    (sum, r) => sum + r.amount,
-                    0n
-                  );
-                  const pct =
-                    total > 0n
-                      ? Number((invoice.funded * 100n) / total)
-                      : 0;
-
-                  return (
-                    <Link
-                      key={invoice.id}
-                      href={`/invoice/${invoice.id}`}
-                      className="block p-3 bg-gray-900 rounded-lg hover:bg-gray-850 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">
-                          Invoice #{invoice.id}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {pct.toFixed(0)}%
-                        </span>
-                      </div>
-                      <PaymentProgress funded={invoice.funded} total={total} />
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+              {g.members.length > 0 && (
+                <div className="mt-4 text-sm text-gray-400">
+                  <div className="flex gap-2 flex-wrap">
+                    {g.members.slice(0, 6).map((m) => (
+                      <div key={m} className="px-2 py-1 bg-gray-900 rounded text-xs font-mono">{truncateAddress(m)}</div>
+                    ))}
+                    {g.members.length > 6 && <div className="px-2 py-1 bg-gray-900 rounded text-xs">+{g.members.length - 6} more</div>}
+                  </div>
+                </div>
+              )}
+            </Link>
           ))}
+        </div>
+      )}
+
+      {/* Create Modal */}
+      {creating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="w-full max-w-lg bg-gray-900 border border-gray-700 rounded-lg p-6">
+            <h3 className="text-xl font-semibold mb-4">New Group</h3>
+            <label className="block text-sm text-gray-300 mb-1">Group name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 mb-3" />
+
+            <label className="block text-sm text-gray-300 mb-1">Add member address</label>
+            <div className="flex gap-2 mb-3">
+              <input value={memberInput} onChange={(e) => setMemberInput(e.target.value)} placeholder="G... address" className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 font-mono" />
+              <button onClick={addMember} className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700">Add</button>
+            </div>
+
+            <div className="mb-4">
+              {members.length === 0 ? (
+                <p className="text-gray-400 text-sm">No members yet</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {members.map((m) => (
+                    <div key={m} className="flex items-center justify-between bg-gray-800 border border-gray-700 rounded-lg px-3 py-2">
+                      <div className="font-mono text-sm text-gray-300 truncate">{m}</div>
+                      <button onClick={() => removeMember(m)} className="px-2 py-1 text-sm rounded bg-red-700 hover:bg-red-600">Remove</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button onClick={() => setCreating(false)} className="px-4 py-2 rounded-lg bg-gray-800">Cancel</button>
+              <button onClick={saveGroup} disabled={members.length === 0} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500">Create</button>
+            </div>
+          </div>
         </div>
       )}
     </main>
