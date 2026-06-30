@@ -80,6 +80,27 @@
     "useInInvoice": "Use in Invoice",
     "invalidAddress": "Please enter a valid Stellar public key (starts with G, 56 characters)"
   },
+  "recipients": {
+    "title": "Saved Recipients",
+    "addRecipient": "Add Recipient",
+    "addRecipientTitle": "Add Recipient",
+    "editRecipientTitle": "Edit Recipient",
+    "deleteRecipient": "Delete",
+    "confirmDelete": "Are you sure you want to delete \"{name}\"?",
+    "search": "Search recipients...",
+    "noSearchResults": "No recipients match your search.",
+    "noSaved": "No saved recipients yet. Add one to get started.",
+    "limitReached": "Limit reached (50)",
+    "name": "Name",
+    "address": "Stellar Address",
+    "lastUsed": "Last Used",
+    "actions": "Actions",
+    "edit": "Edit",
+    "remove": "Remove",
+    "save": "Save",
+    "cancel": "Cancel",
+    "invalidAddress": "Please enter a valid Stellar public key (starts with G, 56 characters)"
+  },
   "leaderboard": {
     "title": "Leaderboard",
     "subtitle": "Top USDC contributors across the latest invoices (1–100)",
