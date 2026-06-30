@@ -23,7 +23,7 @@ function classifyWalletError(e: unknown): WalletErrorType {
 }
 
 export default function WalletConnect() {
-  const { toast } = useToast();
+  const toast = useToast();
   const [address, setAddress] = useState<string | null>(null);
   const [walletType, setWalletType] = useState<WalletType | null>(null);
   const [loading, setLoading] = useState(false);
@@ -189,8 +189,6 @@ export default function WalletConnect() {
           {loading ? "Connecting…" : "Connect with WalletConnect"}
         </button>
       </div>
-
-      {error && <p className="text-red-400 text-xs">{error}</p>}
 
       <QRModal
         open={qrOpen}
