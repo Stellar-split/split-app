@@ -240,6 +240,17 @@ export default function InvoiceDetailPage({ params }: Props) {
     const channelUsed = applyChannelBalance(amount);
     setPaymentError(null);
     setPaying(true);
+
+    const originalInvoice = invoice;
+    const optimisticPayment = { payer: publicKey, amount };
+    const optimisticFunded = invoice.funded + amount;
+
+    setInvoice({
+      ...invoice,
+      funded: optimisticFunded,
+      payments: [...invoice.payments, optimisticPayment],
+    });
+
     try {
       const result = await splitClient.pay({
         payer: publicKey,
@@ -256,6 +267,8 @@ export default function InvoiceDetailPage({ params }: Props) {
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
       await load();
     } catch (err) {
+      setInvoice(originalInvoice);
+      setPaymentError(err instanceof Error ? err.message : String(err));
       if (channelUsed && originalChannel) {
         syncChannelState(originalChannel);
       }
