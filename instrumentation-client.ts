@@ -7,5 +7,9 @@ if (dsn) {
     dsn,
     tracesSampleRate: 0.1,
     debug: false,
+    replaysOnErrorSampleRate: 1.0,
+    replaysSessionSampleRate: 0.0,
   });
 }
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

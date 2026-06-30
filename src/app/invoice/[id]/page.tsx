@@ -343,6 +343,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             aria-label="Duplicate invoice"
           >
             Duplicate
+          </button>
           <InvoiceExportButton invoice={invoice} total={total} />
           <button
             type="button"

@@ -37,6 +37,11 @@ const nextConfig = {
       ...(Array.isArray(config.externals) ? config.externals : []),
       "sodium-native",
     ];
+    // @apm-js-collab/tracing-hooks is an optional Sentry internal — skip it
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@apm-js-collab/tracing-hooks": false,
+    };
     return config;
   },
 };
