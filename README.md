@@ -10,11 +10,11 @@ Next.js 14 frontend dApp for **StellarSplit** — on-chain invoice & payment spl
 
 ## Live Demo
 
-> [https://splitapp-steel.vercel.app]((https://stellarsplit-dapp.vercel.app))
+> [https://stellarsplit-dapp.vercel.app](https://stellarsplit-dapp.vercel.app)
 
 ## Screenshots
 
-> _(Add screenshots here after first deployment)_
+![StellarSplit homepage — split invoices on-chain, instantly](docs/screenshots/homepage.png)
 
 ## Tech Stack
 
