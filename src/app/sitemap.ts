@@ -2,7 +2,7 @@ import { MetadataRoute } from "next";
 
 const appUrl =
   process.env.NEXT_PUBLIC_APP_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://splitapp-steel.vercel.app");
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://stellarsplit-dapp.vercel.app");
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const publicPaths = [

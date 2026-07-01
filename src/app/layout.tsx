@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     "Create on-chain invoices on Stellar where multiple payers each owe a share. USDC auto-routes to recipients when fully funded.",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ??
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://splitapp-steel.vercel.app")
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://stellarsplit-dapp.vercel.app")
   ),
   manifest: "/manifest.json",
   appleWebApp: {
