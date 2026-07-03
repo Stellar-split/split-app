@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
@@ -103,16 +102,10 @@ export default function RootLayout({
   return (
     // dir="ltr" is set here as scaffold; I18nProvider will update it client-side when RTL locales (ar/he) are added
     <html lang="en" dir="ltr" suppressHydrationWarning>
-      <Script
-        id="theme-bootstrap"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: themeBootstrap }}
-      />
-      <Script
-        id="accessibility-bootstrap"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: accessibilityBootstrap }}
-      />
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+        <script dangerouslySetInnerHTML={{ __html: accessibilityBootstrap }} />
+      </head>
       <body suppressHydrationWarning className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased overflow-x-hidden">
         <QueryProvider>
           <ThemeProvider>
