@@ -1,4 +1,7 @@
-# split-app
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Stellar-split/.github/main/assets/stellarsplit-mark.svg" alt="StellarSplit" width="80" />
+  <h1>split-app</h1>
+</div>
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
