@@ -37,6 +37,7 @@ import InstallmentPanel from "@/components/InstallmentPanel";
 import CoCreatorPanel from "@/components/CoCreatorPanel";
 import PaymentChannelPanel from "@/components/PaymentChannelPanel";
 import DisputeTimeline from "@/components/DisputeTimeline";
+import ConfidentialPaymentFlow from "@/components/ConfidentialPaymentFlow";
 import AuditLogTable from "@/components/AuditLogTable";
 import VersionHistory from "@/components/VersionHistory";
 import CommentSection from "@/components/CommentSection";
@@ -114,6 +115,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
   const [locale, setLocale] = useState<Locale>("en");
+  const [showConfidentialFlow, setShowConfidentialFlow] = useState(false);
 
   useEffect(() => {
     // TODO: implement notification subscription
@@ -353,6 +355,16 @@ export default function InvoiceDetailPage({ params }: Props) {
           >
             Share via QR
           </button>
+          {(invoice as any).confidential && (
+            <button
+              type="button"
+              onClick={() => setShowConfidentialFlow(true)}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+              aria-label="Pay confidentially"
+            >
+              Pay Confidentially
+            </button>
+          )}
           <select
             value={locale}
             onChange={(e) => setLocale(e.target.value as Locale)}
@@ -550,6 +562,13 @@ export default function InvoiceDetailPage({ params }: Props) {
             </button>
           </form>
         </section>
+      )}
+
+      {showConfidentialFlow && (invoice as any).confidential && publicKey && (
+        <ConfidentialPaymentFlow
+          invoiceId={id}
+          publicKey={publicKey}
+        />
       )}
 
       {showPayModal && invoice && publicKey && (
