@@ -245,6 +245,67 @@ export function SkeletonDashboardStats() {
  * DeferredSkeleton — wraps any skeleton and only renders it after `delayMs`
  * (default 200ms) to avoid a flash of loading UI on fast connections.
  */
+export function SubscriptionCardSkeleton() {
+  return (
+    <div className="bg-gray-900 rounded-xl p-5 border border-gray-800">
+      <div className="flex items-center justify-between mb-3">
+        <div className={`${shimmer} h-4 w-32`} />
+        <div className={`${shimmer} h-5 w-16 rounded-full`} />
+      </div>
+      <div className={`${shimmer} h-3 w-24 mb-3`} />
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className={`${shimmer} h-3 w-20`} />
+        <div className={`${shimmer} h-3 w-20`} />
+        <div className={`${shimmer} h-3 w-20`} />
+        <div className={`${shimmer} h-3 w-20`} />
+      </div>
+    </div>
+  );
+}
+
+export function SubscriptionListSkeleton({ count = 3 }: { count?: number }) {
+  return (
+    <div
+      aria-busy="true"
+      aria-label="Loading subscriptions"
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <SubscriptionCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+export function SubscriptionDetailSkeleton() {
+  return (
+    <div
+      aria-busy="true"
+      aria-label="Loading subscription details"
+      className="space-y-6"
+    >
+      <div className="flex items-center justify-between">
+        <div className={`${shimmer} h-8 w-56`} />
+        <div className={`${shimmer} h-7 w-20 rounded-full`} />
+      </div>
+      <div className="bg-gray-900 rounded-lg p-4 space-y-3">
+        <div className={`${shimmer} h-4 w-48`} />
+        <div className={`${shimmer} h-4 w-32`} />
+        <div className={`${shimmer} h-4 w-40`} />
+      </div>
+      <div className="bg-gray-900 rounded-lg p-4 space-y-3">
+        <div className={`${shimmer} h-4 w-36`} />
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex justify-between">
+            <div className={`${shimmer} h-4 w-40`} />
+            <div className={`${shimmer} h-4 w-24`} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function DeferredSkeleton({
   children,
   delayMs = 200,

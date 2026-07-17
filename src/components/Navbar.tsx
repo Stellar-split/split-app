@@ -11,11 +11,12 @@ import NetworkStatus from "@/components/NetworkStatus";
 import GlobalSearch from "@/components/GlobalSearch";
 
 const NAV_LINKS = [
-  { href: "/dashboard",    label: "Dashboard" },
-  { href: "/groups",       label: "Groups" },
-  { href: "/address-book", label: "Contacts" },
-  { href: "/recipients",   label: "Recipients" },
-  { href: "/leaderboard",  label: "Leaderboard" },
+  { href: "/dashboard",      label: "Dashboard" },
+  { href: "/subscriptions",  label: "Subscriptions" },
+  { href: "/groups",         label: "Groups" },
+  { href: "/address-book",   label: "Contacts" },
+  { href: "/recipients",     label: "Recipients" },
+  { href: "/leaderboard",    label: "Leaderboard" },
 ];
 
 export default function Navbar() {
