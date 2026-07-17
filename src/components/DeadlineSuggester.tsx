@@ -74,7 +74,7 @@ export default function DeadlineSuggester({
       <button
         type="button"
         onClick={() => onUseSuggestion(suggestion)}
-        className="px-3 py-1 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 rounded transition-colors"
+        className="px-3 py-1 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded transition-colors"
       >
         Use
       </button>

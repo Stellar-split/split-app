@@ -77,12 +77,12 @@ export default function OnboardingFlow() {
       <div className="w-full max-w-md bg-surface-800 rounded-2xl border border-white/[0.08] shadow-2xl overflow-hidden">
         {/* Header bar */}
         <div className="px-6 pt-6 pb-0 flex items-center justify-between">
-          <span className="text-xs text-slate-500 font-medium">
+          <span className="text-xs text-slate-400 font-medium">
             Step {step} of {TOTAL_STEPS}
           </span>
           <button
             onClick={handleSkip}
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-xs text-slate-400 hover:text-slate-300 transition-colors"
             aria-label="Skip onboarding"
           >
             Skip for now

@@ -59,7 +59,7 @@ export default async function VerifyPage({ params }: Props) {
     return (
       <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
         <h1 className="text-2xl font-bold mb-4">Invoice Verification</h1>
-        <p className="text-red-400" role="alert">{fetchError}</p>
+        <p className="text-red-600 dark:text-red-400" role="alert">{fetchError}</p>
       </main>
     );
   }
@@ -100,21 +100,21 @@ export default async function VerifyPage({ params }: Props) {
       <section aria-labelledby="verify-progress-heading">
         <h2 id="verify-progress-heading" className="sr-only">Payment Progress</h2>
         <PaymentProgress funded={invoice.funded} total={total} />
-        <p className="text-sm text-gray-400 mt-1 mb-8">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-8">
           {formatAmount(invoice.funded)} / {formatAmount(total)} USDC funded
         </p>
       </section>
 
       <section aria-labelledby="verify-creator-heading" className="mb-6">
-        <h2 id="verify-creator-heading" className="text-base font-semibold mb-2 text-gray-300">Creator</h2>
-        <p className="font-mono text-sm text-gray-400" title={invoice.creator}>
+        <h2 id="verify-creator-heading" className="text-base font-semibold mb-2 text-gray-700 dark:text-gray-300">Creator</h2>
+        <p className="font-mono text-sm text-gray-600 dark:text-gray-400" title={invoice.creator}>
           <span className="sm:hidden">{truncateAddress(invoice.creator)}</span>
           <span className="hidden sm:inline break-all">{invoice.creator}</span>
         </p>
       </section>
 
       <section aria-labelledby="verify-recipients-heading" className="mb-6">
-        <h2 id="verify-recipients-heading" className="text-base font-semibold mb-2 text-gray-300">Recipients</h2>
+        <h2 id="verify-recipients-heading" className="text-base font-semibold mb-2 text-gray-700 dark:text-gray-300">Recipients</h2>
         <ul className="flex flex-col gap-2">
           {invoice.recipients.map((r, i) => (
             <li
@@ -135,7 +135,7 @@ export default async function VerifyPage({ params }: Props) {
       </section>
 
       <section aria-labelledby="verify-payments-heading">
-        <h2 id="verify-payments-heading" className="text-base font-semibold mb-2 text-gray-300">
+        <h2 id="verify-payments-heading" className="text-base font-semibold mb-2 text-gray-700 dark:text-gray-300">
           Payments ({invoice.payments.length})
         </h2>
         {invoice.payments.length === 0 ? (

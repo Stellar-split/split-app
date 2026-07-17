@@ -34,7 +34,7 @@ export default function HomePage() {
           .map((part, i) =>
             i === 0
               ? part
-              : [<span key="instant" className="text-indigo-400">Instantly.</span>, part]
+              : [<span key="instant" className="text-indigo-600 dark:text-indigo-400">Instantly.</span>, part]
           )}
       </h1>
       <p className="max-w-xl text-lg text-gray-600 dark:text-gray-400 mb-10">

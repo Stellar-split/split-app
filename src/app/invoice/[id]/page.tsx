@@ -331,7 +331,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => setShowShareModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
             aria-label="Share invoice"
           >
             Share
@@ -339,7 +339,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => setShowDuplicateModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm transition-colors"
             aria-label="Duplicate invoice"
           >
             Duplicate
@@ -366,7 +366,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => window.print()}
-            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
           >
             Print Invoice
           </button>

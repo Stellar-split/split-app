@@ -393,7 +393,7 @@ export default function DashboardClient() {
               <button
                 onClick={() => setShowBatchModal(true)}
                 disabled={selected.size === 0}
-                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 Pay Selected ({selected.size})
               </button>
@@ -405,7 +405,7 @@ export default function DashboardClient() {
               <button
                 onClick={() => setShowReminderPicker(true)}
                 disabled={reminderSelected.size === 0}
-                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 Set Reminder ({reminderSelected.size})
               </button>
@@ -422,7 +422,7 @@ export default function DashboardClient() {
               <button
                 onClick={handleCompare}
                 disabled={compareSelected.size !== 2}
-                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
                 aria-label={`Compare ${compareSelected.size} selected invoices`}
               >
                 Compare Selected ({compareSelected.size}/2)
@@ -431,7 +431,7 @@ export default function DashboardClient() {
           )}
           <Link
             href="/invoice/new"
-            className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+            className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
           >
             + New Invoice
           </Link>
@@ -536,8 +536,8 @@ export default function DashboardClient() {
       ) : invoices.length === 0 ? (
         <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-12 text-center">
           <h2 className="text-xl font-semibold text-gray-300 mb-2">No invoices yet</h2>
-          <p className="text-gray-500 mb-6 max-w-sm mx-auto">Create your first invoice to start receiving payments on-chain.</p>
-          <Link href="/invoice/new" className="inline-flex items-center px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors">
+          <p className="text-gray-400 mb-6 max-w-sm mx-auto">Create your first invoice to start receiving payments on-chain.</p>
+          <Link href="/invoice/new" className="inline-flex items-center px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors">
             + Create your first invoice
           </Link>
         </div>
@@ -702,7 +702,7 @@ export default function DashboardClient() {
                 Cancel
               </button>
               <button type="button" onClick={handleScheduleBulkReminders} disabled={!reminderDateTime}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors disabled:opacity-50">
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
                 Schedule
               </button>
             </div>
