@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { splitClient, payWithNonce } from "@/lib/stellar";
@@ -8,6 +8,8 @@ import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount, truncateAddress, type Invoice } from "@stellar-split/sdk";
 import { useInvoiceCustomization } from "@/lib/customization";
 import type { Locale } from "@/lib/i18n";
+import { useInvoiceStream } from "@/hooks/useInvoiceStream";
+import type { InvoiceStreamEvent } from "@/hooks/useInvoiceStream";
 import PaymentSuggestions from "@/components/PaymentSuggestions";
 import FundingProgress from "@/components/FundingProgress";
 import StatusBadge from "@/components/StatusBadge";
@@ -42,6 +44,7 @@ import VersionHistory from "@/components/VersionHistory";
 import CommentSection from "@/components/CommentSection";
 import InvoiceTimeline from "@/components/InvoiceTimeline";
 import InvoiceExportButton from "@/components/InvoiceExportButton";
+import ReleaseBanner from "@/components/ReleaseBanner";
 import {
   isSubscribedToInvoice,
   subscribeToInvoice,
@@ -56,8 +59,6 @@ const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart")
 const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
 const FlowDiagram = dynamic(() => import("@/components/FlowDiagram"), { ssr: false });
 
-const POLL_MS = 10_000;
-
 interface Props {
   params: { id: string };
 }
@@ -68,6 +69,12 @@ const statusConfig: Record<string, { label: string; color: string; icon: string 
   Refunded: { label: "Refunded", color: "bg-gray-500", icon: "\u21A9\uFE0F" },
 };
 
+function showToast(message: string, type: "success" | "error" | "info" = "info") {
+  if (typeof window !== "undefined" && (window as any).__toastContainer?.addToast) {
+    (window as any).__toastContainer.addToast(message, type);
+  }
+}
+
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
   const router = useRouter();
@@ -75,6 +82,14 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Live stream
+  const {
+    invoice: streamInvoice,
+    latestEvent,
+    isConnected,
+    error: streamError,
+  } = useInvoiceStream(id);
 
   const [payAmount, setPayAmount] = useState("");
   const [paying, setPaying] = useState(false);
@@ -114,6 +129,60 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
   const [locale, setLocale] = useState<Locale>("en");
+  const [showReleaseBanner, setShowReleaseBanner] = useState(false);
+  const [showReconnecting, setShowReconnecting] = useState(false);
+
+  // Sync stream invoice to local state
+  useEffect(() => {
+    if (streamInvoice) {
+      setInvoice(streamInvoice);
+      setLoading(false);
+      setError(null);
+    }
+  }, [streamInvoice]);
+
+  // Sync stream error
+  useEffect(() => {
+    if (streamError) {
+      setError(streamError);
+    }
+  }, [streamError]);
+
+  // Handle reconnection indicator
+  useEffect(() => {
+    if (!isConnected && !loading) {
+      setShowReconnecting(true);
+      const timer = setTimeout(() => {
+        if (!isConnected) {
+          setShowReconnecting(false);
+        }
+      }, 10_000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowReconnecting(false);
+    }
+  }, [isConnected, loading]);
+
+  // Handle live events
+  const processedEventRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!latestEvent) return;
+
+    const eventKey = `${latestEvent.type}-${Date.now()}`;
+    if (processedEventRef.current === eventKey) return;
+    processedEventRef.current = eventKey;
+
+    if (latestEvent.type === "PaymentReceived" && latestEvent.payer) {
+      const payerShort = truncateAddress(latestEvent.payer);
+      const amountStr = latestEvent.amount ? formatAmount(latestEvent.amount) : "some";
+      showToast(`Payment received from ${payerShort}: ${amountStr} USDC`, "success");
+    } else if (latestEvent.type === "InvoiceReleased") {
+      setShowReleaseBanner(true);
+      showToast("Invoice has been released! 🎉", "success");
+    } else if (latestEvent.type === "InvoiceRefunded") {
+      showToast("Invoice has been refunded.", "info");
+    }
+  }, [latestEvent]);
 
   useEffect(() => {
     // TODO: implement notification subscription
@@ -139,10 +208,13 @@ export default function InvoiceDetailPage({ params }: Props) {
   };
 
   useEffect(() => {
-    load().catch((e) => {
-      setError(String(e));
-      setLoading(false);
-    });
+    // Only fallback load if stream hasn't already provided invoice
+    if (!streamInvoice) {
+      load().catch((e) => {
+        setError(String(e));
+        setLoading(false);
+      });
+    }
     getFreighterPublicKey()
       .then((key) => setPublicKey(key))
       .catch(() => null);
@@ -219,13 +291,6 @@ export default function InvoiceDetailPage({ params }: Props) {
     syncChannelState(nextState.opened ? nextState : null);
     return channelState;
   };
-  useEffect(() => {
-    if (!invoice || invoice.status === "Released" || invoice.status === "Refunded") return;
-    const pollId = setInterval(() => {
-      load().catch((e) => setError(String(e)));
-    }, POLL_MS);
-    return () => clearInterval(pollId);
-  }, [id, invoice?.status]);
 
   const total = invoice
     ? invoice.recipients.reduce((s, r) => s + r.amount, 0n)
@@ -265,7 +330,6 @@ export default function InvoiceDetailPage({ params }: Props) {
         localStorage.setItem("stellarsplit_adapter_usage", JSON.stringify(existing));
       } catch { /* ignore storage errors */ }
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
-      await load();
     } catch (err) {
       setInvoice(originalInvoice);
       setPaymentError(err instanceof Error ? err.message : String(err));
@@ -317,6 +381,25 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   return (
     <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+      {/* Reconnecting indicator */}
+      {showReconnecting && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
+          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span className="text-sm font-medium">Reconnecting...</span>
+        </div>
+      )}
+
+      {/* Release Banner */}
+      {showReleaseBanner && (
+        <ReleaseBanner
+          invoiceId={id}
+          onDismiss={() => setShowReleaseBanner(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
@@ -401,7 +484,7 @@ export default function InvoiceDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Progress */}
+      {/* Progress - updates in real-time via useInvoiceStream */}
       <section aria-labelledby="progress-heading" className="mb-8">
         <h2 id="progress-heading" className="sr-only">Payment Progress</h2>
         <FundingProgress funded={invoice.funded} total={total} token={invoice.token || "USDC"} />

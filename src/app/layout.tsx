@@ -14,6 +14,7 @@ import CommandPalette from "@/components/CommandPalette";
 import { SessionLockProvider } from "@/contexts/SessionLockContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import InstallBanner from "@/components/InstallBanner";
+import ToastContainer from "@/components/ToastContainer";
 import QueryProvider from "@/contexts/QueryProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
@@ -130,6 +131,7 @@ export default function RootLayout({
                     <OnboardingFlow />
                     <RecipientOnboarding />
                     <InstallBanner />
+                    <ToastContainer />
                   </ToastProvider>
                 </SessionLockProvider>
               </I18nProvider>

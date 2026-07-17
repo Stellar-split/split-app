@@ -10,7 +10,7 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts', './src/__tests__/setup.ts'],
     server: {
       deps: {
-        inline: ['@stellar/freighter-api', '@stellar-split/sdk'],
+        inline: ['@stellar/freighter-api'],
       },
     },
   },

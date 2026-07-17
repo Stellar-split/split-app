@@ -125,6 +125,43 @@ html[data-contrast="high"] .text-indigo-500 {
   color: #ffff00;
 }
 
+/* ── Custom animations ─────────────────────────────────────────── */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(-2rem);
+  }
+  50% {
+    transform: scale(1.05) translateY(0.25rem);
+  }
+  70% {
+    transform: scale(0.9) translateY(-0.1rem);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.6s ease-out;
+}
+
 @media print {
   header,
   footer,
