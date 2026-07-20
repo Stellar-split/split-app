@@ -39,6 +39,7 @@ import InstallmentPanel from "@/components/InstallmentPanel";
 import CoCreatorPanel from "@/components/CoCreatorPanel";
 import PaymentChannelPanel from "@/components/PaymentChannelPanel";
 import DisputeTimeline from "@/components/DisputeTimeline";
+import ConfidentialPaymentFlow from "@/components/ConfidentialPaymentFlow";
 import AuditLogTable from "@/components/AuditLogTable";
 import VersionHistory from "@/components/VersionHistory";
 import CommentSection from "@/components/CommentSection";
@@ -129,60 +130,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
   const [locale, setLocale] = useState<Locale>("en");
-  const [showReleaseBanner, setShowReleaseBanner] = useState(false);
-  const [showReconnecting, setShowReconnecting] = useState(false);
-
-  // Sync stream invoice to local state
-  useEffect(() => {
-    if (streamInvoice) {
-      setInvoice(streamInvoice);
-      setLoading(false);
-      setError(null);
-    }
-  }, [streamInvoice]);
-
-  // Sync stream error
-  useEffect(() => {
-    if (streamError) {
-      setError(streamError);
-    }
-  }, [streamError]);
-
-  // Handle reconnection indicator
-  useEffect(() => {
-    if (!isConnected && !loading) {
-      setShowReconnecting(true);
-      const timer = setTimeout(() => {
-        if (!isConnected) {
-          setShowReconnecting(false);
-        }
-      }, 10_000);
-      return () => clearTimeout(timer);
-    } else {
-      setShowReconnecting(false);
-    }
-  }, [isConnected, loading]);
-
-  // Handle live events
-  const processedEventRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!latestEvent) return;
-
-    const eventKey = `${latestEvent.type}-${Date.now()}`;
-    if (processedEventRef.current === eventKey) return;
-    processedEventRef.current = eventKey;
-
-    if (latestEvent.type === "PaymentReceived" && latestEvent.payer) {
-      const payerShort = truncateAddress(latestEvent.payer);
-      const amountStr = latestEvent.amount ? formatAmount(latestEvent.amount) : "some";
-      showToast(`Payment received from ${payerShort}: ${amountStr} USDC`, "success");
-    } else if (latestEvent.type === "InvoiceReleased") {
-      setShowReleaseBanner(true);
-      showToast("Invoice has been released! 🎉", "success");
-    } else if (latestEvent.type === "InvoiceRefunded") {
-      showToast("Invoice has been refunded.", "info");
-    }
-  }, [latestEvent]);
+  const [showConfidentialFlow, setShowConfidentialFlow] = useState(false);
 
   useEffect(() => {
     // TODO: implement notification subscription
@@ -414,7 +362,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => setShowShareModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
             aria-label="Share invoice"
           >
             Share
@@ -422,7 +370,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => setShowDuplicateModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm transition-colors"
             aria-label="Duplicate invoice"
           >
             Duplicate
@@ -436,6 +384,16 @@ export default function InvoiceDetailPage({ params }: Props) {
           >
             Share via QR
           </button>
+          {(invoice as any).confidential && (
+            <button
+              type="button"
+              onClick={() => setShowConfidentialFlow(true)}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+              aria-label="Pay confidentially"
+            >
+              Pay Confidentially
+            </button>
+          )}
           <select
             value={locale}
             onChange={(e) => setLocale(e.target.value as Locale)}
@@ -449,7 +407,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => window.print()}
-            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
           >
             Print Invoice
           </button>
@@ -633,6 +591,13 @@ export default function InvoiceDetailPage({ params }: Props) {
             </button>
           </form>
         </section>
+      )}
+
+      {showConfidentialFlow && (invoice as any).confidential && publicKey && (
+        <ConfidentialPaymentFlow
+          invoiceId={id}
+          publicKey={publicKey}
+        />
       )}
 
       {showPayModal && invoice && publicKey && (

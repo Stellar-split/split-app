@@ -64,7 +64,7 @@ function ChangedField({ changed, children }: { changed: boolean; children: React
 
 export default function NewInvoicePage() {
   return (
-    <Suspense fallback={<div className="max-w-xl mx-auto px-4 py-16 text-gray-400">Loading…</div>}>
+    <Suspense fallback={<div className="max-w-xl mx-auto px-4 py-16 text-gray-600 dark:text-gray-400">Loading…</div>}>
       <NewInvoiceForm />
     </Suspense>
   );
@@ -344,7 +344,7 @@ function NewInvoiceForm() {
                   ? "bg-indigo-600 text-white"
                   : isPast
                   ? "bg-indigo-900/50 text-indigo-300"
-                  : "bg-gray-800 text-gray-500"
+                  : "bg-gray-800 text-gray-400"
               }`}
               aria-current={isActive ? "step" : undefined}
             >
@@ -364,7 +364,7 @@ function NewInvoiceForm() {
 
   const renderBasicInfo = () => (
     <div className="flex flex-col gap-6">
-      <h2 className="text-xl font-semibold text-white">Basic Info</h2>
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Basic Info</h2>
 
       {!cloneSourceId && (
         <TemplateManager
@@ -375,7 +375,7 @@ function NewInvoiceForm() {
       )}
 
       <div>
-        <label htmlFor="token-address" className="block text-sm font-medium text-gray-300 mb-1">
+        <label htmlFor="token-address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           {t("invoiceNew.tokenAddress")}
         </label>
         <ChangedField changed={tokenChanged}>
@@ -386,14 +386,14 @@ function NewInvoiceForm() {
             onChange={(e) => setToken(e.target.value)}
             required
             placeholder="C..."
-            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </ChangedField>
       </div>
 
       {cloneSourceId ? (
         <div>
-          <label htmlFor="clone-deadline" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="clone-deadline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("invoiceNew.deadline")}
           </label>
           <input
@@ -407,21 +407,21 @@ function NewInvoiceForm() {
               setStepErrors((prev) => ({ ...prev, [0]: err }));
             }}
             required
-            className={`w-full min-h-11 bg-gray-800 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+            className={`w-full min-h-11 bg-gray-800 border rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
               deadlineError ? "border-red-500" : "border-gray-700"
             }`}
             aria-describedby={deadlineError ? "clone-deadline-error" : undefined}
             aria-invalid={!!deadlineError}
           />
           {deadlineError && (
-            <p id="clone-deadline-error" role="alert" className="text-red-400 text-sm mt-1">
+            <p id="clone-deadline-error" role="alert" className="text-red-600 dark:text-red-400 text-sm mt-1">
               {deadlineError}
             </p>
           )}
         </div>
       ) : (
         <div>
-          <label htmlFor="deadline-days" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="deadline-days" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("invoiceNew.deadline")}
           </label>
           <input
@@ -432,7 +432,7 @@ function NewInvoiceForm() {
             value={deadlineDays}
             onChange={(e) => setDeadlineDays(Number(e.target.value))}
             required
-            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <DeadlineSuggester
             totalAmount={
@@ -474,14 +474,14 @@ function NewInvoiceForm() {
 
       {recurring && !cloneSourceId && (
         <div>
-          <label htmlFor="interval-days" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="interval-days" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Repeat every
           </label>
           <select
             id="interval-days"
             value={intervalDays}
             onChange={(e) => setIntervalDays(Number(e.target.value) as 7 | 30)}
-            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value={7}>7 days</option>
             <option value={30}>30 days</option>
@@ -493,7 +493,7 @@ function NewInvoiceForm() {
 
   const renderRecipients = () => (
     <div className="flex flex-col gap-6">
-      <h2 className="text-xl font-semibold text-white">Recipients</h2>
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recipients</h2>
 
       {!cloneSourceId && (
         <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
@@ -522,7 +522,7 @@ function NewInvoiceForm() {
 
       {equalSplit && !cloneSourceId && (
         <div>
-          <label htmlFor="total-amount" className="block text-sm font-medium text-gray-300 mb-1">
+          <label htmlFor="total-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("invoiceNew.totalAmount")}
           </label>
           <input
@@ -534,10 +534,10 @@ function NewInvoiceForm() {
             value={totalAmount}
             onChange={(e) => setTotalAmount(e.target.value)}
             required
-            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           {perRecipientAmount && (
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
               {perRecipientAmount} {t("invoiceNew.perRecipient")}
             </p>
           )}
@@ -545,7 +545,7 @@ function NewInvoiceForm() {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {equalSplit ? t("invoiceNew.recipients") : t("invoiceNew.recipientsAndAmounts")}
         </label>
         <ChangedField changed={recipientsChanged}>
@@ -562,7 +562,7 @@ function NewInvoiceForm() {
 
   const renderOptions = () => (
     <div className="flex flex-col gap-6">
-      <h2 className="text-xl font-semibold text-white">Options</h2>
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Options</h2>
 
       {cloneSourceId && (
         <div className="flex items-center gap-2 text-sm bg-indigo-950/60 border border-indigo-700 text-indigo-300 rounded-lg px-3 py-2">
@@ -604,7 +604,7 @@ function NewInvoiceForm() {
     const total = recipients.reduce((s, r) => s + parseFloat(r.amount || "0"), 0);
     return (
       <div className="flex flex-col gap-6">
-        <h2 className="text-xl font-semibold text-white">Review & Submit</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Review & Submit</h2>
 
         {cloneSourceId && (
           <div className="flex items-center gap-2 text-sm bg-indigo-950/60 border border-indigo-700 text-indigo-300 rounded-lg px-3 py-2">
@@ -694,7 +694,6 @@ function NewInvoiceForm() {
         />
       )}
 
-      <h1 className="text-3xl font-bold mb-2">Create Invoice</h1>
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
 
       {/* Cloned-from banner */}
@@ -724,7 +723,7 @@ function NewInvoiceForm() {
 
       {loading && (
         <div className="text-center py-8">
-          <p className="text-gray-400" aria-live="polite">Loading invoice data…</p>
+          <p className="text-gray-600 dark:text-gray-400" aria-live="polite">Loading invoice data…</p>
         </div>
       )}
 
@@ -742,7 +741,7 @@ function NewInvoiceForm() {
         {step === 2 && !loading && renderOptions()}
         {step === 3 && !loading && renderReview()}
 
-        {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
+        {error && <p role="alert" className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
 
         <div className="flex items-center justify-between gap-4 pt-2">
           <div>
@@ -761,7 +760,7 @@ function NewInvoiceForm() {
               <button
                 type="button"
                 onClick={handleNext}
-                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors"
+                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
               >
                 Next
               </button>
@@ -769,7 +768,7 @@ function NewInvoiceForm() {
               <button
                 type="submit"
                 disabled={submitting || !!deadlineError}
-                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50"
               >
                 {submitting
                   ? cloneSourceId

@@ -16,7 +16,7 @@ export default function CopyButton({ text, className = '' }: CopyButtonProps) {
       onClick={() => copy(text)}
       aria-label={copied ? 'Copied' : 'Copy'}
       title={copied ? 'Copied!' : 'Copy'}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-700 hover:bg-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-700 hover:bg-gray-600 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${className}`}
     >
       {copied ? (
         <>
