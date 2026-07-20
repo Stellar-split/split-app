@@ -61,6 +61,7 @@ export function SkeletonProgress() {
 export function InvoiceCardSkeleton() {
   return (
     <div
+      role="status"
       aria-busy="true"
       aria-label="Loading invoice data"
       className="bg-gray-900 rounded-xl p-4 sm:p-5"
@@ -90,6 +91,7 @@ export function InvoiceCardSkeleton() {
 export function InvoiceDetailSkeleton() {
   return (
     <div
+      role="status"
       aria-busy="true"
       aria-label="Loading invoice data"
       className="space-y-6"
@@ -138,6 +140,7 @@ export function InvoiceDetailSkeleton() {
 export function InvoiceListSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div
+      role="status"
       aria-busy="true"
       aria-label="Loading invoice data"
       className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
@@ -156,6 +159,7 @@ export function InvoiceListSkeleton({ count = 6 }: { count?: number }) {
 export function SkeletonPaymentRow() {
   return (
     <div
+      role="status"
       aria-busy="true"
       aria-label="Loading..."
       className="bg-gray-100 dark:bg-gray-900 rounded-xl px-4 py-3 flex items-center justify-between gap-4"
@@ -177,6 +181,7 @@ export function SkeletonPaymentRow() {
 export function SkeletonLeaderboardRow() {
   return (
     <div
+      role="status"
       aria-busy="true"
       aria-label="Loading..."
       className="flex items-center gap-4 px-4 py-3 bg-gray-100 dark:bg-gray-900 rounded-lg"
@@ -195,6 +200,7 @@ export function SkeletonLeaderboardRow() {
 export function SkeletonCreatorProfile() {
   return (
     <div
+      role="status"
       aria-busy="true"
       aria-label="Loading..."
       className="space-y-4"
@@ -226,6 +232,7 @@ export function SkeletonCreatorProfile() {
 export function SkeletonDashboardStats() {
   return (
     <div
+      role="status"
       aria-busy="true"
       aria-label="Loading..."
       className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"

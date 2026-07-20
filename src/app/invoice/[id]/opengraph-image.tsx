@@ -1,33 +1,9 @@
-import { splitClient } from "@/lib/stellar";
-
-export async function generateImageMetadata({
-  params,
-}: {
-  params: { id: string };
-}) {
-  try {
-    const invoice = await splitClient.getInvoice(params.id);
-    const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
-    const pct = total === 0n ? 0 : Number((invoice.funded * 100n) / total);
-    const title = `Invoice #${params.id}`;
-    const description = `${pct}% funded · ${invoice.status}`;
-
-    return {
-      title,
-      description,
-      openGraph: {
-        title,
-        description,
-      },
-      twitter: {
-        card: "summary_large_image",
-        title,
-        description,
-      },
-    };
-  } catch {
-    return {};
-  }
+// Per-invoice OG title/description already come from generateMetadata in
+// ./layout.tsx. generateImageMetadata must return an array of image variants
+// (not a title/description object), so this returns none — the endpoint below
+// is a no-op (204) and doesn't need a variant list.
+export async function generateImageMetadata() {
+  return [];
 }
 
 export const runtime = "edge";

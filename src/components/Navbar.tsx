@@ -25,7 +25,7 @@ export default function Navbar() {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/[0.06] bg-surface-900/80 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full border-b border-white/[0.06] bg-surface-900/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 sm:px-6 h-14">
 
         {/* Logo */}

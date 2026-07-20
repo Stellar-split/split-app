@@ -18,8 +18,8 @@
     "@tanstack/react-query": "5.80.7",
     "@types/canvas-confetti": "1.6.4",
     "canvas-confetti": "1.9.3",
-    "immer": "^11.1.8",
     "html2canvas": "^1.4.1",
+    "immer": "^11.1.8",
     "next": "14.2.3",
     "qrcode.react": "4.2.0",
     "react": "^18.3.0",
@@ -31,6 +31,7 @@
     "glob": "^10.4.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@next/bundle-analyzer": "^14.2.3",
     "@playwright/test": "^1.40.0",
     "@testing-library/jest-dom": "^6.9.1",
@@ -42,6 +43,7 @@
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@vitejs/plugin-react": "^6.0.3",
     "autoprefixer": "^10.4.0",
+    "axe-core": "^4.12.1",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.3",
     "jsdom": "^29.1.1",

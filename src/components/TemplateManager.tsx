@@ -244,7 +244,7 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
         <button
           type="button"
           onClick={saveTemplate}
-          className="flex-1 sm:flex-none min-h-10 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors"
+          className="flex-1 sm:flex-none min-h-10 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
         >
           Save as Template
         </button>
@@ -272,14 +272,14 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
                 <button
                   type="button"
                   onClick={() => loadTemplate(selectedTemplateIndex)}
-                  className="min-h-10 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-sm font-medium transition-colors"
+                  className="min-h-10 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-gray-900 text-sm font-medium transition-colors"
                 >
                   Load
                 </button>
                 <button
                   type="button"
                   onClick={() => updateTemplate(selectedTemplateIndex)}
-                  className="min-h-10 px-4 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-sm font-medium transition-colors"
+                  className="min-h-10 px-4 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-gray-900 text-sm font-medium transition-colors"
                 >
                   Update
                 </button>
@@ -287,7 +287,7 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
                   <button
                     type="button"
                     onClick={() => setShowHistory((v) => !v)}
-                    className="min-h-10 px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-500 text-sm font-medium transition-colors"
+                    className="min-h-10 px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium transition-colors"
                   >
                     {showHistory ? "Hide History" : "History"}
                   </button>
@@ -295,14 +295,14 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
                 <button
                   type="button"
                   onClick={() => shareTemplate(selectedTemplateIndex)}
-                  className="min-h-10 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-medium transition-colors"
+                  className="min-h-10 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
                 >
                   Share
                 </button>
                 <button
                   type="button"
                   onClick={() => deleteTemplate(selectedTemplateIndex)}
-                  className="min-h-10 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-medium transition-colors"
+                  className="min-h-10 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium transition-colors"
                 >
                   Delete
                 </button>
@@ -332,12 +332,12 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
                 <li key={vi} className="flex items-center justify-between gap-3 px-4 py-2 text-xs">
                   <div className="min-w-0">
                     <p className="text-gray-300">{new Date(v.savedAt).toLocaleString()}</p>
-                    <p className="text-gray-500 truncate">{diff}</p>
+                    <p className="text-gray-400 truncate">{diff}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => restoreVersion(selectedTemplateIndex, vi)}
-                    className="shrink-0 px-3 py-1 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-xs font-medium transition-colors"
+                    className="shrink-0 px-3 py-1 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-medium transition-colors"
                   >
                     Restore
                   </button>
