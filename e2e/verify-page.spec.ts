@@ -1,48 +1,38 @@
 import { test, expect } from '@playwright/test';
+import { VerifyPage } from './pages/VerifyPage';
 
-test('verify page without wallet - invoice data renders', async ({ page }) => {
-  // Mock getInvoice to return sample data
-  await page.route('**/api/invoices/**', async (route) => {
-    if (route.request().url().includes('getInvoice')) {
-      // Return a mock invoice response
-      await route.abort('blockedbyclient');
-    }
-    await route.continue();
+test.describe('/verify/[id] public page', () => {
+  test('renders without wallet connection', async ({ page }) => {
+    const verifyPage = new VerifyPage(page);
+    await verifyPage.goto('1');
+
+    await page.waitForLoadState('networkidle');
+    const body = page.locator('body');
+    await expect(body).not.toHaveText(/connect.*wallet/i);
   });
 
-  // Navigate to verify page without wallet
-  await page.goto('/verify/1');
+  test('shows verified on-chain badge', async ({ page }) => {
+    const verifyPage = new VerifyPage(page);
+    await verifyPage.goto('1');
 
-  // Page should load without errors
-  await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle');
+    await expect(verifyPage.verifiedBadge).toBeVisible();
+  });
 
-  // At minimum, the page should not show an error about wallet requirement
-  // The verify page should be publicly accessible
-  const heading = page.locator('h1, h2').first();
-  await expect(heading).toBeVisible();
-});
+  test('shows creator and recipients sections', async ({ page }) => {
+    const verifyPage = new VerifyPage(page);
+    await verifyPage.goto('1');
 
-test('verify page - recipient breakdown renders', async ({ page }) => {
-  await page.goto('/verify/1');
+    await page.waitForLoadState('networkidle');
+    await expect(verifyPage.creatorAddress).toBeVisible();
+    await expect(verifyPage.recipientItems.first()).toBeVisible();
+  });
 
-  await page.waitForLoadState('networkidle');
+  test('shows payment progress section', async ({ page }) => {
+    const verifyPage = new VerifyPage(page);
+    await verifyPage.goto('1');
 
-  // Look for recipient information
-  // The page should have some indication of recipients/breakdown
-  const content = page.locator('body');
-  await expect(content).not.toHaveText(/Error|error|Not found/);
-});
-
-test('verify page - payment progress visible', async ({ page }) => {
-  await page.goto('/verify/1');
-
-  await page.waitForLoadState('networkidle');
-
-  // Look for payment progress component
-  const progressElement = page.locator('text=/Progress|Funded|USDC|Status/i').first();
-
-  // Progress or funding information should be present
-  if (await progressElement.isVisible()) {
-    await expect(progressElement).toBeVisible();
-  }
+    await page.waitForLoadState('networkidle');
+    await expect(verifyPage.progressSection).toBeVisible();
+  });
 });

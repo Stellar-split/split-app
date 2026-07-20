@@ -1,0 +1,30 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_STELLAR_NETWORK: ${{ secrets.NEXT_PUBLIC_STELLAR_NETWORK }}
+          NEXT_PUBLIC_CONTRACT_ID: ${{ secrets.NEXT_PUBLIC_CONTRACT_ID }}
+          NEXT_PUBLIC_RPC_URL: ${{ secrets.NEXT_PUBLIC_RPC_URL }}
+          NEXT_PUBLIC_USDC_ADDRESS: ${{ secrets.NEXT_PUBLIC_USDC_ADDRESS }}
