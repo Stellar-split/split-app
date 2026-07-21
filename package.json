@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --require ./node_modules/sucrase/dist/register.js --test 'src/__tests__/**/*.test.ts'"
   },
   "dependencies": {
     "@stellar-split/sdk": "^0.1.0",

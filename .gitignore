@@ -1,9 +1,46 @@
+# Dependencies
 node_modules/
+
+# Next.js build output
 .next/
 out/
+
+# Environment variables
 .env
 .env.local
 .env.*.local
+
+# TypeScript build info
 *.tsbuildinfo
+
+# OS files
 .DS_Store
 Thumbs.db
+
+# Test artifacts
+coverage/
+__snapshots__/
+**/__snapshots__/
+*.snap
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Misc
+.vercel
+.eslintcache

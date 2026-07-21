@@ -5,6 +5,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
+import CrossChainPayment from "@/components/CrossChainPayment";
 import type { Invoice } from "@stellar-split/sdk";
 
 interface Props {
@@ -12,7 +13,9 @@ interface Props {
 }
 
 /**
- * Invoice detail page — shows status, payment progress, and a Pay button.
+ * Invoice detail page — shows status, payment progress, and payment options:
+ *   1. Pay with Freighter (native Stellar)
+ *   2. Pay from Another Chain (cross-chain bridge via Ethereum / Solana)
  */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
@@ -31,6 +34,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   useEffect(() => {
     load().catch((e) => setError(String(e)));
     getFreighterPublicKey().then(setPublicKey).catch(() => null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const total = invoice
@@ -79,6 +83,14 @@ export default function InvoiceDetailPage({ params }: Props) {
     Refunded: "bg-gray-500",
   };
 
+  /**
+   * The Stellar destination for cross-chain payments is the contract ID.
+   * The StellarSplitClient is initialised with NEXT_PUBLIC_CONTRACT_ID, so we
+   * read it from the environment the same way stellar.ts does.
+   */
+  const stellarDestination =
+    process.env.NEXT_PUBLIC_CONTRACT_ID ?? invoice.token;
+
   return (
     <main className="max-w-xl mx-auto px-6 py-16">
       <div className="flex items-center gap-3 mb-6">
@@ -116,39 +128,58 @@ export default function InvoiceDetailPage({ params }: Props) {
         </ul>
       </section>
 
-      {/* Pay form */}
-      {invoice.status === "Pending" && publicKey && (
-        <form onSubmit={handlePay} className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Pay toward this invoice</h2>
-          <input
-            type="number"
-            step="0.0000001"
-            min="0.0000001"
-            placeholder="Amount in USDC"
-            value={payAmount}
-            onChange={(e) => setPayAmount(e.target.value)}
-            required
-            className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          {txHash && (
-            <p className="text-green-400 text-sm">
-              Payment sent! Tx: {txHash.slice(0, 12)}…
-            </p>
+      {invoice.status === "Pending" && (
+        <div className="flex flex-col gap-6">
+          {/* ── Option 1: Pay with Freighter ──────────────────────────── */}
+          {publicKey && (
+            <form onSubmit={handlePay} className="flex flex-col gap-4">
+              <h2 className="text-lg font-semibold">Pay with Freighter</h2>
+              <input
+                type="number"
+                step="0.0000001"
+                min="0.0000001"
+                placeholder="Amount in USDC"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                required
+                aria-label="Amount in USDC"
+                className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              {error && <p className="text-red-400 text-sm">{error}</p>}
+              {txHash && (
+                <p className="text-green-400 text-sm">
+                  Payment sent! Tx: {txHash.slice(0, 12)}…
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={paying}
+                className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+              >
+                {paying ? "Sending…" : "Pay"}
+              </button>
+            </form>
           )}
-          <button
-            type="submit"
-            disabled={paying}
-            className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
-          >
-            {paying ? "Sending…" : "Pay"}
-          </button>
-        </form>
+
+          {/* ── Divider ───────────────────────────────────────────────── */}
+          <div className="flex items-center gap-3 text-gray-600 text-xs">
+            <div className="flex-1 border-t border-gray-700" />
+            <span>or</span>
+            <div className="flex-1 border-t border-gray-700" />
+          </div>
+
+          {/* ── Option 2: Pay from Another Chain ──────────────────────── */}
+          <CrossChainPayment
+            invoiceId={id}
+            stellarDestination={stellarDestination}
+          />
+        </div>
       )}
 
       {invoice.status !== "Pending" && (
         <p className="text-gray-400 text-sm">
-          This invoice is {invoice.status.toLowerCase()} and no longer accepts payments.
+          This invoice is {invoice.status.toLowerCase()} and no longer accepts
+          payments.
         </p>
       )}
     </main>
