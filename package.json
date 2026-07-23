@@ -8,23 +8,50 @@
     "start": "next start",
     "lint": "next lint",
     "test": "node --require ./node_modules/sucrase/dist/register.js --test 'src/__tests__/**/*.test.ts'"
+    "test": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^3.4.4",
+    "@sentry/nextjs": "^10.62.0",
     "@stellar-split/sdk": "^0.1.0",
     "@stellar/freighter-api": "^3.0.0",
+    "@tanstack/react-query": "5.80.7",
+    "@types/canvas-confetti": "1.6.4",
+    "canvas-confetti": "1.9.3",
+    "html2canvas": "^1.4.1",
+    "immer": "^11.1.8",
     "next": "14.2.3",
+    "qrcode.react": "4.2.0",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0"
+    "react-dom": "^18.3.0",
+    "recharts": "^2.12.7",
+    "zustand": "^5.0.14"
+  },
+  "overrides": {
+    "glob": "^10.4.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@next/bundle-analyzer": "^14.2.3",
+    "@playwright/test": "^1.40.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.5.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@vitejs/plugin-react": "^6.0.3",
     "autoprefixer": "^10.4.0",
+    "axe-core": "^4.12.1",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.3",
+    "jsdom": "^29.1.1",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.9"
   }
 }

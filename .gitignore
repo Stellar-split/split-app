@@ -1,17 +1,22 @@
 # Dependencies
 node_modules/
+package-lock.json
 
 # Next.js build output
 .next/
 out/
 
 # Environment variables
+# Environment files
 .env
 .env.local
 .env.*.local
 
 # TypeScript build info
 *.tsbuildinfo
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
 
 # OS files
 .DS_Store
@@ -44,3 +49,32 @@ pnpm-debug.log*
 # Misc
 .vercel
 .eslintcache
+*.DS_Store
+
+# Test artifacts
+**/__snapshots__/
+*.snap
+coverage/
+playwright-report/
+test-results/
+junit.xml
+*.lcov
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Misc
+.turbo/
+.vercel/
+.cache/
+*.tgz
+dist/
