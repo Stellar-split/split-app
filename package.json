@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "node --require ./node_modules/sucrase/dist/register.js --test 'src/__tests__/**/*.test.ts'"
     "test": "vitest",
     "test:e2e": "playwright test"
   },
