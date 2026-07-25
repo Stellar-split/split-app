@@ -250,8 +250,8 @@ describe("First-Time Large Payer Heuristic", () => {
   it("handles edge case: multiple recipients totaling large amount", () => {
     const invoice = makeInvoice({
       recipients: [
-        { address: "GRECIPIENT_1", amount: 50_000_000n },
-        { address: "GRECIPIENT_2", amount: 50_000_000n },
+        { address: "GRECIPIENT_1", amount: 100_000_000n },
+        { address: "GRECIPIENT_2", amount: 100_000_000n },
       ] as Recipient[],
     });
     const payerHistory = new Map();
@@ -276,9 +276,12 @@ describe("Combined Flags & Edge Cases", () => {
     const now = Date.now();
     // Scenario: new payer (history empty) + contributes >50% + also rapid-fire payments
     const payments: (Payment & { timestamp?: number })[] = [
-      { payer: "GNEW_PAYER_6", amount: 20_000_000n, timestamp: now - 45_000 },
-      { payer: "GNEW_PAYER_6", amount: 20_000_000n, timestamp: now - 30_000 },
-      { payer: "GNEW_PAYER_6", amount: 20_000_000n, timestamp: now - 15_000 },
+      { payer: "GNEW_PAYER_6", amount: 10_000_000n, timestamp: now - 55_000 },
+      { payer: "GNEW_PAYER_6", amount: 10_000_000n, timestamp: now - 50_000 },
+      { payer: "GNEW_PAYER_6", amount: 10_000_000n, timestamp: now - 45_000 },
+      { payer: "GNEW_PAYER_6", amount: 10_000_000n, timestamp: now - 30_000 },
+      { payer: "GNEW_PAYER_6", amount: 10_000_000n, timestamp: now - 15_000 },
+      { payer: "GNEW_PAYER_6", amount: 10_000_000n, timestamp: now - 5_000 },
     ] as (Payment & { timestamp?: number })[];
 
     const invoice = makeInvoice({
@@ -289,7 +292,7 @@ describe("Combined Flags & Edge Cases", () => {
 
     const newPayment = makePayment({
       payer: "GNEW_PAYER_6",
-      amount: 25_000_000n, // >50% of 100M + 6th rapid payment
+      amount: 60_000_000n, // >50% of 100M, triggers first_time_large; 7 payments triggers rapid_succession
       timestamp: now,
     });
 

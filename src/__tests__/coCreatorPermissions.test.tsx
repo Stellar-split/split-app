@@ -5,14 +5,14 @@ import CoCreatorPanel, {
   type PermissionLevel,
 } from "@/components/CoCreatorPanel";
 
-jest.mock("@/lib/stellar", () => ({
+vi.mock("@/lib/stellar", () => ({
   splitClient: {
-    addCoCreator: jest.fn().mockResolvedValue(undefined),
-    removeCoCreator: jest.fn().mockResolvedValue(undefined),
+    addCoCreator: vi.fn().mockResolvedValue(undefined),
+    removeCoCreator: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
-jest.mock("@stellar-split/sdk", () => ({
+vi.mock("@stellar-split/sdk", () => ({
   truncateAddress: (addr: string) => addr.slice(0, 4) + "…",
 }));
 

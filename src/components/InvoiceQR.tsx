@@ -102,7 +102,7 @@ export default function InvoiceQR({ invoiceId, remainingBalance }: Props) {
         )}
 
         <div ref={qrRef} className="bg-white p-2 rounded-lg">
-          <QRCodeCanvas value={qrPayload} size={200} level="H" includeMargin />
+          <QRCodeCanvas value={qrPayload} size={200} level="H" includeMargin data-testid="qr-canvas" />
         </div>
         <button
           type="button"

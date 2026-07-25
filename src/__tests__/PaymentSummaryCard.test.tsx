@@ -15,33 +15,33 @@ import { render, screen, act, waitFor } from "@testing-library/react";
 import { PaymentAggregator } from "@/lib/PaymentAggregator";
 import PaymentSummaryCard from "@/components/PaymentSummaryCard";
 
+// ─── Hoist mock references so they're available inside vi.mock factories ──────
+const { mockGetInvoice, intervalRef } = vi.hoisted(() => ({
+  mockGetInvoice: vi.fn(),
+  intervalRef: { current: null as (() => void) | null },
+}));
+
 // ─── SDK mock ────────────────────────────────────────────────────────────────
-jest.mock("@stellar-split/sdk", () => ({
+vi.mock("@stellar-split/sdk", () => ({
   formatAmount: (n: bigint) => (Number(n) / 10_000_000).toFixed(2),
   truncateAddress: (addr: string) =>
     addr.length > 10 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr,
 }));
 
 // ─── Stellar client mock ─────────────────────────────────────────────────────
-const mockGetInvoice = jest.fn();
-jest.mock("@/lib/stellar", () => ({
+vi.mock("@/lib/stellar", () => ({
   splitClient: { getInvoice: (...args: unknown[]) => mockGetInvoice(...args) },
 }));
 
 // ─── useInterval mock — exposes a manual fire function ───────────────────────
-let fireInterval: (() => void) | null = null;
-jest.mock("@/hooks/useInterval", () => ({
+vi.mock("@/hooks/useInterval", () => ({
   useInterval: (cb: () => void, delay: number | null) => {
-    if (delay !== null) {
-      fireInterval = cb;
-    } else {
-      fireInterval = null;
-    }
+    intervalRef.current = delay !== null ? cb : null;
   },
 }));
 
 // ─── Skeleton mock ───────────────────────────────────────────────────────────
-jest.mock("@/components/Skeleton", () => ({
+vi.mock("@/components/Skeleton", () => ({
   SkeletonProgress: () => <div data-testid="skeleton-progress" />,
 }));
 
@@ -132,7 +132,7 @@ describe("PaymentAggregator", () => {
 describe("PaymentSummaryCard", () => {
   beforeEach(() => {
     mockGetInvoice.mockReset();
-    fireInterval = null;
+    intervalRef.current = null;
   });
 
   test("shows skeleton while loading", () => {
@@ -177,7 +177,7 @@ describe("PaymentSummaryCard", () => {
 
     // Fire the polling interval manually
     await act(async () => {
-      fireInterval?.();
+      intervalRef.current?.();
     });
 
     await waitFor(() =>
@@ -213,10 +213,10 @@ describe("PaymentSummaryCard", () => {
     await waitFor(() =>
       expect(screen.queryByTestId("skeleton-progress")).not.toBeInTheDocument(),
     );
-    // After a Released invoice, fireInterval should be cleared (delay=null)
+    // After a Released invoice, intervalRef.current should be cleared (delay=null)
     await act(async () => {
-      fireInterval?.();
+      intervalRef.current?.();
     });
-    expect(fireInterval).toBeNull();
+    expect(intervalRef.current).toBeNull();
   });
 });

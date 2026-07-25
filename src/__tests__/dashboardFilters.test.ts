@@ -60,6 +60,7 @@ describe("dashboard filter presets", () => {
       "funded",
       "refunded",
       "expired",
+      "draft",
     ]);
     expect(DASHBOARD_PRESETS[0].emptyState.toLowerCase()).toContain("active");
     expect(DASHBOARD_PRESETS[1].emptyState.toLowerCase()).toContain("funded");

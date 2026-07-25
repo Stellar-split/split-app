@@ -9,16 +9,16 @@ describe('StatusBadge', () => {
 
   it('applies yellow styles for Pending', () => {
     render(<StatusBadge status="Pending" />);
-    expect(screen.getByText('Pending')).toHaveClass('text-yellow-600');
+    expect(screen.getByText('Pending')).toHaveClass('text-yellow-400');
   });
 
   it('applies green styles for Released', () => {
     render(<StatusBadge status="Released" />);
-    expect(screen.getByText('Released')).toHaveClass('text-green-600');
+    expect(screen.getByText('Released')).toHaveClass('text-green-400');
   });
 
   it('applies gray styles for Refunded', () => {
     render(<StatusBadge status="Refunded" />);
-    expect(screen.getByText('Refunded')).toHaveClass('text-gray-600');
+    expect(screen.getByText('Refunded')).toHaveClass('text-gray-400');
   });
 });

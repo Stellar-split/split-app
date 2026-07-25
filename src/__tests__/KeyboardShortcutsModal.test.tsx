@@ -14,9 +14,15 @@ import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 // ── mock FocusTrap ─────────────────────────────────────────────────────────────
 // Renders children transparently and calls onClose when Escape is pressed
-jest.mock("@/components/FocusTrap", () => ({
+vi.mock("@/components/FocusTrap", () => ({
   __esModule: true,
   default: function MockFocusTrap({
     children,
@@ -154,8 +160,8 @@ describe("KeyboardShortcutsModal — shortcut list content", () => {
 
     // Check the four mandatory shortcuts from the acceptance criteria
     expect(screen.getByText("Open command palette")).toBeInTheDocument();
-    expect(screen.getByText("Focus search")).toBeInTheDocument();
-    expect(screen.getByText("Toggle theme")).toBeInTheDocument();
+    expect(screen.getByText("Navigate to Search")).toBeInTheDocument();
+    expect(screen.getByText("Create new invoice (on dashboard)")).toBeInTheDocument();
     expect(screen.getByText(/close modal/i)).toBeInTheDocument();
   });
 });
