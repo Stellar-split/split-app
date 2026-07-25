@@ -5,11 +5,9 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
-import { formatAmount, parseAmount } from "@stellar-split/sdk";
+import { formatAmount, parseAmount, truncateAddress, type Invoice } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import CrossChainPayment from "@/components/CrossChainPayment";
-import type { Invoice } from "@stellar-split/sdk";
-import { formatAmount, parseAmount, truncateAddress, type Invoice } from "@stellar-split/sdk";
 import { useInvoiceCustomization } from "@/lib/customization";
 import type { Locale } from "@/lib/i18n";
 import { useInvoiceStream } from "@/hooks/useInvoiceStream";
@@ -140,6 +138,22 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [transferError, setTransferError] = useState<string | null>(null);
   const [locale, setLocale] = useState<Locale>("en");
   const [showConfidentialFlow, setShowConfidentialFlow] = useState(false);
+  const [showReconnecting, setShowReconnecting] = useState(false);
+  const [showReleaseBanner, setShowReleaseBanner] = useState(false);
+
+  useEffect(() => {
+    if (!isConnected) {
+      setShowReconnecting(true);
+    } else {
+      setShowReconnecting(false);
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
+    if (latestEvent?.type === "InvoiceReleased") {
+      setShowReleaseBanner(true);
+    }
+  }, [latestEvent]);
 
   useEffect(() => {
     // TODO: implement notification subscription
@@ -568,10 +582,6 @@ export default function InvoiceDetailPage({ params }: Props) {
         </div>
       )}
 
-      {invoice.status !== "Pending" && (
-        <p className="text-gray-400 text-sm">
-          This invoice is {invoice.status.toLowerCase()} and no longer accepts
-          payments.
       {/* Recipients */}
       <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
 
