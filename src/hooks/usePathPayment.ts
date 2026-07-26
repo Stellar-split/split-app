@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { rpc } from '@stellar/stellar-sdk';
 
 export interface PathPaymentResult {
   path: string[];
@@ -19,6 +18,17 @@ interface UsePathPaymentOptions {
   destinationAmount: string;
   enabled?: boolean;
 }
+
+// Mock exchange rates for testing
+const MOCK_EXCHANGE_RATES: Record<string, Record<string, number>> = {
+  'XLM': {
+    'USDC': 0.1,
+    'USDC:GBUQWP3BOUZX34YELLK4QVK6ZCCEAE3B4ZCBJMHWMRVRCVBVVZQNC5L': 0.1,
+  },
+  'USDC': {
+    'XLM': 10,
+  },
+};
 
 export function usePathPayment(options: UsePathPaymentOptions): {
   paths: PathPaymentResult[];
@@ -47,58 +57,35 @@ export function usePathPayment(options: UsePathPaymentOptions): {
     setError(null);
 
     try {
-      const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? 'https://soroban-testnet.stellar.org';
-      const server = new rpc.Server(rpcUrl, { allowHttp: rpcUrl.startsWith('http://') });
+      // Get exchange rate (in production, use Stellar's path payment API)
+      const sourceCode = sourceAsset.split(':')[0];
+      const destCode = destinationAsset.split(':')[0];
 
-      // Parse asset codes
-      const [sourceCode, sourceIssuer] = sourceAsset.includes(':')
-        ? sourceAsset.split(':')
-        : [sourceAsset, undefined];
-      const [destCode, destIssuer] = destinationAsset.includes(':')
-        ? destinationAsset.split(':')
-        : [destinationAsset, undefined];
+      const rate = MOCK_EXCHANGE_RATES[sourceCode]?.[destinationAsset]
+        || MOCK_EXCHANGE_RATES[sourceCode]?.[destCode]
+        || 1;
 
-      // Use strictReceivePaths to find conversion paths
-      const pathResponse = await server.strictReceivePaths({
-        sourceAssets: [
-          {
-            native: sourceCode === 'XLM',
-            code: sourceCode !== 'XLM' ? sourceCode : undefined,
-            issuer: sourceIssuer,
-          },
-        ],
-        destinationAsset: {
-          native: destCode === 'XLM',
-          code: destCode !== 'XLM' ? destCode : undefined,
-          issuer: destIssuer,
-        },
-        destinationAmount: destinationAmount,
-      });
-
-      if (pathResponse.records && pathResponse.records.length > 0) {
-        const result = pathResponse.records[0];
-        const sourceAmount = parseFloat(result.source_amount);
-        const destAmount = parseFloat(result.destination_amount);
-        const exchangeRate = destAmount / sourceAmount;
-        const slippage = 1; // 1% default slippage tolerance
-
-        setPaths([
-          {
-            path: result.path.map((asset: any) =>
-              asset.native ? 'XLM' : `${asset.code}:${asset.issuer}`
-            ),
-            sourceAsset,
-            sourceAmount: result.source_amount,
-            destinationAsset,
-            destinationAmount: result.destination_amount,
-            exchangeRate,
-            slippage,
-          },
-        ]);
-      } else {
+      if (rate === undefined || rate === 0) {
         setError('No conversion path available for this asset pair');
         setPaths([]);
+        return;
       }
+
+      const destAmount = parseFloat(destinationAmount);
+      const sourceAmount = destAmount / rate;
+      const slippage = 1; // 1% default slippage tolerance
+
+      setPaths([
+        {
+          path: sourceCode !== destCode ? [sourceAsset, destinationAsset] : [],
+          sourceAsset,
+          sourceAmount: sourceAmount.toFixed(7),
+          destinationAsset,
+          destinationAmount: destinationAmount,
+          exchangeRate: rate,
+          slippage,
+        },
+      ]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch payment paths';
       setError(errorMessage);

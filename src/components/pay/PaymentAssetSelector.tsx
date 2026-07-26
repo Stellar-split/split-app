@@ -93,7 +93,7 @@ export default function PaymentAssetSelector({
 
       <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
         <p className="text-xs text-blue-300">
-          💡 Selecting a different asset will use Stellar's path payment mechanism to convert automatically.
+          💡 Selecting a different asset will use Stellar&apos;s path payment mechanism to convert automatically.
         </p>
       </div>
     </div>

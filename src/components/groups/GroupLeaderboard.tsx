@@ -61,7 +61,7 @@ export default function GroupLeaderboard({ groupId, currentUserId }: GroupLeader
       </div>
 
       <div className="space-y-2">
-        {leaderboard.members.map((member, index) => {
+        {leaderboard.members.map((member: GroupMember) => {
           const isCurrentUser = member.memberId === currentUserId;
           const isPerfect = member.percentComplete === 100;
 
@@ -152,7 +152,7 @@ export default function GroupLeaderboard({ groupId, currentUserId }: GroupLeader
       {/* Info Box */}
       <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
         <p className="text-xs text-blue-300">
-          💡 <strong>Pro tip:</strong> Click "Hide" to opt out of the leaderboard and your progress will show as "Anonymous Member" to other members.
+          💡 <strong>Pro tip:</strong> Click &quot;Hide&quot; to opt out of the leaderboard and your progress will show as &quot;Anonymous Member&quot; to other members.
         </p>
       </div>
     </div>
