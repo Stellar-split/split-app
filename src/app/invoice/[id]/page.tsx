@@ -38,7 +38,7 @@ import SplitCalculator from "@/components/SplitCalculator";
 import ActivityFeed from "@/components/ActivityFeed";
 import InstallmentTracker from "@/components/InstallmentTracker";
 import InstallmentPanel from "@/components/InstallmentPanel";
-import CoCreatorPanel from "@/components/CoCreatorPanel";
+import CoCreatorPanel, { canUserEditInvoice } from "@/components/CoCreatorPanel";
 import PaymentChannelPanel from "@/components/PaymentChannelPanel";
 import DisputeTimeline from "@/components/DisputeTimeline";
 import ConfidentialPaymentFlow from "@/components/ConfidentialPaymentFlow";
@@ -48,6 +48,10 @@ import CommentSection from "@/components/CommentSection";
 import InvoiceTimeline from "@/components/InvoiceTimeline";
 import InvoiceExportButton from "@/components/InvoiceExportButton";
 import ReleaseBanner from "@/components/ReleaseBanner";
+import { useInvoiceCollaboration } from "@/hooks/useInvoiceCollaboration";
+import CursorOverlay from "@/components/CursorOverlay";
+import PresencePill from "@/components/PresencePill";
+import ReconnectionBanner from "@/components/ReconnectionBanner";
 import {
   isSubscribedToInvoice,
   subscribeToInvoice,
@@ -95,9 +99,27 @@ export default function InvoiceDetailPage({ params }: Props) {
   const {
     invoice: streamInvoice,
     latestEvent,
-    isConnected,
+    isConnected: streamConnected,
     error: streamError,
   } = useInvoiceStream(id);
+
+  const hasWritePermission = publicKey
+    ? canUserEditInvoice(invoice ?? ({} as Invoice), publicKey)
+    : false;
+
+  const {
+    remoteCursors,
+    remotePresence,
+    isConnected: collabConnected,
+    connectionError: collabError,
+    focusedField,
+    setFocusedField,
+    emitFieldBlur,
+  } = useInvoiceCollaboration({
+    invoiceId: id,
+    currentAddress: publicKey,
+    hasWritePermission,
+  });
 
   const [payAmount, setPayAmount] = useState("");
   const [paying, setPaying] = useState(false);
@@ -142,12 +164,12 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showReleaseBanner, setShowReleaseBanner] = useState(false);
 
   useEffect(() => {
-    if (!isConnected) {
+    if (!streamConnected || !collabConnected) {
       setShowReconnecting(true);
     } else {
       setShowReconnecting(false);
     }
-  }, [isConnected]);
+  }, [streamConnected, collabConnected]);
 
   useEffect(() => {
     if (latestEvent?.type === "InvoiceReleased") {
@@ -363,16 +385,21 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   return (
     <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
-      {/* Reconnecting indicator */}
-      {showReconnecting && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
-          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <span className="text-sm font-medium">Reconnecting...</span>
+      {/* Collaboration presence */}
+      {publicKey && <PresencePill presences={remotePresence} currentAddress={publicKey} />}
+
+      {/* Collaboration permission/connection error */}
+      {collabError && !collabConnected && (
+        <div className="mb-4 bg-red-950/40 border border-red-800 text-red-300 px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+          <span>Collaboration: {collabError}</span>
         </div>
       )}
+
+      {/* Reconnecting indicator */}
+      <ReconnectionBanner
+        show={showReconnecting}
+        isConnected={streamConnected && collabConnected}
+      />
 
       {/* Release Banner */}
       {showReleaseBanner && (
@@ -547,10 +574,17 @@ export default function InvoiceDetailPage({ params }: Props) {
                 placeholder="Amount in USDC"
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
+                onFocus={() => setFocusedField("pay-amount-freighter")}
+                onBlur={() => {
+                  if (focusedField === "pay-amount-freighter") {
+                    emitFieldBlur();
+                  }
+                }}
                 required
                 aria-label="Amount in USDC"
                 className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+              <CursorOverlay cursors={remoteCursors} fieldName="pay-amount-freighter" />
               {error && <p className="text-red-400 text-sm">{error}</p>}
               {txHash && (
                 <p className="text-green-400 text-sm">
@@ -657,9 +691,16 @@ export default function InvoiceDetailPage({ params }: Props) {
                 placeholder="0.00"
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
+                onFocus={() => setFocusedField("pay-amount")}
+                onBlur={() => {
+                  if (focusedField === "pay-amount") {
+                    emitFieldBlur();
+                  }
+                }}
                 required
                 className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+              <CursorOverlay cursors={remoteCursors} fieldName="pay-amount" />
             </div>
             {paymentError && (
               <p role="alert" className="text-red-400 text-sm">{paymentError}</p>

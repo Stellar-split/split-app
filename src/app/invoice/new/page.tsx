@@ -13,6 +13,11 @@ import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
 import { decodeTemplate } from "@/lib/templateSharing";
 
+import { useInvoiceCollaboration } from "@/hooks/useInvoiceCollaboration";
+import CursorOverlay from "@/components/CursorOverlay";
+import PresencePill from "@/components/PresencePill";
+import ReconnectionBanner from "@/components/ReconnectionBanner";
+
 const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
 
@@ -96,6 +101,19 @@ function NewInvoiceForm() {
 
   const { toasts, addToast } = useToasts();
 
+  const {
+    remoteCursors,
+    remotePresence,
+    isConnected: collabConnected,
+    focusedField,
+    setFocusedField,
+    emitFieldBlur,
+  } = useInvoiceCollaboration({
+    invoiceId: "new",
+    currentAddress: publicKey,
+    hasWritePermission: true,
+  });
+
   useEffect(() => {
     const address = searchParams.get("address");
     const templateParam = searchParams.get("template");
@@ -127,6 +145,7 @@ function NewInvoiceForm() {
     }
   }, [searchParams, addToast]);
 
+  const [publicKey, setPublicKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [txModal, setTxModal] = useState<{ txHash: string; invoiceId: string } | null>(null);
   const [equalSplit, setEqualSplit] = useState(false);
@@ -134,6 +153,10 @@ function NewInvoiceForm() {
   const [loading, setLoading] = useState(false);
   const [autofilled, setAutofilled] = useState(false);
   const [stepErrors, setStepErrors] = useState<Record<number, string | null>>({});
+
+  useEffect(() => {
+    getFreighterPublicKey().then(setPublicKey).catch(() => null);
+  }, []);
 
   useEffect(() => {
     if (fromId || sessionStorage.getItem("invoiceTemplate") || searchParams.get("address")) return;
@@ -384,10 +407,15 @@ function NewInvoiceForm() {
             type="text"
             value={token}
             onChange={(e) => setToken(e.target.value)}
+            onFocus={() => setFocusedField("token-address")}
+            onBlur={() => {
+              if (focusedField === "token-address") emitFieldBlur();
+            }}
             required
             placeholder="C..."
             className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
+          <CursorOverlay cursors={remoteCursors} fieldName="token-address" />
         </ChangedField>
       </div>
 
@@ -431,9 +459,14 @@ function NewInvoiceForm() {
             max={365}
             value={deadlineDays}
             onChange={(e) => setDeadlineDays(Number(e.target.value))}
+            onFocus={() => setFocusedField("deadline-days")}
+            onBlur={() => {
+              if (focusedField === "deadline-days") emitFieldBlur();
+            }}
             required
             className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
+          <CursorOverlay cursors={remoteCursors} fieldName="deadline-days" />
           <DeadlineSuggester
             totalAmount={
               equalSplit
@@ -533,9 +566,14 @@ function NewInvoiceForm() {
             min="0.0000001"
             value={totalAmount}
             onChange={(e) => setTotalAmount(e.target.value)}
+            onFocus={() => setFocusedField("total-amount")}
+            onBlur={() => {
+              if (focusedField === "total-amount") emitFieldBlur();
+            }}
             required
             className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
+          <CursorOverlay cursors={remoteCursors} fieldName="total-amount" />
           {perRecipientAmount && (
             <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
               {perRecipientAmount} {t("invoiceNew.perRecipient")}
@@ -667,6 +705,14 @@ function NewInvoiceForm() {
 
   return (
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
+      {/* Collaboration presence */}
+      {publicKey && <PresencePill presences={remotePresence} currentAddress={publicKey} />}
+
+      <ReconnectionBanner
+        show={!collabConnected && !!publicKey}
+        isConnected={collabConnected}
+      />
+
       <div
         aria-live="polite"
         className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
