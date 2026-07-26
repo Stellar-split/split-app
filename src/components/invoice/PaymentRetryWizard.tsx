@@ -3,7 +3,6 @@
 import { useCallback, useState } from "react";
 import FocusTrap from "@/components/FocusTrap";
 import { parseStellarError, type ParsedStellarError } from "@/lib/stellarErrorParser";
-import { Button } from "@/components/Button";
 
 interface PaymentRetryWizardProps {
   open: boolean;
@@ -77,7 +76,7 @@ export default function PaymentRetryWizard({
   if (!open) return null;
 
   return (
-    <FocusTrap onEscape={onClose} isOpen={open}>
+    <FocusTrap onClose={onClose}>
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
         role="dialog"

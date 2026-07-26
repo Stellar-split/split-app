@@ -127,7 +127,7 @@ export default function ShareLinkModal({
   if (!open) return null;
 
   return (
-    <FocusTrap onEscape={onClose} isOpen={open}>
+    <FocusTrap onClose={onClose}>
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
         role="dialog"
