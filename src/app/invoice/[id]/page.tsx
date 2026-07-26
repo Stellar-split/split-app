@@ -57,6 +57,9 @@ import { cancelReminder, setReminder } from "@/lib/reminders";
 import { recordCooldown } from "@/lib/cooldown";
 import { exportTimelineAsImage } from "@/lib/timelineImageExport";
 import type { PaymentChannelState } from "@/components/PaymentChannelPanel";
+import { useInvoicePresence } from "@/hooks/useInvoicePresence";
+import PresenceBar from "@/components/PresenceBar";
+import InvoiceSection from "@/components/InvoiceSection";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
 const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
@@ -98,6 +101,18 @@ export default function InvoiceDetailPage({ params }: Props) {
     isConnected,
     error: streamError,
   } = useInvoiceStream(id);
+
+  // Presence indicators for co-creator awareness
+  const {
+    presenceRoster,
+    currentFocusedSection,
+    updateFocusedSection,
+  } = useInvoicePresence({
+    invoiceId: id,
+    userId: publicKey || "anonymous",
+    displayName: publicKey ? truncateAddress(publicKey) : "Anonymous",
+    enabled: Boolean(publicKey),
+  });
 
   const [payAmount, setPayAmount] = useState("");
   const [paying, setPaying] = useState(false);
@@ -382,6 +397,13 @@ export default function InvoiceDetailPage({ params }: Props) {
         />
       )}
 
+      {/* Presence Bar — shows active co-creators */}
+      {presenceRoster.length > 0 && (
+        <div className="mb-6">
+          <PresenceBar presenceRoster={presenceRoster} currentUserId={publicKey || ""} />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
@@ -448,8 +470,14 @@ export default function InvoiceDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Quick Info Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+      {/* Details Section */}
+      <InvoiceSection
+        sectionId="details"
+        onFocusChange={updateFocusedSection}
+        className="mb-8"
+      >
+        {/* Quick Info Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Creator</p>
           <p className="text-sm font-mono text-gray-200 truncate" title={invoice.creator}>
@@ -498,8 +526,14 @@ export default function InvoiceDetailPage({ params }: Props) {
         <h2 id="timeline-heading" className="text-lg font-semibold text-white mb-4">Status Timeline</h2>
         <StatusTimeline invoice={invoice} total={total} />
       </section>
+      </InvoiceSection>
 
-      {/* Payments */}
+      {/* Payments Section */}
+      <InvoiceSection
+        sectionId="payments"
+        onFocusChange={updateFocusedSection}
+        className="mb-8"
+      >
       <section className="mb-8">
         <h2 className="text-lg font-semibold text-white mb-3">
           Payments ({invoice.payments.length})
@@ -533,6 +567,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           </div>
         )}
       </section>
+      </InvoiceSection>
 
       {invoice.status === "Pending" && (
         <div className="flex flex-col gap-6">
@@ -582,8 +617,14 @@ export default function InvoiceDetailPage({ params }: Props) {
         </div>
       )}
 
-      {/* Recipients */}
-      <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
+      {/* Recipients Section */}
+      <InvoiceSection
+        sectionId="recipients"
+        onFocusChange={updateFocusedSection}
+        className="mb-8"
+      >
+        <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
+      </InvoiceSection>
 
       {/* Split Calculator */}
       {invoice.status === "Pending" && <SplitCalculator invoice={invoice} />}

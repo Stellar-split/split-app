@@ -3,11 +3,6 @@
 import React, { useState } from 'react';
 import type { CoCreatorPresence, InvoiceSectionFocus } from '@/types/presence';
 
-interface PresenceBarProps {
-  presenceRoster: CoCreatorPresence[];
-  currentUserId: string;
-}
-
 const sectionColors: Record<InvoiceSectionFocus, string> = {
   details: 'ring-blue-500',
   payments: 'ring-green-500',
@@ -20,13 +15,12 @@ const sectionLabels: Record<InvoiceSectionFocus, string> = {
   recipients: 'Recipients',
 };
 
-function Avatar({
-  presence,
-  isCurrentUser,
-}: {
+interface AvatarProps {
   presence: CoCreatorPresence;
   isCurrentUser: boolean;
-}) {
+}
+
+function Avatar({ presence, isCurrentUser }: AvatarProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const initials = presence.displayName
     .split(' ')
@@ -49,6 +43,7 @@ function Avatar({
         onMouseLeave={() => setShowTooltip(false)}
       >
         {presence.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={presence.avatarUrl}
             alt={presence.displayName}
@@ -81,7 +76,14 @@ function Avatar({
   );
 }
 
+interface PresenceBarProps {
+  presenceRoster: CoCreatorPresence[];
+  currentUserId: string;
+}
+
 export default function PresenceBar({ presenceRoster, currentUserId }: PresenceBarProps) {
+  const [showOverflowTooltip, setShowOverflowTooltip] = useState(false);
+
   if (presenceRoster.length === 0) {
     return null;
   }
@@ -89,8 +91,6 @@ export default function PresenceBar({ presenceRoster, currentUserId }: PresenceB
   const visibleCount = 5; // Show up to 5 avatars before "+N"
   const displayRoster = presenceRoster.slice(0, visibleCount);
   const overflowCount = Math.max(0, presenceRoster.length - visibleCount);
-
-  const [showOverflowTooltip, setShowOverflowTooltip] = useState(false);
 
   return (
     <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 border-b border-blue-200 rounded-lg">
