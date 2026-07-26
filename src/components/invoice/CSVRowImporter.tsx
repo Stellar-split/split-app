@@ -100,20 +100,20 @@ export default function CSVRowImporter({ onImportComplete }: CSVRowImporterProps
   };
 
   const processImport = (data: { [key: string]: string }, mapping: ColumnMapping) => {
-    const mapped: InvoiceFormFields & { recipients?: any[] } = {};
+    const mapped: any = {};
     let hasData = false;
 
     Object.entries(mapping).forEach(([csvCol, formField]) => {
       const value = data[csvCol];
-      if (value && formField in data) {
-        mapped[formField as keyof InvoiceFormFields] = value;
+      if (value && csvCol in data) {
+        if (formField === "recipients" && typeof value === "string") {
+          mapped.recipients = parseRecipients(value);
+        } else {
+          mapped[formField] = value;
+        }
         hasData = true;
       }
     });
-
-    if (mapped.recipients && typeof mapped.recipients === "string") {
-      mapped.recipients = parseRecipients(mapped.recipients);
-    }
 
     if (!hasData) {
       setError("No data found in CSV row");

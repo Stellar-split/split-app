@@ -15,7 +15,6 @@ interface QRPrintSheetProps {
   invoices: Invoice[];
   gridLayout: "2x2" | "3x3" | "2x6";
   showLabels: boolean;
-  printSheetRef: React.Ref<HTMLDivElement>;
 }
 
 type GridConfig = {
@@ -76,9 +75,11 @@ export const QRPrintSheet = React.forwardRef<HTMLDivElement, QRPrintSheetProps>(
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  transform: `scale(${parseInt(config.qrSize) / 200})`,
+                  transformOrigin: "top left",
                 }}
               >
-                <InvoiceQR invoiceId={invoice.id} size={parseInt(config.qrSize)} />
+                <InvoiceQR invoiceId={invoice.id} />
               </div>
 
               {showLabels && (

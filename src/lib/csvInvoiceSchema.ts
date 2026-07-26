@@ -3,8 +3,6 @@
  * Defines expected column names and validation for CSV imports.
  */
 
-import { z } from "zod";
-
 export interface InvoiceFormFields {
   title?: string;
   description?: string;
@@ -30,17 +28,7 @@ export const EXPECTED_COLUMNS = [
   "token",
 ];
 
-// Schema for validating parsed CSV values
-export const InvoiceFormFieldsSchema = z.object({
-  title: z.string().optional(),
-  description: z.string().optional(),
-  amount: z.string().or(z.number()).optional(),
-  recipients: z.string().optional(),
-  deadline: z.string().optional(),
-  token: z.string().optional(),
-});
-
-export type ParsedCSVRow = z.infer<typeof InvoiceFormFieldsSchema>;
+export type ParsedCSVRow = InvoiceFormFields;
 
 export function parseRecipients(
   recipientString: string
@@ -63,18 +51,34 @@ export function parseRecipients(
 export function validateInvoiceFormFields(
   data: unknown
 ): { valid: boolean; data?: ParsedCSVRow; error?: string } {
-  try {
-    const parsed = InvoiceFormFieldsSchema.parse(data);
-    return { valid: true, data: parsed };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return {
-        valid: false,
-        error: error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join("; "),
-      };
-    }
-    return { valid: false, error: "Unknown validation error" };
+  if (!data || typeof data !== "object") {
+    return { valid: false, error: "Invalid data format" };
   }
+
+  const typedData = data as Record<string, any>;
+  const parsed: ParsedCSVRow = {};
+
+  // Validate and coerce fields
+  if (typedData.title && typeof typedData.title === "string") {
+    parsed.title = typedData.title;
+  }
+  if (typedData.description && typeof typedData.description === "string") {
+    parsed.description = typedData.description;
+  }
+  if (typedData.amount) {
+    parsed.amount = String(typedData.amount);
+  }
+  if (typedData.recipients && typeof typedData.recipients === "string") {
+    parsed.recipients = typedData.recipients;
+  }
+  if (typedData.deadline && typeof typedData.deadline === "string") {
+    parsed.deadline = typedData.deadline;
+  }
+  if (typedData.token && typeof typedData.token === "string") {
+    parsed.token = typedData.token;
+  }
+
+  return { valid: true, data: parsed };
 }
 
 export interface ColumnMapping {
