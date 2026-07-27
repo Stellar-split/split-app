@@ -60,6 +60,7 @@ import type { PaymentChannelState } from "@/components/PaymentChannelPanel";
 import { useInvoicePresence } from "@/hooks/useInvoicePresence";
 import PresenceBar from "@/components/PresenceBar";
 import InvoiceSection from "@/components/InvoiceSection";
+import AmountDisplay from "@/components/invoice/AmountDisplay";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
 const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
@@ -537,6 +538,10 @@ export default function InvoiceDetailPage({ params }: Props) {
           </p>
         </div>
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total</p>
+          <AmountDisplay amount={total} className="text-2xl font-bold text-white" />
+        </div>
+        <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Recipients</p>
           <p className="text-2xl font-bold text-white">{invoice.recipients.length}</p>
         </div>
@@ -610,7 +615,7 @@ export default function InvoiceDetailPage({ params }: Props) {
                       {truncateAddress(p.payer)}
                     </td>
                     <td className="px-4 py-2 text-right text-indigo-300 font-medium">
-                      {formatAmount(p.amount)} USDC
+                      <AmountDisplay amount={p.amount} inline />
                     </td>
                   </tr>
                 ))}
