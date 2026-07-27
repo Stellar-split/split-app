@@ -18,10 +18,17 @@ import {
   saveRetroactiveInvoice,
   type RetroactiveInvoice,
 } from "@/lib/retroactiveInvoices";
+import { useOfflineDraftAutosave } from "@/hooks/useOfflineDraftAutosave";
+import {
+  getOrCreateLocalUserId,
+  listDraftsForUser,
+  type StoredDraft,
+} from "@/lib/offlineDraftDB";
 
 const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
 const TxImportPanel = dynamic(() => import("@/components/invoice/TxImportPanel"), { ssr: false });
+const DraftRecoveryBanner = dynamic(() => import("@/components/invoice/DraftRecoveryBanner"), { ssr: false });
 
 interface RecipientRow {
   address: string;
@@ -105,6 +112,68 @@ function NewInvoiceForm() {
   const [importedTx, setImportedTx] = useState<ImportedTxData | null>(null);
   const [retroSubmitting, setRetroSubmitting] = useState(false);
   const [retroError, setRetroError] = useState<string | null>(null);
+
+  const [draftUserId, setDraftUserId] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [recoveredDraft, setRecoveredDraft] = useState<StoredDraft | null>(null);
+
+  useEffect(() => {
+    getFreighterPublicKey()
+      .then((pk) => setDraftUserId(pk))
+      .catch(() => setDraftUserId(getOrCreateLocalUserId()));
+    setDraftId(crypto.randomUUID());
+  }, []);
+
+  useEffect(() => {
+    if (!draftUserId || fromId || searchParams.get("template") || searchParams.get("address")) return;
+    listDraftsForUser(draftUserId)
+      .then((drafts) => {
+        if (drafts.length > 0) setRecoveredDraft(drafts[0]);
+      })
+      .catch(() => null);
+    // Only check once per mount, independent of draftId (the newly generated
+    // draft won't exist yet so it can never be the one we find here).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftUserId]);
+
+  const draftSnapshot = {
+    recipients,
+    token,
+    deadlineDays,
+    recurring,
+    intervalDays,
+  };
+
+  const { isOffline: draftOffline, discardDraft } = useOfflineDraftAutosave(
+    draftUserId ?? "",
+    formMode === "create" && !cloneSourceId ? draftId ?? "" : "",
+    draftSnapshot
+  );
+
+  const handleRestoreDraft = () => {
+    if (!recoveredDraft) return;
+    setRecipients(recoveredDraft.data.recipients);
+    setToken(recoveredDraft.data.token);
+    setDeadlineDays(recoveredDraft.data.deadlineDays);
+    setRecurring(recoveredDraft.data.recurring);
+    setIntervalDays(recoveredDraft.data.intervalDays);
+    if (draftUserId) {
+      import("@/lib/offlineDraftDB").then(({ deleteDraft }) =>
+        deleteDraft(draftUserId, recoveredDraft.draftId)
+      );
+    }
+    setRecoveredDraft(null);
+    addToast("Draft restored", "success");
+  };
+
+  const handleDiscardDraft = () => {
+    if (recoveredDraft && draftUserId) {
+      import("@/lib/offlineDraftDB").then(({ deleteDraft }) =>
+        deleteDraft(draftUserId, recoveredDraft.draftId)
+      );
+    }
+    setRecoveredDraft(null);
+  };
 
   const { toasts, addToast } = useToasts();
 
@@ -373,6 +442,7 @@ function NewInvoiceForm() {
         );
         setTxModal({ txHash, invoiceId });
       }
+      discardDraft();
     } catch (err) {
       const msg = String(err);
       setError(msg);
@@ -747,7 +817,25 @@ function NewInvoiceForm() {
         />
       )}
 
-      <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+      <div className="flex items-center gap-3 mb-8 flex-wrap">
+        <h1 className="text-3xl font-bold">Create Invoice</h1>
+        {draftOffline && (
+          <span
+            role="status"
+            className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400"
+          >
+            ⚠ Offline — drafts save locally
+          </span>
+        )}
+      </div>
+
+      {recoveredDraft && (
+        <DraftRecoveryBanner
+          updatedAt={recoveredDraft.updatedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+        />
+      )}
 
       {!cloneSourceId && (
         <div className="flex gap-1 border-b border-gray-700 mb-8" role="tablist" aria-label="Invoice creation mode">
