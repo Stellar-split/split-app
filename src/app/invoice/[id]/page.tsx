@@ -45,6 +45,8 @@ import ConfidentialPaymentFlow from "@/components/ConfidentialPaymentFlow";
 import AuditLogTable from "@/components/AuditLogTable";
 import VersionHistory from "@/components/VersionHistory";
 import CommentSection from "@/components/CommentSection";
+import CommentThread from "@/components/invoice/CommentThread";
+import { loadPermissions } from "@/components/CoCreatorPanel";
 import InvoiceTimeline from "@/components/InvoiceTimeline";
 import InvoiceExportButton from "@/components/InvoiceExportButton";
 import ReleaseBanner from "@/components/ReleaseBanner";
@@ -113,7 +115,9 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [amountLocked, setAmountLocked] = useState(false);
   const prevPayAmountRef = useRef("");
   const [cooldownExpiresAt, setCooldownExpiresAt] = useState<number | null>(null);
-  const [activeDetailsTab, setActiveDetailsTab] = useState<"audit" | "history" | "notes">("audit");
+  const [activeDetailsTab, setActiveDetailsTab] = useState<"audit" | "history" | "notes" | "comments">(
+    "audit"
+  );
   const [payerNonce, setPayerNonce] = useState<bigint | null>(null);
 
   const prevStatusRef = useRef<string | null>(null);
@@ -759,11 +763,16 @@ export default function InvoiceDetailPage({ params }: Props) {
         <InvoiceTimeline invoiceId={id} />
       </section>
 
-      {/* Tabbed detail section: Audit Log / History / Notes */}
+      {/* Tabbed detail section: Audit Log / History / Notes / Comments */}
       <section className="mb-8">
         <div className="flex gap-1 border-b border-gray-700 mb-4" role="tablist" aria-label="Invoice details">
-          {(["audit", "history", "notes"] as const).map((tab) => {
-            const labels: Record<string, string> = { audit: "Audit Log", history: "History", notes: "Notes" };
+          {(["audit", "history", "notes", "comments"] as const).map((tab) => {
+            const labels: Record<string, string> = {
+              audit: "Audit Log",
+              history: "History",
+              notes: "Notes",
+              comments: "Comments",
+            };
             return (
               <button
                 key={tab}
@@ -786,6 +795,19 @@ export default function InvoiceDetailPage({ params }: Props) {
         {activeDetailsTab === "history" && <VersionHistory invoiceId={id} />}
         {activeDetailsTab === "notes" && publicKey && (
           <CommentSection invoiceId={id} walletAddress={publicKey} />
+        )}
+        {activeDetailsTab === "comments" && (
+          <CommentThread
+            invoiceId={id}
+            publicKey={publicKey}
+            isCreator={publicKey === invoice.creator}
+            coCreatorWritePermission={
+              !!publicKey &&
+              loadPermissions(id).some(
+                (p) => p.address === publicKey && (p.permissionLevel === "edit" || p.permissionLevel === "admin")
+              )
+            }
+          />
         )}
       </section>
       
