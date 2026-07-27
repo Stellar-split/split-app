@@ -45,17 +45,16 @@ import ConfidentialPaymentFlow from "@/components/ConfidentialPaymentFlow";
 import AuditLogTable from "@/components/AuditLogTable";
 import VersionHistory from "@/components/VersionHistory";
 import CommentSection from "@/components/CommentSection";
+import CommentThread from "@/components/invoice/CommentThread";
+import { loadPermissions } from "@/components/CoCreatorPanel";
 import InvoiceTimeline from "@/components/InvoiceTimeline";
 import InvoiceExportButton from "@/components/InvoiceExportButton";
 import ReleaseBanner from "@/components/ReleaseBanner";
-import {
-  isSubscribedToInvoice,
-  subscribeToInvoice,
-  requestNotificationPermission,
-} from "@/lib/notifications";
 import { cancelReminder, setReminder } from "@/lib/reminders";
 import { recordCooldown } from "@/lib/cooldown";
 import { exportTimelineAsImage } from "@/lib/timelineImageExport";
+import { isRetroactiveInvoiceId, getRetroactiveInvoice } from "@/lib/retroactiveInvoices";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import type { PaymentChannelState } from "@/components/PaymentChannelPanel";
 import { useInvoicePresence } from "@/hooks/useInvoicePresence";
 import PresenceBar from "@/components/PresenceBar";
@@ -131,14 +130,16 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [amountLocked, setAmountLocked] = useState(false);
   const prevPayAmountRef = useRef("");
   const [cooldownExpiresAt, setCooldownExpiresAt] = useState<number | null>(null);
-  const [activeDetailsTab, setActiveDetailsTab] = useState<"audit" | "history" | "notes">("audit");
+  const [activeDetailsTab, setActiveDetailsTab] = useState<"audit" | "history" | "notes" | "comments">(
+    "audit"
+  );
   const [payerNonce, setPayerNonce] = useState<bigint | null>(null);
 
   const prevStatusRef = useRef<string | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const [exportingTimeline, setExportingTimeline] = useState(false);
-  const [notifySubscribed, setNotifySubscribed] = useState(false);
-  const [notifyDenied, setNotifyDenied] = useState(false);
+  const { status: pushStatus, subscribe: subscribeToPush, unsubscribe: unsubscribeFromPush } =
+    usePushNotifications(id);
   const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
@@ -157,12 +158,16 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showReleaseBanner, setShowReleaseBanner] = useState(false);
 
   useEffect(() => {
+    if (isRetroactiveInvoiceId(id)) {
+      setShowReconnecting(false);
+      return;
+    }
     if (!isConnected) {
       setShowReconnecting(true);
     } else {
       setShowReconnecting(false);
     }
-  }, [isConnected]);
+  }, [isConnected, id]);
 
   useEffect(() => {
     if (latestEvent?.type === "InvoiceReleased") {
@@ -170,32 +175,31 @@ export default function InvoiceDetailPage({ params }: Props) {
     }
   }, [latestEvent]);
 
-  useEffect(() => {
-    // TODO: implement notification subscription
-    // setNotifySubscribed(isSubscribedToInvoice(id));
-  }, [id]);
-
-  const handleNotifyMe = async () => {
-    // TODO: implement notification permissions
-    // const permission = await requestNotificationPermission();
-    // if (permission !== "granted") {
-    //   setNotifyDenied(true);
-    //   return;
-    // }
-    // subscribeToInvoice(id);
-    // setNotifySubscribed(true);
-    // setNotifyDenied(false);
-  };
+  const isRetroactive = isRetroactiveInvoiceId(id);
 
   const load = async () => {
+    if (isRetroactive) {
+      const retro = getRetroactiveInvoice(id);
+      if (!retro) throw new Error("Retroactive invoice not found.");
+      setInvoice(retro);
+      setLoading(false);
+      return;
+    }
     const inv = await splitClient.getInvoice(id);
     setInvoice(inv);
     setLoading(false);
   };
 
   useEffect(() => {
-    load().catch((e) => setError(String(e)));
     getFreighterPublicKey().then(setPublicKey).catch(() => null);
+    if (isRetroactive) {
+      load().catch((e) => {
+        setError(String(e));
+        setLoading(false);
+      });
+      return;
+    }
+    load().catch((e) => setError(String(e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // Only fallback load if stream hasn't already provided invoice
     if (!streamInvoice) {
@@ -204,9 +208,6 @@ export default function InvoiceDetailPage({ params }: Props) {
         setLoading(false);
       });
     }
-    getFreighterPublicKey()
-      .then((key) => setPublicKey(key))
-      .catch(() => null);
   }, [id]);
 
   useEffect(() => {
@@ -319,6 +320,11 @@ export default function InvoiceDetailPage({ params }: Props) {
         localStorage.setItem("stellarsplit_adapter_usage", JSON.stringify(existing));
       } catch { /* ignore storage errors */ }
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+      fetch("/api/cron/funding-thresholds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: id }),
+      }).catch(() => null);
     } catch (err) {
       setInvoice(originalInvoice);
       setPaymentError(err instanceof Error ? err.message : String(err));
@@ -410,7 +416,25 @@ export default function InvoiceDetailPage({ params }: Props) {
           <h1 className="text-2xl sm:text-3xl font-bold text-white">
             Invoice #{id}
           </h1>
-          <StatusBadge status={invoice.status as any} size="sm" />
+          {(invoice as any).retroactive ? (
+            <span
+              role="status"
+              aria-label="Status: Fully Paid"
+              className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-0.5 bg-green-500/20 text-green-400"
+            >
+              ✓ Fully Paid
+            </span>
+          ) : (
+            <StatusBadge status={invoice.status as any} size="sm" />
+          )}
+          {(invoice as any).retroactive && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300"
+              title={`Imported from transaction ${(invoice as any).sourceTxHash}`}
+            >
+              Retroactive
+            </span>
+          )}
           <CopyButton text={id} className="!py-1 !px-2 text-xs" />
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap">
@@ -432,6 +456,23 @@ export default function InvoiceDetailPage({ params }: Props) {
             Duplicate
           </button>
           <InvoiceExportButton invoice={invoice} total={total} />
+          {pushStatus !== "unsupported" && !isRetroactive && (
+            <button
+              type="button"
+              onClick={() => (pushStatus === "active" ? unsubscribeFromPush() : subscribeToPush())}
+              disabled={pushStatus === "denied"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50 ${
+                pushStatus === "active"
+                  ? "bg-green-800/60 text-green-300 hover:bg-green-800"
+                  : "bg-gray-700 hover:bg-gray-600 text-white"
+              }`}
+              aria-label={pushStatus === "active" ? "Notifications active" : "Enable notifications"}
+              title={pushStatus === "denied" ? "Notifications blocked in browser settings" : undefined}
+            >
+              <span aria-hidden="true">{pushStatus === "active" ? "🔔" : "🔕"}</span>
+              {pushStatus === "active" ? "Notifications active" : "Notifications off"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowShareQRModal(true)}
@@ -728,6 +769,14 @@ export default function InvoiceDetailPage({ params }: Props) {
           invoice={invoice}
           total={total}
           publicKey={publicKey}
+          onPay={async (amount, email) => {
+            const result = await splitClient.pay({ payer: publicKey, invoiceId: id, amount });
+            fetch("/api/cron/funding-thresholds", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ invoiceId: id }),
+            }).catch(() => null);
+            return result;
           onPay={async (amount, email, options, mfaToken) => {
             return splitClient.pay({ payer: publicKey, invoiceId: id, amount, metadata: mfaToken ? { mfaToken } : undefined });
           }}
@@ -757,11 +806,16 @@ export default function InvoiceDetailPage({ params }: Props) {
         <InvoiceTimeline invoiceId={id} />
       </section>
 
-      {/* Tabbed detail section: Audit Log / History / Notes */}
+      {/* Tabbed detail section: Audit Log / History / Notes / Comments */}
       <section className="mb-8">
         <div className="flex gap-1 border-b border-gray-700 mb-4" role="tablist" aria-label="Invoice details">
-          {(["audit", "history", "notes"] as const).map((tab) => {
-            const labels: Record<string, string> = { audit: "Audit Log", history: "History", notes: "Notes" };
+          {(["audit", "history", "notes", "comments"] as const).map((tab) => {
+            const labels: Record<string, string> = {
+              audit: "Audit Log",
+              history: "History",
+              notes: "Notes",
+              comments: "Comments",
+            };
             return (
               <button
                 key={tab}
@@ -784,6 +838,19 @@ export default function InvoiceDetailPage({ params }: Props) {
         {activeDetailsTab === "history" && <VersionHistory invoiceId={id} />}
         {activeDetailsTab === "notes" && publicKey && (
           <CommentSection invoiceId={id} walletAddress={publicKey} />
+        )}
+        {activeDetailsTab === "comments" && (
+          <CommentThread
+            invoiceId={id}
+            publicKey={publicKey}
+            isCreator={publicKey === invoice.creator}
+            coCreatorWritePermission={
+              !!publicKey &&
+              loadPermissions(id).some(
+                (p) => p.address === publicKey && (p.permissionLevel === "edit" || p.permissionLevel === "admin")
+              )
+            }
+          />
         )}
       </section>
       

@@ -12,9 +12,23 @@ import { useI18n } from "@/components/I18nProvider";
 import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
 import { decodeTemplate } from "@/lib/templateSharing";
+import type { ImportedTxData } from "@/lib/txImport";
+import {
+  generateRetroactiveInvoiceId,
+  saveRetroactiveInvoice,
+  type RetroactiveInvoice,
+} from "@/lib/retroactiveInvoices";
+import { useOfflineDraftAutosave } from "@/hooks/useOfflineDraftAutosave";
+import {
+  getOrCreateLocalUserId,
+  listDraftsForUser,
+  type StoredDraft,
+} from "@/lib/offlineDraftDB";
 
 const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
+const TxImportPanel = dynamic(() => import("@/components/invoice/TxImportPanel"), { ssr: false });
+const DraftRecoveryBanner = dynamic(() => import("@/components/invoice/DraftRecoveryBanner"), { ssr: false });
 
 interface RecipientRow {
   address: string;
@@ -94,7 +108,115 @@ function NewInvoiceForm() {
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
   const [cloneDeadlineIso, setCloneDeadlineIso] = useState<string>(deadlineParam ?? "");
 
+  const [formMode, setFormMode] = useState<"create" | "import">("create");
+  const [importedTx, setImportedTx] = useState<ImportedTxData | null>(null);
+  const [retroSubmitting, setRetroSubmitting] = useState(false);
+  const [retroError, setRetroError] = useState<string | null>(null);
+
+  const [draftUserId, setDraftUserId] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [recoveredDraft, setRecoveredDraft] = useState<StoredDraft | null>(null);
+
+  useEffect(() => {
+    getFreighterPublicKey()
+      .then((pk) => setDraftUserId(pk))
+      .catch(() => setDraftUserId(getOrCreateLocalUserId()));
+    setDraftId(crypto.randomUUID());
+  }, []);
+
+  useEffect(() => {
+    if (!draftUserId || fromId || searchParams.get("template") || searchParams.get("address")) return;
+    listDraftsForUser(draftUserId)
+      .then((drafts) => {
+        if (drafts.length > 0) setRecoveredDraft(drafts[0]);
+      })
+      .catch(() => null);
+    // Only check once per mount, independent of draftId (the newly generated
+    // draft won't exist yet so it can never be the one we find here).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftUserId]);
+
+  const draftSnapshot = {
+    recipients,
+    token,
+    deadlineDays,
+    recurring,
+    intervalDays,
+  };
+
+  const { isOffline: draftOffline, discardDraft } = useOfflineDraftAutosave(
+    draftUserId ?? "",
+    formMode === "create" && !cloneSourceId ? draftId ?? "" : "",
+    draftSnapshot
+  );
+
+  const handleRestoreDraft = () => {
+    if (!recoveredDraft) return;
+    setRecipients(recoveredDraft.data.recipients);
+    setToken(recoveredDraft.data.token);
+    setDeadlineDays(recoveredDraft.data.deadlineDays);
+    setRecurring(recoveredDraft.data.recurring);
+    setIntervalDays(recoveredDraft.data.intervalDays);
+    if (draftUserId) {
+      import("@/lib/offlineDraftDB").then(({ deleteDraft }) =>
+        deleteDraft(draftUserId, recoveredDraft.draftId)
+      );
+    }
+    setRecoveredDraft(null);
+    addToast("Draft restored", "success");
+  };
+
+  const handleDiscardDraft = () => {
+    if (recoveredDraft && draftUserId) {
+      import("@/lib/offlineDraftDB").then(({ deleteDraft }) =>
+        deleteDraft(draftUserId, recoveredDraft.draftId)
+      );
+    }
+    setRecoveredDraft(null);
+  };
+
   const { toasts, addToast } = useToasts();
+
+  const handleImported = (data: ImportedTxData) => {
+    setImportedTx(data);
+    setRetroError(null);
+  };
+
+  const handleRetroactiveSubmit = async () => {
+    if (!importedTx) return;
+    setRetroSubmitting(true);
+    setRetroError(null);
+    try {
+      const creator = await getFreighterPublicKey().catch(() => importedTx.recipients[0]?.address ?? "unknown");
+      const recipients = importedTx.recipients.map((r) => ({
+        address: r.address,
+        amount: parseAmount(r.amount),
+      }));
+      const total = recipients.reduce((s, r) => s + r.amount, 0n);
+      const id = generateRetroactiveInvoiceId(importedTx.txHash);
+      const record: RetroactiveInvoice = {
+        id,
+        creator,
+        recipients,
+        token: importedTx.recipients[0]?.asset ?? "XLM",
+        deadline: 0,
+        funded: total,
+        status: "Released",
+        payments: [{ payer: creator, amount: total }],
+        retroactive: true,
+        sourceTxHash: importedTx.txHash,
+        memo: importedTx.memo,
+        createdAt: importedTx.createdAt,
+      };
+      saveRetroactiveInvoice(record);
+      addToast(`Retroactive invoice #${id} created`, "success");
+      router.push(`/invoice/${id}`);
+    } catch (err) {
+      setRetroError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRetroSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const address = searchParams.get("address");
@@ -320,6 +442,7 @@ function NewInvoiceForm() {
         );
         setTxModal({ txHash, invoiceId });
       }
+      discardDraft();
     } catch (err) {
       const msg = String(err);
       setError(msg);
@@ -694,8 +817,92 @@ function NewInvoiceForm() {
         />
       )}
 
-      <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+      <div className="flex items-center gap-3 mb-8 flex-wrap">
+        <h1 className="text-3xl font-bold">Create Invoice</h1>
+        {draftOffline && (
+          <span
+            role="status"
+            className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400"
+          >
+            ⚠ Offline — drafts save locally
+          </span>
+        )}
+      </div>
 
+      {recoveredDraft && (
+        <DraftRecoveryBanner
+          updatedAt={recoveredDraft.updatedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+        />
+      )}
+
+      {!cloneSourceId && (
+        <div className="flex gap-1 border-b border-gray-700 mb-8" role="tablist" aria-label="Invoice creation mode">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={formMode === "create"}
+            onClick={() => setFormMode("create")}
+            className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg -mb-px border-b-2 ${
+              formMode === "create"
+                ? "border-indigo-500 text-indigo-300"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Create New
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={formMode === "import"}
+            onClick={() => setFormMode("import")}
+            className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg -mb-px border-b-2 ${
+              formMode === "import"
+                ? "border-indigo-500 text-indigo-300"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Import from Transaction
+          </button>
+        </div>
+      )}
+
+      {formMode === "import" && !cloneSourceId ? (
+        <div className="flex flex-col gap-6">
+          <TxImportPanel onImported={handleImported} />
+
+          {importedTx && (
+            <div className="flex flex-col gap-4 rounded-lg bg-indigo-950/40 border border-indigo-800 px-4 py-4">
+              <p className="text-sm text-indigo-200">
+                This invoice will be created as <strong>retroactive</strong> and marked{" "}
+                <strong>Fully Paid</strong> automatically — no on-chain payment is required.
+              </p>
+              {retroError && (
+                <p role="alert" className="text-red-400 text-sm">{retroError}</p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleRetroactiveSubmit}
+                  disabled={retroSubmitting}
+                  className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50"
+                >
+                  {retroSubmitting ? "Creating…" : "Create Retroactive Invoice"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImportedTx(null)}
+                  className="min-h-11 px-6 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 font-medium transition-colors"
+                >
+                  Start Over
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+      <>
       {/* Cloned-from banner */}
       {cloneSourceId && (
         <div className="mb-6 flex items-center gap-2 text-sm bg-indigo-950/60 border border-indigo-700 text-indigo-300 rounded-lg px-3 py-2">
@@ -782,6 +989,8 @@ function NewInvoiceForm() {
           </div>
         </div>
       </form>
+      </>
+      )}
     </main>
   );
 }

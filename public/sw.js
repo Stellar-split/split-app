@@ -19,6 +19,45 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    return;
+  }
+
+  const { title, body, invoiceId, milestone } = payload;
+  event.waitUntil(
+    self.registration.showNotification(title || "StellarSplit", {
+      body,
+      icon: "/icons/icon-192.png",
+      tag: invoiceId ? `funding-milestone-${invoiceId}-${milestone}` : undefined,
+      data: { invoiceId, url: invoiceId ? `/invoice/${invoiceId}` : "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(url) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url);
+      }
+    })
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
