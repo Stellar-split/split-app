@@ -7,6 +7,8 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
+import ActivityFeed from "@/components/ActivityFeed";
+import { useActivityFeed } from "@/hooks/useActivityFeed";
 import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 import { InvoiceListSkeleton, SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
@@ -64,6 +66,9 @@ export default function DashboardClient() {
   const [bulkReminderResults, setBulkReminderResults] = useState<BulkReminderResult[] | null>(null);
   // Mobile filter drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Activity feed panel
+  const [feedOpen, setFeedOpen] = useState(false);
+  const { unreadCount } = useActivityFeed();
 
   // ── URL mutation helpers ────────────────────────────────────────────────────
 
@@ -435,6 +440,20 @@ export default function DashboardClient() {
           >
             + New Invoice
           </Link>
+          <button
+            type="button"
+            onClick={() => setFeedOpen((v) => !v)}
+            aria-label={`${feedOpen ? "Close" : "Open"} activity feed`}
+            aria-pressed={feedOpen}
+            className="relative min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition-colors"
+          >
+            Activity
+            {unreadCount > 0 && (
+              <span className="ml-2 inline-flex items-center justify-center rounded-full bg-indigo-600 text-white text-xs font-bold px-1.5 py-0.5 min-w-[1.25rem]">
+                {unreadCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -715,6 +734,8 @@ export default function DashboardClient() {
         invoiceId={shareQRInvoiceId || ""}
         onClose={() => setShareQRInvoiceId(null)}
       />
+
+      <ActivityFeed open={feedOpen} />
     </>
   );
 }
