@@ -9,7 +9,7 @@ import { NETWORK_PASSPHRASE } from "./freighter";
 
 let _client: StellarSplitClient | null = null;
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
+export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
 const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ??
   (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
