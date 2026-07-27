@@ -31,5 +31,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function InvoiceLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen overflow-x-hidden">
+      <div className="px-4 sm:px-6 lg:px-8">
+        {children}
+      </div>
+    </div>
+  );
 }
