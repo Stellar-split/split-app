@@ -7,6 +7,7 @@ const ReceiptPDF = lazy(() => import("./ReceiptPDF"));
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "./PaymentProgress";
 import PaymentBreakdownModal from "./PaymentBreakdownModal";
+import MFAGate from "./invoice/MFAGate";
 import type { Invoice } from "@stellar-split/sdk";
 import { checkBudget, getBudgetLimit, setBudgetLimit, clearBudgetLimit } from "@/lib/budgetTracker";
 import { fetchUsdcBalance, USDC_CONTRACT_ID } from "@/lib/stellar";
@@ -28,7 +29,7 @@ interface Props {
   invoice: Invoice;
   total: bigint;
   publicKey: string;
-  onPay: (amount: bigint, email?: string, options?: PaymentOptions) => Promise<PaymentResult>;
+  onPay: (amount: bigint, email?: string, options?: PaymentOptions, mfaToken?: string) => Promise<PaymentResult>;
   onClose: () => void;
 }
 
@@ -87,6 +88,9 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
   const [balance, setBalance] = useState<bigint | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [balanceError, setBalanceError] = useState<string | null>(null);
+  const [mfaSettings, setMfaSettings] = useState<{ mfaEnabled: boolean; highValueThreshold: number } | null>(null);
+  const [showMfaGate, setShowMfaGate] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<{ amount: bigint; email?: string; options?: PaymentOptions } | null>(null);
 
   const defaultAmount = getDefaultPaymentAmount(invoice, total, publicKey);
 
@@ -115,6 +119,30 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
       const existing = getBudgetLimit(publicKey);
       if (existing !== null) setBudgetInput(String(existing));
     }
+  }, [publicKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const userId = publicKey || "default-user";
+    fetch(`/api/settings/mfa?userId=${encodeURIComponent(userId)}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled) {
+          setMfaSettings({
+            mfaEnabled: Boolean(data?.mfaEnabled),
+            highValueThreshold: Number(data?.highValueThreshold ?? 1000),
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMfaSettings({ mfaEnabled: false, highValueThreshold: 1000 });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [publicKey]);
 
   useEffect(() => {
@@ -184,13 +212,24 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
       setError("Enter a USDC amount greater than zero.");
       return;
     }
+
+    const options = {
+      tip: parsedTip,
+      donateOnFailure,
+    };
+
+    const requiresMfa = Boolean(mfaSettings?.mfaEnabled) && Number(total) >= (mfaSettings?.highValueThreshold ?? 0);
+    if (requiresMfa) {
+      setPendingPayment({ amount: paymentTotal, email: email || undefined, options });
+      setShowBreakdown(false);
+      setShowMfaGate(true);
+      return;
+    }
+
     setPaying(true);
     setError(null);
     try {
-      const result = await onPay(paymentTotal, email || undefined, {
-        tip: parsedTip,
-        donateOnFailure,
-      });
+      const result = await onPay(paymentTotal, email || undefined, options);
       const txHash = result && "txHash" in result ? result.txHash : undefined;
       setSuccessTxHash(txHash || "pending");
       setReceiptPaymentAmount(parsed);
@@ -209,6 +248,52 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
     } catch (err) {
       setShowBreakdown(false);
+      setError(getPaymentErrorMessage(err));
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const handleMfaSuccess = async (token: string) => {
+    if (!pendingPayment) {
+      return;
+    }
+
+    setPaying(true);
+    setError(null);
+    try {
+      const consumeResponse = await fetch("/api/settings/mfa/consume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const consumeData = await consumeResponse.json();
+      if (!consumeResponse.ok || !consumeData.success) {
+        setError(consumeData.error || "Unable to use the MFA token.");
+        return;
+      }
+
+      const result = await onPay(pendingPayment.amount, pendingPayment.email, pendingPayment.options, token);
+      const txHash = result && "txHash" in result ? result.txHash : undefined;
+      setSuccessTxHash(txHash || "pending");
+      setReceiptPaymentAmount(parsed);
+      setReceiptTipAmount(parsedTip);
+      if (txHash) {
+        saveReceipt({
+          txHash,
+          date: Date.now(),
+          payerAddress: publicKey,
+          invoiceId: invoice.id,
+          amountPaid: String(parsed),
+          tipAmount: String(parsedTip),
+        });
+      }
+      setPendingPayment(null);
+      setShowMfaGate(false);
+      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+    } catch (err) {
+      setShowMfaGate(false);
+      setPendingPayment(null);
       setError(getPaymentErrorMessage(err));
     } finally {
       setPaying(false);
@@ -514,6 +599,15 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
           confirming={paying}
         />
       )}
+
+      <MFAGate
+        isOpen={showMfaGate}
+        onClose={() => {
+          setShowMfaGate(false);
+          setPendingPayment(null);
+        }}
+        onSuccess={handleMfaSuccess}
+      />
     </div>
   );
 }

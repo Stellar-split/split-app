@@ -687,8 +687,8 @@ export default function InvoiceDetailPage({ params }: Props) {
           invoice={invoice}
           total={total}
           publicKey={publicKey}
-          onPay={async (amount, email) => {
-            return splitClient.pay({ payer: publicKey, invoiceId: id, amount });
+          onPay={async (amount, email, options, mfaToken) => {
+            return splitClient.pay({ payer: publicKey, invoiceId: id, amount, metadata: mfaToken ? { mfaToken } : undefined });
           }}
           onClose={() => setShowPayModal(false)}
         />
