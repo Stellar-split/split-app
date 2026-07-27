@@ -56,6 +56,7 @@ import {
 import { cancelReminder, setReminder } from "@/lib/reminders";
 import { recordCooldown } from "@/lib/cooldown";
 import { exportTimelineAsImage } from "@/lib/timelineImageExport";
+import { isRetroactiveInvoiceId, getRetroactiveInvoice } from "@/lib/retroactiveInvoices";
 import type { PaymentChannelState } from "@/components/PaymentChannelPanel";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
@@ -142,12 +143,16 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showReleaseBanner, setShowReleaseBanner] = useState(false);
 
   useEffect(() => {
+    if (isRetroactiveInvoiceId(id)) {
+      setShowReconnecting(false);
+      return;
+    }
     if (!isConnected) {
       setShowReconnecting(true);
     } else {
       setShowReconnecting(false);
     }
-  }, [isConnected]);
+  }, [isConnected, id]);
 
   useEffect(() => {
     if (latestEvent?.type === "InvoiceReleased") {
@@ -172,15 +177,31 @@ export default function InvoiceDetailPage({ params }: Props) {
     // setNotifyDenied(false);
   };
 
+  const isRetroactive = isRetroactiveInvoiceId(id);
+
   const load = async () => {
+    if (isRetroactive) {
+      const retro = getRetroactiveInvoice(id);
+      if (!retro) throw new Error("Retroactive invoice not found.");
+      setInvoice(retro);
+      setLoading(false);
+      return;
+    }
     const inv = await splitClient.getInvoice(id);
     setInvoice(inv);
     setLoading(false);
   };
 
   useEffect(() => {
-    load().catch((e) => setError(String(e)));
     getFreighterPublicKey().then(setPublicKey).catch(() => null);
+    if (isRetroactive) {
+      load().catch((e) => {
+        setError(String(e));
+        setLoading(false);
+      });
+      return;
+    }
+    load().catch((e) => setError(String(e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // Only fallback load if stream hasn't already provided invoice
     if (!streamInvoice) {
@@ -189,9 +210,6 @@ export default function InvoiceDetailPage({ params }: Props) {
         setLoading(false);
       });
     }
-    getFreighterPublicKey()
-      .then((key) => setPublicKey(key))
-      .catch(() => null);
   }, [id]);
 
   useEffect(() => {
@@ -388,7 +406,25 @@ export default function InvoiceDetailPage({ params }: Props) {
           <h1 className="text-2xl sm:text-3xl font-bold text-white">
             Invoice #{id}
           </h1>
-          <StatusBadge status={invoice.status as any} size="sm" />
+          {(invoice as any).retroactive ? (
+            <span
+              role="status"
+              aria-label="Status: Fully Paid"
+              className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-0.5 bg-green-500/20 text-green-400"
+            >
+              ✓ Fully Paid
+            </span>
+          ) : (
+            <StatusBadge status={invoice.status as any} size="sm" />
+          )}
+          {(invoice as any).retroactive && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300"
+              title={`Imported from transaction ${(invoice as any).sourceTxHash}`}
+            >
+              Retroactive
+            </span>
+          )}
           <CopyButton text={id} className="!py-1 !px-2 text-xs" />
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap">
