@@ -24,6 +24,11 @@ import {
   listDraftsForUser,
   type StoredDraft,
 } from "@/lib/offlineDraftDB";
+import SplitCalculator from "@/components/SplitCalculator";
+import {
+  calculateSplit,
+  type SplitMeta,
+} from "@/hooks/useSplitCalculator";
 
 const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
@@ -99,6 +104,7 @@ function NewInvoiceForm() {
   const [recurring, setRecurring] = useState(false);
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
+  const [splitMeta, setSplitMeta] = useState<SplitMeta | null>(null);
 
   const fromId = searchParams.get("from");
   const deadlineParam = searchParams.get("deadline");
@@ -142,6 +148,7 @@ function NewInvoiceForm() {
     deadlineDays,
     recurring,
     intervalDays,
+    splitMeta,
   };
 
   const { isOffline: draftOffline, discardDraft } = useOfflineDraftAutosave(
@@ -157,6 +164,9 @@ function NewInvoiceForm() {
     setDeadlineDays(recoveredDraft.data.deadlineDays);
     setRecurring(recoveredDraft.data.recurring);
     setIntervalDays(recoveredDraft.data.intervalDays);
+    if ((recoveredDraft.data as any).splitMeta) {
+      setSplitMeta((recoveredDraft.data as any).splitMeta);
+    }
     if (draftUserId) {
       import("@/lib/offlineDraftDB").then(({ deleteDraft }) =>
         deleteDraft(draftUserId, recoveredDraft.draftId)
@@ -363,6 +373,16 @@ function NewInvoiceForm() {
           setStepErrors((prev) => ({ ...prev, [s]: "Each recipient needs a valid G... address and positive amount" }));
           return false;
         }
+        if (splitMeta && splitMeta.recipients.length > 0) {
+          const splitResult = calculateSplit(splitMeta.totalAmount, splitMeta.recipients, splitMeta.assetCode);
+          if (!splitResult.validation.isValid) {
+            setStepErrors((prev) => ({
+              ...prev,
+              [s]: splitResult.validation.errorMessage ?? "Split calculator has invalid configuration",
+            }));
+            return false;
+          }
+        }
         setStepErrors((prev) => ({ ...prev, [s]: null }));
         return true;
       }
@@ -421,6 +441,13 @@ function NewInvoiceForm() {
           recipients.map((r) => ({ address: r.address, amount: r.amount }))
         );
         addToast(`Invoice #${invoiceId} created`, "success");
+        if (splitMeta && splitMeta.recipients.length > 0) {
+          fetch(`/api/invoices/${invoiceId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ splitMeta }),
+          }).catch(() => null);
+        }
         setTxModal({ txHash, invoiceId });
       } else {
         const { invoiceId, txHash } = await splitClient.createInvoice({
@@ -440,6 +467,13 @@ function NewInvoiceForm() {
             amount: equalSplit ? (perRecipientAmount ?? "0") : r.amount,
           }))
         );
+        if (splitMeta && splitMeta.recipients.length > 0) {
+          fetch(`/api/invoices/${invoiceId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ splitMeta }),
+          }).catch(() => null);
+        }
         setTxModal({ txHash, invoiceId });
       }
       discardDraft();
@@ -680,6 +714,11 @@ function NewInvoiceForm() {
           />
         </ChangedField>
       </div>
+
+      <SplitCalculator
+        initialTotal={equalSplit ? totalAmount : recipients.reduce((s, r) => s + parseFloat(r.amount || "0"), 0).toFixed(7)}
+        onSplitMetaChange={setSplitMeta}
+      />
     </div>
   );
 
