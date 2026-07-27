@@ -48,15 +48,11 @@ import CommentSection from "@/components/CommentSection";
 import InvoiceTimeline from "@/components/InvoiceTimeline";
 import InvoiceExportButton from "@/components/InvoiceExportButton";
 import ReleaseBanner from "@/components/ReleaseBanner";
-import {
-  isSubscribedToInvoice,
-  subscribeToInvoice,
-  requestNotificationPermission,
-} from "@/lib/notifications";
 import { cancelReminder, setReminder } from "@/lib/reminders";
 import { recordCooldown } from "@/lib/cooldown";
 import { exportTimelineAsImage } from "@/lib/timelineImageExport";
 import { isRetroactiveInvoiceId, getRetroactiveInvoice } from "@/lib/retroactiveInvoices";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import type { PaymentChannelState } from "@/components/PaymentChannelPanel";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
@@ -123,8 +119,8 @@ export default function InvoiceDetailPage({ params }: Props) {
   const prevStatusRef = useRef<string | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const [exportingTimeline, setExportingTimeline] = useState(false);
-  const [notifySubscribed, setNotifySubscribed] = useState(false);
-  const [notifyDenied, setNotifyDenied] = useState(false);
+  const { status: pushStatus, subscribe: subscribeToPush, unsubscribe: unsubscribeFromPush } =
+    usePushNotifications(id);
   const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
@@ -159,23 +155,6 @@ export default function InvoiceDetailPage({ params }: Props) {
       setShowReleaseBanner(true);
     }
   }, [latestEvent]);
-
-  useEffect(() => {
-    // TODO: implement notification subscription
-    // setNotifySubscribed(isSubscribedToInvoice(id));
-  }, [id]);
-
-  const handleNotifyMe = async () => {
-    // TODO: implement notification permissions
-    // const permission = await requestNotificationPermission();
-    // if (permission !== "granted") {
-    //   setNotifyDenied(true);
-    //   return;
-    // }
-    // subscribeToInvoice(id);
-    // setNotifySubscribed(true);
-    // setNotifyDenied(false);
-  };
 
   const isRetroactive = isRetroactiveInvoiceId(id);
 
@@ -322,6 +301,11 @@ export default function InvoiceDetailPage({ params }: Props) {
         localStorage.setItem("stellarsplit_adapter_usage", JSON.stringify(existing));
       } catch { /* ignore storage errors */ }
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+      fetch("/api/cron/funding-thresholds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: id }),
+      }).catch(() => null);
     } catch (err) {
       setInvoice(originalInvoice);
       setPaymentError(err instanceof Error ? err.message : String(err));
@@ -446,6 +430,23 @@ export default function InvoiceDetailPage({ params }: Props) {
             Duplicate
           </button>
           <InvoiceExportButton invoice={invoice} total={total} />
+          {pushStatus !== "unsupported" && !isRetroactive && (
+            <button
+              type="button"
+              onClick={() => (pushStatus === "active" ? unsubscribeFromPush() : subscribeToPush())}
+              disabled={pushStatus === "denied"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50 ${
+                pushStatus === "active"
+                  ? "bg-green-800/60 text-green-300 hover:bg-green-800"
+                  : "bg-gray-700 hover:bg-gray-600 text-white"
+              }`}
+              aria-label={pushStatus === "active" ? "Notifications active" : "Enable notifications"}
+              title={pushStatus === "denied" ? "Notifications blocked in browser settings" : undefined}
+            >
+              <span aria-hidden="true">{pushStatus === "active" ? "🔔" : "🔕"}</span>
+              {pushStatus === "active" ? "Notifications active" : "Notifications off"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowShareQRModal(true)}
@@ -724,7 +725,13 @@ export default function InvoiceDetailPage({ params }: Props) {
           total={total}
           publicKey={publicKey}
           onPay={async (amount, email) => {
-            return splitClient.pay({ payer: publicKey, invoiceId: id, amount });
+            const result = await splitClient.pay({ payer: publicKey, invoiceId: id, amount });
+            fetch("/api/cron/funding-thresholds", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ invoiceId: id }),
+            }).catch(() => null);
+            return result;
           }}
           onClose={() => setShowPayModal(false)}
         />
