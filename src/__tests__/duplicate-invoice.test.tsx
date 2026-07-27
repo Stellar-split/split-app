@@ -110,6 +110,37 @@ vi.mock("@/lib/invoiceHistory", () => ({
   recordInvoiceHistory: vi.fn(),
 }));
 
+vi.mock("@/components/SplitCalculator", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/hooks/useOfflineDraftAutosave", () => ({
+  useOfflineDraftAutosave: () => ({
+    isOffline: false,
+    discardDraft: vi.fn(),
+  }),
+}));
+
+vi.mock("@/lib/offlineDraftDB", () => ({
+  getOrCreateLocalUserId: () => "local-user-id",
+  listDraftsForUser: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/components/invoice/DraftRecoveryBanner", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/components/invoice/TxImportPanel", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/lib/templateSharing", () => ({
+  decodeTemplate: vi.fn(),
+}));
+
 describe("NewInvoicePage — URL pre-fill (clone mode)", () => {
   beforeEach(() => {
     mockSearchParams.clear();

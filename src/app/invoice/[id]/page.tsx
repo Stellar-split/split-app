@@ -35,6 +35,7 @@ import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
 import CloneLineageTree from "@/components/CloneLineageTree";
 import CountdownTimer from "@/components/CountdownTimer";
 import SplitCalculator from "@/components/SplitCalculator";
+import type { SplitMeta } from "@/hooks/useSplitCalculator";
 import ActivityFeed from "@/components/ActivityFeed";
 import InstallmentTracker from "@/components/InstallmentTracker";
 import InstallmentPanel from "@/components/InstallmentPanel";
@@ -92,6 +93,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadedSplitMeta, setLoadedSplitMeta] = useState<SplitMeta | null>(null);
 
   // Live stream
   const {
@@ -187,6 +189,15 @@ export default function InvoiceDetailPage({ params }: Props) {
     }
     const inv = await splitClient.getInvoice(id);
     setInvoice(inv);
+    try {
+      const res = await fetch(`/api/invoices/${id}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.splitMeta) setLoadedSplitMeta(json.splitMeta);
+      }
+    } catch {
+      // ignore splitMeta fetch failures; invoice still loads
+    }
     setLoading(false);
   };
 
@@ -668,7 +679,10 @@ export default function InvoiceDetailPage({ params }: Props) {
       </InvoiceSection>
 
       {/* Split Calculator */}
-      {invoice.status === "Pending" && <SplitCalculator invoice={invoice} />}
+      <SplitCalculator
+        splitMeta={loadedSplitMeta ?? ((invoice as any).splitMeta as SplitMeta | undefined)}
+        readOnly
+      />
 
       <ActivityFeed
         invoice={{
@@ -769,16 +783,19 @@ export default function InvoiceDetailPage({ params }: Props) {
           invoice={invoice}
           total={total}
           publicKey={publicKey}
-          onPay={async (amount, email) => {
-            const result = await splitClient.pay({ payer: publicKey, invoiceId: id, amount });
+          onPay={async (amount, email, options, mfaToken) => {
+            const result = await splitClient.pay({
+              payer: publicKey,
+              invoiceId: id,
+              amount,
+              metadata: mfaToken ? { mfaToken } : undefined,
+            });
             fetch("/api/cron/funding-thresholds", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ invoiceId: id }),
             }).catch(() => null);
             return result;
-          onPay={async (amount, email, options, mfaToken) => {
-            return splitClient.pay({ payer: publicKey, invoiceId: id, amount, metadata: mfaToken ? { mfaToken } : undefined });
           }}
           onClose={() => setShowPayModal(false)}
         />
