@@ -9,7 +9,7 @@ import { NETWORK_PASSPHRASE } from "./freighter";
 
 let _client: StellarSplitClient | null = null;
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
+export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
 const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ??
   (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
@@ -205,4 +205,40 @@ export async function fetchUsdcBalance(
   if (!retval) return 0n;
 
   return scValToBigInt(retval);
+}
+
+/**
+ * Resolve a federation address (e.g., alice*example.com) to a Stellar address
+ */
+export async function resolveFederationAddress(federationAddress: string): Promise<string | null> {
+  try {
+    const { FederationServer } = await import("@stellar/stellar-sdk");
+    const result = await FederationServer.resolveAddress(federationAddress);
+    return result.account_id;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Validate a Stellar address and check if it's funded and requires memo
+ */
+export async function validateFederationAddress(address: string): Promise<{
+  isFunded: boolean;
+  requiresMemo: boolean;
+}> {
+  try {
+    const { Horizon } = await import("@stellar/stellar-sdk");
+    const server = new Horizon.Server(HORIZON_URL);
+
+    const account = await server.loadAccount(address);
+    const balances = account.balances;
+
+    const isFunded = balances.length > 0;
+    const requiresMemo = account.flags?.require_auth_memoized_flag || false;
+
+    return { isFunded, requiresMemo };
+  } catch (error) {
+    return { isFunded: false, requiresMemo: false };
+  }
 }

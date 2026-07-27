@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "StellarSplit",
+    "title": "StellarSplit", 
     "description": "Créez des factures on-chain sur Stellar où plusieurs payeurs doivent chacun une part. L'USDC est automatiquement acheminé aux destinataires une fois entièrement financé."
   },
   "nav": {
