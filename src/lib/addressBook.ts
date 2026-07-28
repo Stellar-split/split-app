@@ -6,6 +6,8 @@
 export interface AddressEntry {
   nickname: string;
   address: string;
+  /** Optional contact email — used to resolve a Gravatar for the recipient. */
+  email?: string;
 }
 
 const STORAGE_KEY = "split-contacts";
@@ -53,6 +55,17 @@ export function searchEntries(query: string): AddressEntry[] {
       e.nickname.toLowerCase().includes(q) ||
       e.address.toLowerCase().startsWith(q)
   );
+}
+
+/**
+ * Look up the stored email for a Stellar address, if the contact has one.
+ * Returns undefined when the address is unknown or has no email on file —
+ * callers then fall back to a deterministic avatar.
+ */
+export function getEmailForAddress(address: string): string | undefined {
+  if (!address) return undefined;
+  const email = getAddressBook().find((e) => e.address === address)?.email;
+  return email && email.trim() ? email.trim() : undefined;
 }
 
 export function exportToCSV(): string {

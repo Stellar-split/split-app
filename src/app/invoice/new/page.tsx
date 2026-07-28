@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import Stepper, { type Step } from "@/components/ui/Stepper";
@@ -26,6 +27,8 @@ import {
   type StoredDraft,
 } from "@/lib/offlineDraftDB";
 import SplitCalculator from "@/components/SplitCalculator";
+import TagInput from "@/components/invoice/TagInput";
+import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import {
   calculateSplit,
   type SplitMeta,
@@ -129,6 +132,8 @@ function NewInvoiceForm() {
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
   const [splitMeta, setSplitMeta] = useState<SplitMeta | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const { allTags, saveTags } = useInvoiceTags();
 
   const fromId = searchParams.get("from");
   const deadlineParam = searchParams.get("deadline");
@@ -418,6 +423,21 @@ function NewInvoiceForm() {
     }
   };
 
+  /**
+   * Reason the split is not submittable, or null when it is. Drives both the
+   * disabled state and the tooltip on the create button so the user can see
+   * *why* it is blocked without first clicking it.
+   */
+  const splitBlockReason = useMemo(() => {
+    if (!splitMeta || splitMeta.recipients.length === 0) return null;
+    const { validation } = calculateSplit(
+      splitMeta.totalAmount,
+      splitMeta.recipients,
+      splitMeta.assetCode
+    );
+    return validation.isValid ? null : validation.errorMessage ?? "Split configuration is invalid";
+  }, [splitMeta]);
+
   const handleNext = () => {
     if (validateStep(step)) {
       goToStep(Math.min(step + 1, STEPS.length - 1));
@@ -472,6 +492,9 @@ function NewInvoiceForm() {
             body: JSON.stringify({ splitMeta }),
           }).catch(() => null);
         }
+        if (tags.length > 0) {
+          saveTags(invoiceId, tags).catch(() => null);
+        }
         setTxModal({ txHash, invoiceId });
       } else {
         const { invoiceId, txHash } = await splitClient.createInvoice({
@@ -497,6 +520,9 @@ function NewInvoiceForm() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ splitMeta }),
           }).catch(() => null);
+        }
+        if (tags.length > 0) {
+          saveTags(invoiceId, tags).catch(() => null);
         }
         setTxModal({ txHash, invoiceId });
       }
@@ -729,6 +755,13 @@ function NewInvoiceForm() {
   const renderOptions = () => (
     <div className="flex flex-col gap-6">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Options</h2>
+
+      <TagInput
+        value={tags}
+        onChange={setTags}
+        suggestions={allTags}
+        placeholder="e.g. design, q3-retainer"
+      />
 
       {cloneSourceId && (
         <div className="flex items-center gap-2 text-sm bg-indigo-950/60 border border-indigo-700 text-indigo-300 rounded-lg px-3 py-2">
@@ -1017,8 +1050,10 @@ function NewInvoiceForm() {
             ) : (
               <button
                 type="submit"
-                disabled={submitting || !!deadlineError}
-                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50"
+                disabled={submitting || !!deadlineError || !!splitBlockReason}
+                title={splitBlockReason ?? undefined}
+                aria-describedby={splitBlockReason ? "split-block-reason" : undefined}
+                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting
                   ? cloneSourceId
@@ -1028,6 +1063,15 @@ function NewInvoiceForm() {
                   ? "Clone Invoice"
                   : t("invoiceNew.create")}
               </button>
+            )}
+            {step === STEPS.length - 1 && splitBlockReason && (
+              <p
+                id="split-block-reason"
+                role="status"
+                className="mt-2 max-w-xs text-right text-xs text-red-400"
+              >
+                {splitBlockReason}
+              </p>
             )}
           </div>
         </div>

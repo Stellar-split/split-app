@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useSplitCalculator,
   defaultRecipientLine,
   type RecipientLine,
   type SplitMeta,
 } from "@/hooks/useSplitCalculator";
+import { moveItem } from "@/lib/reorder";
+import { getEmailForAddress } from "@/lib/addressBook";
+import Avatar from "@/components/ui/Avatar";
+import RangeSlider from "@/components/ui/RangeSlider";
+import SplitSumIndicator from "@/components/invoice/SplitSumIndicator";
 
 interface SplitCalculatorProps {
   initialTotal?: string;
@@ -106,7 +111,108 @@ export default function SplitCalculator({
     );
   };
 
+  // ── Recipient avatars ────────────────────────────────────────────────────
+  // Emails live in localStorage, so they can only be resolved after mount;
+  // rendering the deterministic avatar on both passes keeps hydration stable.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const addressKey = recipients.map((r) => r.address).join("|");
+  const emailByAddress = useMemo(() => {
+    if (!mounted) return {} as Record<string, string | undefined>;
+    const map: Record<string, string | undefined> = {};
+    for (const address of addressKey.split("|")) {
+      if (address && map[address] === undefined) {
+        map[address] = getEmailForAddress(address);
+      }
+    }
+    return map;
+    // addressKey is the serialized dependency for `recipients`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressKey, mounted]);
+
+  // ── Reordering (drag + keyboard) ─────────────────────────────────────────
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  // A row is only draggable while its own handle is held, so text selection
+  // inside the address/percent inputs keeps working.
+  const [handleHeldIndex, setHandleHeldIndex] = useState<number | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const handleRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const pendingFocusIndex = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (pendingFocusIndex.current === null) return;
+    handleRefs.current[pendingFocusIndex.current]?.focus();
+    pendingFocusIndex.current = null;
+  });
+
+  const reorderRecipients = useCallback(
+    (from: number, to: number, { focusHandle = false } = {}) => {
+      if (readOnly) return;
+      if (from === to || to < 0 || to >= recipients.length) return;
+
+      // moveItem relocates the recipient object as-is — share percentages,
+      // tax rates and fees travel with the row and are never recalculated.
+      setRecipients((prev) => moveItem(prev, from, to));
+      setAnnouncement(
+        `Recipient moved from position ${from + 1} to position ${to + 1} of ${
+          recipients.length
+        }.`
+      );
+      if (focusHandle) pendingFocusIndex.current = to;
+    },
+    [readOnly, recipients.length]
+  );
+
+  const handleDragStart = (index: number) => (e: React.DragEvent) => {
+    if (readOnly || handleHeldIndex !== index) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedIndex(index);
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      // Firefox requires data to be set for a drag to start at all.
+      e.dataTransfer.setData("text/plain", String(index));
+    }
+  };
+
+  const handleDragOver = (index: number) => (e: React.DragEvent) => {
+    if (readOnly || draggedIndex === null) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (index: number) => (e: React.DragEvent) => {
+    if (readOnly || draggedIndex === null) return;
+    e.preventDefault();
+    reorderRecipients(draggedIndex, index);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    setHandleHeldIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    setHandleHeldIndex(null);
+  };
+
+  const handleHandleKeyDown = (index: number) => (e: React.KeyboardEvent) => {
+    if (readOnly) return;
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      reorderRecipients(index, index - 1, { focusHandle: true });
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      reorderRecipients(index, index + 1, { focusHandle: true });
+    }
+  };
+
   const maxShare = Math.max(...derivedLines.map((l) => l.sharePercent), 0.0001);
+  const shareSum = derivedLines.reduce((s, l) => s + (l.sharePercent || 0), 0);
 
   return (
     <section className="mb-8 bg-gray-800/40 border border-gray-700 rounded-xl p-5">
@@ -181,6 +287,10 @@ export default function SplitCalculator({
         </div>
       )}
 
+      {derivedLines.length > 0 && (
+        <SplitSumIndicator sum={shareSum} isValid={validation.sharesSumTo100} />
+      )}
+
       {derivedLines.length > 0 && parsedTotal > 0 && (
         <div className="mb-5 bg-gray-900 rounded-lg p-3">
           <div className="flex h-8 rounded-lg overflow-hidden gap-0.5 bg-gray-800">
@@ -207,6 +317,11 @@ export default function SplitCalculator({
         </div>
       )}
 
+      {/* Announces keyboard reordering to screen readers. */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </div>
+
       <div className="space-y-3 mb-5">
         {derivedLines.length === 0 && !readOnly && (
           <p className="text-sm text-gray-500 text-center py-6">
@@ -217,17 +332,71 @@ export default function SplitCalculator({
         {derivedLines.map((line, index) => (
           <div
             key={index}
-            className="bg-gray-900/60 border border-gray-700 rounded-lg p-4 space-y-3"
+            data-testid={`recipient-row-${index}`}
+            draggable={!readOnly && handleHeldIndex === index}
+            onDragStart={handleDragStart(index)}
+            onDragOver={handleDragOver(index)}
+            onDrop={handleDrop(index)}
+            onDragEnd={handleDragEnd}
+            className={`bg-gray-900/60 border rounded-lg p-4 space-y-3 transition-colors ${
+              draggedIndex === index ? "opacity-50" : ""
+            } ${
+              dragOverIndex === index && draggedIndex !== index
+                ? "border-indigo-400 ring-2 ring-indigo-500/60"
+                : "border-gray-700"
+            }`}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {!readOnly && (
+                <button
+                  type="button"
+                  ref={(el) => {
+                    handleRefs.current[index] = el;
+                  }}
+                  onMouseDown={() => setHandleHeldIndex(index)}
+                  onTouchStart={() => setHandleHeldIndex(index)}
+                  onMouseUp={() => setHandleHeldIndex(null)}
+                  onKeyDown={handleHandleKeyDown(index)}
+                  aria-label={`Reorder recipient ${index + 1} of ${
+                    derivedLines.length
+                  }. Use the up and down arrow keys to move it.`}
+                  title="Drag to reorder, or use arrow keys"
+                  data-testid={`drag-handle-${index}`}
+                  className="shrink-0 cursor-grab rounded p-1 text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 active:cursor-grabbing"
+                >
+                  {/* Grip icon */}
+                  <svg
+                    aria-hidden="true"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <circle cx="9" cy="6" r="1.6" />
+                    <circle cx="15" cy="6" r="1.6" />
+                    <circle cx="9" cy="12" r="1.6" />
+                    <circle cx="15" cy="12" r="1.6" />
+                    <circle cx="9" cy="18" r="1.6" />
+                    <circle cx="15" cy="18" r="1.6" />
+                  </svg>
+                </button>
+              )}
+
+              <Avatar
+                address={line.address}
+                email={emailByAddress[line.address]}
+                size={32}
+              />
+
               <span className="text-xs font-medium text-gray-400">
                 Recipient #{index + 1}
               </span>
+
               {!readOnly && (
                 <button
                   type="button"
                   onClick={() => removeRecipient(index)}
-                  className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                  className="ml-auto text-xs text-red-400 hover:text-red-300 transition-colors"
                   aria-label={`Remove recipient ${index + 1}`}
                 >
                   Remove
@@ -251,9 +420,12 @@ export default function SplitCalculator({
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <label
+                  htmlFor={`share-percent-${index}`}
+                  className="block text-xs font-medium text-gray-400"
+                >
                   Share %
                 </label>
                 <input
@@ -261,6 +433,7 @@ export default function SplitCalculator({
                   step="0.0001"
                   min="0"
                   max="100"
+                  aria-label={`Recipient ${index + 1} share percentage, exact value`}
                   value={line.sharePercent}
                   onChange={(e) =>
                     updateRecipient(index, {
@@ -268,9 +441,22 @@ export default function SplitCalculator({
                     })
                   }
                   disabled={readOnly}
-                  className="w-full min-h-9 bg-gray-950 border border-gray-700 rounded-md px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-70"
+                  className="w-24 min-h-8 bg-gray-950 border border-gray-700 rounded-md px-2 py-1 text-right text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-70"
                 />
               </div>
+              <RangeSlider
+                id={`share-percent-${index}`}
+                value={line.sharePercent}
+                onChange={(next) =>
+                  updateRecipient(index, { sharePercent: next })
+                }
+                disabled={readOnly}
+                ariaLabel={`Recipient ${index + 1} share percentage`}
+                ariaValueText={`${line.sharePercent}%`}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1">
                   Tax Rate %
