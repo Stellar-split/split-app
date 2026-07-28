@@ -114,8 +114,8 @@ export async function POST(request: NextRequest) {
       },
     ];
 
-    // Generate Excel binary
-    const excelData = generateExcelBinary(sheets);
+    // Generate Excel binary (now async)
+    const excelData = await generateExcelBinary(sheets);
 
     // Return file
     const filename = generateExportFilename('invoices');

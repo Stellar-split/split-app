@@ -169,31 +169,74 @@ export function generateCSVContent(
 
 /**
  * Generate Excel binary data (XLSX format)
- * This creates a minimal but valid Excel file with multiple worksheets
+ * This creates a valid Excel file with multiple worksheets using exceljs
  */
-export function generateExcelBinary(
+export async function generateExcelBinary(
   sheets: Array<{
     name: string;
     headers: string[];
     rows: Record<string, string | number>[];
   }>
-): Uint8Array {
-  // Note: For production use, install exceljs via npm:
-  // npm install exceljs
-  // Then use: import * as ExcelJS from 'exceljs';
+): Promise<Uint8Array> {
+  // Dynamic import to avoid issues with CommonJS in Edge Runtime
+  const ExcelJS = await import('exceljs');
+  const workbook = new ExcelJS.Workbook();
 
-  // For now, we'll return CSV data wrapped in a simple format
-  // This is a placeholder that should be replaced with proper XLSX generation
+  for (const sheetData of sheets) {
+    const worksheet = workbook.addWorksheet(sheetData.name);
 
-  let content = '';
-  for (const sheet of sheets) {
-    content += `\n\n=== ${sheet.name} ===\n`;
-    content += generateCSVContent(sheet.headers, sheet.rows);
+    // Add headers
+    worksheet.columns = sheetData.headers.map((header) => ({
+      header,
+      key: header,
+      width: Math.min(Math.max(header.length + 2, 15), 50),
+    }));
+
+    // Freeze header row
+    worksheet.views = [
+      {
+        state: 'frozen',
+        ySplit: 1,
+      },
+    ];
+
+    // Style headers
+    worksheet.getRow(1).font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+    };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF366092' },
+    };
+    worksheet.getRow(1).alignment = {
+      horizontal: 'center',
+      vertical: 'middle',
+    };
+
+    // Add data rows
+    for (const row of sheetData.rows) {
+      worksheet.addRow(row);
+    }
+
+    // Format data cells
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.eachCell((cell) => {
+          cell.alignment = {
+            horizontal: 'left',
+            vertical: 'middle',
+            wrapText: true,
+          };
+        });
+      }
+    });
   }
 
-  // For now, return the content as UTF-8 encoded bytes
-  const encoder = new TextEncoder();
-  return encoder.encode(content);
+  // Generate buffer
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Uint8Array(buffer as ArrayBuffer);
 }
 
 /**
