@@ -39,6 +39,7 @@ const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr:
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
 const TxImportPanel = dynamic(() => import("@/components/invoice/TxImportPanel"), { ssr: false });
 const DraftRecoveryBanner = dynamic(() => import("@/components/invoice/DraftRecoveryBanner"), { ssr: false });
+const CloneBanner = dynamic(() => import("@/components/invoice/CloneBanner"), { ssr: false });
 
 interface RecipientRow {
   address: string;
@@ -932,6 +933,10 @@ function NewInvoiceForm() {
           onRestore={handleRestoreDraft}
           onDiscard={handleDiscardDraft}
         />
+      )}
+
+      {cloneSourceId && (
+        <CloneBanner sourceId={cloneSourceId} />
       )}
 
       {!cloneSourceId && (

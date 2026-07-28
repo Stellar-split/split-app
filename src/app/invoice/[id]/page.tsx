@@ -76,6 +76,7 @@ import { useInvoicePresence } from "@/hooks/useInvoicePresence";
 import PresenceBar from "@/components/PresenceBar";
 import InvoiceSection from "@/components/InvoiceSection";
 import AmountDisplay from "@/components/invoice/AmountDisplay";
+import { Copy } from "lucide-react";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
 const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
@@ -512,6 +513,16 @@ export default function InvoiceDetailPage({ params }: Props) {
             aria-label="Share invoice"
           >
             Share
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/invoice/new?cloneFrom=${id}`)}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm transition-colors inline-flex items-center gap-1.5"
+            aria-label="Clone invoice to create a new one"
+            title="Create a new invoice pre-filled with this invoice's data"
+          >
+            <Copy size={14} />
+            Clone
           </button>
           <button
             type="button"
