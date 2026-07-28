@@ -35,6 +35,7 @@ import {
 } from "@/lib/dashboardFilters";
 import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import { invoiceHasTag } from "@/lib/invoiceTags";
+import DateRangeFilter from "@/components/invoice/DateRangeFilter";
 
 // ── URL helpers ──────────────────────────────────────────────────────────────
 
@@ -417,27 +418,8 @@ export default function DashboardClient() {
       </div>
 
       {/* Date range */}
-      <div className="flex flex-wrap gap-3 items-end">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500" htmlFor="filter-from">From</label>
-          <input
-            id="filter-from"
-            type="date"
-            value={dateFrom}
-            onChange={(e) => pushParams({ from: e.target.value })}
-            className="min-h-9 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500" htmlFor="filter-to">To</label>
-          <input
-            id="filter-to"
-            type="date"
-            value={dateTo}
-            onChange={(e) => pushParams({ to: e.target.value })}
-            className="min-h-9 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+      <div className="flex items-end gap-2">
+        <DateRangeFilter from={dateFrom} to={dateTo} />
       </div>
 
       {/* Tag */}
