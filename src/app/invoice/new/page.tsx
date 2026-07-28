@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import Stepper, { type Step } from "@/components/ui/Stepper";
@@ -498,7 +497,7 @@ function NewInvoiceForm() {
         if (apiPayload && (apiPayload as any).recipients?.length > 0) {
           fetch(`/api/invoices/${invoiceId}`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "x-wallet-public-key": creator },
             body: JSON.stringify({ splitMeta: apiPayload }),
           }).catch(() => null);
         }
@@ -528,7 +527,7 @@ function NewInvoiceForm() {
         if (apiPayload && (apiPayload as any).recipients?.length > 0) {
           fetch(`/api/invoices/${invoiceId}`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "x-wallet-public-key": creator },
             body: JSON.stringify({ splitMeta: apiPayload }),
           }).catch(() => null);
         }

@@ -33,9 +33,11 @@ import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
 import CloneLineageTree from "@/components/CloneLineageTree";
-import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import StellarErrorBoundary from "@/components/error/StellarErrorBoundary";
 import { useStellarQuery } from "@/hooks/useStellarQuery";
+import FeeSpikeBanner from "@/components/layout/FeeSpikeBanner";
+import SplitSummaryCard from "@/components/invoice/SplitSummaryCard";
+import { useInvoiceRole } from "@/hooks/useInvoiceRole";
 
 const POLL_MS = 10_000;
 
@@ -76,6 +78,7 @@ import { useInvoicePresence } from "@/hooks/useInvoicePresence";
 import PresenceBar from "@/components/PresenceBar";
 import InvoiceSection from "@/components/InvoiceSection";
 import AmountDisplay from "@/components/invoice/AmountDisplay";
+import CooldownBadge from "@/components/CooldownBadge";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
 const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
@@ -350,6 +353,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const total = invoice
     ? invoice.recipients.reduce((s, r) => s + r.amount, 0n)
     : 0n;
+  const role = useInvoiceRole(invoice, publicKey);
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -436,6 +440,12 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (!invoice) return null;
 
+  const isCreator = role === "creator";
+  const isRecipient = role === "recipient";
+  const canAct = isCreator || isRecipient;
+  const recipientShare = publicKey
+    ? invoice.recipients.find((recipient) => recipient.address === publicKey)
+    : undefined;
   const remaining = total - invoice.funded;
   const status = statusConfig[invoice.status] || { label: invoice.status, color: "bg-gray-500", icon: "⌛" };
 
@@ -449,6 +459,8 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   return (
     <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
+      <FeeSpikeBanner />
+
       {/* Reconnecting indicator */}
       {showReconnecting && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
@@ -500,30 +512,34 @@ export default function InvoiceDetailPage({ params }: Props) {
               Retroactive
             </span>
           )}
-          <CopyButton text={id} className="!py-1 !px-2 text-xs" />
+          {canAct && <CopyButton text={id} className="!py-1 !px-2 text-xs" />}
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
-          <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
-          <button
-            type="button"
-            onClick={() => setShowShareModal(true)}
-            ref={shareModalTriggerRef}
-            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
-            aria-label="Share invoice"
-          >
-            Share
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowDuplicateModal(true)}
-            ref={duplicateModalTriggerRef}
-            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm transition-colors"
-            aria-label="Duplicate invoice"
-          >
-            Duplicate
-          </button>
-          <InvoiceExportButton invoice={invoice} total={total} />
-          {pushStatus !== "unsupported" && !isRetroactive && (
+          {canAct && <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />}
+          {canAct && (
+            <button
+              type="button"
+              onClick={() => setShowShareModal(true)}
+              ref={shareModalTriggerRef}
+              className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
+              aria-label="Share invoice"
+            >
+              Share
+            </button>
+          )}
+          {isCreator && (
+            <button
+              type="button"
+              onClick={() => setShowDuplicateModal(true)}
+              ref={duplicateModalTriggerRef}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm transition-colors"
+              aria-label="Duplicate invoice"
+            >
+              Duplicate
+            </button>
+          )}
+          {isCreator && <InvoiceExportButton invoice={invoice} total={total} />}
+          {canAct && pushStatus !== "unsupported" && !isRetroactive && (
             <button
               type="button"
               onClick={() => (pushStatus === "active" ? unsubscribeFromPush() : subscribeToPush())}
@@ -540,16 +556,18 @@ export default function InvoiceDetailPage({ params }: Props) {
               {pushStatus === "active" ? "Notifications active" : "Notifications off"}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setShowShareQRModal(true)}
-            ref={shareQRModalTriggerRef}
-            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
-            aria-label="Share invoice via QR"
-          >
-            Share via QR
-          </button>
-          {(invoice as any).confidential && (
+          {canAct && (
+            <button
+              type="button"
+              onClick={() => setShowShareQRModal(true)}
+              ref={shareQRModalTriggerRef}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+              aria-label="Share invoice via QR"
+            >
+              Share via QR
+            </button>
+          )}
+          {isRecipient && (invoice as any).confidential && (
             <button
               type="button"
               onClick={() => setShowConfidentialFlow(true)}
@@ -559,24 +577,28 @@ export default function InvoiceDetailPage({ params }: Props) {
               Pay Confidentially
             </button>
           )}
-          <select
-            value={locale}
-            onChange={(e) => setLocale(e.target.value as Locale)}
-            className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm transition-colors"
-            aria-label="Receipt language"
-          >
-            <option value="en">EN</option>
-            <option value="es">ES</option>
-            <option value="fr">FR</option>
-          </select>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
-          >
-            Print Invoice
-          </button>
-          {invoice.status === "Pending" && publicKey === invoice.creator && (
+          {canAct && (
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as Locale)}
+              className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm transition-colors"
+              aria-label="Receipt language"
+            >
+              <option value="en">EN</option>
+              <option value="es">ES</option>
+              <option value="fr">FR</option>
+            </select>
+          )}
+          {isCreator && (
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
+            >
+              Print Invoice
+            </button>
+          )}
+          {invoice.status === "Pending" && isCreator && (
             <button
               type="button"
               ref={cancelModalTriggerRef}
@@ -655,6 +677,8 @@ export default function InvoiceDetailPage({ params }: Props) {
       </section>
       </InvoiceSection>
 
+      {canAct && <SplitSummaryCard invoice={invoice} total={total} />}
+
       {/* Payments Section */}
       <InvoiceSection
         sectionId="payments"
@@ -696,12 +720,20 @@ export default function InvoiceDetailPage({ params }: Props) {
       </section>
       </InvoiceSection>
 
-      {invoice.status === "Pending" && (
+      {invoice.status === "Pending" && isRecipient && (
         <div className="flex flex-col gap-6">
-          {/* ── Option 1: Pay with Freighter ──────────────────────────── */}
           {publicKey && (
             <form onSubmit={handlePay} className="flex flex-col gap-4">
               <h2 className="text-lg font-semibold">Pay with Freighter</h2>
+              {recipientShare && (
+                <button
+                  type="button"
+                  onClick={() => setPayAmount(formatAmount(recipientShare.amount))}
+                  className="self-start rounded-lg bg-gray-700 px-3 py-1.5 text-sm text-white hover:bg-gray-600"
+                >
+                  Pay my share
+                </button>
+              )}
               <input
                 type="number"
                 step="0.0000001"
@@ -768,7 +800,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       />
 
       {/* Installment schedule — only shown to payers with a registered plan */}
-      {publicKey && loadedSplitMeta?.installments && loadedSplitMeta.installments.length > 0 && (
+      {isRecipient && publicKey && loadedSplitMeta?.installments && loadedSplitMeta.installments.length > 0 && (
         <InvoiceView
           invoice={invoice}
           installments={loadedSplitMeta.installments as InstallmentMilestone[]}
@@ -782,7 +814,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             try {
               await fetch(`/api/invoices/${id}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "x-wallet-public-key": publicKey },
                 body: JSON.stringify({ splitMeta: newSplitMeta }),
               });
             } catch {
@@ -793,12 +825,12 @@ export default function InvoiceDetailPage({ params }: Props) {
       )}
 
       {/* Deadline extension voting — shown to payers on Pending invoices */}
-      {publicKey && (
+      {isRecipient && publicKey && (
         <VotingPanel invoice={invoice} publicKey={publicKey} />
       )}
 
       {/* Deadline extension request/approval flow */}
-      {invoice.status === "Pending" && (
+      {invoice.status === "Pending" && canAct && (
         <DeadlineExtensionPanel
           invoiceId={id}
           invoiceCreator={invoice.creator}
@@ -808,7 +840,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       )}
 
       {/* Co-Creator Management — only shown to primary creator */}
-      {publicKey && (
+      {isCreator && publicKey && (
         <CoCreatorPanel invoice={invoice} publicKey={publicKey} onUpdate={load} />
       )}
 
@@ -816,22 +848,23 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* TODO: Re-enable when payment channel is fully implemented */}
 
       {/* Pay button → opens modal */}
-      {invoice.status === "Pending" && publicKey && (
+      {invoice.status === "Pending" && isRecipient && publicKey && (
         <StellarErrorBoundary>
         <PaySectionRpcGate id={id}>
-        <section aria-labelledby="pay-heading" className="mb-8">
+        <section aria-labelledby="pay-heading" className="mb-8 bg-gray-800/60 border border-gray-700 rounded-xl p-6">
           <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
+            <h2 id="pay-heading" className="text-lg font-semibold text-white">Pay toward this invoice</h2>
             <CooldownBadge expiresAt={cooldownExpiresAt} />
           </div>
-          <PaymentMethodSelector onMethodChange={setPaymentMethod} />
-          <form onSubmit={handlePay} className="flex flex-col gap-4">
-        <section className="mb-8 bg-gray-800/60 border border-gray-700 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Pay Toward Invoice</h2>
+          {recipientShare && (
+            <p className="mb-4 text-sm text-gray-300">
+              Your share is <span className="font-semibold text-indigo-300">{formatAmount(recipientShare.amount)} USDC</span>.
+            </p>
+          )}
           <PaymentMethodSelector
             onMethodChange={setPaymentMethod}
             payerAddress={publicKey}
-            recipientAddress={invoice.recipients[0]?.address}
+            recipientAddress={recipientShare?.address}
           />
           <form onSubmit={handlePay} className="flex flex-col gap-4 mt-4">
             <div>
@@ -851,6 +884,15 @@ export default function InvoiceDetailPage({ params }: Props) {
                 className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
+            {recipientShare && (
+              <button
+                type="button"
+                onClick={() => setPayAmount(formatAmount(recipientShare.amount))}
+                className="self-start rounded-lg bg-gray-700 px-3 py-1.5 text-sm text-white hover:bg-gray-600"
+              >
+                Pay my share
+              </button>
+            )}
             {paymentError && (
               <p role="alert" className="text-red-400 text-sm">{paymentError}</p>
             )}

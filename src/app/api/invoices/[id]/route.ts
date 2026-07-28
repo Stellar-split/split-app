@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { splitClient } from "@/lib/stellar";
 import { safeParseSplitMeta, type SplitMetaInput } from "@/lib/splitMetaSchema";
 
 interface SplitMetaStore {
@@ -13,6 +14,20 @@ export async function PATCH(
 ) {
   try {
     const invoiceId = params.id;
+    const walletPublicKey = request.headers.get("x-wallet-public-key");
+
+    if (!walletPublicKey) {
+      return NextResponse.json({ error: "Missing wallet public key" }, { status: 403 });
+    }
+
+    const invoice = await splitClient.getInvoice(invoiceId);
+    const isCreator = invoice.creator === walletPublicKey;
+    const isRecipient = invoice.recipients.some((recipient) => recipient.address === walletPublicKey);
+
+    if (!isCreator && !isRecipient) {
+      return NextResponse.json({ error: "Not authorized for this invoice" }, { status: 403 });
+    }
+
     const rawBody = await request.json();
 
     const { splitMeta } = rawBody as { splitMeta?: unknown };

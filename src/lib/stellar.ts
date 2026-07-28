@@ -10,11 +10,12 @@ import { NETWORK_PASSPHRASE } from "./freighter";
 let _client: StellarSplitClient | null = null;
 
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
-const HORIZON_URL =
+export const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ??
   (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
     ? "https://horizon.stellar.org"
     : "https://horizon-testnet.stellar.org");
+export const NORMAL_FEE_THRESHOLD = 100;
 
 export const USDC_CONTRACT_ID = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "";
 
