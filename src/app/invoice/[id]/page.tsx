@@ -33,6 +33,18 @@ import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
 import CloneLineageTree from "@/components/CloneLineageTree";
+import TransferOwnershipModal from "@/components/TransferOwnershipModal";
+import StellarErrorBoundary from "@/components/error/StellarErrorBoundary";
+import { useStellarQuery } from "@/hooks/useStellarQuery";
+
+const POLL_MS = 10_000;
+
+// Extend the SDK Invoice type with vesting fields (not yet in published SDK)
+type InvoiceWithVesting = Invoice & {
+  vestingCliff?: number;    // unix timestamp (seconds)
+  claimed?: string[];       // addresses that have claimed
+  extensionVotes?: number;  // current votes to extend deadline
+};
 import CountdownTimer from "@/components/CountdownTimer";
 import SplitCalculator from "@/components/SplitCalculator";
 import InvoiceTagEditor from "@/components/invoice/InvoiceTagEditor";
@@ -90,6 +102,21 @@ function showToast(message: string, type: "success" | "error" | "info" = "info")
   }
 }
 
+/**
+ * Runs a live invoice RPC read for as long as the Pay section is mounted.
+ * A genuine child of StellarErrorBoundary — the query's render-phase throw
+ * on exhausted failure only propagates to boundaries wrapping this
+ * component's own subtree, not to whatever renders InvoiceDetailPage.
+ */
+function PaySectionRpcGate({ id, children }: { id: string; children: React.ReactNode }) {
+  useStellarQuery(() => splitClient.getInvoice(id), [id]);
+  return <>{children}</>;
+}
+
+/**
+ * Invoice detail page — shows status, payment progress, Pay button,
+ * reminder system, and webhook configuration (creator only).
+ */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
   const router = useRouter();
@@ -790,6 +817,15 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
+        <StellarErrorBoundary>
+        <PaySectionRpcGate id={id}>
+        <section aria-labelledby="pay-heading" className="mb-8">
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
+            <CooldownBadge expiresAt={cooldownExpiresAt} />
+          </div>
+          <PaymentMethodSelector onMethodChange={setPaymentMethod} />
+          <form onSubmit={handlePay} className="flex flex-col gap-4">
         <section className="mb-8 bg-gray-800/60 border border-gray-700 rounded-xl p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Pay Toward Invoice</h2>
           <PaymentMethodSelector
@@ -827,6 +863,8 @@ export default function InvoiceDetailPage({ params }: Props) {
             </button>
           </form>
         </section>
+        </PaySectionRpcGate>
+        </StellarErrorBoundary>
       )}
 
       {showConfidentialFlow && (invoice as any).confidential && publicKey && (

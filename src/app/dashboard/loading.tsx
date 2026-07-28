@@ -17,7 +17,7 @@ export default function DashboardLoading() {
       </div>
 
       <div className="flex flex-col gap-4">
-        {[...Array(3)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <SkeletonCard key={i} />
         ))}
       </div>

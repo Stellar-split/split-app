@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { splitClient } from "@/lib/stellar";
@@ -12,6 +13,7 @@ import { useActivityFeed } from "@/hooks/useActivityFeed";
 import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 import { InvoiceListSkeleton, SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
+import StatusFilterChips from "@/components/invoice/StatusFilterChips";
 import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
 import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
 import { formatAmount } from "@stellar-split/sdk";
@@ -23,6 +25,9 @@ import {
   SORT_OPTIONS,
   filterDashboardInvoices,
   getDashboardPresetCounts,
+  INVOICE_STATUS_FILTERS,
+  type DashboardPresetId,
+  type InvoiceStatusFilter,
   sortInvoices,
   filterByDateRange,
   type DashboardPresetId,
@@ -111,6 +116,35 @@ export default function DashboardClient() {
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
 
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const selectedStatuses = useMemo<InvoiceStatusFilter[]>(() => {
+    const raw = searchParams.get("status");
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .filter((s): s is InvoiceStatusFilter =>
+        INVOICE_STATUS_FILTERS.includes(s as InvoiceStatusFilter),
+      );
+  }, [searchParams]);
+
+  const toggleStatus = (status: InvoiceStatusFilter) => {
+    const next = selectedStatuses.includes(status)
+      ? selectedStatuses.filter((s) => s !== status)
+      : [...selectedStatuses, status];
+    const params = new URLSearchParams(searchParams.toString());
+    if (next.length > 0) {
+      params.set("status", next.join(","));
+    } else {
+      params.delete("status");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
+  // Get wallet public key
   useEffect(() => {
     getFreighterPublicKey()
       .then(setPublicKey)
@@ -284,6 +318,13 @@ export default function DashboardClient() {
     setBulkReminderResults(null);
   };
 
+  const clearFilters = () => {
+    setActivePreset("all");
+    setSearchValue("");
+    setNumericResult(null);
+    if (searchParams.get("status")) {
+      router.replace(pathname, { scroll: false });
+    }
   const toggleCompareSelect = (id: string) => {
     if (compareSelected.size >= 2 && !compareSelected.has(id)) {
       return; // Max 2 invoices
@@ -308,6 +349,24 @@ export default function DashboardClient() {
     }
   };
 
+  const pendingInvoices = invoices.filter((inv) => inv.status === "Pending");
+  const selectedInvoices = invoices.filter((inv) => selected.has(inv.id));
+  const presetCounts = useMemo(
+    () => getDashboardPresetCounts(invoices, publicKey),
+    [invoices, publicKey],
+  );
+  const visibleInvoices = useMemo(
+    () =>
+      filterDashboardInvoices(
+        invoices,
+        publicKey,
+        activePreset,
+        searchValue,
+        undefined,
+        selectedStatuses,
+      ),
+    [invoices, publicKey, activePreset, searchValue, selectedStatuses],
+  );
   const handleScheduleBulkReminders = () => {
     if (!reminderDateTime || reminderSelected.size === 0) return;
     const results = setBulkReminders(
@@ -530,6 +589,9 @@ export default function DashboardClient() {
         </div>
       </div>
 
+      <StatusFilterChips selected={selectedStatuses} onToggle={toggleStatus} />
+
+      <div className="flex flex-wrap items-center gap-2 mb-6">
       {/* Summary Stats */}
       {!loading && invoices.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -567,6 +629,35 @@ export default function DashboardClient() {
           </svg>
           Filters {isFiltered && <span className="ml-1 rounded-full bg-indigo-600 text-white text-xs px-1.5 py-0.5">on</span>}
         </button>
+        {DASHBOARD_PRESETS.map((preset) => {
+          const isActive = activePreset === preset.id;
+          const count = presetCounts[preset.id] ?? 0;
+
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => handlePresetToggle(preset.id)}
+              className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
+                isActive
+                  ? "bg-indigo-600 text-white"
+                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              }`}
+              aria-pressed={isActive}
+            >
+              <span>{preset.label}</span>
+              <span className="ml-2 rounded-full bg-white/15 px-2 py-0.5 text-xs">
+                {count}
+              </span>
+            </button>
+          );
+        })}
+        {(activePreset !== "all" || searchValue.trim().length > 0 || selectedStatuses.length > 0) && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="rounded-full border border-gray-700 px-3 py-1.5 text-sm font-semibold text-gray-300 transition-colors hover:bg-gray-800"
+          >
         {isFiltered && (
           <button type="button" onClick={clearFilters} className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
             Clear filters
@@ -624,6 +715,11 @@ export default function DashboardClient() {
 
       {/* Invoice grid */}
       {loading && invoices.length === 0 ? (
+        <div className="flex flex-col gap-4">
+          {[...Array(8)].map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
         <InvoiceListSkeleton />
       ) : invoices.length === 0 ? (
         <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-12 text-center">
@@ -634,6 +730,17 @@ export default function DashboardClient() {
           </Link>
         </div>
       ) : visibleInvoices.length === 0 ? (
+        <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 text-center">
+          <p className="text-gray-400">
+            {activePreset !== "all"
+              ? DASHBOARD_PRESETS.find((preset) => preset.id === activePreset)
+                  ?.emptyState ?? "No invoices match this view."
+              : searchValue.trim()
+              ? "No invoices match your search."
+              : selectedStatuses.length > 0
+              ? "No invoices match the selected status."
+              : "No invoices found. Create your first one!"}
+          </p>
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 p-6 text-center">
           <p className="text-gray-400">No invoices match the current filters.</p>
         </div>

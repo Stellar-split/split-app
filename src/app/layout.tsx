@@ -3,6 +3,10 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
+import { WalletProvider } from "@/contexts/WalletContext";
+import ThemeToggle from "@/components/ThemeToggle";
+import NotificationCenter from "@/components/NotificationCenter";
+import WalletConnect from "@/components/WalletConnect";
 import Navbar from "@/components/Navbar";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import OnboardingFlow from "@/components/OnboardingFlow";
@@ -104,6 +108,67 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
+    <html lang="en" suppressHydrationWarning>
+      <Script
+        id="accessibility-bootstrap"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{ __html: accessibilityBootstrap }}
+      />
+      <body className="min-h-screen bg-gray-950 text-gray-100 antialiased overflow-x-hidden">
+        <ThemeProvider>
+          <AccessibilityProvider>
+            <WalletProvider>
+            <I18nProvider>
+            <header className="sticky top-0 z-40 flex items-center justify-between gap-2 px-4 sm:px-6 py-3 bg-gray-950/80 backdrop-blur border-b border-gray-800 min-w-0">
+              <a href="/" className="font-bold text-base sm:text-lg tracking-tight shrink-0 min-h-11 inline-flex items-center">
+                StellarSplit
+              </a>
+              <a
+                href="/groups"
+                className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
+              >
+                Groups
+              </a>
+              <a
+                href="/address-book"
+                className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center whitespace-nowrap"
+              >
+                <span className="sm:hidden">Contacts</span>
+                <span className="hidden sm:inline">Address Book</span>
+              </a>
+              <a
+                href="/leaderboard"
+                className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
+              >
+                Leaderboard
+              </a>
+              <a
+                href="/settings/accessibility"
+                className="text-sm text-gray-400 hover:text-gray-200 transition-colors px-2 min-h-11 inline-flex items-center"
+              >
+                Accessibility
+              </a>
+              <ThemeToggle />
+              <SimulationModeToggle />
+              <NotificationCenter />
+              <WalletConnect compact />
+            </header>
+            <SimulationBanner />
+            <UpgradeBanner />
+            <ErrorBoundary>{children}</ErrorBoundary>
+            <OnboardingFlow />
+            <RecipientOnboarding />
+            <Script id="register-sw" strategy="afterInteractive">
+              {`if ("serviceWorker" in navigator) {
+              window.addEventListener("load", function () {
+                navigator.serviceWorker.register("/sw.js");
+              });
+            }`}
+            </Script>
+            </I18nProvider>
+            </WalletProvider>
+          </AccessibilityProvider>
+        </ThemeProvider>
     // dir="ltr" is set here as scaffold; I18nProvider will update it client-side when RTL locales (ar/he) are added
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <head>
