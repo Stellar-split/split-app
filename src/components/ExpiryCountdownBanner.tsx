@@ -180,7 +180,8 @@ export default function ExpiryCountdownBanner({
                 </button>
               </div>
             )}
-        </div>
+          </div>
+        )}
 
         <button
           onClick={() => setShow(false)}

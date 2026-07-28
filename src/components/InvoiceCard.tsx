@@ -4,6 +4,7 @@ import FundingProgress from "./FundingProgress";
 import StatusBadge from "./StatusBadge";
 import DeadlineCountdown from "./DeadlineCountdown";
 import Link from "next/link";
+import AmountDisplay from "@/components/invoice/AmountDisplay";
 
 interface Props {
   invoice: Invoice;
@@ -86,9 +87,11 @@ export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompa
         compact
       />
 
-      <div className="flex justify-between text-xs text-gray-500 mt-1">
+      <div className="flex justify-between items-start text-xs text-gray-500 mt-1">
         <span>{formatAmount(invoice.funded)} USDC funded</span>
-        <span>Total: {formatAmount(total)} USDC</span>
+        <span className="text-right">
+          Total: <AmountDisplay amount={total} className="text-xs" />
+        </span>
       </div>
 
       {invoice.deadline > 0 && (
