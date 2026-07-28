@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
+import Stepper, { type Step } from "@/components/ui/Stepper";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
@@ -25,6 +27,8 @@ import {
   type StoredDraft,
 } from "@/lib/offlineDraftDB";
 import SplitCalculator from "@/components/SplitCalculator";
+import TagInput from "@/components/invoice/TagInput";
+import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import {
   calculateSplit,
   type SplitMeta,
@@ -66,6 +70,13 @@ function useToasts() {
 
 const STEPS = ["Basic Info", "Recipients", "Options", "Review & Submit"];
 
+/** Clamp an arbitrary `?step=` value onto a real step index. */
+function parseStep(raw: string | null): number {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1 || n > STEPS.length) return 0;
+  return n - 1;
+}
+
 function ChangedField({ changed, children }: { changed: boolean; children: React.ReactNode }) {
   if (!changed) return <>{children}</>;
   return (
@@ -92,8 +103,24 @@ export default function NewInvoicePage() {
 function NewInvoiceForm() {
   const { t } = useI18n();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [step, setStep] = useState(0);
+  // The active step lives in the URL rather than component state so browser
+  // back/forward moves through the form instead of leaving the page.
+  const step = parseStep(searchParams.get("step"));
+  const goToStep = useCallback(
+    (next: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next === 0) {
+        params.delete("step");
+      } else {
+        params.set("step", String(next + 1));
+      }
+      const query = params.toString();
+      router.push(query ? `${pathname}?${query}` : pathname);
+    },
+    [router, pathname, searchParams]
+  );
   const [recipients, setRecipients] = useState<RecipientRow[]>([
     { address: "", amount: "" },
   ]);
@@ -105,6 +132,8 @@ function NewInvoiceForm() {
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
   const [splitMeta, setSplitMeta] = useState<SplitMeta | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const { allTags, saveTags } = useInvoiceTags();
 
   const fromId = searchParams.get("from");
   const deadlineParam = searchParams.get("deadline");
@@ -394,14 +423,29 @@ function NewInvoiceForm() {
     }
   };
 
+  /**
+   * Reason the split is not submittable, or null when it is. Drives both the
+   * disabled state and the tooltip on the create button so the user can see
+   * *why* it is blocked without first clicking it.
+   */
+  const splitBlockReason = useMemo(() => {
+    if (!splitMeta || splitMeta.recipients.length === 0) return null;
+    const { validation } = calculateSplit(
+      splitMeta.totalAmount,
+      splitMeta.recipients,
+      splitMeta.assetCode
+    );
+    return validation.isValid ? null : validation.errorMessage ?? "Split configuration is invalid";
+  }, [splitMeta]);
+
   const handleNext = () => {
     if (validateStep(step)) {
-      setStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+      goToStep(Math.min(step + 1, STEPS.length - 1));
     }
   };
 
   const handleBack = () => {
-    setStep((prev) => Math.max(prev - 1, 0));
+    goToStep(Math.max(step - 1, 0));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -448,6 +492,9 @@ function NewInvoiceForm() {
             body: JSON.stringify({ splitMeta }),
           }).catch(() => null);
         }
+        if (tags.length > 0) {
+          saveTags(invoiceId, tags).catch(() => null);
+        }
         setTxModal({ txHash, invoiceId });
       } else {
         const { invoiceId, txHash } = await splitClient.createInvoice({
@@ -474,6 +521,9 @@ function NewInvoiceForm() {
             body: JSON.stringify({ splitMeta }),
           }).catch(() => null);
         }
+        if (tags.length > 0) {
+          saveTags(invoiceId, tags).catch(() => null);
+        }
         setTxModal({ txHash, invoiceId });
       }
       discardDraft();
@@ -486,37 +536,17 @@ function NewInvoiceForm() {
     }
   };
 
+  const stepperSteps: Step[] = useMemo(
+    () =>
+      STEPS.map((label, index) => ({
+        label,
+        status: index < step ? "complete" : index === step ? "current" : "upcoming",
+      })),
+    [step]
+  );
+
   const renderStepIndicator = () => (
-    <div className="flex items-center gap-1 mb-8" aria-label="Form steps">
-      {STEPS.map((label, i) => {
-        const isActive = i === step;
-        const isPast = i < step;
-        return (
-          <div key={i} className="flex items-center gap-1 flex-1">
-            <button
-              type="button"
-              onClick={() => { if (i < step || validateStep(step)) setStep(i); }}
-              className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full transition-colors ${
-                isActive
-                  ? "bg-indigo-600 text-white"
-                  : isPast
-                  ? "bg-indigo-900/50 text-indigo-300"
-                  : "bg-gray-800 text-gray-400"
-              }`}
-              aria-current={isActive ? "step" : undefined}
-            >
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-black/20 text-[10px] font-bold">
-                {isPast ? "\u2713" : i + 1}
-              </span>
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-            {i < STEPS.length - 1 && (
-              <div className={`h-0.5 flex-1 rounded ${isPast ? "bg-indigo-600" : "bg-gray-700"}`} />
-            )}
-          </div>
-        );
-      })}
-    </div>
+    <Stepper steps={stepperSteps} onStepClick={goToStep} className="mb-8" />
   );
 
   const renderBasicInfo = () => (
@@ -725,6 +755,13 @@ function NewInvoiceForm() {
   const renderOptions = () => (
     <div className="flex flex-col gap-6">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Options</h2>
+
+      <TagInput
+        value={tags}
+        onChange={setTags}
+        suggestions={allTags}
+        placeholder="e.g. design, q3-retainer"
+      />
 
       {cloneSourceId && (
         <div className="flex items-center gap-2 text-sm bg-indigo-950/60 border border-indigo-700 text-indigo-300 rounded-lg px-3 py-2">
@@ -1013,8 +1050,10 @@ function NewInvoiceForm() {
             ) : (
               <button
                 type="submit"
-                disabled={submitting || !!deadlineError}
-                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50"
+                disabled={submitting || !!deadlineError || !!splitBlockReason}
+                title={splitBlockReason ?? undefined}
+                aria-describedby={splitBlockReason ? "split-block-reason" : undefined}
+                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting
                   ? cloneSourceId
@@ -1024,6 +1063,15 @@ function NewInvoiceForm() {
                   ? "Clone Invoice"
                   : t("invoiceNew.create")}
               </button>
+            )}
+            {step === STEPS.length - 1 && splitBlockReason && (
+              <p
+                id="split-block-reason"
+                role="status"
+                className="mt-2 max-w-xs text-right text-xs text-red-400"
+              >
+                {splitBlockReason}
+              </p>
             )}
           </div>
         </div>

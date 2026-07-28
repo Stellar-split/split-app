@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
+import { splitClient } from "@/lib/stellar";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
 import ActivityFeed from "@/components/ActivityFeed";
@@ -16,6 +16,8 @@ import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
 import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
 import { formatAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
+import { useInfiniteInvoices } from "@/hooks/useInfiniteInvoices";
+import InvoiceListSentinel from "@/components/InvoiceListSentinel";
 import {
   DASHBOARD_PRESETS,
   SORT_OPTIONS,
@@ -26,6 +28,8 @@ import {
   type DashboardPresetId,
   type DashboardSortId,
 } from "@/lib/dashboardFilters";
+import { useInvoiceTags } from "@/hooks/useInvoiceTags";
+import { invoiceHasTag } from "@/lib/invoiceTags";
 
 // ── URL helpers ──────────────────────────────────────────────────────────────
 
@@ -34,7 +38,8 @@ function readParams(sp: URLSearchParams) {
   const sort = (sp.get("sort") ?? "newest") as DashboardSortId;
   const dateFrom = sp.get("from") ?? "";
   const dateTo = sp.get("to") ?? "";
-  return { statuses, sort, dateFrom, dateTo };
+  const tag = sp.get("tag") ?? "";
+  return { statuses, sort, dateFrom, dateTo, tag };
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -44,15 +49,15 @@ export default function DashboardClient() {
   const searchParams = useSearchParams();
 
   // URL-derived filter state
-  const { statuses, sort, dateFrom, dateTo } = useMemo(
+  const { statuses, sort, dateFrom, dateTo, tag } = useMemo(
     () => readParams(searchParams),
     [searchParams],
   );
 
+  const { allTags, tagsByInvoice } = useInvoiceTags();
+
   const [publicKey, setPublicKey] = useState<string | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [walletError, setWalletError] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const [numericResult, setNumericResult] = useState<Invoice | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -97,7 +102,7 @@ export default function DashboardClient() {
   };
 
   const isFiltered =
-    statuses.length > 0 || dateFrom || dateTo || sort !== "newest";
+    statuses.length > 0 || dateFrom || dateTo || sort !== "newest" || !!tag;
 
   // ── Data fetching ───────────────────────────────────────────────────────────
   const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
@@ -108,8 +113,20 @@ export default function DashboardClient() {
   useEffect(() => {
     getFreighterPublicKey()
       .then(setPublicKey)
-      .catch(() => setError("Connect your Freighter wallet to view your dashboard."));
+      .catch(() => setWalletError("Connect your Freighter wallet to view your dashboard."));
   }, []);
+
+  // Infinite-scroll invoice list
+  const {
+    invoices,
+    isLoading: loading,
+    isFetchingMore,
+    hasMore,
+    loadMore,
+    error: invoicesError,
+  } = useInfiniteInvoices(publicKey);
+
+  const error = walletError ?? (invoicesError ? String(invoicesError) : null);
 
   // Listen for N key to create invoice
   useEffect(() => {
@@ -123,32 +140,7 @@ export default function DashboardClient() {
     };
   }, [router]);
 
-  // Fetch invoices progressively
-  useEffect(() => {
-    if (!publicKey) return;
-    const fetchInvoices = async () => {
-      setLoading(true);
-      const results: Invoice[] = [];
-      for (let id = 1; id <= 50; id++) {
-        try {
-          const inv = await splitClient.getInvoice(String(id));
-          const mine =
-            inv.creator === publicKey ||
-            inv.recipients.some((r) => r.address === publicKey);
-          if (mine) {
-            results.push(inv);
-            setInvoices([...results]);
-          }
-        } catch {
-          break;
-        }
-      }
-      setLoading(false);
-    };
-    fetchInvoices().catch((e) => { setError(String(e)); setLoading(false); });
-  }, [publicKey]);
-
-  // Numeric search debounce
+  // ── Numeric search debounce ─────────────────────────────────────────────────
   useEffect(() => {
     const trimmed = searchValue.trim();
     if (!trimmed || !/^\d+$/.test(trimmed)) {
@@ -187,10 +179,14 @@ export default function DashboardClient() {
           );
     // 2. date range
     result = filterByDateRange(result, dateFrom, dateTo);
-    // 3. sort
+    // 3. tag
+    if (tag) {
+      result = result.filter((inv) => invoiceHasTag(tagsByInvoice[inv.id] ?? [], tag));
+    }
+    // 4. sort
     result = sortInvoices(result, sort);
     return result;
-  }, [invoices, statuses, dateFrom, dateTo, sort]);
+  }, [invoices, statuses, dateFrom, dateTo, sort, tag, tagsByInvoice]);
 
   const { totalActive, totalValueLocked, totalReleased } = useMemo(() => {
     const now = Math.floor(Date.now() / 1000);
@@ -329,6 +325,29 @@ export default function DashboardClient() {
             className="min-h-9 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
+      </div>
+
+      {/* Tag */}
+      <div className="flex flex-col gap-1">
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide" htmlFor="filter-tag">
+          Filter by tag
+        </label>
+        <select
+          id="filter-tag"
+          value={tag}
+          onChange={(e) => pushParams({ tag: e.target.value })}
+          className="min-h-9 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">All tags</option>
+          {allTags.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+          {/* Keep a ?tag= value from the URL selectable even if no invoice
+              currently carries it, so the control never silently resets. */}
+          {tag && !allTags.includes(tag) && <option value={tag}>{tag}</option>}
+        </select>
       </div>
 
       {/* Sort */}
@@ -575,7 +594,7 @@ export default function DashboardClient() {
             const isCompareSelected = compareSelected.has(inv.id);
 
             const card = (
-              <InvoiceCard invoice={inv} displayNumber={getOrAssignDisplayNumber(inv.id)} />
+              <InvoiceCard invoice={inv} displayNumber={getOrAssignDisplayNumber(inv.id)} tags={tagsByInvoice[inv.id] ?? []} />
             );
 
             return (
@@ -604,6 +623,7 @@ export default function DashboardClient() {
                       <InvoiceCard
                         invoice={inv}
                         displayNumber={getOrAssignDisplayNumber(inv.id)}
+                        tags={tagsByInvoice[inv.id] ?? []}
                       />
                     </div>
                   </button>
@@ -631,6 +651,7 @@ export default function DashboardClient() {
                       <InvoiceCard
                         invoice={inv}
                         displayNumber={getOrAssignDisplayNumber(inv.id)}
+                        tags={tagsByInvoice[inv.id] ?? []}
                       />
                     </div>
                   </button>
@@ -665,6 +686,7 @@ export default function DashboardClient() {
                       <InvoiceCard
                         invoice={inv}
                         displayNumber={getOrAssignDisplayNumber(inv.id)}
+                        tags={tagsByInvoice[inv.id] ?? []}
                         isComparing={compareMode}
                         isChecked={isCompareSelected}
                         onCompareToggle={toggleCompareSelect}
@@ -681,6 +703,7 @@ export default function DashboardClient() {
                     <InvoiceCard
                       invoice={inv}
                       displayNumber={getOrAssignDisplayNumber(inv.id)}
+                      tags={tagsByInvoice[inv.id] ?? []}
                       onShareQR={() => setShareQRInvoiceId(inv.id)}
                     />
                   </div>
@@ -690,6 +713,15 @@ export default function DashboardClient() {
           })}
           {loading && [...Array(3)].map((_, i) => <SkeletonCard key={`sk-${i}`} />)}
         </div>
+      )}
+
+      {/* Infinite scroll sentinel — only shown when we have a non-empty list */}
+      {invoices.length > 0 && (
+        <InvoiceListSentinel
+          onVisible={loadMore}
+          loading={isFetchingMore && !loading}
+          allLoaded={!hasMore && !loading}
+        />
       )}
 
       {/* Batch Pay Modal */}

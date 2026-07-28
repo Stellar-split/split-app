@@ -3,7 +3,9 @@ import type { Invoice } from "@stellar-split/sdk";
 import FundingProgress from "./FundingProgress";
 import StatusBadge from "./StatusBadge";
 import DeadlineCountdown from "./DeadlineCountdown";
+import TagPills from "./invoice/TagPills";
 import Link from "next/link";
+import AmountDisplay from "@/components/invoice/AmountDisplay";
 
 interface Props {
   invoice: Invoice;
@@ -12,13 +14,15 @@ interface Props {
   onCompareToggle?: (id: string, checked: boolean) => void;
   isComparing?: boolean;
   isChecked?: boolean;
+  /** Tags applied to this invoice, rendered as colour-coded pills. */
+  tags?: string[];
 }
 
 /**
  * InvoiceCard — summary card showing recipients, total, funded %, and status.
  * Optionally includes a compare checkbox when in compare mode.
  */
-export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompareToggle, isComparing, isChecked }: Props) {
+export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompareToggle, isComparing, isChecked, tags = [] }: Props) {
   const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
   const deadlineLabel = new Date(invoice.deadline * 1000).toLocaleDateString();
 
@@ -68,6 +72,8 @@ export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompa
 
       <p className="text-xs text-gray-500 mb-3">Due {deadlineLabel}</p>
 
+      {tags.length > 0 && <TagPills tags={tags} max={4} className="mb-3" />}
+
       <div className="flex flex-wrap gap-1 mb-3">
         {invoice.recipients.map((r, i) => (
           <span
@@ -86,9 +92,11 @@ export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompa
         compact
       />
 
-      <div className="flex justify-between text-xs text-gray-500 mt-1">
+      <div className="flex justify-between items-start text-xs text-gray-500 mt-1">
         <span>{formatAmount(invoice.funded)} USDC funded</span>
-        <span>Total: {formatAmount(total)} USDC</span>
+        <span className="text-right">
+          Total: <AmountDisplay amount={total} className="text-xs" />
+        </span>
       </div>
 
       {invoice.deadline > 0 && (
