@@ -60,6 +60,8 @@ import { fetchCooldownExpiry, recordCooldown, clearCooldown } from "@/lib/cooldo
 import PaymentSummaryCard from "@/components/PaymentSummaryCard";
 import CloneLineageTree from "@/components/CloneLineageTree";
 import TransferOwnershipModal from "@/components/TransferOwnershipModal";
+import StellarErrorBoundary from "@/components/error/StellarErrorBoundary";
+import { useStellarQuery } from "@/hooks/useStellarQuery";
 
 const POLL_MS = 10_000;
 
@@ -96,6 +98,17 @@ function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceVie
     funded:
       server.funded + unmatchedPending.reduce((sum, p) => sum + p.amount, 0n),
   };
+}
+
+/**
+ * Runs a live invoice RPC read for as long as the Pay section is mounted.
+ * A genuine child of StellarErrorBoundary — the query's render-phase throw
+ * on exhausted failure only propagates to boundaries wrapping this
+ * component's own subtree, not to whatever renders InvoiceDetailPage.
+ */
+function PaySectionRpcGate({ id, children }: { id: string; children: React.ReactNode }) {
+  useStellarQuery(() => splitClient.getInvoice(id), [id]);
+  return <>{children}</>;
 }
 
 /**
@@ -836,6 +849,8 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
+        <StellarErrorBoundary>
+        <PaySectionRpcGate id={id}>
         <section aria-labelledby="pay-heading" className="mb-8">
           <div className="flex items-center gap-3 mb-4 flex-wrap">
             <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
@@ -940,6 +955,8 @@ export default function InvoiceDetailPage({ params }: Props) {
             </button>
           </form>
         </section>
+        </PaySectionRpcGate>
+        </StellarErrorBoundary>
       )}
 
       {showPayModal && invoice && publicKey && (

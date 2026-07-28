@@ -3,8 +3,10 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
+import { WalletProvider } from "@/contexts/WalletContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import NotificationCenter from "@/components/NotificationCenter";
+import WalletConnect from "@/components/WalletConnect";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import UpgradeBanner from "@/components/UpgradeBanner";
@@ -72,6 +74,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-gray-950 text-gray-100 antialiased overflow-x-hidden">
         <ThemeProvider>
           <AccessibilityProvider>
+            <WalletProvider>
             <I18nProvider>
             <header className="sticky top-0 z-40 flex items-center justify-between gap-2 px-4 sm:px-6 py-3 bg-gray-950/80 backdrop-blur border-b border-gray-800 min-w-0">
               <a href="/" className="font-bold text-base sm:text-lg tracking-tight shrink-0 min-h-11 inline-flex items-center">
@@ -105,6 +108,7 @@ export default function RootLayout({
               <ThemeToggle />
               <SimulationModeToggle />
               <NotificationCenter />
+              <WalletConnect compact />
             </header>
             <SimulationBanner />
             <UpgradeBanner />
@@ -119,6 +123,7 @@ export default function RootLayout({
             }`}
             </Script>
             </I18nProvider>
+            </WalletProvider>
           </AccessibilityProvider>
         </ThemeProvider>
       </body>

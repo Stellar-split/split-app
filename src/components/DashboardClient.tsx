@@ -2,18 +2,22 @@
 
 import { Suspense, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
 import { SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
+import StatusFilterChips from "@/components/invoice/StatusFilterChips";
 import type { Invoice } from "@stellar-split/sdk";
 import {
   DASHBOARD_PRESETS,
   filterDashboardInvoices,
   getDashboardPresetCounts,
+  INVOICE_STATUS_FILTERS,
   type DashboardPresetId,
+  type InvoiceStatusFilter,
 } from "@/lib/dashboardFilters";
 
 /**
@@ -33,6 +37,34 @@ export default function DashboardClient() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const selectedStatuses = useMemo<InvoiceStatusFilter[]>(() => {
+    const raw = searchParams.get("status");
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .filter((s): s is InvoiceStatusFilter =>
+        INVOICE_STATUS_FILTERS.includes(s as InvoiceStatusFilter),
+      );
+  }, [searchParams]);
+
+  const toggleStatus = (status: InvoiceStatusFilter) => {
+    const next = selectedStatuses.includes(status)
+      ? selectedStatuses.filter((s) => s !== status)
+      : [...selectedStatuses, status];
+    const params = new URLSearchParams(searchParams.toString());
+    if (next.length > 0) {
+      params.set("status", next.join(","));
+    } else {
+      params.delete("status");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
 
   // Get wallet public key
   useEffect(() => {
@@ -130,6 +162,9 @@ export default function DashboardClient() {
     setActivePreset("all");
     setSearchValue("");
     setNumericResult(null);
+    if (searchParams.get("status")) {
+      router.replace(pathname, { scroll: false });
+    }
   };
 
   const handlePresetToggle = (preset: DashboardPresetId) => {
@@ -152,8 +187,16 @@ export default function DashboardClient() {
     [invoices, publicKey],
   );
   const visibleInvoices = useMemo(
-    () => filterDashboardInvoices(invoices, publicKey, activePreset, searchValue),
-    [invoices, publicKey, activePreset, searchValue],
+    () =>
+      filterDashboardInvoices(
+        invoices,
+        publicKey,
+        activePreset,
+        searchValue,
+        undefined,
+        selectedStatuses,
+      ),
+    [invoices, publicKey, activePreset, searchValue, selectedStatuses],
   );
 
   if (error) {
@@ -205,6 +248,8 @@ export default function DashboardClient() {
         </div>
       </div>
 
+      <StatusFilterChips selected={selectedStatuses} onToggle={toggleStatus} />
+
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <button
           type="button"
@@ -241,7 +286,7 @@ export default function DashboardClient() {
             </button>
           );
         })}
-        {(activePreset !== "all" || searchValue.trim().length > 0) && (
+        {(activePreset !== "all" || searchValue.trim().length > 0 || selectedStatuses.length > 0) && (
           <button
             type="button"
             onClick={clearFilters}
@@ -269,7 +314,7 @@ export default function DashboardClient() {
 
       {loading && invoices.length === 0 ? (
         <div className="flex flex-col gap-4">
-          {[...Array(3)].map((_, i) => (
+          {[...Array(8)].map((_, i) => (
             <SkeletonCard key={i} />
           ))}
         </div>
@@ -280,12 +325,14 @@ export default function DashboardClient() {
       ) : visibleInvoices.length === 0 ? (
         <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 text-center">
           <p className="text-gray-400">
-            {activePreset === "all"
-              ? searchValue.trim()
-                ? "No invoices match your search."
-                : "No invoices found. Create your first one!"
-              : DASHBOARD_PRESETS.find((preset) => preset.id === activePreset)
-                  ?.emptyState ?? "No invoices match this view."}
+            {activePreset !== "all"
+              ? DASHBOARD_PRESETS.find((preset) => preset.id === activePreset)
+                  ?.emptyState ?? "No invoices match this view."
+              : searchValue.trim()
+              ? "No invoices match your search."
+              : selectedStatuses.length > 0
+              ? "No invoices match the selected status."
+              : "No invoices found. Create your first one!"}
           </p>
         </div>
       ) : (

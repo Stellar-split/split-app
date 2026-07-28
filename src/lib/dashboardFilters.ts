@@ -77,17 +77,61 @@ export function matchesTextSearch(invoice: DashboardInvoice, query: string): boo
   );
 }
 
+/**
+ * Lifecycle status as shown in the status filter chips. The SDK's
+ * Invoice.status only has 3 real values (Pending/Released/Refunded); these
+ * 5 are derived from status + funded + deadline so users can filter by a
+ * more useful lifecycle view. "Refunded" invoices don't get a dedicated
+ * chip (edge case, always visible under "All") and there's no "Draft"
+ * concept since every fetched invoice already exists on-chain.
+ */
+export type InvoiceStatusFilter = "Pending" | "Funded" | "Partial" | "Released" | "Expired";
+
+export const INVOICE_STATUS_FILTERS: InvoiceStatusFilter[] = [
+  "Pending",
+  "Funded",
+  "Partial",
+  "Released",
+  "Expired",
+];
+
+export function getInvoiceDisplayStatus(
+  invoice: DashboardInvoice,
+  now = Math.floor(Date.now() / 1000),
+): InvoiceStatusFilter | "Refunded" {
+  if (invoice.status === "Released") return "Released";
+  if (invoice.status === "Refunded") return "Refunded";
+
+  const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
+
+  if (invoice.deadline > 0 && invoice.deadline < now) return "Expired";
+  if (total > 0n && invoice.funded >= total) return "Funded";
+  if (invoice.funded > 0n) return "Partial";
+  return "Pending";
+}
+
+export function matchesStatusFilter(
+  invoice: DashboardInvoice,
+  selectedStatuses: InvoiceStatusFilter[],
+  now = Math.floor(Date.now() / 1000),
+): boolean {
+  if (selectedStatuses.length === 0) return true;
+  return selectedStatuses.includes(getInvoiceDisplayStatus(invoice, now) as InvoiceStatusFilter);
+}
+
 export function filterDashboardInvoices(
   invoices: DashboardInvoice[],
   publicKey: string | null | undefined,
   preset: DashboardPresetId,
   query: string,
   now = Math.floor(Date.now() / 1000),
+  selectedStatuses: InvoiceStatusFilter[] = [],
 ): DashboardInvoice[] {
   return invoices.filter((invoice) => {
     const matchesPreset = matchesDashboardPreset(invoice, publicKey, preset, now);
     const matchesQuery = matchesTextSearch(invoice, query);
-    return matchesPreset && matchesQuery;
+    const matchesStatus = matchesStatusFilter(invoice, selectedStatuses, now);
+    return matchesPreset && matchesQuery && matchesStatus;
   });
 }
 
