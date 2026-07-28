@@ -150,6 +150,66 @@ export async function payWithNonce(params: {
   });
 }
 
+export async function payMilestone(params: {
+  payer: string;
+  invoiceId: string;
+  amount: bigint;
+  milestoneId: string;
+}): Promise<{ txHash: string }> {
+  const client = getSplitClient();
+  const { TransactionBuilder, Networks, BASE_FEE, Memo, nativeToScVal, SorobanRpc } = await import("@stellar/stellar-sdk");
+  const { signWithFreighter } = await import("./freighter");
+
+  const memoText = `INV:${params.invoiceId}:M:${params.milestoneId}`.slice(0, 28);
+
+  const operation = client.contract.call(
+    "pay",
+    nativeToScVal(params.payer, { type: "address" }),
+    nativeToScVal(BigInt(params.invoiceId), { type: "u64" }),
+    nativeToScVal(params.amount, { type: "i128" })
+  );
+
+  const sourceAccount = await client.server.getAccount(params.payer);
+  const networkPassphrase = client.config.networkPassphrase;
+
+  const tx = new TransactionBuilder(sourceAccount, {
+    fee: BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(operation)
+    .addMemo(Memo.text(memoText))
+    .setTimeout(30)
+    .build();
+
+  const simResult = await client.server.simulateTransaction(tx);
+  if (SorobanRpc.Api.isSimulationError(simResult)) {
+    throw new Error(`Simulation failed: ${simResult.error}`);
+  }
+
+  const preparedTx = SorobanRpc.assembleTransaction(tx, simResult).build();
+  const signedXdr = await signWithFreighter(preparedTx.toXDR(), networkPassphrase);
+  const signedTx = TransactionBuilder.fromXDR(signedXdr, networkPassphrase);
+  const sendResult = await client.server.sendTransaction(signedTx);
+
+  if (sendResult.status === "ERROR") {
+    throw new Error(`Transaction failed: ${JSON.stringify(sendResult.errorResult)}`);
+  }
+
+  let getResult = await client.server.getTransaction(sendResult.hash);
+  let attempts = 0;
+  while (getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND && attempts < 20) {
+    await new Promise((r) => setTimeout(r, 1500));
+    getResult = await client.server.getTransaction(sendResult.hash);
+    attempts++;
+  }
+
+  if (getResult.status !== SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+    throw new Error(`Transaction not confirmed: ${getResult.status}`);
+  }
+
+  return { txHash: sendResult.hash };
+}
+
 /**
  * Fetch the USDC token balance for a given address.
  *
