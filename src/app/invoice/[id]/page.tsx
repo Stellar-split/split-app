@@ -35,6 +35,7 @@ import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
 import CloneLineageTree from "@/components/CloneLineageTree";
 import CountdownTimer from "@/components/CountdownTimer";
 import SplitCalculator from "@/components/SplitCalculator";
+import InvoiceTagEditor from "@/components/invoice/InvoiceTagEditor";
 import type { SplitMeta } from "@/hooks/useSplitCalculator";
 import ActivityFeed from "@/components/ActivityFeed";
 import InstallmentTracker from "@/components/InstallmentTracker";
@@ -521,6 +522,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           </button>
         </div>
       </div>
+
+      {/* Tags */}
+      <InvoiceTagEditor invoiceId={id} className="mb-6" />
 
       {/* Details Section */}
       <InvoiceSection
