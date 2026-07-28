@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
+import Stepper, { type Step } from "@/components/ui/Stepper";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
@@ -68,6 +70,13 @@ function useToasts() {
 
 const STEPS = ["Basic Info", "Recipients", "Options", "Review & Submit"];
 
+/** Clamp an arbitrary `?step=` value onto a real step index. */
+function parseStep(raw: string | null): number {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1 || n > STEPS.length) return 0;
+  return n - 1;
+}
+
 function ChangedField({ changed, children }: { changed: boolean; children: React.ReactNode }) {
   if (!changed) return <>{children}</>;
   return (
@@ -94,8 +103,24 @@ export default function NewInvoicePage() {
 function NewInvoiceForm() {
   const { t } = useI18n();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [step, setStep] = useState(0);
+  // The active step lives in the URL rather than component state so browser
+  // back/forward moves through the form instead of leaving the page.
+  const step = parseStep(searchParams.get("step"));
+  const goToStep = useCallback(
+    (next: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next === 0) {
+        params.delete("step");
+      } else {
+        params.set("step", String(next + 1));
+      }
+      const query = params.toString();
+      router.push(query ? `${pathname}?${query}` : pathname);
+    },
+    [router, pathname, searchParams]
+  );
   const [recipients, setRecipients] = useState<RecipientRow[]>([
     { address: "", amount: "" },
   ]);
@@ -415,12 +440,12 @@ function NewInvoiceForm() {
 
   const handleNext = () => {
     if (validateStep(step)) {
-      setStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+      goToStep(Math.min(step + 1, STEPS.length - 1));
     }
   };
 
   const handleBack = () => {
-    setStep((prev) => Math.max(prev - 1, 0));
+    goToStep(Math.max(step - 1, 0));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -511,37 +536,17 @@ function NewInvoiceForm() {
     }
   };
 
+  const stepperSteps: Step[] = useMemo(
+    () =>
+      STEPS.map((label, index) => ({
+        label,
+        status: index < step ? "complete" : index === step ? "current" : "upcoming",
+      })),
+    [step]
+  );
+
   const renderStepIndicator = () => (
-    <div className="flex items-center gap-1 mb-8" aria-label="Form steps">
-      {STEPS.map((label, i) => {
-        const isActive = i === step;
-        const isPast = i < step;
-        return (
-          <div key={i} className="flex items-center gap-1 flex-1">
-            <button
-              type="button"
-              onClick={() => { if (i < step || validateStep(step)) setStep(i); }}
-              className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full transition-colors ${
-                isActive
-                  ? "bg-indigo-600 text-white"
-                  : isPast
-                  ? "bg-indigo-900/50 text-indigo-300"
-                  : "bg-gray-800 text-gray-400"
-              }`}
-              aria-current={isActive ? "step" : undefined}
-            >
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-black/20 text-[10px] font-bold">
-                {isPast ? "\u2713" : i + 1}
-              </span>
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-            {i < STEPS.length - 1 && (
-              <div className={`h-0.5 flex-1 rounded ${isPast ? "bg-indigo-600" : "bg-gray-700"}`} />
-            )}
-          </div>
-        );
-      })}
-    </div>
+    <Stepper steps={stepperSteps} onStepClick={goToStep} className="mb-8" />
   );
 
   const renderBasicInfo = () => (

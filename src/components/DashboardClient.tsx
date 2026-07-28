@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
+import { splitClient } from "@/lib/stellar";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
 import ActivityFeed from "@/components/ActivityFeed";
@@ -16,6 +16,8 @@ import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
 import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
 import { formatAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
+import { useInfiniteInvoices } from "@/hooks/useInfiniteInvoices";
+import InvoiceListSentinel from "@/components/InvoiceListSentinel";
 import {
   DASHBOARD_PRESETS,
   SORT_OPTIONS,
@@ -55,9 +57,7 @@ export default function DashboardClient() {
   const { allTags, tagsByInvoice } = useInvoiceTags();
 
   const [publicKey, setPublicKey] = useState<string | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [walletError, setWalletError] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const [numericResult, setNumericResult] = useState<Invoice | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -113,8 +113,20 @@ export default function DashboardClient() {
   useEffect(() => {
     getFreighterPublicKey()
       .then(setPublicKey)
-      .catch(() => setError("Connect your Freighter wallet to view your dashboard."));
+      .catch(() => setWalletError("Connect your Freighter wallet to view your dashboard."));
   }, []);
+
+  // Infinite-scroll invoice list
+  const {
+    invoices,
+    isLoading: loading,
+    isFetchingMore,
+    hasMore,
+    loadMore,
+    error: invoicesError,
+  } = useInfiniteInvoices(publicKey);
+
+  const error = walletError ?? (invoicesError ? String(invoicesError) : null);
 
   // Listen for N key to create invoice
   useEffect(() => {
@@ -128,32 +140,7 @@ export default function DashboardClient() {
     };
   }, [router]);
 
-  // Fetch invoices progressively
-  useEffect(() => {
-    if (!publicKey) return;
-    const fetchInvoices = async () => {
-      setLoading(true);
-      const results: Invoice[] = [];
-      for (let id = 1; id <= 50; id++) {
-        try {
-          const inv = await splitClient.getInvoice(String(id));
-          const mine =
-            inv.creator === publicKey ||
-            inv.recipients.some((r) => r.address === publicKey);
-          if (mine) {
-            results.push(inv);
-            setInvoices([...results]);
-          }
-        } catch {
-          break;
-        }
-      }
-      setLoading(false);
-    };
-    fetchInvoices().catch((e) => { setError(String(e)); setLoading(false); });
-  }, [publicKey]);
-
-  // Numeric search debounce
+  // ── Numeric search debounce ─────────────────────────────────────────────────
   useEffect(() => {
     const trimmed = searchValue.trim();
     if (!trimmed || !/^\d+$/.test(trimmed)) {
@@ -726,6 +713,15 @@ export default function DashboardClient() {
           })}
           {loading && [...Array(3)].map((_, i) => <SkeletonCard key={`sk-${i}`} />)}
         </div>
+      )}
+
+      {/* Infinite scroll sentinel — only shown when we have a non-empty list */}
+      {invoices.length > 0 && (
+        <InvoiceListSentinel
+          onVisible={loadMore}
+          loading={isFetchingMore && !loading}
+          allLoaded={!hasMore && !loading}
+        />
       )}
 
       {/* Batch Pay Modal */}
