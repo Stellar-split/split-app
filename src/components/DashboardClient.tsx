@@ -20,6 +20,8 @@ import { formatAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 import { useInfiniteInvoices } from "@/hooks/useInfiniteInvoices";
 import InvoiceListSentinel from "@/components/InvoiceListSentinel";
+import { useInvoiceSelection } from "@/hooks/useInvoiceSelection";
+import BulkActionToolbar from "@/components/invoice/BulkActionToolbar";
 import {
   DASHBOARD_PRESETS,
   SORT_OPTIONS,
@@ -81,6 +83,18 @@ export default function DashboardClient() {
   const { unreadCount } = useActivityFeed();
   const [splitMetaMap, setSplitMetaMap] = useState<Record<string, { installments?: { dueDate: number; status: string }[] }>>({});
 
+  // Multi-select state management
+  const {
+    selectedIds,
+    isSelecting,
+    toggleSelecting,
+    toggleInvoice,
+    selectAll,
+    deselectAll,
+    isSelected,
+    selectedCount,
+  } = useInvoiceSelection();
+
   // ── URL mutation helpers ────────────────────────────────────────────────────
 
   const pushParams = useCallback(
@@ -109,6 +123,47 @@ export default function DashboardClient() {
 
   const isFiltered =
     statuses.length > 0 || dateFrom || dateTo || sort !== "newest" || !!tag;
+
+  const handleBulkArchive = async () => {
+    try {
+      const response = await fetch("/api/invoices/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceIds: Array.from(selectedIds),
+          action: "archive",
+          archived: true,
+        }),
+      });
+
+      if (response.ok) {
+        deselectAll();
+        // Optionally refresh the invoice list
+      }
+    } catch (error) {
+      console.error("Bulk archive failed:", error);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      const response = await fetch("/api/invoices/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceIds: Array.from(selectedIds),
+          action: "delete",
+        }),
+      });
+
+      if (response.ok) {
+        deselectAll();
+        // Optionally refresh the invoice list
+      }
+    } catch (error) {
+      console.error("Bulk delete failed:", error);
+    }
+  };
 
   // ── Data fetching ───────────────────────────────────────────────────────────
   const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
@@ -566,6 +621,24 @@ export default function DashboardClient() {
               </button>
             </>
           )}
+          {!isSelecting && !compareMode && !reminderSelect && (
+            <button
+              onClick={toggleSelecting}
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition-colors"
+              aria-label="Enable multi-select mode"
+            >
+              Select
+            </button>
+          )}
+          {isSelecting && (
+            <button
+              onClick={toggleSelecting}
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors text-gray-300"
+              aria-label="Exit multi-select mode"
+            >
+              Cancel Selection
+            </button>
+          )}
           <Link
             href="/invoice/new"
             className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
@@ -753,6 +826,8 @@ export default function DashboardClient() {
             const isReminderSelected = reminderSelected.has(inv.id);
             const isCompareSelectable = compareMode;
             const isCompareSelected = compareSelected.has(inv.id);
+            const isMultiSelectable = isSelecting;
+            const isMultiSelected = isSelected(inv.id);
 
             const card = (
               <InvoiceCard invoice={inv} displayNumber={getOrAssignDisplayNumber(inv.id)} tags={tagsByInvoice[inv.id] ?? []} />
@@ -760,7 +835,35 @@ export default function DashboardClient() {
 
             return (
               <div key={inv.id}>
-                {isSelectable ? (
+                {isMultiSelectable ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleInvoice(inv.id)}
+                    aria-pressed={isMultiSelected}
+                    aria-label={`${isMultiSelected ? "Deselect" : "Select"} Invoice #${inv.id}`}
+                    className={`w-full text-left rounded-xl ring-2 transition-all ${
+                      isMultiSelected
+                        ? "ring-indigo-500"
+                        : "ring-transparent hover:ring-gray-600"
+                    }`}
+                  >
+                    <div className="relative">
+                      {isMultiSelected && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold z-10"
+                        >
+                          ✓
+                        </span>
+                      )}
+                      <InvoiceCard
+                        invoice={inv}
+                        displayNumber={getOrAssignDisplayNumber(inv.id)}
+                        tags={tagsByInvoice[inv.id] ?? []}
+                      />
+                    </div>
+                  </button>
+                ) : isSelectable ? (
                   <button
                     type="button"
                     onClick={() => toggleSelect(inv.id)}
@@ -927,6 +1030,21 @@ export default function DashboardClient() {
         invoiceId={shareQRInvoiceId || ""}
         onClose={() => setShareQRInvoiceId(null)}
       />
+
+      {isSelecting && selectedCount > 0 && (
+        <BulkActionToolbar
+          selectedCount={selectedCount}
+          selectedIds={selectedIds}
+          totalVisible={visibleInvoices.length}
+          onSelectAll={() => selectAll(visibleInvoices.map(inv => inv.id))}
+          onDeselectAll={deselectAll}
+          onArchive={handleBulkArchive}
+          onDelete={handleBulkDelete}
+          onTag={() => {
+            // TODO: Implement tagging dialog
+          }}
+        />
+      )}
 
       <ActivityFeed open={feedOpen} />
     </>
