@@ -191,3 +191,54 @@ describe("safeParseSplitMeta", () => {
     expect(r.error?.issues.length).toBeGreaterThan(0);
   });
 });
+
+describe("InstallmentMilestoneSchema and SplitMeta installments", () => {
+  it("accepts valid installments that sum to totalAmount", () => {
+    const result = SplitMetaSchema.safeParse({
+      totalAmount: 1000,
+      assetCode: "USDC",
+      recipients: [],
+      installments: [
+        { id: "1", amount: 500, dueDate: 1700000000, status: "upcoming" },
+        { id: "2", amount: 500, dueDate: 1700086400, status: "upcoming" },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects installments whose amounts do not sum to totalAmount", () => {
+    const result = SplitMetaSchema.safeParse({
+      totalAmount: 1000,
+      assetCode: "USDC",
+      recipients: [],
+      installments: [
+        { id: "1", amount: 400, dueDate: 1700000000, status: "upcoming" },
+        { id: "2", amount: 500, dueDate: 1700086400, status: "upcoming" },
+      ],
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const installmentIssue = result.error.issues.find((i) => i.path.includes("installments"));
+      expect(installmentIssue).toBeDefined();
+    }
+  });
+
+  it("accepts no installments (single-payment mode)", () => {
+    const result = SplitMetaSchema.safeParse({
+      totalAmount: 1000,
+      assetCode: "USDC",
+      recipients: [],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts empty installments array", () => {
+    const result = SplitMetaSchema.safeParse({
+      totalAmount: 1000,
+      assetCode: "USDC",
+      recipients: [],
+      installments: [],
+    });
+    expect(result.success).toBe(true);
+  });
+});

@@ -15,11 +15,22 @@ export const RecipientLineSchema = z.object({
 
 export type RecipientLineInput = z.infer<typeof RecipientLineSchema>;
 
+export const InstallmentMilestoneSchema = z.object({
+  id: z.string().min(1, "Milestone ID is required"),
+  amount: z.number().min(0, "Amount must be >= 0"),
+  dueDate: z.number().min(0, "Due date must be a valid unix timestamp"),
+  status: z.enum(["upcoming", "overdue", "paid"]),
+  txHash: z.string().optional(),
+});
+
+export type InstallmentMilestoneInput = z.infer<typeof InstallmentMilestoneSchema>;
+
 export const SplitMetaSchema = z
   .object({
-    totalAmount: z.number().min(0, 'Total amount must be >= 0'),
-    assetCode: z.enum(['XLM', 'USDC']),
+    totalAmount: z.number().min(0, "Total amount must be >= 0"),
+    assetCode: z.enum(["XLM", "USDC"]),
     recipients: z.array(RecipientLineSchema),
+    installments: z.array(InstallmentMilestoneSchema).optional(),
   })
   .superRefine((data, ctx) => {
     const shareSum = data.recipients.reduce(
@@ -31,8 +42,18 @@ export const SplitMetaSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `Share percentages must sum to 100% (current: ${shareSum.toFixed(4)}%)`,
-        path: ['recipients'],
+        path: ["recipients"],
       });
+    }
+    if (data.installments && data.installments.length > 0) {
+      const installmentSum = data.installments.reduce((s, m) => s + m.amount, 0);
+      if (Math.abs(installmentSum - data.totalAmount) >= 0.0001) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Installment amounts must sum to invoice total (current sum: ${installmentSum.toFixed(7)}, total: ${data.totalAmount.toFixed(7)})`,
+          path: ["installments"],
+        });
+      }
     }
   });
 

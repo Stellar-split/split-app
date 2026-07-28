@@ -19,6 +19,7 @@ export interface SplitMeta {
   totalAmount: number;
   assetCode: 'XLM' | 'USDC';
   recipients: RecipientLine[];
+  installments?: { id: string; amount: number; dueDate: number; status: string; txHash?: string }[];
 }
 
 export interface SplitValidation {

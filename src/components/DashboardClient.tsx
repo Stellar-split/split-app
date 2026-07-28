@@ -74,6 +74,7 @@ export default function DashboardClient() {
   // Activity feed panel
   const [feedOpen, setFeedOpen] = useState(false);
   const { unreadCount } = useActivityFeed();
+  const [splitMetaMap, setSplitMetaMap] = useState<Record<string, { installments?: { dueDate: number; status: string }[] }>>({});
 
   // ── URL mutation helpers ────────────────────────────────────────────────────
 
@@ -140,6 +141,58 @@ export default function DashboardClient() {
     };
   }, [router]);
 
+  // Fetch invoices progressively
+  useEffect(() => {
+    if (!publicKey) return;
+    const fetchInvoices = async () => {
+      setLoading(true);
+      const results: Invoice[] = [];
+      for (let id = 1; id <= 50; id++) {
+        try {
+          const inv = await splitClient.getInvoice(String(id));
+          const mine =
+            inv.creator === publicKey ||
+            inv.recipients.some((r) => r.address === publicKey);
+          if (mine) {
+            results.push(inv);
+            setInvoices([...results]);
+          }
+        } catch {
+          break;
+        }
+      }
+      setLoading(false);
+    };
+    fetchInvoices().catch((e) => { setError(String(e)); setLoading(false); });
+  }, [publicKey]);
+
+  // Fetch splitMeta for overdue detection
+  useEffect(() => {
+    if (!publicKey || invoices.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const map: Record<string, { installments?: { dueDate: number; status: string }[] }> = {};
+      await Promise.all(
+        invoices.map(async (inv) => {
+          try {
+            const res = await fetch(`/api/invoices/${inv.id}`);
+            if (res.ok) {
+              const json = await res.json();
+              if (json.splitMeta?.installments) {
+                map[inv.id] = json.splitMeta;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        })
+      );
+      if (!cancelled) setSplitMetaMap(map);
+    })();
+    return () => { cancelled = true; };
+  }, [publicKey, invoices]);
+
+  // Numeric search debounce
   // ── Numeric search debounce ─────────────────────────────────────────────────
   useEffect(() => {
     const trimmed = searchValue.trim();
@@ -165,7 +218,7 @@ export default function DashboardClient() {
 
   // ── Derived data ────────────────────────────────────────────────────────────
 
-  const presetCounts = useMemo(() => getDashboardPresetCounts(invoices), [invoices]);
+  const presetCounts = useMemo(() => getDashboardPresetCounts(invoices, Math.floor(Date.now() / 1000), splitMetaMap), [invoices, splitMetaMap]);
 
   const visibleInvoices = useMemo(() => {
     // 1. status filter (multi-select chips); if none selected show all
@@ -174,7 +227,7 @@ export default function DashboardClient() {
         ? invoices
         : invoices.filter((inv) =>
             statuses.some((s) =>
-              filterDashboardInvoices([inv], s).length > 0,
+              filterDashboardInvoices([inv], s, Math.floor(Date.now() / 1000), splitMetaMap).length > 0,
             ),
           );
     // 2. date range
@@ -186,6 +239,7 @@ export default function DashboardClient() {
     // 4. sort
     result = sortInvoices(result, sort);
     return result;
+  }, [invoices, statuses, dateFrom, dateTo, sort, splitMetaMap]);
   }, [invoices, statuses, dateFrom, dateTo, sort, tag, tagsByInvoice]);
 
   const { totalActive, totalValueLocked, totalReleased } = useMemo(() => {

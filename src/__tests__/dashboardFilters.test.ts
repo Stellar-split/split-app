@@ -49,6 +49,16 @@ describe("dashboard filter presets", () => {
     expect(results.map((i) => i.id)).toEqual(["1"]);
   });
 
+  test("'overdue' returns pending invoices with splitMeta installments past due date", () => {
+    const splitMetaMap: Record<string, { installments?: { dueDate: number; status: string }[] }> = {
+      "1": { installments: [{ dueDate: now - 3600, status: "upcoming" }] },
+      "2": { installments: [{ dueDate: now + 86400, status: "upcoming" }] },
+      "3": { installments: [{ dueDate: now - 3600, status: "paid" }] },
+    };
+    const results = filterDashboardInvoices(invoices, "overdue", now, splitMetaMap);
+    expect(results.map((i) => i.id)).toEqual(["1"]);
+  });
+
   test("'all' returns every invoice", () => {
     const results = filterDashboardInvoices(invoices, "all");
     expect(results).toHaveLength(5);
@@ -61,10 +71,13 @@ describe("dashboard filter presets", () => {
       "refunded",
       "expired",
       "draft",
+      "overdue",
     ]);
     expect(DASHBOARD_PRESETS[0].emptyState.toLowerCase()).toContain("active");
     expect(DASHBOARD_PRESETS[1].emptyState.toLowerCase()).toContain("funded");
     expect(DASHBOARD_PRESETS[2].emptyState.toLowerCase()).toContain("refunded");
     expect(DASHBOARD_PRESETS[3].emptyState.toLowerCase()).toContain("expired");
+    expect(DASHBOARD_PRESETS[4].emptyState.toLowerCase()).toContain("draft");
+    expect(DASHBOARD_PRESETS[5].emptyState.toLowerCase()).toContain("overdue");
   });
 });

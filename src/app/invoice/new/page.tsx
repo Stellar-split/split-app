@@ -33,6 +33,7 @@ import {
   calculateSplit,
   type SplitMeta,
 } from "@/hooks/useSplitCalculator";
+import InstallmentPlanBuilder from "@/components/invoice/InstallmentPlanBuilder";
 
 const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
@@ -132,6 +133,7 @@ function NewInvoiceForm() {
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
   const [splitMeta, setSplitMeta] = useState<SplitMeta | null>(null);
+  const [installments, setInstallments] = useState<{ id: string; amount: number; dueDate: number; status: string; txHash?: string }[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const { allTags, saveTags } = useInvoiceTags();
 
@@ -178,6 +180,7 @@ function NewInvoiceForm() {
     recurring,
     intervalDays,
     splitMeta,
+    installments,
   };
 
   const { isOffline: draftOffline, discardDraft } = useOfflineDraftAutosave(
@@ -448,6 +451,12 @@ function NewInvoiceForm() {
     goToStep(Math.max(step - 1, 0));
   };
 
+  const payloadForApi = () => {
+    if (!splitMeta) return null;
+    if (installments.length === 0) return splitMeta;
+    return { ...splitMeta, installments };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateStep(step)) return;
@@ -485,11 +494,12 @@ function NewInvoiceForm() {
           recipients.map((r) => ({ address: r.address, amount: r.amount }))
         );
         addToast(`Invoice #${invoiceId} created`, "success");
-        if (splitMeta && splitMeta.recipients.length > 0) {
+        const apiPayload = payloadForApi();
+        if (apiPayload && (apiPayload as any).recipients?.length > 0) {
           fetch(`/api/invoices/${invoiceId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ splitMeta }),
+            body: JSON.stringify({ splitMeta: apiPayload }),
           }).catch(() => null);
         }
         if (tags.length > 0) {
@@ -514,11 +524,12 @@ function NewInvoiceForm() {
             amount: equalSplit ? (perRecipientAmount ?? "0") : r.amount,
           }))
         );
-        if (splitMeta && splitMeta.recipients.length > 0) {
+        const apiPayload = payloadForApi();
+        if (apiPayload && (apiPayload as any).recipients?.length > 0) {
           fetch(`/api/invoices/${invoiceId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ splitMeta }),
+            body: JSON.stringify({ splitMeta: apiPayload }),
           }).catch(() => null);
         }
         if (tags.length > 0) {
@@ -752,7 +763,9 @@ function NewInvoiceForm() {
     </div>
   );
 
-  const renderOptions = () => (
+  const renderOptions = () => {
+    const total = recipients.reduce((s, r) => s + parseFloat(r.amount || "0"), 0);
+    return (
     <div className="flex flex-col gap-6">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Options</h2>
 
@@ -785,7 +798,7 @@ function NewInvoiceForm() {
 
       {autofilled && !cloneSourceId && (
         <p className="text-xs text-indigo-400 bg-indigo-950/50 border border-indigo-800 rounded-lg px-3 py-2">
-          Autofilled from history — you can override any value.
+          Autofilled from history — you can override any value below.
         </p>
       )}
 
@@ -796,8 +809,16 @@ function NewInvoiceForm() {
           </p>
         </div>
       )}
+
+      <InstallmentPlanBuilder
+        totalAmount={total}
+        installments={installments}
+        assetCode={token === (process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "") ? "USDC" : "XLM"}
+        onChange={setInstallments}
+      />
     </div>
-  );
+    );
+  };
 
   const renderReview = () => {
     const total = recipients.reduce((s, r) => s + parseFloat(r.amount || "0"), 0);
