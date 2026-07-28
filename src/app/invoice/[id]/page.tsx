@@ -32,6 +32,7 @@ import VotingPanel from "@/components/VotingPanel";
 import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
+import RecipientListSkeleton from "@/components/invoice/RecipientListSkeleton";
 import CloneLineageTree from "@/components/CloneLineageTree";
 import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import StellarErrorBoundary from "@/components/error/StellarErrorBoundary";
@@ -750,7 +751,11 @@ export default function InvoiceDetailPage({ params }: Props) {
         onFocusChange={updateFocusedSection}
         className="mb-8"
       >
-        <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
+        {loading ? (
+          <RecipientListSkeleton count={3} />
+        ) : (
+          <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
+        )}
       </InvoiceSection>
 
       {/* Split Calculator */}
