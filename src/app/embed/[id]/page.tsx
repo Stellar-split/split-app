@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { splitClient } from "@/lib/stellar";
+import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
@@ -81,7 +81,7 @@ export default function EmbedInvoicePage({ params }: Props) {
     setPaying(true);
 
     try {
-      const result = await splitClient.pay({
+      const result = await payWithNonce({
         payer: publicKey,
         invoiceId: id,
         amount,

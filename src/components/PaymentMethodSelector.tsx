@@ -2,19 +2,39 @@
 
 import { useEffect, useState } from "react";
 
-interface Props {
-  onMethodChange: (method: "freighter" | "walletconnect") => void;
+type PaymentMethod = "freighter" | "walletconnect";
+
+const STORAGE_KEY_PREFIX = "paymentMethodPref:";
+
+export function getPreferenceKey(payer: string, recipient: string): string {
+  return `${STORAGE_KEY_PREFIX}${payer}:${recipient}`;
 }
 
-export default function PaymentMethodSelector({ onMethodChange }: Props) {
-  const [selectedMethod, setSelectedMethod] = useState<"freighter" | "walletconnect">("freighter");
+export function loadPreference(payer: string, recipient: string): PaymentMethod | null {
+  if (typeof window === "undefined") return null;
+  const val = localStorage.getItem(getPreferenceKey(payer, recipient));
+  if (val === "freighter" || val === "walletconnect") return val;
+  return null;
+}
+
+export function savePreference(payer: string, recipient: string, method: PaymentMethod): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(getPreferenceKey(payer, recipient), method);
+}
+
+interface Props {
+  onMethodChange: (method: PaymentMethod) => void;
+  payerAddress?: string;
+  recipientAddress?: string;
+}
+
+export default function PaymentMethodSelector({ onMethodChange, payerAddress, recipientAddress }: Props) {
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("freighter");
   const [walletConnectAvailable, setWalletConnectAvailable] = useState(false);
 
   useEffect(() => {
-    // Check if WalletConnect is available
     const checkWalletConnect = async () => {
       try {
-        // Simple check - in production, would verify actual WalletConnect availability
         setWalletConnectAvailable(true);
       } catch {
         setWalletConnectAvailable(false);
@@ -24,17 +44,27 @@ export default function PaymentMethodSelector({ onMethodChange }: Props) {
   }, []);
 
   useEffect(() => {
-    // Load persisted preference
-    const saved = localStorage.getItem("preferredWallet") as "freighter" | "walletconnect" | null;
-    if (saved && (saved === "freighter" || saved === "walletconnect")) {
-      setSelectedMethod(saved);
-      onMethodChange(saved);
+    if (payerAddress && recipientAddress) {
+      const saved = loadPreference(payerAddress, recipientAddress);
+      if (saved) {
+        setSelectedMethod(saved);
+        onMethodChange(saved);
+        return;
+      }
     }
-  }, [onMethodChange]);
+    const globalSaved = localStorage.getItem("preferredWallet") as PaymentMethod | null;
+    if (globalSaved && (globalSaved === "freighter" || globalSaved === "walletconnect")) {
+      setSelectedMethod(globalSaved);
+      onMethodChange(globalSaved);
+    }
+  }, [onMethodChange, payerAddress, recipientAddress]);
 
-  const handleMethodChange = (method: "freighter" | "walletconnect") => {
+  const handleMethodChange = (method: PaymentMethod) => {
     setSelectedMethod(method);
     localStorage.setItem("preferredWallet", method);
+    if (payerAddress && recipientAddress) {
+      savePreference(payerAddress, recipientAddress, method);
+    }
     onMethodChange(method);
   };
 

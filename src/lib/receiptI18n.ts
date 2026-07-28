@@ -1,4 +1,4 @@
-export type Locale = "en" | "es" | "fr";
+export type Locale = "en" | "es" | "pt" | "fr";
 
 const translations: Record<Locale, Record<string, string>> = {
   en: {
@@ -25,6 +25,18 @@ const translations: Record<Locale, Record<string, string>> = {
     noDeadline: "Sin fecha límite",
     stellarSplitInvoice: "Factura StellarSplit En Cadena",
   },
+  pt: {
+    invoice: "Fatura",
+    status: "Status",
+    creator: "Criador",
+    deadline: "Prazo",
+    total: "Total",
+    recipients: "Destinatários",
+    address: "Endereço",
+    amount: "Valor (USDC)",
+    noDeadline: "Sem prazo",
+    stellarSplitInvoice: "Fatura StellarSplit On-Chain",
+  },
   fr: {
     invoice: "Facture",
     status: "Statut",
@@ -44,7 +56,13 @@ export function t(locale: Locale, key: string): string {
 }
 
 export function formatDate(date: Date, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : locale === "es" ? "es-ES" : "fr-FR", {
+  const localeMap: Record<Locale, string> = {
+    en: "en-US",
+    es: "es-ES",
+    pt: "pt-BR",
+    fr: "fr-FR",
+  };
+  return new Intl.DateTimeFormat(localeMap[locale], {
     year: "numeric",
     month: "long",
     day: "numeric",

@@ -91,7 +91,7 @@ export default function PaymentBreakdownModal({
             disabled={confirming}
             className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {confirming ? "Confirming…" : "Confirm Payment"}
+            {confirming ? "Waiting for signature…" : "Confirm & Pay"}
           </button>
         </div>
       </div>

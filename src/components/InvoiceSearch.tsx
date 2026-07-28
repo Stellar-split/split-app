@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Invoice } from "@stellar-split/sdk";
 import Link from "next/link";
 import InvoiceCard from "@/components/InvoiceCard";
+import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 
 function isNumericId(value: string) {
   return /^\d+$/.test(value.trim());
@@ -68,6 +69,7 @@ export default function InvoiceSearch({
   const debounced = useDebounce(searchValue, 300);
 
   const [addressResults, setAddressResults] = useState<Invoice[]>([]);
+  const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
 
   const matchedQuery = useMemo(() => debounced.trim(), [debounced]);
 
@@ -138,11 +140,13 @@ export default function InvoiceSearch({
         <ul className="flex flex-col gap-4 mt-4" aria-label="Search results">
           {results.map((inv) => (
             <li key={inv.id}>
-              <Link
-                href={`/invoice/${inv.id}`}
-                aria-label={`View Invoice #${inv.id}`}
-              >
-                <div className="rounded-xl overflow-hidden">
+              <div className="relative group rounded-xl overflow-hidden">
+                <Link
+                  href={`/invoice/${inv.id}`}
+                  aria-label={`View Invoice #${inv.id}`}
+                  className="absolute inset-0 rounded-xl z-10"
+                />
+                <div className="rounded-xl overflow-hidden relative z-0">
                   <div className="p-0.5 bg-gradient-to-r from-indigo-500/30 via-yellow-400/20 to-indigo-500/30">
                     <div className="bg-gray-900 rounded-xl">
                       <div className="px-5 pt-4 pb-2">
@@ -172,16 +176,25 @@ export default function InvoiceSearch({
 
                       <div className="px-5 pb-5">
                         {/* Reuse the existing card visuals, but recipients area is already shown. */}
-                        <InvoiceCard invoice={inv} />
+                        <InvoiceCard
+                          invoice={inv}
+                          onShareQR={() => setShareQRInvoiceId(inv.id)}
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
-              </Link>
+              </div>
             </li>
           ))}
         </ul>
       ) : null}
+
+      <InvoiceShareQRModal
+        open={!!shareQRInvoiceId}
+        invoiceId={shareQRInvoiceId || ""}
+        onClose={() => setShareQRInvoiceId(null)}
+      />
     </section>
   );
 }

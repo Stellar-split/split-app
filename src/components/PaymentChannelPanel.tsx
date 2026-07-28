@@ -2,7 +2,7 @@
 
 import { formatAmount } from "@stellar-split/sdk";
 
-interface PaymentChannelState {
+export interface PaymentChannelState {
   invoiceId: string;
   payer: string;
   balance: bigint;

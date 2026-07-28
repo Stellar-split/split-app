@@ -5,9 +5,15 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
     globals: true,
-    setupFiles: ['./src/__tests__/setup.ts'],
+    environment: 'jsdom',
+    setupFiles: ['./vitest.setup.ts', './src/__tests__/setup.ts'],
+    exclude: ['e2e/**', 'node_modules/**'],
+    server: {
+      deps: {
+        inline: ['@stellar/freighter-api', '@stellar-split/sdk'],
+      },
+    },
   },
   resolve: {
     alias: {

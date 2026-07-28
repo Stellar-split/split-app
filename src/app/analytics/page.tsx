@@ -1,285 +1,491 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
-import { formatAmount } from "@stellar-split/sdk";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { generateCsv, type CsvRow } from "@/lib/csvExport";
 import type { Invoice } from "@stellar-split/sdk";
+
+const STROOPS = 10_000_000;
+
+function stroopsToUsdc(n: bigint): number {
+  return Number(n) / STROOPS;
+}
 
 type InvoiceWithCreatedAt = Invoice & { createdAt?: number };
 
-interface WeeklyData {
-  week: string;
-  count: number;
+const DynamicWeeklyRaisedChart = dynamic(
+  () => import("@/components/analytics/WeeklyRaisedChart"),
+  { ssr: false }
+);
+
+const DynamicStatusPieChart = dynamic(
+  () => import("@/components/analytics/StatusPieChart"),
+  { ssr: false }
+);
+
+const DynamicUniquePayersChart = dynamic(
+  () => import("@/components/analytics/UniquePayersChart"),
+  { ssr: false }
+);
+
+const DynamicFundingTimeHistogram = dynamic(
+  () => import("@/components/analytics/FundingTimeHistogram"),
+  { ssr: false }
+);
+
+function KpiCard({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+}) {
+  return (
+    <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{label}</p>
+      <p className="text-3xl font-bold text-white">{value}</p>
+      {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
+    </div>
+  );
 }
 
-interface RecipientData {
-  address: string;
-  count: number;
+function weekKey(ts: number): string {
+  const d = new Date(ts * 1000);
+  const dayOfWeek = d.getDay();
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - ((dayOfWeek + 6) % 7));
+  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
 }
+
+function weekLabel(key: string): string {
+  const parts = key.split("-").map(Number);
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function last12WeekKeys(): string[] {
+  const keys: string[] = [];
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i * 7);
+    const dayOfWeek = d.getDay();
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - ((dayOfWeek + 6) % 7));
+    keys.push(
+      `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`
+    );
+  }
+  return keys;
+}
+
+function computeHistogramBins(
+  values: number[],
+  binCount = 8
+): { label: string; count: number }[] {
+  if (values.length === 0) return [];
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  if (min === max) {
+    return [{ label: `${min.toFixed(0)}h`, count: values.length }];
+  }
+  const range = max - min;
+  const binWidth = range / binCount;
+  const bins: { label: string; count: number }[] = [];
+  for (let i = 0; i < binCount; i++) {
+    const lo = min + i * binWidth;
+    const hi = min + (i + 1) * binWidth;
+    const count = values.filter((v) => (i === binCount - 1 ? v >= lo && v <= hi : v >= lo && v < hi)).length;
+    bins.push({ label: `${lo.toFixed(1)}-${hi.toFixed(1)}h`, count });
+  }
+  return bins;
+}
+
+const ChartFallback = () => (
+  <div className="h-[280px] flex items-center justify-center text-gray-500 text-sm">
+    Loading chart…
+  </div>
+);
 
 export default function AnalyticsPage() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<InvoiceWithCreatedAt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [adapterData, setAdapterData] = useState<{ name: string; value: number }[]>([]);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     getFreighterPublicKey()
       .then(setPublicKey)
       .catch(() => setError("Connect your Freighter wallet to view analytics."));
-    try {
-      const raw: { adapter: string }[] = JSON.parse(localStorage.getItem("stellarsplit_adapter_usage") ?? "[]");
-      const freighter = raw.filter((r) => r.adapter === "freighter").length;
-      const walletconnect = raw.filter((r) => r.adapter === "walletconnect").length;
-      if (raw.length > 0) {
-        setAdapterData([
-          { name: "Freighter", value: freighter },
-          { name: "WalletConnect", value: walletconnect },
-        ]);
-      }
-    } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
     if (!publicKey) return;
-
     const fetchInvoices = async () => {
       setLoading(true);
       try {
         const results: InvoiceWithCreatedAt[] = [];
         let offset = 0;
-        const limit = 100;
-
         while (true) {
-          const batch = await (splitClient as any).getInvoicesByCreator(publicKey, offset, limit);
-          if (!batch || batch.length === 0) break;
+          const batch = await (splitClient as any).getInvoicesByCreator(
+            publicKey,
+            offset,
+            100
+          );
+          if (!batch?.length) break;
           results.push(...batch);
-          offset += limit;
+          offset += 100;
         }
-
         setInvoices(results);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch invoices");
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch invoices"
+        );
       } finally {
         setLoading(false);
       }
     };
-
     fetchInvoices();
   }, [publicKey]);
 
-  const analytics = useMemo(() => {
-    if (invoices.length === 0) {
-      return {
-        weeklyData: [],
-        successRate: 0,
-        avgFundingTime: 0,
-        topRecipients: [],
-      };
-    }
-
-    // Weekly data (last 12 weeks)
-    const now = Math.floor(Date.now() / 1000);
-    const weeklyMap = new Map<number, number>();
-
-    for (let i = 0; i < 12; i++) {
-      const weekStart = now - (12 - i) * 7 * 86400;
-      weeklyMap.set(weekStart, 0);
-    }
-
-    invoices.forEach((inv) => {
+  const filtered = useMemo(() => {
+    return invoices.filter((inv) => {
       const ts = inv.createdAt ?? inv.deadline - 7 * 86400;
-      const weekStart = Math.floor((ts - now) / (7 * 86400)) * 7 * 86400 + now;
-      if (weeklyMap.has(weekStart)) {
-        weeklyMap.set(weekStart, (weeklyMap.get(weekStart) || 0) + 1);
+      const d = new Date(ts * 1000);
+      if (dateFrom && d < new Date(dateFrom)) return false;
+      if (dateTo && d > new Date(dateTo + "T23:59:59")) return false;
+      return true;
+    });
+  }, [invoices, dateFrom, dateTo]);
+
+  const stats = useMemo(() => {
+    const total = filtered.length;
+    const released = filtered.filter((i) => i.status === "Released");
+    const refunded = filtered.filter((i) => i.status === "Refunded");
+    const pending = filtered.filter((i) => i.status === "Pending");
+
+    const totalRaised = filtered.reduce(
+      (s, i) => s + stroopsToUsdc(i.funded),
+      0
+    );
+    const totalReleased = released.reduce(
+      (s, i) => s + stroopsToUsdc(i.funded),
+      0
+    );
+    const successRate = total > 0 ? (released.length / total) * 100 : 0;
+
+    const fundingTimesHours: number[] = [];
+    released.forEach((inv) => {
+      const created = inv.createdAt ?? inv.deadline - 7 * 86400;
+      const hours = (inv.deadline - created) / 3600;
+      fundingTimesHours.push(hours);
+    });
+    const avgFundingTimeHours =
+      fundingTimesHours.length > 0
+        ? fundingTimesHours.reduce((a, b) => a + b, 0) /
+          fundingTimesHours.length
+        : 0;
+
+    const weekKeys = last12WeekKeys();
+    const weekMap = new Map(weekKeys.map((k) => [k, 0]));
+    filtered.forEach((inv) => {
+      const ts = inv.createdAt ?? inv.deadline - 7 * 86400;
+      const k = weekKey(ts);
+      if (weekMap.has(k)) {
+        weekMap.set(k, (weekMap.get(k) ?? 0) + stroopsToUsdc(inv.funded));
+      }
+    });
+    const weeklyRaised = weekKeys.map((k) => ({
+      label: weekLabel(k),
+      amount: parseFloat((weekMap.get(k) ?? 0).toFixed(2)),
+    }));
+
+    const statusData = [
+      { name: "Released", value: released.length },
+      { name: "Refunded", value: refunded.length },
+      { name: "Active", value: pending.length },
+      {
+        name: "Expired",
+        value: filtered.filter(
+          (i) => i.status === "Pending" && i.deadline < Date.now() / 1000
+        ).length,
+      },
+    ].filter((d) => d.value > 0);
+
+    const payerTimeline = new Map<string, Set<string>>();
+    const sortedInvoices = [...filtered].sort((a, b) => {
+      const ta = a.createdAt ?? a.deadline - 7 * 86400;
+      const tb = b.createdAt ?? b.deadline - 7 * 86400;
+      return ta - tb;
+    });
+    const uniquePayersOverTime: { label: string; count: number }[] = [];
+    let cumulativePayers = new Set<string>();
+    sortedInvoices.forEach((inv) => {
+      const ts = inv.createdAt ?? inv.deadline - 7 * 86400;
+      const dateStr = new Date(ts * 1000).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+      inv.payments.forEach((p) => {
+        cumulativePayers.add(p.payer);
+      });
+      payerTimeline.set(dateStr, new Set(cumulativePayers));
+    });
+    const seenDates = new Set<string>();
+    sortedInvoices.forEach((inv) => {
+      const ts = inv.createdAt ?? inv.deadline - 7 * 86400;
+      const dateStr = new Date(ts * 1000).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+      if (!seenDates.has(dateStr)) {
+        seenDates.add(dateStr);
+        uniquePayersOverTime.push({
+          label: dateStr,
+          count: payerTimeline.get(dateStr)?.size ?? 0,
+        });
       }
     });
 
-    const weeklyData: WeeklyData[] = Array.from(weeklyMap.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([timestamp, count]) => ({
-        week: new Date(timestamp * 1000).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        count,
-      }));
+    const histogramBins = computeHistogramBins(fundingTimesHours);
 
-    // Success rate
-    const released = invoices.filter((inv) => inv.status === "Released").length;
-    const successRate = invoices.length > 0 ? (released / invoices.length) * 100 : 0;
-
-    // Average funding time
-    const releasedInvoices = invoices.filter((inv) => inv.status === "Released");
-    const avgFundingTime =
-      releasedInvoices.length > 0
-        ? releasedInvoices.reduce((sum, inv) => sum + (inv.deadline - (inv.createdAt ?? inv.deadline - 7 * 86400)), 0) /
-          releasedInvoices.length /
-          86400
-        : 0;
-
-    // Top recipients
-    const recipientMap = new Map<string, number>();
-    invoices.forEach((inv) => {
-      inv.recipients.forEach((r) => {
-        recipientMap.set(r.address, (recipientMap.get(r.address) || 0) + 1);
+    const payerMap = new Map<string, number>();
+    filtered.forEach((inv) => {
+      inv.payments.forEach((p) => {
+        payerMap.set(
+          p.payer,
+          (payerMap.get(p.payer) ?? 0) + stroopsToUsdc(p.amount)
+        );
       });
     });
+    const topPayers = Array.from(payerMap.entries())
+      .map(([address, total]) => ({ address, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
 
-    const topRecipients: RecipientData[] = Array.from(recipientMap.entries())
-      .map(([address, count]) => ({ address, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+    return {
+      total,
+      totalRaised,
+      totalReleased,
+      successRate,
+      avgFundingTimeHours,
+      weeklyRaised,
+      statusData,
+      uniquePayersOverTime,
+      histogramBins,
+      topPayers,
+    };
+  }, [filtered]);
 
-    return { weeklyData, successRate, avgFundingTime, topRecipients };
-  }, [invoices]);
+  const csvRows = useMemo<CsvRow[]>(() => {
+    return filtered.map((inv) => ({
+      id: inv.id,
+      status: inv.status,
+      creator: inv.creator,
+      funded_usdc: stroopsToUsdc(inv.funded).toFixed(2),
+      deadline: new Date(inv.deadline * 1000).toISOString(),
+      recipients: inv.recipients.length,
+      payments: inv.payments.length,
+      unique_payers: new Set(inv.payments.map((p) => p.payer)).size,
+    }));
+  }, [filtered]);
+
+  function handleExportCsv() {
+    generateCsv(csvRows, "stellar-split-analytics");
+  }
+
+  if (!publicKey && !loading && !error) {
+    return (
+      <main className="min-h-screen bg-gray-950 p-4 md:p-8">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-gray-400">
+            Please connect your wallet to view analytics.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <main className="min-h-screen bg-gray-950 p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
-          <p className="text-gray-600">Loading analytics...</p>
+          <p className="text-gray-400">Loading analytics…</p>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <main className="min-h-screen bg-gray-950 p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-400">{error}</p>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <main className="min-h-screen bg-gray-950 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Analytics</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <h1 className="text-3xl font-bold text-white">Analytics</h1>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-gray-600 text-sm">Total Invoices</p>
-            <p className="text-3xl font-bold">{invoices.length}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-gray-600 text-sm">Success Rate</p>
-            <p className="text-3xl font-bold">{analytics.successRate.toFixed(1)}%</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-gray-600 text-sm">Avg Funding Time</p>
-            <p className="text-3xl font-bold">{analytics.avgFundingTime.toFixed(1)} days</p>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <label className="text-gray-400">From</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <label className="text-gray-400">To</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            {(dateFrom || dateTo) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                className="text-indigo-400 hover:text-indigo-300 transition-colors"
+              >
+                Clear
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="ml-2 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-gray-300 hover:bg-gray-700 transition-colors"
+            >
+              Export CSV
+            </button>
           </div>
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Weekly Trend */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-bold mb-4">Invoices per Week (Last 12 Weeks)</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics.weeklyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="week" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#3b82f6" />
-              </LineChart>
-            </ResponsiveContainer>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <KpiCard
+            label="Total Raised"
+            value={`$${stats.totalRaised.toFixed(2)}`}
+            sub="USDC"
+          />
+          <KpiCard
+            label="Total Released"
+            value={`$${stats.totalReleased.toFixed(2)}`}
+            sub="USDC"
+          />
+          <KpiCard
+            label="Success Rate"
+            value={`${stats.successRate.toFixed(1)}%`}
+            sub={`${stats.total} invoices`}
+          />
+          <KpiCard
+            label="Avg Funding Time"
+            value={`${stats.avgFundingTimeHours.toFixed(1)}h`}
+            sub="released invoices"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+            <h2 className="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">
+              USDC Raised per Week (last 12 weeks)
+            </h2>
+            <Suspense fallback={<ChartFallback />}>
+              <DynamicWeeklyRaisedChart data={stats.weeklyRaised} />
+            </Suspense>
           </div>
 
-          {/* Top Recipients */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-bold mb-4">Top 5 Recipients</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analytics.topRecipients}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="address" width={80} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#10b981" />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+            <h2 className="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">
+              Invoice Status Breakdown
+            </h2>
+            <Suspense fallback={<ChartFallback />}>
+              <DynamicStatusPieChart data={stats.statusData} />
+            </Suspense>
           </div>
         </div>
 
-        {/* Payment Method Breakdown */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-bold mb-4">Payment Method Usage</h2>
-          {adapterData.length === 0 ? (
-            <p className="text-gray-500 text-sm text-center py-8">No payment history yet.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+            <h2 className="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">
+              Unique Payers Over Time
+            </h2>
+            <Suspense fallback={<ChartFallback />}>
+              <DynamicUniquePayersChart data={stats.uniquePayersOverTime} />
+            </Suspense>
+          </div>
+
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+            <h2 className="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">
+              Funding Time Distribution (hours)
+            </h2>
+            <Suspense fallback={<ChartFallback />}>
+              <DynamicFundingTimeHistogram data={stats.histogramBins} />
+            </Suspense>
+          </div>
+        </div>
+
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">
+            Top Invoices by Volume
+          </h2>
+          {stats.topPayers.length === 0 ? (
+            <p className="text-gray-500 text-sm text-center py-8">
+              No payment data yet.
+            </p>
           ) : (
-            <div className="flex flex-col sm:flex-row items-center gap-6">
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie data={adapterData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                    {adapterData.map((_, i) => (
-                      <Cell key={i} fill={i === 0 ? "#6366f1" : "#10b981"} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="text-center shrink-0">
-                <p className="text-3xl font-bold">{adapterData.reduce((s, d) => s + d.value, 0)}</p>
-                <p className="text-gray-500 text-sm">Total payments</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Recipients Table */}
-        {analytics.topRecipients.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 className="text-lg font-bold mb-4">Top Recipients</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-4 py-2 text-left">Address</th>
-                    <th className="px-4 py-2 text-left">Invoices</th>
+                <thead>
+                  <tr className="text-left text-gray-500 border-b border-gray-800">
+                    <th className="pb-2 pr-4 font-medium w-8">#</th>
+                    <th className="pb-2 pr-4 font-medium">Address</th>
+                    <th className="pb-2 font-medium text-right">
+                      Total Contributed
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {analytics.topRecipients.map((recipient) => (
-                    <tr key={recipient.address} className="border-t">
-                      <td className="px-4 py-2 truncate">{recipient.address}</td>
-                      <td className="px-4 py-2">{recipient.count}</td>
+                  {stats.topPayers.map((p, i) => (
+                    <tr
+                      key={p.address}
+                      className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors"
+                    >
+                      <td className="py-2.5 pr-4 text-gray-500">{i + 1}</td>
+                      <td className="py-2.5 pr-4 font-mono text-gray-300 truncate max-w-[160px] sm:max-w-xs">
+                        {p.address}
+                      </td>
+                      <td className="py-2.5 text-right text-indigo-300 font-medium">
+                        {p.total.toFixed(2)} USDC
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-
-        <div className="mt-8">
-          <Link href="/dashboard" className="text-blue-600 hover:underline">
-            ← Back to Dashboard
-          </Link>
+          )}
         </div>
+
+        <Link
+          href="/dashboard"
+          className="text-indigo-400 hover:text-indigo-300 transition-colors text-sm"
+        >
+          ← Back to Dashboard
+        </Link>
       </div>
-    </div>
+    </main>
   );
 }

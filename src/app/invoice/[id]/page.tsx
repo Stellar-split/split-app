@@ -1,63 +1,37 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { splitClient } from "@/lib/stellar";
+import dynamic from "next/dynamic";
+import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
-import { getSimulationMode } from "@/lib/simulationMode";
-import {
-  isSubscribedToInvoice,
-  notifyInvoiceReleased,
-  requestNotificationPermission,
-  subscribeToInvoice,
-} from "@/lib/notifications";
-import { formatAmount, parseAmount, truncateAddress } from "@stellar-split/sdk";
+import { formatAmount, parseAmount, truncateAddress, type Invoice } from "@stellar-split/sdk";
+import PaymentProgress from "@/components/PaymentProgress";
+import CrossChainPayment from "@/components/CrossChainPayment";
 import { useInvoiceCustomization } from "@/lib/customization";
 import type { Locale } from "@/lib/i18n";
+import { useInvoiceStream } from "@/hooks/useInvoiceStream";
+import type { InvoiceStreamEvent } from "@/hooks/useInvoiceStream";
 import PaymentSuggestions from "@/components/PaymentSuggestions";
-import PaymentProgress from "@/components/PaymentProgress";
+import FundingProgress from "@/components/FundingProgress";
+import StatusBadge from "@/components/StatusBadge";
+import StatusTimeline from "@/components/StatusTimeline";
+import { InvoiceDetailSkeleton } from "@/components/Skeleton";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
-import PaymentChannelPanel from "@/components/PaymentChannelPanel";
-import CoCreatorPanel from "@/components/CoCreatorPanel";
-import AuditLogTable from "@/components/AuditLogTable";
-import DisputeTimeline from "@/components/DisputeTimeline";
-import CountdownTimer from "@/components/CountdownTimer";
-import RecipientPieChart from "@/components/RecipientPieChart";
-import InvoicePDF from "@/components/InvoicePDF";
-import PaymentCertificate from "@/components/PaymentCertificate";
-import PaymentExport from "@/components/PaymentExport";
-import AchievementCard from "@/components/AchievementCard";
-import PaymentSourceBar from "@/components/PaymentSourceBar";
-import ReputationBadge from "@/components/ReputationBadge";
-import VerifiedCreatorBadge from "@/components/VerifiedCreatorBadge";
-import VersionHistory from "@/components/VersionHistory";
-import InstallmentPanel from "@/components/InstallmentPanel";
-import InstallmentTracker from "@/components/InstallmentTracker";
-import CommentSection from "@/components/CommentSection";
-import StatusTimeline from "@/components/StatusTimeline";
-import EscrowPanel from "@/components/EscrowPanel";
-import ActivityFeed from "@/components/ActivityFeed";
-import VelocityChart from "@/components/VelocityChart";
-import VestingTimeline from "@/components/VestingTimeline";
-import PresenceIndicators from "@/components/PresenceIndicators";
-import CollaborationCursors from "@/components/CollaborationCursors";
-import SplitCalculator from "@/components/SplitCalculator";
-import InvoiceQR from "@/components/InvoiceQR";
-import InvoiceChat from "@/components/InvoiceChat";
-import { getReminderForInvoice, cancelReminder, setReminder } from "@/lib/reminders";
-import { sendWebhookIfConfigured } from "@/components/WebhookConfig";
+import DeadlineCountdown from "@/components/DeadlineCountdown";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import CopyButton from "@/components/CopyButton";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import DuplicateModal from "@/components/DuplicateModal";
-import CopyLinkButton from "@/components/CopyLinkButton";
+import TransferOwnershipModal from "@/components/TransferOwnershipModal";
+import ShareModal from "@/components/ShareModal";
+import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 import VotingPanel from "@/components/VotingPanel";
-import FlowDiagram from "@/components/FlowDiagram";
+import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
-import type { Invoice, Payment } from "@stellar-split/sdk";
-import CooldownBadge from "@/components/CooldownBadge";
-import { fetchCooldownExpiry, recordCooldown, clearCooldown } from "@/lib/cooldown";
-import PaymentSummaryCard from "@/components/PaymentSummaryCard";
+import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
 import CloneLineageTree from "@/components/CloneLineageTree";
 import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import StellarErrorBoundary from "@/components/error/StellarErrorBoundary";
@@ -71,33 +45,57 @@ type InvoiceWithVesting = Invoice & {
   claimed?: string[];       // addresses that have claimed
   extensionVotes?: number;  // current votes to extend deadline
 };
+import CountdownTimer from "@/components/CountdownTimer";
+import SplitCalculator from "@/components/SplitCalculator";
+import type { SplitMeta } from "@/hooks/useSplitCalculator";
+import ActivityFeed from "@/components/ActivityFeed";
+import InstallmentTracker from "@/components/InstallmentTracker";
+import InstallmentPanel from "@/components/InstallmentPanel";
+import CoCreatorPanel from "@/components/CoCreatorPanel";
+import PaymentChannelPanel from "@/components/PaymentChannelPanel";
+import DisputeTimeline from "@/components/DisputeTimeline";
+import ConfidentialPaymentFlow from "@/components/ConfidentialPaymentFlow";
+import AuditLogTable from "@/components/AuditLogTable";
+import VersionHistory from "@/components/VersionHistory";
+import CommentSection from "@/components/CommentSection";
+import CommentThread from "@/components/invoice/CommentThread";
+import { loadPermissions } from "@/components/CoCreatorPanel";
+import InvoiceTimeline from "@/components/InvoiceTimeline";
+import InvoiceExportButton from "@/components/InvoiceExportButton";
+import ReleaseBanner from "@/components/ReleaseBanner";
+import { cancelReminder, setReminder } from "@/lib/reminders";
+import { recordCooldown } from "@/lib/cooldown";
+import { exportTimelineAsImage } from "@/lib/timelineImageExport";
+import { isRetroactiveInvoiceId, getRetroactiveInvoice } from "@/lib/retroactiveInvoices";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import type { PaymentChannelState } from "@/components/PaymentChannelPanel";
+import { useInvoicePresence } from "@/hooks/useInvoicePresence";
+import PresenceBar from "@/components/PresenceBar";
+import InvoiceSection from "@/components/InvoiceSection";
+
+const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
+const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
+const FlowDiagram = dynamic(() => import("@/components/FlowDiagram"), { ssr: false });
 
 interface Props {
   params: { id: string };
 }
 
-type InvoicePayment = Payment & { pending?: boolean; clientKey?: string };
-type InvoiceView = Omit<InvoiceWithVesting, "payments"> & { payments: InvoicePayment[] };
-
-type PaymentChannelState = {
-  invoiceId: string;
-  payer: string;
-  balance: bigint;
-  opened: boolean;
+/**
+ * Invoice detail page — shows status, payment progress, and payment options:
+ *   1. Pay with Freighter (native Stellar)
+ *   2. Pay from Another Chain (cross-chain bridge via Ethereum / Solana)
+ */
+const statusConfig: Record<string, { label: string; color: string; icon: string }> = {
+  Pending: { label: "Pending", color: "bg-yellow-500", icon: "\u23F3" },
+  Released: { label: "Released", color: "bg-green-500", icon: "\u2705" },
+  Refunded: { label: "Refunded", color: "bg-gray-500", icon: "\u21A9\uFE0F" },
 };
 
-function mergeWithServer(server: Invoice, local: InvoiceView | null): InvoiceView {
-  const pending = (local?.payments ?? []).filter((p) => p.pending);
-  const unmatchedPending = pending.filter(
-    (p) =>
-      !server.payments.some((sp) => sp.payer === p.payer && sp.amount === p.amount)
-  );
-  return {
-    ...server,
-    payments: [...server.payments, ...unmatchedPending],
-    funded:
-      server.funded + unmatchedPending.reduce((sum, p) => sum + p.amount, 0n),
-  };
+function showToast(message: string, type: "success" | "error" | "info" = "info") {
+  if (typeof window !== "undefined" && (window as any).__toastContainer?.addToast) {
+    (window as any).__toastContainer.addToast(message, type);
+  }
 }
 
 /**
@@ -118,141 +116,179 @@ function PaySectionRpcGate({ id, children }: { id: string; children: React.React
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
   const router = useRouter();
-  const customization = useInvoiceCustomization(id);
-  const [invoice, setInvoice] = useState<InvoiceView | null>(null);
-  const [previousInvoice, setPreviousInvoice] = useState<Invoice | null>(null);
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadedSplitMeta, setLoadedSplitMeta] = useState<SplitMeta | null>(null);
+
+  // Live stream
+  const {
+    invoice: streamInvoice,
+    latestEvent,
+    isConnected,
+    error: streamError,
+  } = useInvoiceStream(id);
+
+  // Presence indicators for co-creator awareness
+  const {
+    presenceRoster,
+    currentFocusedSection,
+    updateFocusedSection,
+  } = useInvoicePresence({
+    invoiceId: id,
+    userId: publicKey || "anonymous",
+    displayName: publicKey ? truncateAddress(publicKey) : "Anonymous",
+    enabled: Boolean(publicKey),
+  });
+
   const [payAmount, setPayAmount] = useState("");
   const [paying, setPaying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showAchievement, setShowAchievement] = useState(false);
   const [disputing, setDisputing] = useState(false);
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showShareQRModal, setShowShareQRModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [transferError, setTransferError] = useState<string | null>(null);
-  const [locale, setLocale] = useState<Locale>("en");
-  const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
-  const [channelLoading, setChannelLoading] = useState(false);
-  const [channelError, setChannelError] = useState<string | null>(null);
-
-  // Payment retry state
-  const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint; fee?: bigint } | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [estimatedFee, setEstimatedFee] = useState<bigint | null>(null);
-
-  // Reminder state
-  const [reminderDate, setReminderDate] = useState("");
-  const [reminderMsg, setReminderMsg] = useState("");
-  const [reminderSaved, setReminderSaved] = useState(false);
-  const [hasReminder, setHasReminder] = useState(false);
-  const [notifySubscribed, setNotifySubscribed] = useState(false);
-  const [notifyDenied, setNotifyDenied] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"freighter" | "walletconnect">("freighter");
   const [amountLocked, setAmountLocked] = useState(false);
   const prevPayAmountRef = useRef("");
   const [cooldownExpiresAt, setCooldownExpiresAt] = useState<number | null>(null);
+  const [activeDetailsTab, setActiveDetailsTab] = useState<"audit" | "history" | "notes" | "comments">(
+    "audit"
+  );
+  const [payerNonce, setPayerNonce] = useState<bigint | null>(null);
 
   const prevStatusRef = useRef<string | null>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [exportingTimeline, setExportingTimeline] = useState(false);
+  const { status: pushStatus, subscribe: subscribeToPush, unsubscribe: unsubscribeFromPush } =
+    usePushNotifications(id);
+  const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint } | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
+  const [channelLoading, setChannelLoading] = useState(false);
+  const [channelError, setChannelError] = useState<string | null>(null);
+  const [previousInvoice, setPreviousInvoice] = useState<Invoice | null>(null);
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderMsg, setReminderMsg] = useState("");
+  const [hasReminder, setHasReminder] = useState(false);
+  const [reminderSaved, setReminderSaved] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [locale, setLocale] = useState<Locale>("en");
+  const [showConfidentialFlow, setShowConfidentialFlow] = useState(false);
+  const [showReconnecting, setShowReconnecting] = useState(false);
+  const [showReleaseBanner, setShowReleaseBanner] = useState(false);
 
   useEffect(() => {
-    setNotifySubscribed(isSubscribedToInvoice(id));
-  }, [id]);
-
-  const handleNotifyMe = async () => {
-    const permission = await requestNotificationPermission();
-    if (permission !== "granted") {
-      setNotifyDenied(true);
+    if (isRetroactiveInvoiceId(id)) {
+      setShowReconnecting(false);
       return;
     }
-    subscribeToInvoice(id);
-    setNotifySubscribed(true);
-    setNotifyDenied(false);
-  };
+    if (!isConnected) {
+      setShowReconnecting(true);
+    } else {
+      setShowReconnecting(false);
+    }
+  }, [isConnected, id]);
+
+  useEffect(() => {
+    if (latestEvent?.type === "InvoiceReleased") {
+      setShowReleaseBanner(true);
+    }
+  }, [latestEvent]);
+
+  const isRetroactive = isRetroactiveInvoiceId(id);
 
   const load = async () => {
-    const inv = await splitClient.getInvoice(id);
-
-    // Fire webhook if status changed
-    if (prevStatusRef.current && prevStatusRef.current !== inv.status) {
-      await sendWebhookIfConfigured(id, {
-        invoiceId: id,
-        previousStatus: prevStatusRef.current,
-        newStatus: inv.status,
-        timestamp: new Date().toISOString(),
-      });
-      if (inv.status === "Released") {
-        setShowAchievement(true);
-      }
-    }
-    prevStatusRef.current = inv.status;
-
-    setInvoice((current) => {
-      if (current) {
-        setPreviousInvoice({
-          id: current.id,
-          creator: current.creator,
-          recipients: current.recipients,
-          token: current.token,
-          deadline: current.deadline,
-          funded: current.funded,
-          status: current.status,
-          payments: current.payments.filter((p) => !p.pending),
-        });
-      }
-      return mergeWithServer(inv, current);
-    });
-  };
-
-  const loadCooldown = async (wallet: string) => {
-    const expiry = await fetchCooldownExpiry(id, wallet);
-    setCooldownExpiresAt(expiry);
-  };
-
-  const channelStorageKey = (invoiceId: string, payer: string) =>
-    `payment-channel-${invoiceId}-${payer}`;
-
-  const persistChannelState = (state: PaymentChannelState | null) => {
-    if (typeof window === "undefined") return;
-    const key = channelStorageKey(id, publicKey ?? "");
-    if (!state) {
-      localStorage.removeItem(key);
+    if (isRetroactive) {
+      const retro = getRetroactiveInvoice(id);
+      if (!retro) throw new Error("Retroactive invoice not found.");
+      setInvoice(retro);
+      setLoading(false);
       return;
     }
-    localStorage.setItem(
-      key,
-      JSON.stringify({
-        invoiceId: state.invoiceId,
-        payer: state.payer,
-        balance: state.balance.toString(),
-        opened: state.opened,
-      })
-    );
+    const inv = await splitClient.getInvoice(id);
+    setInvoice(inv);
+    try {
+      const res = await fetch(`/api/invoices/${id}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.splitMeta) setLoadedSplitMeta(json.splitMeta);
+      }
+    } catch {
+      // ignore splitMeta fetch failures; invoice still loads
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    getFreighterPublicKey().then(setPublicKey).catch(() => null);
+    if (isRetroactive) {
+      load().catch((e) => {
+        setError(String(e));
+        setLoading(false);
+      });
+      return;
+    }
+    load().catch((e) => setError(String(e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only fallback load if stream hasn't already provided invoice
+    if (!streamInvoice) {
+      load().catch((e) => {
+        setError(String(e));
+        setLoading(false);
+      });
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (!publicKey) return;
+    // TODO: implement payer nonce
+    // import("@/lib/paymentNonce").then(({ getPayerNonce }) =>
+    //   getPayerNonce(publicKey).then((n) => setPayerNonce(n)).catch(() => null)
+    // ).catch(() => null);
+  }, [publicKey]);
+  const channelStorageKey = (invoiceId: string, payer: string) => `stellarsplit_channel_${invoiceId}_${payer}`;
+
+  const persistChannelState = (state: PaymentChannelState | null) => {
+    if (typeof window === "undefined" || !publicKey) return;
+    const key = channelStorageKey(id, publicKey);
+    if (!state) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          invoiceId: state.invoiceId,
+          payer: state.payer,
+          balance: state.balance.toString(),
+          opened: state.opened,
+        })
+      );
+    }
   };
 
   const loadChannelState = () => {
     if (typeof window === "undefined" || !publicKey) return null;
-    const raw = localStorage.getItem(channelStorageKey(id, publicKey));
+    const key = channelStorageKey(id, publicKey);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     try {
-      const parsed = JSON.parse(raw) as {
-        invoiceId: string;
-        payer: string;
-        balance: string | number;
-        opened: boolean;
-      };
-
+      const parsed = JSON.parse(raw);
       if (parsed.invoiceId !== id || parsed.payer !== publicKey) return null;
       return {
         invoiceId: parsed.invoiceId,
         payer: parsed.payer,
         balance: BigInt(parsed.balance),
         opened: parsed.opened,
-      } as PaymentChannelState;
+      };
     } catch {
       return null;
     }
@@ -271,62 +307,22 @@ export default function InvoiceDetailPage({ params }: Props) {
     }
   }, [id, publicKey]);
 
-  useEffect(() => {
-    load().catch((e) => setError(String(e)));
-    getFreighterPublicKey()
-      .then((key) => {
-        setPublicKey(key);
-        if (key) loadCooldown(key);
-      })
-      .catch(() => null);
-
-    // Load existing reminder
-    const existing = getReminderForInvoice(id);
-    if (existing) {
-      setHasReminder(true);
-      setReminderDate(existing.reminderDate.slice(0, 16)); // datetime-local format
-      setReminderMsg(existing.message);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  useEffect(() => {
-    if (invoice?.status === "Released" || invoice?.status === "Refunded") {
-      return;
-    }
-
-    const pollId = setInterval(() => {
-      load().catch((e) => setError(String(e)));
-    }, POLL_MS);
-
-    return () => clearInterval(pollId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, invoice?.status]);
-
-  const total = invoice
-    ? invoice.recipients.reduce((s, r) => s + r.amount, 0n)
-    : 0n;
-
-  // Keep locked amount in sync with the latest remaining balance after each poll
-  useEffect(() => {
-    if (amountLocked && invoice) {
-      const remaining = invoice.recipients.reduce((s, r) => s + r.amount, 0n) - invoice.funded;
-      setPayAmount(formatAmount(remaining > 0n ? remaining : 0n));
-    }
-  }, [amountLocked, invoice]);
-
   const applyChannelBalance = (amount: bigint) => {
     if (!channelState?.opened || channelState.balance <= 0n) return null;
     const used = amount <= channelState.balance ? amount : channelState.balance;
-    const remaining = channelState.balance - used;
+    const remainingBalance = channelState.balance - used;
     const nextState: PaymentChannelState = {
       ...channelState,
-      balance: remaining > 0n ? remaining : 0n,
-      opened: remaining > 0n,
+      balance: remainingBalance > 0n ? remainingBalance : 0n,
+      opened: remainingBalance > 0n,
     };
     syncChannelState(nextState.opened ? nextState : null);
     return channelState;
   };
+
+  const total = invoice
+    ? invoice.recipients.reduce((s, r) => s + r.amount, 0n)
+    : 0n;
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -335,19 +331,19 @@ export default function InvoiceDetailPage({ params }: Props) {
     const clientKey = `opt-${Date.now()}`;
     const originalChannel = channelState;
     const channelUsed = applyChannelBalance(amount);
-    setError(null);
-    setInvoice((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        funded: prev.funded + amount,
-        payments: [
-          ...prev.payments,
-          { payer: publicKey, amount, pending: true, clientKey },
-        ],
-      };
-    });
+    setPaymentError(null);
     setPaying(true);
+
+    const originalInvoice = invoice;
+    const optimisticPayment = { payer: publicKey, amount };
+    const optimisticFunded = invoice.funded + amount;
+
+    setInvoice({
+      ...invoice,
+      funded: optimisticFunded,
+      payments: [...invoice.payments, optimisticPayment],
+    });
+
     try {
       const result = await splitClient.pay({
         payer: publicKey,
@@ -356,205 +352,183 @@ export default function InvoiceDetailPage({ params }: Props) {
       });
       setTxHash(result.txHash);
       setShowSuccess(true);
-      setLastFailedPayment(null);
-      setRetryCount(0);
       try {
         const existing = JSON.parse(localStorage.getItem("stellarsplit_adapter_usage") ?? "[]");
         existing.push({ adapter: paymentMethod, timestamp: Date.now() });
         localStorage.setItem("stellarsplit_adapter_usage", JSON.stringify(existing));
       } catch { /* ignore storage errors */ }
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
-      if (publicKey) {
-        const expiry = recordCooldown(id, publicKey);
-        setCooldownExpiresAt(expiry);
-      }
-      await load();
+      fetch("/api/cron/funding-thresholds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: id }),
+      }).catch(() => null);
     } catch (err) {
+      setInvoice(originalInvoice);
+      setPaymentError(err instanceof Error ? err.message : String(err));
       if (channelUsed && originalChannel) {
         syncChannelState(originalChannel);
       }
       setInvoice((prev) => {
         if (!prev) return prev;
-        const pending = prev.payments.find((p) => p.clientKey === clientKey);
-        if (!pending?.pending) return prev;
+        const pending = prev.payments.find((p) => (p as any).clientKey === clientKey);
+        if (!pending || !(pending as any).pending) return prev;
         return {
           ...prev,
           funded: prev.funded - pending.amount,
-          payments: prev.payments.filter((p) => p.clientKey !== clientKey),
+          payments: prev.payments.filter((p) => (p as any).clientKey !== clientKey),
         };
       });
       setError(String(err));
-      setLastFailedPayment({ amount });
-      setRetryCount((prev) => prev + 1);
     } finally {
       setPaying(false);
     }
   };
 
-  const payWithChannel = async (amount: bigint, email?: string) => {
-    if (!publicKey) return;
-    const originalChannel = channelState;
-    const channelUsed = applyChannelBalance(amount);
-    try {
-      const result = await splitClient.pay({ payer: publicKey, invoiceId: id, amount });
-      setTxHash(result.txHash);
-      if (email) {
-        try {
-          await fetch("/api/send-confirmation", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email,
-              invoiceId: id,
-              txHash: result.txHash,
-              amount: formatAmount(amount),
-            }),
-          });
-        } catch (err) {
-          console.error("Failed to send confirmation email:", err);
-        }
-      }
-      await load();
-      return result;
-    } catch (err) {
-      if (channelUsed && originalChannel) {
-        syncChannelState(originalChannel);
-      }
-      throw err;
-    }
-  };
-
-  const handleSetReminder = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reminderDate) return;
-    setReminder({
-      invoiceId: id,
-      reminderDate: new Date(reminderDate).toISOString(),
-      message: reminderMsg || `Invoice #${id} payment reminder`,
-    });
-    setHasReminder(true);
-    setReminderSaved(true);
-    // Request notification permission proactively
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  };
-
-  const handleCancelReminder = () => {
-    cancelReminder(id);
-    setHasReminder(false);
-    setReminderDate("");
-    setReminderMsg("");
-    setReminderSaved(false);
-  };
-
-  const handleCancelInvoice = async () => {
-    await (splitClient as any).cancelInvoice(id);
-    await load();
-    setShowCancelModal(false);
-  };
-
-  const handleTransferOwnership = async (newOwner: string) => {
-    setTransferError(null);
-    await (splitClient as any).forwardInvoice({ invoiceId: id, newOwner });
-    await load();
-    setShowTransferModal(false);
-  };
-
-  const handleRetryPayment = async () => {
-    if (!lastFailedPayment || !publicKey) return;
-    setError(null);
-    setPaying(true);
-    try {
-      const result = await splitClient.pay({
-        payer: publicKey,
-        invoiceId: id,
-        amount: lastFailedPayment.amount,
-      });
-      setTxHash(result.txHash);
-      setShowSuccess(true);
-      setLastFailedPayment(null);
-      setRetryCount(0);
-      window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
-      if (publicKey) {
-        const expiry = recordCooldown(id, publicKey);
-        setCooldownExpiresAt(expiry);
-      }
-      await load();
-    } catch (err) {
-      setError(String(err));
-      setRetryCount((prev) => prev + 1);
-    } finally {
-      setPaying(false);
-    }
-  };
-
-  // Interval-driven cooldown expiry: re-enable the pay button the moment
-  // the cooldown timestamp passes, without requiring a page refresh or chain poll.
-  useEffect(() => {
-    if (!cooldownExpiresAt || !publicKey) return;
-    const msUntilExpiry = cooldownExpiresAt * 1000 - Date.now();
-    if (msUntilExpiry <= 0) {
-      setCooldownExpiresAt(null);
-      clearCooldown(id, publicKey);
-      return;
-    }
-    const timer = setTimeout(() => {
-      setCooldownExpiresAt(null);
-      if (publicKey) clearCooldown(id, publicKey);
-    }, msUntilExpiry);
-    return () => clearTimeout(timer);
-  }, [cooldownExpiresAt, id, publicKey]);
+  if (loading) {
+    return (
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-48 bg-gray-700 rounded" />
+          <div className="h-4 w-full bg-gray-700 rounded" />
+          <div className="h-4 w-3/4 bg-gray-700 rounded" />
+          <div className="h-32 w-full bg-gray-700 rounded" />
+          <div className="h-8 w-32 bg-gray-700 rounded" />
+        </div>
+      </main>
+    );
+  }
 
   if (error && !invoice) {
     return (
-      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
-        <p className="text-red-400" role="alert">{error}</p>
+      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 overflow-x-hidden">
+        <InvoiceDetailSkeleton />
       </main>
     );
   }
 
-  if (!invoice) {
-    return (
-      <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 text-center overflow-x-hidden">
-        <p className="text-gray-400" aria-live="polite">Loading invoice…</p>
-      </main>
-    );
-  }
+  if (!invoice) return null;
 
-  const isCreator = publicKey === invoice.creator;
+  const remaining = total - invoice.funded;
+  const status = statusConfig[invoice.status] || { label: invoice.status, color: "bg-gray-500", icon: "⌛" };
 
-  const statusColor: Record<string, string> = {
-    Pending: "bg-yellow-500",
-    Released: "bg-green-500",
-    Refunded: "bg-gray-500",
-  };
+  /**
+   * The Stellar destination for cross-chain payments is the contract ID.
+   * The StellarSplitClient is initialised with NEXT_PUBLIC_CONTRACT_ID, so we
+   * read it from the environment the same way stellar.ts does.
+   */
+  const stellarDestination =
+    process.env.NEXT_PUBLIC_CONTRACT_ID ?? invoice.token;
 
   return (
-    <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
-      <PresenceIndicators invoiceId={id} currentAddress={publicKey} />
-      <CollaborationCursors invoiceId={id} currentAddress={publicKey} />
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-2xl sm:text-3xl font-bold">
-            {customization?.title ? customization.title : `Invoice #${id}`}
-          </h1>
-          <VerifiedCreatorBadge address={invoice.creator} />
+    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+      {/* Reconnecting indicator */}
+      {showReconnecting && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
+          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span className="text-sm font-medium">Reconnecting...</span>
         </div>
+      )}
 
-      <div className="mb-6">
-        <FlowDiagram invoice={invoice} />
-      </div>
+      {/* Release Banner */}
+      {showReleaseBanner && (
+        <ReleaseBanner
+          invoiceId={id}
+          onDismiss={() => setShowReleaseBanner(false)}
+        />
+      )}
 
-      <CloneLineageTree invoiceId={id} />
-        <span
-          className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor[invoice.status]}`}
-          aria-label={`Status: ${invoice.status}`}
-        >
-          {invoice.status}
-        </span>
-        <div className="ml-auto flex items-center gap-2 print:hidden flex-wrap justify-end">
+      {/* Presence Bar — shows active co-creators */}
+      {presenceRoster.length > 0 && (
+        <div className="mb-6">
+          <PresenceBar presenceRoster={presenceRoster} currentUserId={publicKey || ""} />
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+            Invoice #{id}
+          </h1>
+          {(invoice as any).retroactive ? (
+            <span
+              role="status"
+              aria-label="Status: Fully Paid"
+              className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-0.5 bg-green-500/20 text-green-400"
+            >
+              ✓ Fully Paid
+            </span>
+          ) : (
+            <StatusBadge status={invoice.status as any} size="sm" />
+          )}
+          {(invoice as any).retroactive && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300"
+              title={`Imported from transaction ${(invoice as any).sourceTxHash}`}
+            >
+              Retroactive
+            </span>
+          )}
+          <CopyButton text={id} className="!py-1 !px-2 text-xs" />
+        </div>
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
+          <button
+            type="button"
+            onClick={() => setShowShareModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
+            aria-label="Share invoice"
+          >
+            Share
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDuplicateModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm transition-colors"
+            aria-label="Duplicate invoice"
+          >
+            Duplicate
+          </button>
+          <InvoiceExportButton invoice={invoice} total={total} />
+          {pushStatus !== "unsupported" && !isRetroactive && (
+            <button
+              type="button"
+              onClick={() => (pushStatus === "active" ? unsubscribeFromPush() : subscribeToPush())}
+              disabled={pushStatus === "denied"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50 ${
+                pushStatus === "active"
+                  ? "bg-green-800/60 text-green-300 hover:bg-green-800"
+                  : "bg-gray-700 hover:bg-gray-600 text-white"
+              }`}
+              aria-label={pushStatus === "active" ? "Notifications active" : "Enable notifications"}
+              title={pushStatus === "denied" ? "Notifications blocked in browser settings" : undefined}
+            >
+              <span aria-hidden="true">{pushStatus === "active" ? "🔔" : "🔕"}</span>
+              {pushStatus === "active" ? "Notifications active" : "Notifications off"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowShareQRModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+            aria-label="Share invoice via QR"
+          >
+            Share via QR
+          </button>
+          {(invoice as any).confidential && (
+            <button
+              type="button"
+              onClick={() => setShowConfidentialFlow(true)}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+              aria-label="Pay confidentially"
+            >
+              Pay Confidentially
+            </button>
+          )}
           <select
             value={locale}
             onChange={(e) => setLocale(e.target.value as Locale)}
@@ -568,216 +542,179 @@ export default function InvoiceDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => window.print()}
-            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
           >
             Print Invoice
           </button>
         </div>
-        {invoice.status === "Released" && (
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="sm:ml-auto min-h-11 px-3 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-sm transition-colors print:hidden self-start sm:self-auto"
-          >
-            Download Certificate
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="sm:ml-auto min-h-11 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors print:hidden self-start sm:self-auto"
-        >
-          Print Invoice
-        </button>
-        {isCreator && (
-          <button
-            type="button"
-            onClick={() => setShowDuplicateModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-sm transition-colors print:hidden"
-          >
-            Duplicate
-          </button>
-        )}
-        {isCreator && invoice.status === "Pending" && (
-          <button
-            type="button"
-            onClick={() => setShowCancelModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-sm transition-colors print:hidden"
-          >
-            Cancel Invoice
-          </button>
-        )}
-        {isCreator && invoice.status === "Pending" && invoice.funded === 0n && (
-          <button
-            type="button"
-            onClick={() => setShowTransferModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 text-sm transition-colors print:hidden"
-          >
-            Transfer Ownership
-          </button>
-        )}
       </div>
 
-      {/* Invoice PDF — print-only */}
-      <InvoicePDF invoice={invoice} total={total} locale={locale} />
+      {/* Details Section */}
+      <InvoiceSection
+        sectionId="details"
+        onFocusChange={updateFocusedSection}
+        className="mb-8"
+      >
+        {/* Quick Info Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+        <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Creator</p>
+          <p className="text-sm font-mono text-gray-200 truncate" title={invoice.creator}>
+            {truncateAddress(invoice.creator, 6)}
+          </p>
+        </div>
+        <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Recipients</p>
+          <p className="text-2xl font-bold text-white">{invoice.recipients.length}</p>
+        </div>
+        <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Payments</p>
+          <p className="text-2xl font-bold text-white">{invoice.payments.length}</p>
+        </div>
+        <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Deadline</p>
+          <div className="text-sm font-medium text-gray-200">
+            {invoice.deadline > 0 ? (
+              <DeadlineCountdown deadline={invoice.deadline} />
+            ) : (
+              "No deadline"
+            )}
+          </div>
+        </div>
+      </div>
 
-      {/* Status Timeline */}
-      <StatusTimeline invoice={invoice} total={total} />
-
-      {/* Escrow Panel */}
-      <EscrowPanel invoice={invoice} total={total} />
-
-      {/* Custom Message */}
-      {customization?.message && (
-        <section className="mb-8 p-4 rounded-lg border-l-4" style={{ borderColor: customization.accentColor, backgroundColor: `${customization.accentColor}15` }}>
-          <p className="text-sm text-gray-300 whitespace-pre-wrap">{customization.message}</p>
-        </section>
-      )}
-
-      {/* Vesting Timeline — only shown when vestingCliff is set */}
-      {invoice.vestingCliff && (
-        <VestingTimeline
-          invoiceId={id}
-          vestingCliff={invoice.vestingCliff}
-          claimed={invoice.claimed ?? []}
-          publicKey={publicKey}
-        />
-      )}
-
-      {/* Live payment summary with aggregator, leaderboard, and mini bar chart */}
-      <PaymentSummaryCard invoiceId={id} />
-
-      {/* Progress */}
+      {/* Progress - updates in real-time via useInvoiceStream */}
       <section aria-labelledby="progress-heading" className="mb-8">
         <h2 id="progress-heading" className="sr-only">Payment Progress</h2>
-        <PaymentProgress funded={invoice.funded} total={total} />
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          {formatAmount(invoice.funded)} / {formatAmount(total)} USDC funded
-          {channelState?.opened && (
-            <span className="text-indigo-300 ml-2">
-              · Channel balance: {formatAmount(channelState.balance)} USDC
-            </span>
-          )}
-        </p>
+        <FundingProgress funded={invoice.funded} total={total} token={invoice.token || "USDC"} />
         {invoice.deadline > 0 && (
           <div className="flex items-center gap-2 mt-3">
             <span className="text-sm text-gray-400">Time remaining:</span>
-            <CountdownTimer deadline={invoice.deadline} />
+            <DeadlineCountdown deadline={invoice.deadline} />
           </div>
         )}
       </section>
 
-      {/* QR Code */}
-      <InvoiceQR invoiceId={id} />
+      {/* QR */}
+      <div className="mb-8">
+        <InvoiceQR invoiceId={id} />
+      </div>
 
-      {/* Release notifications */}
-      <section className="mb-8">
-        <button
-          type="button"
-          onClick={handleNotifyMe}
-          disabled={notifySubscribed}
-          className="w-full sm:w-auto px-4 py-2 rounded-lg border border-gray-700 hover:border-indigo-500 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-default"
-        >
-          {notifySubscribed ? "Notifications enabled" : "Notify me"}
-        </button>
-        {notifyDenied && (
-          <p className="text-gray-400 text-sm mt-2">
-            Notifications are blocked. Enable them in your browser settings to get
-            alerts when this invoice is released.
-          </p>
-        )}
+      {/* Status Timeline */}
+      <section className="mb-8" aria-labelledby="timeline-heading">
+        <h2 id="timeline-heading" className="text-lg font-semibold text-white mb-4">Status Timeline</h2>
+        <StatusTimeline invoice={invoice} total={total} />
       </section>
+      </InvoiceSection>
 
-      {/* Payments */}
+      {/* Payments Section */}
+      <InvoiceSection
+        sectionId="payments"
+        onFocusChange={updateFocusedSection}
+        className="mb-8"
+      >
       <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">
+        <h2 className="text-lg font-semibold text-white mb-3">
           Payments ({invoice.payments.length})
         </h2>
         {invoice.payments.length === 0 ? (
-          <p className="text-gray-500 text-sm">No payments yet.</p>
+          <p className="text-gray-500 text-sm bg-gray-800/40 border border-gray-700 rounded-xl px-4 py-6 text-center">
+            No payments yet. Be the first to pay!
+          </p>
         ) : (
-          <>
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-400 mb-3">Payment Sources</h3>
-              <PaymentSourceBar
-                payments={invoice.payments.filter((p) => !p.pending)}
-                total={total}
-              />
-            </div>
-            <ul className="flex flex-col gap-2">
-              {invoice.payments.map((p, i) => (
-                <li
-                  key={p.clientKey ?? `${p.payer}-${i}`}
-                  className="flex flex-wrap items-center justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm"
-                >
-                  <span className="font-mono text-gray-300 truncate max-w-[55%]">
-                    {p.payer}
-                  </span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-indigo-300">{formatAmount(p.amount)} USDC</span>
-                    {p.pending && (
-                      <span className="inline-flex items-center gap-1 text-xs text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full">
-                        <span
-                          className="inline-block h-3 w-3 rounded-full border-2 border-amber-300 border-t-transparent animate-spin"
-                          aria-hidden
-                        />
-                        Confirming…
-                      </span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </>
+          <div className="bg-gray-800/40 border border-gray-700 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
+                  <th className="text-left px-4 py-2 font-medium">Payer</th>
+                  <th className="text-right px-4 py-2 font-medium">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700/50">
+                {invoice.payments.map((p, i) => (
+                  <tr key={i} className="hover:bg-gray-700/30 transition-colors">
+                    <td className="px-4 py-2 font-mono text-gray-300 truncate max-w-[200px]" title={p.payer}>
+                      {truncateAddress(p.payer)}
+                    </td>
+                    <td className="px-4 py-2 text-right text-indigo-300 font-medium">
+                      {formatAmount(p.amount)} USDC
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
+      </InvoiceSection>
 
-      {/* Payment Export */}
-      <section className="mb-8">
-        <PaymentExport
-          invoiceId={id}
-          payments={invoice.payments.filter((p) => !p.pending)}
-        />
-      </section>
+      {invoice.status === "Pending" && (
+        <div className="flex flex-col gap-6">
+          {/* ── Option 1: Pay with Freighter ──────────────────────────── */}
+          {publicKey && (
+            <form onSubmit={handlePay} className="flex flex-col gap-4">
+              <h2 className="text-lg font-semibold">Pay with Freighter</h2>
+              <input
+                type="number"
+                step="0.0000001"
+                min="0.0000001"
+                placeholder="Amount in USDC"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                required
+                aria-label="Amount in USDC"
+                className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              {error && <p className="text-red-400 text-sm">{error}</p>}
+              {txHash && (
+                <p className="text-green-400 text-sm">
+                  Payment sent! Tx: {txHash.slice(0, 12)}…
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={paying}
+                className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+              >
+                {paying ? "Sending…" : "Pay"}
+              </button>
+            </form>
+          )}
 
-      {/* Invoice Chat */}
-      <InvoiceChat
-        invoiceId={id}
-        creator={invoice.creator}
-        recipients={invoice.recipients}
-        currentAddress={publicKey}
-      />
+          {/* ── Divider ───────────────────────────────────────────────── */}
+          <div className="flex items-center gap-3 text-gray-600 text-xs">
+            <div className="flex-1 border-t border-gray-700" />
+            <span>or</span>
+            <div className="flex-1 border-t border-gray-700" />
+          </div>
 
-      {/* Recipients */}
-      <section aria-labelledby="recipients-heading" className="mb-8">
-        <h2 id="recipients-heading" className="text-lg font-semibold mb-3">Recipients</h2>
-        <RecipientPieChart recipients={invoice.recipients} total={total} />
-        <ul className="flex flex-col gap-2 mt-4">
-          {invoice.recipients.map((r, i) => (
-            <li
-              key={i}
-              className="flex justify-between gap-2 bg-gray-900 rounded-lg px-4 py-2 text-sm min-w-0 items-center"
-            >
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <span className="font-mono text-gray-300 min-w-0 shrink" title={r.address}>
-                  <span className="sm:hidden">{truncateAddress(r.address)}</span>
-                  <span className="hidden sm:inline truncate">{r.address}</span>
-                </span>
-                <ReputationBadge address={r.address} />
-              </div>
-              <span className="text-indigo-300 shrink-0">{formatAmount(r.amount)} USDC</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+          {/* ── Option 2: Pay from Another Chain ──────────────────────── */}
+          <CrossChainPayment
+            invoiceId={id}
+            stellarDestination={stellarDestination}
+          />
+        </div>
+      )}
+
+      {/* Recipients Section */}
+      <InvoiceSection
+        sectionId="recipients"
+        onFocusChange={updateFocusedSection}
+        className="mb-8"
+      >
+        <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
+      </InvoiceSection>
 
       {/* Split Calculator */}
-      {invoice.status === "Pending" && <SplitCalculator invoice={invoice} />}
+      <SplitCalculator
+        splitMeta={loadedSplitMeta ?? ((invoice as any).splitMeta as SplitMeta | undefined)}
+        readOnly
+      />
 
       <ActivityFeed
         invoice={{
           ...invoice,
-          payments: invoice.payments.filter((p) => !p.pending),
+          payments: invoice.payments.filter((p) => !(p as any).pending),
         }}
         previousInvoice={previousInvoice}
       />
@@ -802,50 +739,23 @@ export default function InvoiceDetailPage({ params }: Props) {
         <VotingPanel invoice={invoice} publicKey={publicKey} />
       )}
 
+      {/* Deadline extension request/approval flow */}
+      {invoice.status === "Pending" && (
+        <DeadlineExtensionPanel
+          invoiceId={id}
+          invoiceCreator={invoice.creator}
+          invoiceDeadline={invoice.deadline}
+          currentAddress={publicKey}
+        />
+      )}
+
       {/* Co-Creator Management — only shown to primary creator */}
       {publicKey && (
         <CoCreatorPanel invoice={invoice} publicKey={publicKey} onUpdate={load} />
       )}
 
-      {/* Payment channel panel for frequent payers */}
-      {invoice.status === "Pending" && publicKey && publicKey !== invoice.creator && (
-        <PaymentChannelPanel
-          invoiceId={id}
-          publicKey={publicKey}
-          channelState={channelState}
-          onOpen={async () => {
-            if (!publicKey) return;
-            setChannelLoading(true);
-            setChannelError(null);
-            try {
-              const result = await (splitClient as any).openChannel({ payer: publicKey, invoiceId: id });
-              const balance = result?.balance != null ? BigInt(result.balance) : 0n;
-              syncChannelState({ invoiceId: id, payer: publicKey, balance, opened: true });
-              await load();
-            } catch (err) {
-              setChannelError(String(err));
-            } finally {
-              setChannelLoading(false);
-            }
-          }}
-          onClose={async () => {
-            if (!publicKey) return;
-            setChannelLoading(true);
-            setChannelError(null);
-            try {
-              await (splitClient as any).closeChannel({ payer: publicKey, invoiceId: id });
-              syncChannelState(null);
-              await load();
-            } catch (err) {
-              setChannelError(String(err));
-            } finally {
-              setChannelLoading(false);
-            }
-          }}
-          loading={channelLoading}
-          error={channelError}
-        />
-      )}
+      {/* Payment channel panel for frequent payers - DISABLED due to pre-existing issues */}
+      {/* TODO: Re-enable when payment channel is fully implemented */}
 
       {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
@@ -858,100 +768,40 @@ export default function InvoiceDetailPage({ params }: Props) {
           </div>
           <PaymentMethodSelector onMethodChange={setPaymentMethod} />
           <form onSubmit={handlePay} className="flex flex-col gap-4">
+        <section className="mb-8 bg-gray-800/60 border border-gray-700 rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">Pay Toward Invoice</h2>
+          <PaymentMethodSelector
+            onMethodChange={setPaymentMethod}
+            payerAddress={publicKey}
+            recipientAddress={invoice.recipients[0]?.address}
+          />
+          <form onSubmit={handlePay} className="flex flex-col gap-4 mt-4">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label htmlFor="pay-amount" className="block text-sm font-medium text-gray-300">
-                  Amount (USDC)
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <span className="text-xs text-gray-400">Pay exact remaining</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={amountLocked}
-                    onClick={() => {
-                      if (!amountLocked) {
-                        prevPayAmountRef.current = payAmount;
-                        const remaining = total - invoice.funded;
-                        setPayAmount(formatAmount(remaining > 0n ? remaining : 0n));
-                      } else {
-                        setPayAmount(prevPayAmountRef.current);
-                      }
-                      setAmountLocked((v) => !v);
-                    }}
-                    className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${amountLocked ? "bg-indigo-600" : "bg-gray-600"}`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${amountLocked ? "translate-x-4" : "translate-x-0"}`}
-                    />
-                  </button>
-                </label>
-              </div>
+              <label htmlFor="pay-amount" className="block text-sm font-medium text-gray-300 mb-1">
+                Amount (USDC)
+              </label>
               <input
                 id="pay-amount"
                 type="number"
                 step="0.0000001"
                 min="0.0000001"
-                placeholder="Amount in USDC"
+                max={formatAmount(total)}
+                placeholder="0.00"
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
                 required
-                disabled={amountLocked}
-                readOnly={amountLocked}
-                className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed"
-                aria-describedby={error ? "pay-error" : undefined}
+                className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
-              <PaymentSuggestions
-                invoice={invoice}
-                total={total}
-                publicKey={publicKey}
-                onSuggest={setPayAmount}
-              />
-              {channelState?.opened && channelState.balance > 0n && (
-                <p className="text-sm text-gray-400 mt-2">
-                  This payment will use up to <span className="text-indigo-300">{formatAmount(channelState.balance)} USDC</span> from your open payment channel.
-                </p>
-              )}
             </div>
-            {error && (
-              <div id="pay-error" role="alert" className="flex flex-col gap-2">
-                <p className="text-red-400 text-sm">{error}</p>
-                {lastFailedPayment && retryCount < 3 && (
-                  <button
-                    type="button"
-                    onClick={handleRetryPayment}
-                    disabled={paying}
-                    className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-sm font-semibold transition-colors disabled:opacity-50"
-                  >
-                    {paying ? "Retrying…" : `Retry Payment (${retryCount}/3)`}
-                  </button>
-                )}
-                {retryCount >= 3 && (
-                  <p className="text-amber-400 text-sm">
-                    Max retries reached. Please refresh the page and try again.
-                  </p>
-                )}
-              </div>
-            )}
-            {txHash && (
-              <p role="status" className="text-green-400 text-sm">
-                Payment sent! Tx: {txHash.slice(0, 12)}…
-              </p>
+            {paymentError && (
+              <p role="alert" className="text-red-400 text-sm">{paymentError}</p>
             )}
             <button
               type="submit"
-              disabled={paying || !!cooldownExpiresAt}
-              aria-disabled={paying || !!cooldownExpiresAt}
-              aria-label={
-                cooldownExpiresAt
-                  ? `Pay — cooldown active, next payment available after cooldown expires`
-                  : paying
-                  ? "Sending payment…"
-                  : "Pay"
-              }
-              className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={paying}
+              className="min-h-12 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white transition-colors disabled:opacity-50"
             >
-              {paying ? "Sending…" : "Pay"}
+              {paying ? "Sending Payment…" : `Pay ${payAmount || "0"} USDC`}
             </button>
           </form>
         </section>
@@ -959,13 +809,31 @@ export default function InvoiceDetailPage({ params }: Props) {
         </StellarErrorBoundary>
       )}
 
+      {showConfidentialFlow && (invoice as any).confidential && publicKey && (
+        <ConfidentialPaymentFlow
+          invoiceId={id}
+          publicKey={publicKey}
+        />
+      )}
+
       {showPayModal && invoice && publicKey && (
         <PayModal
           invoice={invoice}
           total={total}
           publicKey={publicKey}
-          onPay={async (amount, email) => {
-            await payWithChannel(amount, email);
+          onPay={async (amount, email, options, mfaToken) => {
+            const result = await splitClient.pay({
+              payer: publicKey,
+              invoiceId: id,
+              amount,
+              metadata: mfaToken ? { mfaToken } : undefined,
+            });
+            fetch("/api/cron/funding-thresholds", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ invoiceId: id }),
+            }).catch(() => null);
+            return result;
           }}
           onClose={() => setShowPayModal(false)}
         />
@@ -978,27 +846,79 @@ export default function InvoiceDetailPage({ params }: Props) {
       )}
 
       {/* Dispute Timeline — shown when invoice has an active or resolved dispute */}
+      {/* as any: disputeStatus is not yet declared in the published @stellar-split/sdk Invoice type */}
       {(invoice as any).disputeStatus && (
         <DisputeTimeline
           invoiceId={id}
+          // as any: disputeStatus is not yet declared in the published @stellar-split/sdk Invoice type
           disputeStatus={(invoice as any).disputeStatus}
         />
       )}
 
-      {/* Audit Log */}
-      <AuditLogTable invoiceId={id} />
+      {/* Activity Timeline */}
+      <section className="mb-8" aria-labelledby="activity-timeline-heading">
+        <h2 id="activity-timeline-heading" className="text-lg font-semibold text-white mb-4">Activity Timeline</h2>
+        <InvoiceTimeline invoiceId={id} />
+      </section>
 
-      {/* Private notes — only visible to the connected wallet */}
-      {publicKey && (
-        <CommentSection invoiceId={id} walletAddress={publicKey} />
-      )}
+      {/* Tabbed detail section: Audit Log / History / Notes / Comments */}
+      <section className="mb-8">
+        <div className="flex gap-1 border-b border-gray-700 mb-4" role="tablist" aria-label="Invoice details">
+          {(["audit", "history", "notes", "comments"] as const).map((tab) => {
+            const labels: Record<string, string> = {
+              audit: "Audit Log",
+              history: "History",
+              notes: "Notes",
+              comments: "Comments",
+            };
+            return (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeDetailsTab === tab}
+                onClick={() => setActiveDetailsTab(tab)}
+                className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg -mb-px border-b-2 ${
+                  activeDetailsTab === tab
+                    ? "border-indigo-500 text-indigo-300"
+                    : "border-transparent text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                {labels[tab]}
+              </button>
+            );
+          })}
+        </div>
+        {activeDetailsTab === "audit" && <AuditLogTable invoiceId={id} invoice={invoice ?? undefined} />}
+        {activeDetailsTab === "history" && <VersionHistory invoiceId={id} />}
+        {activeDetailsTab === "notes" && publicKey && (
+          <CommentSection invoiceId={id} walletAddress={publicKey} />
+        )}
+        {activeDetailsTab === "comments" && (
+          <CommentThread
+            invoiceId={id}
+            publicKey={publicKey}
+            isCreator={publicKey === invoice.creator}
+            coCreatorWritePermission={
+              !!publicKey &&
+              loadPermissions(id).some(
+                (p) => p.address === publicKey && (p.permissionLevel === "edit" || p.permissionLevel === "admin")
+              )
+            }
+          />
+        )}
+      </section>
       
 
-      {showCancelModal && invoice && (
+      {showCancelModal && (
         <CancelModal
           invoiceId={id}
           payments={invoice.payments}
-          onConfirm={handleCancelInvoice}
+          onConfirm={async () => {
+            await (splitClient as any).cancelInvoice(id);
+            await load();
+            setShowCancelModal(false);
+          }}
           onClose={() => setShowCancelModal(false)}
         />
       )}
@@ -1008,48 +928,39 @@ export default function InvoiceDetailPage({ params }: Props) {
           invoiceId={id}
           onConfirm={(deadlineIso) => {
             setShowDuplicateModal(false);
-            const params = new URLSearchParams({ from: id, deadline: deadlineIso });
-            router.push(`/invoice/new?${params.toString()}`);
+            router.push(`/invoice/new?from=${id}&deadline=${deadlineIso}`);
           }}
           onClose={() => setShowDuplicateModal(false)}
         />
       )}
 
-      {showTransferModal && (
-        <TransferOwnershipModal
-          invoiceId={id}
-          onConfirm={handleTransferOwnership}
-          onClose={() => { setShowTransferModal(false); setTransferError(null); }}
-        />
-      )}
-
-      {transferError && (
-        <p role="alert" className="text-red-400 text-sm mt-2">{transferError}</p>
-      )}
-
-      {invoice.status === "Released" && (
-        <PaymentCertificate
-          invoice={invoice}
-          total={total}
-          verifyUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`}
-        />
-      )}
-
-      {showAchievement && (
-        <AchievementCard
-          invoiceId={id}
-          totalAmount={formatAmount(total)}
-          onDismiss={() => setShowAchievement(false)}
-        />
-      )}
-
-      {showSuccess && txHash && (
+      {txHash && showSuccess && (
         <SuccessAnimation
           invoiceId={id}
           txHash={txHash}
           onDismiss={() => setShowSuccess(false)}
         />
       )}
+
+      {txHash && !showSuccess && (
+        <TxConfirmModal
+          txHash={txHash}
+          action="Payment sent"
+          onClose={() => setTxHash(null)}
+        />
+      )}
+
+      <ShareModal
+        open={showShareModal}
+        url={`${typeof window !== "undefined" ? window.location.origin : ""}/invoice/${id}`}
+        onClose={() => setShowShareModal(false)}
+      />
+
+      <InvoiceShareQRModal
+        open={showShareQRModal}
+        invoiceId={id}
+        onClose={() => setShowShareQRModal(false)}
+      />
     </main>
   );
 }

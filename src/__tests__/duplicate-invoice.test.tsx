@@ -10,6 +10,7 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { validateDeadline } from "@/components/DuplicateModal";
+import NewInvoicePage from "@/app/invoice/new/page";
 
 // ── Unit tests: validateDeadline ──────────────────────────────────────────────
 
@@ -52,20 +53,20 @@ describe("validateDeadline", () => {
 
 // ── Integration tests: URL pre-fill ──────────────────────────────────────────
 
-// Stub next/navigation so the component under test can render in Jest/jsdom.
-const mockSearchParams = new Map<string, string>();
+// Hoist mockSearchParams so it's available inside vi.mock factories.
+const mockSearchParams = vi.hoisted(() => new Map<string, string>());
 
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: jest.fn() }),
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => ({
     get: (key: string) => mockSearchParams.get(key) ?? null,
   }),
 }));
 
 // Stub heavy SDK so tests don't hit the network.
-jest.mock("@/lib/stellar", () => ({
+vi.mock("@/lib/stellar", () => ({
   splitClient: {
-    getInvoice: jest.fn().mockResolvedValue({
+    getInvoice: vi.fn().mockResolvedValue({
       id: "42",
       creator: "GABC",
       recipients: [{ address: "GXYZ", amount: 10_000_000n }],
@@ -75,43 +76,70 @@ jest.mock("@/lib/stellar", () => ({
       status: "Pending",
       payments: [],
     }),
-    createInvoice: jest.fn(),
+    createInvoice: vi.fn(),
   },
 }));
 
-jest.mock("@/lib/freighter", () => ({
-  getFreighterPublicKey: jest.fn().mockResolvedValue("GPUBKEY"),
+vi.mock("@/lib/freighter", () => ({
+  getFreighterPublicKey: vi.fn().mockResolvedValue("GPUBKEY"),
 }));
 
 // Minimal stubs for child components that are not under test.
-jest.mock("@/components/RecipientForm", () => ({
+vi.mock("@/components/RecipientForm", () => ({
   __esModule: true,
   default: () => <div data-testid="recipient-form" />,
 }));
-jest.mock("@/components/TemplateManager", () => ({
+vi.mock("@/components/TemplateManager", () => ({
   __esModule: true,
   default: () => null,
 }));
-jest.mock("@/components/TxConfirmModal", () => ({
+vi.mock("@/components/TxConfirmModal", () => ({
   __esModule: true,
   default: () => null,
 }));
-jest.mock("@/components/I18nProvider", () => ({
+vi.mock("@/components/I18nProvider", () => ({
   useI18n: () => ({
     t: (key: string) => key,
   }),
 }));
-jest.mock("@/components/DeadlineSuggester", () => ({
+vi.mock("@/components/DeadlineSuggester", () => ({
   __esModule: true,
   default: () => null,
 }));
-jest.mock("@/lib/invoiceHistory", () => ({
-  recordInvoiceHistory: jest.fn(),
+vi.mock("@/lib/invoiceHistory", () => ({
+  recordInvoiceHistory: vi.fn(),
 }));
 
-// Import the page AFTER all mocks are set up.
-// eslint-disable-next-line import/first
-import NewInvoicePage from "@/app/invoice/new/page";
+vi.mock("@/components/SplitCalculator", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/hooks/useOfflineDraftAutosave", () => ({
+  useOfflineDraftAutosave: () => ({
+    isOffline: false,
+    discardDraft: vi.fn(),
+  }),
+}));
+
+vi.mock("@/lib/offlineDraftDB", () => ({
+  getOrCreateLocalUserId: () => "local-user-id",
+  listDraftsForUser: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/components/invoice/DraftRecoveryBanner", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/components/invoice/TxImportPanel", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/lib/templateSharing", () => ({
+  decodeTemplate: vi.fn(),
+}));
 
 describe("NewInvoicePage — URL pre-fill (clone mode)", () => {
   beforeEach(() => {

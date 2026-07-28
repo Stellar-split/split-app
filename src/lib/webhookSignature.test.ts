@@ -3,6 +3,7 @@ import crypto from "crypto";
 
 // Polyfill Web Crypto for the Jest environment if it's missing.
 if (typeof globalThis.crypto === "undefined") {
+  // as any: globalThis.crypto is typed as readonly in newer @types/node; polyfill needed in Jest/Node <19
   (globalThis as any).crypto = crypto.webcrypto;
 }
 

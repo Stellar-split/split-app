@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import FocusTrap from "./FocusTrap";
-import { splitClient } from "@/lib/stellar";
+import { splitClient, payWithNonce } from "@/lib/stellar";
 import { parseAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 
@@ -42,7 +42,7 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
       // surface the last tx hash as the batch result.
       let lastTxHash = "";
       for (const pair of pairs) {
-        const result = await splitClient.pay({ payer: publicKey, invoiceId: pair.invoiceId, amount: pair.amount });
+        const result = await payWithNonce({ payer: publicKey, invoiceId: pair.invoiceId, amount: pair.amount });
         lastTxHash = result.txHash;
       }
       setTxHash(lastTxHash);

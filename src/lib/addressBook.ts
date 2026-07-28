@@ -8,7 +8,7 @@ export interface AddressEntry {
   address: string;
 }
 
-const STORAGE_KEY = "stellarsplit_address_book";
+const STORAGE_KEY = "split-contacts";
 const MAX_ENTRIES = 50;
 
 export function getAddressBook(): AddressEntry[] {
@@ -122,6 +122,14 @@ export function downloadCSV(): void {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Validates a Stellar public key (G... address).
+ * Stellar addresses are 56-character base32 strings starting with 'G'.
+ */
+export function isValidStellarPublicKey(address: string): boolean {
+  return /^G[A-Z2-7]{55}$/.test(address);
 }
 
 export function downloadVCard(): void {

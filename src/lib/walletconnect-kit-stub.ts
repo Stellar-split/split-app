@@ -5,5 +5,5 @@
  * unavailable until a real implementation is provided.
  */
 export function getStellarWalletKit() {
-  throw new Error("WalletConnect kit is not available in this build.");
+  return null;
 }

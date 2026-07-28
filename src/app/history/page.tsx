@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount } from "@stellar-split/sdk";
 import InvoiceCard from "@/components/InvoiceCard";
+import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 import { SkeletonCard } from "@/components/Skeleton";
 import type { Invoice } from "@stellar-split/sdk";
+import { loadReceipt } from "@/lib/receiptStore";
+
+const ReceiptPDF = lazy(() => import("@/components/ReceiptPDF"));
 
 const ITEMS_PER_PAGE = 10;
 
@@ -27,6 +31,7 @@ export default function HistoryPage() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
+  const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
 
   useEffect(() => {
     getFreighterPublicKey()
@@ -206,16 +211,39 @@ export default function HistoryPage() {
       ) : (
         <>
           <ul className="flex flex-col gap-4 mb-8" aria-label="Invoice history list">
-            {paginatedInvoices.map((inv) => (
-              <li key={inv.id}>
-                <Link
-                  href={`/invoice/${inv.id}`}
-                  aria-label={`View Invoice #${inv.id}`}
-                >
-                  <InvoiceCard invoice={inv} />
-                </Link>
-              </li>
-            ))}
+            {paginatedInvoices.map((inv) => {
+              const storedReceipt = loadReceipt(inv.id);
+
+              return (
+                <li key={inv.id} className="flex flex-col gap-2">
+                  <div className="relative group">
+                    <Link
+                      href={`/invoice/${inv.id}`}
+                      aria-label={`View Invoice #${inv.id}`}
+                      className="absolute inset-0 rounded-xl z-0"
+                    />
+                    <InvoiceCard
+                      invoice={inv}
+                      onShareQR={() => setShareQRInvoiceId(inv.id)}
+                    />
+                  </div>
+                  {storedReceipt && (
+                    <Suspense fallback={null}>
+                      <ReceiptPDF
+                        data={{
+                          txHash: storedReceipt.txHash,
+                          date: new Date(storedReceipt.date),
+                          payerAddress: storedReceipt.payerAddress,
+                          invoiceId: inv.id,
+                          amountPaid: BigInt(storedReceipt.amountPaid),
+                          tipAmount: BigInt(storedReceipt.tipAmount),
+                        }}
+                      />
+                    </Suspense>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
           {/* Pagination */}
@@ -246,6 +274,12 @@ export default function HistoryPage() {
           )}
         </>
       )}
+
+      <InvoiceShareQRModal
+        open={!!shareQRInvoiceId}
+        invoiceId={shareQRInvoiceId || ""}
+        onClose={() => setShareQRInvoiceId(null)}
+      />
     </main>
   );
 }

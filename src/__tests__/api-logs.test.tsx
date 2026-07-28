@@ -4,8 +4,8 @@ import ApiLogsPage from "@/app/settings/api-logs/page";
 import { downloadCSV } from "@/lib/csvExport";
 
 // Mock the csvExport module
-jest.mock("@/lib/csvExport", () => ({
-  downloadCSV: jest.fn(),
+vi.mock("@/lib/csvExport", () => ({
+  downloadCSV: vi.fn(),
 }));
 
 const mockKeys = [

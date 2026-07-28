@@ -2,22 +2,42 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
-import RecipientForm from "@/components/RecipientForm";
-import TemplateManager from "@/components/TemplateManager";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
 import { useI18n } from "@/components/I18nProvider";
 import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
 import { decodeTemplate } from "@/lib/templateSharing";
+import type { ImportedTxData } from "@/lib/txImport";
+import {
+  generateRetroactiveInvoiceId,
+  saveRetroactiveInvoice,
+  type RetroactiveInvoice,
+} from "@/lib/retroactiveInvoices";
+import { useOfflineDraftAutosave } from "@/hooks/useOfflineDraftAutosave";
+import {
+  getOrCreateLocalUserId,
+  listDraftsForUser,
+  type StoredDraft,
+} from "@/lib/offlineDraftDB";
+import SplitCalculator from "@/components/SplitCalculator";
+import {
+  calculateSplit,
+  type SplitMeta,
+} from "@/hooks/useSplitCalculator";
 
+const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
+const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
+const TxImportPanel = dynamic(() => import("@/components/invoice/TxImportPanel"), { ssr: false });
+const DraftRecoveryBanner = dynamic(() => import("@/components/invoice/DraftRecoveryBanner"), { ssr: false });
 
 interface RecipientRow {
   address: string;
-  amount: string; // human-readable USDC
+  amount: string;
 }
 
 interface InvoiceTemplate {
@@ -25,8 +45,6 @@ interface InvoiceTemplate {
   deadlineDays: number;
   token: string;
 }
-
-// ── Toast ────────────────────────────────────────────────────────────────────
 
 interface Toast {
   id: number;
@@ -38,24 +56,17 @@ let _toastId = 0;
 
 function useToasts() {
   const [toasts, setToasts] = useState<Toast[]>([]);
-
   const addToast = useCallback((message: string, type: Toast["type"]) => {
     const id = ++_toastId;
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 5000);
   }, []);
-
   return { toasts, addToast };
 }
 
-// ── Highlighted field wrapper ─────────────────────────────────────────────────
+const STEPS = ["Basic Info", "Recipients", "Options", "Review & Submit"];
 
-interface HighlightProps {
-  changed: boolean;
-  children: React.ReactNode;
-}
-
-function ChangedField({ changed, children }: HighlightProps) {
+function ChangedField({ changed, children }: { changed: boolean; children: React.ReactNode }) {
   if (!changed) return <>{children}</>;
   return (
     <div className="relative group">
@@ -70,11 +81,9 @@ function ChangedField({ changed, children }: HighlightProps) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-
 export default function NewInvoicePage() {
   return (
-    <Suspense fallback={<div className="max-w-xl mx-auto px-4 py-16 text-gray-400">Loading…</div>}>
+    <Suspense fallback={<div className="max-w-xl mx-auto px-4 py-16 text-gray-600 dark:text-gray-400">Loading…</div>}>
       <NewInvoiceForm />
     </Suspense>
   );
@@ -84,6 +93,7 @@ function NewInvoiceForm() {
   const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [step, setStep] = useState(0);
   const [recipients, setRecipients] = useState<RecipientRow[]>([
     { address: "", amount: "" },
   ]);
@@ -94,21 +104,139 @@ function NewInvoiceForm() {
   const [recurring, setRecurring] = useState(false);
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
+  const [splitMeta, setSplitMeta] = useState<SplitMeta | null>(null);
 
-  // Clone-specific state
   const fromId = searchParams.get("from");
-  const deadlineParam = searchParams.get("deadline"); // ISO string from DuplicateModal
+  const deadlineParam = searchParams.get("deadline");
   const [cloneSourceId, setCloneSourceId] = useState<string | null>(null);
   const [originalToken, setOriginalToken] = useState<string | null>(null);
   const [originalRecipients, setOriginalRecipients] = useState<RecipientRow[] | null>(null);
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
-  // Deadline for clone mode: use ISO string; convert to days for existing input
   const [cloneDeadlineIso, setCloneDeadlineIso] = useState<string>(deadlineParam ?? "");
+
+  const [formMode, setFormMode] = useState<"create" | "import">("create");
+  const [importedTx, setImportedTx] = useState<ImportedTxData | null>(null);
+  const [retroSubmitting, setRetroSubmitting] = useState(false);
+  const [retroError, setRetroError] = useState<string | null>(null);
+
+  const [draftUserId, setDraftUserId] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [recoveredDraft, setRecoveredDraft] = useState<StoredDraft | null>(null);
+
+  useEffect(() => {
+    getFreighterPublicKey()
+      .then((pk) => setDraftUserId(pk))
+      .catch(() => setDraftUserId(getOrCreateLocalUserId()));
+    setDraftId(crypto.randomUUID());
+  }, []);
+
+  useEffect(() => {
+    if (!draftUserId || fromId || searchParams.get("template") || searchParams.get("address")) return;
+    listDraftsForUser(draftUserId)
+      .then((drafts) => {
+        if (drafts.length > 0) setRecoveredDraft(drafts[0]);
+      })
+      .catch(() => null);
+    // Only check once per mount, independent of draftId (the newly generated
+    // draft won't exist yet so it can never be the one we find here).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftUserId]);
+
+  const draftSnapshot = {
+    recipients,
+    token,
+    deadlineDays,
+    recurring,
+    intervalDays,
+    splitMeta,
+  };
+
+  const { isOffline: draftOffline, discardDraft } = useOfflineDraftAutosave(
+    draftUserId ?? "",
+    formMode === "create" && !cloneSourceId ? draftId ?? "" : "",
+    draftSnapshot
+  );
+
+  const handleRestoreDraft = () => {
+    if (!recoveredDraft) return;
+    setRecipients(recoveredDraft.data.recipients);
+    setToken(recoveredDraft.data.token);
+    setDeadlineDays(recoveredDraft.data.deadlineDays);
+    setRecurring(recoveredDraft.data.recurring);
+    setIntervalDays(recoveredDraft.data.intervalDays);
+    if ((recoveredDraft.data as any).splitMeta) {
+      setSplitMeta((recoveredDraft.data as any).splitMeta);
+    }
+    if (draftUserId) {
+      import("@/lib/offlineDraftDB").then(({ deleteDraft }) =>
+        deleteDraft(draftUserId, recoveredDraft.draftId)
+      );
+    }
+    setRecoveredDraft(null);
+    addToast("Draft restored", "success");
+  };
+
+  const handleDiscardDraft = () => {
+    if (recoveredDraft && draftUserId) {
+      import("@/lib/offlineDraftDB").then(({ deleteDraft }) =>
+        deleteDraft(draftUserId, recoveredDraft.draftId)
+      );
+    }
+    setRecoveredDraft(null);
+  };
 
   const { toasts, addToast } = useToasts();
 
+  const handleImported = (data: ImportedTxData) => {
+    setImportedTx(data);
+    setRetroError(null);
+  };
+
+  const handleRetroactiveSubmit = async () => {
+    if (!importedTx) return;
+    setRetroSubmitting(true);
+    setRetroError(null);
+    try {
+      const creator = await getFreighterPublicKey().catch(() => importedTx.recipients[0]?.address ?? "unknown");
+      const recipients = importedTx.recipients.map((r) => ({
+        address: r.address,
+        amount: parseAmount(r.amount),
+      }));
+      const total = recipients.reduce((s, r) => s + r.amount, 0n);
+      const id = generateRetroactiveInvoiceId(importedTx.txHash);
+      const record: RetroactiveInvoice = {
+        id,
+        creator,
+        recipients,
+        token: importedTx.recipients[0]?.asset ?? "XLM",
+        deadline: 0,
+        funded: total,
+        status: "Released",
+        payments: [{ payer: creator, amount: total }],
+        retroactive: true,
+        sourceTxHash: importedTx.txHash,
+        memo: importedTx.memo,
+        createdAt: importedTx.createdAt,
+      };
+      saveRetroactiveInvoice(record);
+      addToast(`Retroactive invoice #${id} created`, "success");
+      router.push(`/invoice/${id}`);
+    } catch (err) {
+      setRetroError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRetroSubmitting(false);
+    }
+  };
+
   useEffect(() => {
+    const address = searchParams.get("address");
     const templateParam = searchParams.get("template");
+
+    if (address) {
+      setRecipients([{ address, amount: "" }]);
+      return;
+    }
+
     if (templateParam) {
       const decoded = decodeTemplate(templateParam);
       if (decoded) {
@@ -130,24 +258,24 @@ function NewInvoiceForm() {
       sessionStorage.removeItem("invoiceTemplate");
     }
   }, [searchParams, addToast]);
+
   const [error, setError] = useState<string | null>(null);
   const [txModal, setTxModal] = useState<{ txHash: string; invoiceId: string } | null>(null);
   const [equalSplit, setEqualSplit] = useState(false);
   const [totalAmount, setTotalAmount] = useState("");
   const [loading, setLoading] = useState(false);
-
   const [autofilled, setAutofilled] = useState(false);
+  const [stepErrors, setStepErrors] = useState<Record<number, string | null>>({});
 
-  // Autofill from invoice history on first load (skip if duplicating or using a template)
   useEffect(() => {
-    if (fromId || sessionStorage.getItem("invoiceTemplate")) return;
+    if (fromId || sessionStorage.getItem("invoiceTemplate") || searchParams.get("address")) return;
 
     getFreighterPublicKey()
+      // as any: getInvoicesByCreator is not yet declared in the published @stellar-split/sdk types
       .then((pk) => (splitClient as any).getInvoicesByCreator(pk))
       .then((invoices: import("@stellar-split/sdk").Invoice[]) => {
         if (!invoices || invoices.length === 0) return;
         const recent = invoices.slice(-5);
-
         const latestToken = recent[recent.length - 1].token;
         const now = Math.floor(Date.now() / 1000);
         const daysList = recent
@@ -158,25 +286,20 @@ function NewInvoiceForm() {
           daysList.length > 0
             ? daysList[Math.floor(daysList.length / 2)]
             : null;
-
         const lastRecipients = recent[recent.length - 1].recipients.map((r) => ({
           address: r.address,
           amount: formatAmount(r.amount),
         }));
-
         setToken(latestToken);
         if (medianDays !== null) setDeadlineDays(medianDays);
         setRecipients(lastRecipients.length > 0 ? lastRecipients : [{ address: "", amount: "" }]);
         setAutofilled(true);
       })
       .catch(() => null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load source invoice if duplicating
   useEffect(() => {
     if (!fromId) return;
-
     setLoading(true);
     splitClient
       .getInvoice(fromId)
@@ -190,8 +313,6 @@ function NewInvoiceForm() {
         setToken(invoice.token);
         setOriginalToken(invoice.token);
         setCloneSourceId(fromId);
-
-        // Apply deadline from query param; validate it
         if (deadlineParam) {
           const err = validateDeadline(deadlineParam);
           if (err) setDeadlineError(err);
@@ -204,7 +325,6 @@ function NewInvoiceForm() {
       .finally(() => {
         setLoading(false);
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromId]);
 
   const perRecipientAmount =
@@ -223,11 +343,72 @@ function NewInvoiceForm() {
 
   const tokenChanged = !!originalToken && token !== originalToken;
 
+  const validateStep = (s: number): boolean => {
+    switch (s) {
+      case 0: {
+        if (!token || !token.startsWith("C")) {
+          setStepErrors((prev) => ({ ...prev, [s]: "Valid token contract address is required" }));
+          return false;
+        }
+        if (cloneSourceId && cloneDeadlineIso) {
+          const err = validateDeadline(cloneDeadlineIso);
+          if (err) {
+            setDeadlineError(err);
+            setStepErrors((prev) => ({ ...prev, [s]: err }));
+            return false;
+          }
+        }
+        setStepErrors((prev) => ({ ...prev, [s]: null }));
+        return true;
+      }
+      case 1: {
+        if (recipients.length === 0 || !recipients[0].address) {
+          setStepErrors((prev) => ({ ...prev, [s]: "At least one recipient is required" }));
+          return false;
+        }
+        const validRecipients = recipients.every(
+          (r) => r.address.startsWith("G") && r.address.length >= 50 && parseFloat(r.amount || "0") > 0
+        );
+        if (!validRecipients) {
+          setStepErrors((prev) => ({ ...prev, [s]: "Each recipient needs a valid G... address and positive amount" }));
+          return false;
+        }
+        if (splitMeta && splitMeta.recipients.length > 0) {
+          const splitResult = calculateSplit(splitMeta.totalAmount, splitMeta.recipients, splitMeta.assetCode);
+          if (!splitResult.validation.isValid) {
+            setStepErrors((prev) => ({
+              ...prev,
+              [s]: splitResult.validation.errorMessage ?? "Split calculator has invalid configuration",
+            }));
+            return false;
+          }
+        }
+        setStepErrors((prev) => ({ ...prev, [s]: null }));
+        return true;
+      }
+      case 2:
+        setStepErrors((prev) => ({ ...prev, [s]: null }));
+        return true;
+      default:
+        return true;
+    }
+  };
+
+  const handleNext = () => {
+    if (validateStep(step)) {
+      setStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+    }
+  };
+
+  const handleBack = () => {
+    setStep((prev) => Math.max(prev - 1, 0));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateStep(step)) return;
     setError(null);
 
-    // Validate clone deadline
     if (cloneSourceId && cloneDeadlineIso) {
       const err = validateDeadline(cloneDeadlineIso);
       if (err) {
@@ -242,9 +423,9 @@ function NewInvoiceForm() {
       const creator = await getFreighterPublicKey();
 
       if (cloneSourceId) {
-        // Compute deadline from ISO string
         const deadlineTs = Math.floor(new Date(cloneDeadlineIso).getTime() / 1000);
 
+        // as any: cloneInvoice is not yet declared in the published @stellar-split/sdk types
         const { invoiceId, txHash } = await (splitClient as any).cloneInvoice({
           creator,
           sourceInvoiceId: cloneSourceId,
@@ -260,6 +441,13 @@ function NewInvoiceForm() {
           recipients.map((r) => ({ address: r.address, amount: r.amount }))
         );
         addToast(`Invoice #${invoiceId} created`, "success");
+        if (splitMeta && splitMeta.recipients.length > 0) {
+          fetch(`/api/invoices/${invoiceId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ splitMeta }),
+          }).catch(() => null);
+        }
         setTxModal({ txHash, invoiceId });
       } else {
         const { invoiceId, txHash } = await splitClient.createInvoice({
@@ -279,8 +467,16 @@ function NewInvoiceForm() {
             amount: equalSplit ? (perRecipientAmount ?? "0") : r.amount,
           }))
         );
+        if (splitMeta && splitMeta.recipients.length > 0) {
+          fetch(`/api/invoices/${invoiceId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ splitMeta }),
+          }).catch(() => null);
+        }
         setTxModal({ txHash, invoiceId });
       }
+      discardDraft();
     } catch (err) {
       const msg = String(err);
       setError(msg);
@@ -290,9 +486,349 @@ function NewInvoiceForm() {
     }
   };
 
+  const renderStepIndicator = () => (
+    <div className="flex items-center gap-1 mb-8" aria-label="Form steps">
+      {STEPS.map((label, i) => {
+        const isActive = i === step;
+        const isPast = i < step;
+        return (
+          <div key={i} className="flex items-center gap-1 flex-1">
+            <button
+              type="button"
+              onClick={() => { if (i < step || validateStep(step)) setStep(i); }}
+              className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full transition-colors ${
+                isActive
+                  ? "bg-indigo-600 text-white"
+                  : isPast
+                  ? "bg-indigo-900/50 text-indigo-300"
+                  : "bg-gray-800 text-gray-400"
+              }`}
+              aria-current={isActive ? "step" : undefined}
+            >
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-black/20 text-[10px] font-bold">
+                {isPast ? "\u2713" : i + 1}
+              </span>
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+            {i < STEPS.length - 1 && (
+              <div className={`h-0.5 flex-1 rounded ${isPast ? "bg-indigo-600" : "bg-gray-700"}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderBasicInfo = () => (
+    <div className="flex flex-col gap-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Basic Info</h2>
+
+      {!cloneSourceId && (
+        <TemplateManager
+          recipients={recipients}
+          token={token}
+          onLoad={handleLoadTemplate}
+        />
+      )}
+
+      <div>
+        <label htmlFor="token-address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          {t("invoiceNew.tokenAddress")}
+        </label>
+        <ChangedField changed={tokenChanged}>
+          <input
+            id="token-address"
+            type="text"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            required
+            placeholder="C..."
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </ChangedField>
+      </div>
+
+      {cloneSourceId ? (
+        <div>
+          <label htmlFor="clone-deadline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t("invoiceNew.deadline")}
+          </label>
+          <input
+            id="clone-deadline"
+            type="datetime-local"
+            value={cloneDeadlineIso.slice(0, 16)}
+            onChange={(e) => {
+              setCloneDeadlineIso(e.target.value);
+              const err = validateDeadline(e.target.value);
+              setDeadlineError(err);
+              setStepErrors((prev) => ({ ...prev, [0]: err }));
+            }}
+            required
+            className={`w-full min-h-11 bg-gray-800 border rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              deadlineError ? "border-red-500" : "border-gray-700"
+            }`}
+            aria-describedby={deadlineError ? "clone-deadline-error" : undefined}
+            aria-invalid={!!deadlineError}
+          />
+          {deadlineError && (
+            <p id="clone-deadline-error" role="alert" className="text-red-600 dark:text-red-400 text-sm mt-1">
+              {deadlineError}
+            </p>
+          )}
+        </div>
+      ) : (
+        <div>
+          <label htmlFor="deadline-days" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t("invoiceNew.deadline")}
+          </label>
+          <input
+            id="deadline-days"
+            type="number"
+            min={1}
+            max={365}
+            value={deadlineDays}
+            onChange={(e) => setDeadlineDays(Number(e.target.value))}
+            required
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <DeadlineSuggester
+            totalAmount={
+              equalSplit
+                ? totalAmount
+                : recipients
+                    .reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0)
+                    .toString()
+            }
+            recipientCount={recipients.filter((r) => r.address).length}
+            onUseSuggestion={(days: number) => setDeadlineDays(days)}
+          />
+        </div>
+      )}
+
+      {!cloneSourceId && (
+        <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
+          <label htmlFor="recurring-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
+            Recurring invoice
+          </label>
+          <button
+            id="recurring-toggle"
+            type="button"
+            role="switch"
+            aria-checked={recurring}
+            onClick={() => setRecurring((v) => !v)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              recurring ? "bg-indigo-600" : "bg-gray-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                recurring ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+      )}
+
+      {recurring && !cloneSourceId && (
+        <div>
+          <label htmlFor="interval-days" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Repeat every
+          </label>
+          <select
+            id="interval-days"
+            value={intervalDays}
+            onChange={(e) => setIntervalDays(Number(e.target.value) as 7 | 30)}
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value={7}>7 days</option>
+            <option value={30}>30 days</option>
+          </select>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderRecipients = () => (
+    <div className="flex flex-col gap-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recipients</h2>
+
+      {!cloneSourceId && (
+        <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
+          <label htmlFor="equal-split-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
+            {t("invoiceNew.equalSplit")}
+          </label>
+          <button
+            id="equal-split-toggle"
+            type="button"
+            role="switch"
+            aria-checked={equalSplit}
+            aria-label="Toggle equal split mode"
+            onClick={() => setEqualSplit((v) => !v)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              equalSplit ? "bg-indigo-600" : "bg-gray-300 dark:bg-gray-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                equalSplit ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+      )}
+
+      {equalSplit && !cloneSourceId && (
+        <div>
+          <label htmlFor="total-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t("invoiceNew.totalAmount")}
+          </label>
+          <input
+            id="total-amount"
+            type="number"
+            placeholder="0.00"
+            step="0.0000001"
+            min="0.0000001"
+            value={totalAmount}
+            onChange={(e) => setTotalAmount(e.target.value)}
+            required
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          {perRecipientAmount && (
+            <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+              {perRecipientAmount} {t("invoiceNew.perRecipient")}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          {equalSplit ? t("invoiceNew.recipients") : t("invoiceNew.recipientsAndAmounts")}
+        </label>
+        <ChangedField changed={recipientsChanged}>
+          <RecipientForm
+            recipients={recipients}
+            onChange={setRecipients}
+            equalSplit={equalSplit}
+            amountOverride={perRecipientAmount}
+          />
+        </ChangedField>
+      </div>
+
+      <SplitCalculator
+        initialTotal={equalSplit ? totalAmount : recipients.reduce((s, r) => s + parseFloat(r.amount || "0"), 0).toFixed(7)}
+        onSplitMetaChange={setSplitMeta}
+      />
+    </div>
+  );
+
+  const renderOptions = () => (
+    <div className="flex flex-col gap-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Options</h2>
+
+      {cloneSourceId && (
+        <div className="flex items-center gap-2 text-sm bg-indigo-950/60 border border-indigo-700 text-indigo-300 rounded-lg px-3 py-2">
+          <span>Cloned from</span>
+          <a
+            href={`/invoice/${cloneSourceId}`}
+            className="underline hover:text-indigo-200 font-mono"
+          >
+            #{cloneSourceId}
+          </a>
+        </div>
+      )}
+
+      {!cloneSourceId && (
+        <TemplateManager
+          recipients={recipients}
+          token={token}
+          onLoad={handleLoadTemplate}
+        />
+      )}
+
+      {autofilled && !cloneSourceId && (
+        <p className="text-xs text-indigo-400 bg-indigo-950/50 border border-indigo-800 rounded-lg px-3 py-2">
+          Autofilled from history — you can override any value.
+        </p>
+      )}
+
+      {recurring && !cloneSourceId && (
+        <div className="rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
+          <p className="text-sm text-gray-300">
+            This invoice will repeat every <span className="font-semibold text-indigo-300">{intervalDays} days</span>
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderReview = () => {
+    const total = recipients.reduce((s, r) => s + parseFloat(r.amount || "0"), 0);
+    return (
+      <div className="flex flex-col gap-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Review & Submit</h2>
+
+        {cloneSourceId && (
+          <div className="flex items-center gap-2 text-sm bg-indigo-950/60 border border-indigo-700 text-indigo-300 rounded-lg px-3 py-2">
+            <span>Cloned from</span>
+            <a href={`/invoice/${cloneSourceId}`} className="underline hover:text-indigo-200 font-mono">
+              #{cloneSourceId}
+            </a>
+          </div>
+        )}
+
+        <div className="rounded-lg bg-gray-800 border border-gray-700 divide-y divide-gray-700">
+          <div className="px-4 py-3 flex justify-between">
+            <span className="text-sm text-gray-400">Token</span>
+            <span className="text-sm text-gray-200 font-mono truncate ml-2">{token}</span>
+          </div>
+          <div className="px-4 py-3 flex justify-between">
+            <span className="text-sm text-gray-400">Deadline</span>
+            <span className="text-sm text-gray-200">
+              {cloneSourceId
+                ? new Date(cloneDeadlineIso).toLocaleString()
+                : `${deadlineDays} days`}
+            </span>
+          </div>
+          {recurring && !cloneSourceId && (
+            <div className="px-4 py-3 flex justify-between">
+              <span className="text-sm text-gray-400">Recurring</span>
+              <span className="text-sm text-gray-200">Every {intervalDays} days</span>
+            </div>
+          )}
+          <div className="px-4 py-3 flex justify-between">
+            <span className="text-sm text-gray-400">Recipients</span>
+            <span className="text-sm text-gray-200">{recipients.length}</span>
+          </div>
+          <div className="px-4 py-3 flex justify-between">
+            <span className="text-sm text-gray-400">Total</span>
+            <span className="text-sm text-gray-200 font-semibold">
+              {equalSplit ? totalAmount : total.toFixed(7)} USDC
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-gray-800 border border-gray-700">
+          <div className="px-4 py-2 text-xs font-medium text-gray-400 border-b border-gray-700">
+            Recipients
+          </div>
+          <ul className="divide-y divide-gray-700">
+            {recipients.map((r, i) => (
+              <li key={i} className="px-4 py-2 flex justify-between items-center gap-2">
+                <span className="text-sm font-mono text-gray-300 truncate">{r.address}</span>
+                <span className="text-sm text-indigo-300 shrink-0">
+                  {equalSplit ? perRecipientAmount : r.amount} USDC
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
-      {/* Toast container */}
       <div
         aria-live="polite"
         className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
@@ -320,8 +856,92 @@ function NewInvoiceForm() {
         />
       )}
 
-      <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+      <div className="flex items-center gap-3 mb-8 flex-wrap">
+        <h1 className="text-3xl font-bold">Create Invoice</h1>
+        {draftOffline && (
+          <span
+            role="status"
+            className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400"
+          >
+            ⚠ Offline — drafts save locally
+          </span>
+        )}
+      </div>
 
+      {recoveredDraft && (
+        <DraftRecoveryBanner
+          updatedAt={recoveredDraft.updatedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+        />
+      )}
+
+      {!cloneSourceId && (
+        <div className="flex gap-1 border-b border-gray-700 mb-8" role="tablist" aria-label="Invoice creation mode">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={formMode === "create"}
+            onClick={() => setFormMode("create")}
+            className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg -mb-px border-b-2 ${
+              formMode === "create"
+                ? "border-indigo-500 text-indigo-300"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Create New
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={formMode === "import"}
+            onClick={() => setFormMode("import")}
+            className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg -mb-px border-b-2 ${
+              formMode === "import"
+                ? "border-indigo-500 text-indigo-300"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Import from Transaction
+          </button>
+        </div>
+      )}
+
+      {formMode === "import" && !cloneSourceId ? (
+        <div className="flex flex-col gap-6">
+          <TxImportPanel onImported={handleImported} />
+
+          {importedTx && (
+            <div className="flex flex-col gap-4 rounded-lg bg-indigo-950/40 border border-indigo-800 px-4 py-4">
+              <p className="text-sm text-indigo-200">
+                This invoice will be created as <strong>retroactive</strong> and marked{" "}
+                <strong>Fully Paid</strong> automatically — no on-chain payment is required.
+              </p>
+              {retroError && (
+                <p role="alert" className="text-red-400 text-sm">{retroError}</p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleRetroactiveSubmit}
+                  disabled={retroSubmitting}
+                  className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50"
+                >
+                  {retroSubmitting ? "Creating…" : "Create Retroactive Invoice"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImportedTx(null)}
+                  className="min-h-11 px-6 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 font-medium transition-colors"
+                >
+                  Start Over
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+      <>
       {/* Cloned-from banner */}
       {cloneSourceId && (
         <div className="mb-6 flex items-center gap-2 text-sm bg-indigo-950/60 border border-indigo-700 text-indigo-300 rounded-lg px-3 py-2">
@@ -335,181 +955,81 @@ function NewInvoiceForm() {
         </div>
       )}
 
-      {autofilled && !cloneSourceId && (
+      {autofilled && !cloneSourceId && !searchParams.get("address") && (
         <p className="mb-6 text-xs text-indigo-400 bg-indigo-950/50 border border-indigo-800 rounded-lg px-3 py-2">
           ✦ Autofilled from history — you can override any value below.
         </p>
       )}
 
+      {searchParams.get("address") && !cloneSourceId && (
+        <p className="mb-6 text-xs text-indigo-400 bg-indigo-950/50 border border-indigo-800 rounded-lg px-3 py-2">
+          ✦ Address pre-filled from address book — you can override any value below.
+        </p>
+      )}
+
       {loading && (
         <div className="text-center py-8">
-          <p className="text-gray-400" aria-live="polite">Loading invoice data…</p>
+          <p className="text-gray-600 dark:text-gray-400" aria-live="polite">Loading invoice data…</p>
         </div>
       )}
 
+      {!loading && renderStepIndicator()}
+
+      {stepErrors[step] && (
+        <p role="alert" className="text-red-400 text-sm mb-4 bg-red-950/40 border border-red-800 rounded-lg px-3 py-2">
+          {stepErrors[step]}
+        </p>
+      )}
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-6" aria-label="Create invoice form">
-        {!cloneSourceId && (
-          <TemplateManager
-            recipients={recipients}
-            token={token}
-            onLoad={handleLoadTemplate}
-          />
-        )}
+        {step === 0 && !loading && renderBasicInfo()}
+        {step === 1 && !loading && renderRecipients()}
+        {step === 2 && !loading && renderOptions()}
+        {step === 3 && !loading && renderReview()}
 
-        {/* Equal Split toggle — hidden in clone mode */}
-        {!cloneSourceId && (
-          <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
-            <label htmlFor="equal-split-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
-              {t("invoiceNew.equalSplit")}
-            </label>
-            <button
-              id="equal-split-toggle"
-              type="button"
-              role="switch"
-              aria-checked={equalSplit}
-              aria-label="Toggle equal split mode"
-              onClick={() => setEqualSplit((v) => !v)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                equalSplit ? "bg-indigo-600" : "bg-gray-300 dark:bg-gray-600"
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  equalSplit ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
-        )}
+        {error && <p role="alert" className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
 
-        {/* Total amount input (equal split mode) */}
-        {equalSplit && !cloneSourceId && (
+        <div className="flex items-center justify-between gap-4 pt-2">
           <div>
-            <label htmlFor="total-amount" className="block text-sm font-medium text-gray-300 mb-1">
-              {t("invoiceNew.totalAmount")}
-            </label>
-            <input
-              id="total-amount"
-              type="number"
-              placeholder="0.00"
-              step="0.0000001"
-              min="0.0000001"
-              value={totalAmount}
-              onChange={(e) => setTotalAmount(e.target.value)}
-              required
-              className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            {perRecipientAmount && (
-              <p className="mt-1 text-xs text-gray-400">
-                {perRecipientAmount} {t("invoiceNew.perRecipient")}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Recipients */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            {equalSplit ? t("invoiceNew.recipients") : t("invoiceNew.recipientsAndAmounts")}
-          </label>
-          <ChangedField changed={recipientsChanged}>
-            <RecipientForm
-              recipients={recipients}
-              onChange={setRecipients}
-              equalSplit={equalSplit}
-              amountOverride={perRecipientAmount}
-            />
-          </ChangedField>
-        </div>
-
-        {/* Token address */}
-        <div>
-          <label htmlFor="token-address" className="block text-sm font-medium text-gray-300 mb-1">
-            {t("invoiceNew.tokenAddress")}
-          </label>
-          <ChangedField changed={tokenChanged}>
-            <input
-              id="token-address"
-              type="text"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              required
-              placeholder="C..."
-              className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </ChangedField>
-        </div>
-
-        {/* Deadline */}
-        {cloneSourceId ? (
-          <div>
-            <label htmlFor="clone-deadline" className="block text-sm font-medium text-gray-300 mb-1">
-              {t("invoiceNew.deadline")}
-            </label>
-            <input
-              id="clone-deadline"
-              type="datetime-local"
-              value={cloneDeadlineIso.slice(0, 16)}
-              onChange={(e) => {
-                setCloneDeadlineIso(e.target.value);
-                setDeadlineError(validateDeadline(e.target.value));
-              }}
-              required
-              className={`w-full min-h-11 bg-gray-800 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                deadlineError ? "border-red-500" : "border-gray-700"
-              }`}
-              aria-describedby={deadlineError ? "clone-deadline-error" : undefined}
-              aria-invalid={!!deadlineError}
-            />
-            {deadlineError && (
-              <p
-                id="clone-deadline-error"
-                role="alert"
-                className="text-red-400 text-sm mt-1"
+            {step > 0 && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="min-h-11 px-6 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 font-medium transition-colors"
               >
-                {deadlineError}
-              </p>
+                Back
+              </button>
             )}
           </div>
-        ) : (
           <div>
-            <label htmlFor="deadline-days" className="block text-sm font-medium text-gray-300 mb-1">
-              {t("invoiceNew.deadline")}
-            </label>
-            <input
-              id="deadline-days"
-              type="number"
-              min={1}
-              max={365}
-              value={deadlineDays}
-              onChange={(e) => setDeadlineDays(Number(e.target.value))}
-              required
-              className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <DeadlineSuggester
-              totalAmount={equalSplit ? totalAmount : recipients.reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0).toString()}
-              recipientCount={recipients.filter((r) => r.address).length}
-              onUseSuggestion={(days: number) => setDeadlineDays(days)}
-            />
+            {step < STEPS.length - 1 ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={submitting || !!deadlineError}
+                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50"
+              >
+                {submitting
+                  ? cloneSourceId
+                    ? "Cloning…"
+                    : t("invoiceNew.creating")
+                  : cloneSourceId
+                  ? "Clone Invoice"
+                  : t("invoiceNew.create")}
+              </button>
+            )}
           </div>
-        )}
-
-        {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={submitting || !!deadlineError}
-          className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
-        >
-          {submitting
-            ? cloneSourceId
-              ? "Cloning…"
-              : t("invoiceNew.creating")
-            : cloneSourceId
-            ? "Clone Invoice"
-            : t("invoiceNew.create")}
-        </button>
+        </div>
       </form>
+      </>
+      )}
     </main>
   );
 }

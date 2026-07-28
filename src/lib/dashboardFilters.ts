@@ -1,15 +1,56 @@
 import type { Invoice } from "@stellar-split/sdk";
 
-export type DashboardPresetId =
-  | "all"
-  | "overdue"
-  | "awaiting-payment"
-  | "needs-approval";
+export type DashboardPresetId = "all" | "active" | "funded" | "refunded" | "expired" | "draft";
+export type DashboardSortId = "newest" | "oldest" | "amount-desc" | "amount-asc" | "deadline";
 
-export type DashboardInvoice = Invoice & {
-  approved?: boolean;
-  approver?: string;
-};
+export const SORT_OPTIONS: { id: DashboardSortId; label: string }[] = [
+  { id: "newest", label: "Most Recent" },
+  { id: "oldest", label: "Oldest" },
+  { id: "amount-desc", label: "Amount (high–low)" },
+  { id: "amount-asc", label: "Amount (low–high)" },
+  { id: "deadline", label: "Deadline (soonest)" },
+];
+
+export function sortInvoices(invoices: Invoice[], sort: DashboardSortId): Invoice[] {
+  const list = [...invoices];
+  switch (sort) {
+    case "oldest":
+      return list.sort((a, b) => Number(a.id) - Number(b.id));
+    case "amount-desc":
+      return list.sort((a, b) => {
+        const ta = a.recipients.reduce((s, r) => s + r.amount, 0n);
+        const tb = b.recipients.reduce((s, r) => s + r.amount, 0n);
+        return tb > ta ? 1 : tb < ta ? -1 : 0;
+      });
+    case "amount-asc":
+      return list.sort((a, b) => {
+        const ta = a.recipients.reduce((s, r) => s + r.amount, 0n);
+        const tb = b.recipients.reduce((s, r) => s + r.amount, 0n);
+        return ta > tb ? 1 : ta < tb ? -1 : 0;
+      });
+    case "deadline":
+      return list.sort((a, b) => a.deadline - b.deadline);
+    case "newest":
+    default:
+      return list.sort((a, b) => Number(b.id) - Number(a.id));
+  }
+}
+
+export function filterByDateRange(
+  invoices: Invoice[],
+  dateFrom: string,
+  dateTo: string,
+): Invoice[] {
+  if (!dateFrom && !dateTo) return invoices;
+  const from = dateFrom ? new Date(dateFrom).getTime() / 1000 : null;
+  const to = dateTo ? new Date(dateTo).getTime() / 1000 + 86400 : null;
+  // Use deadline as a proxy for creation date since SDK Invoice has no createdAt
+  return invoices.filter((inv) => {
+    if (from && inv.deadline < from) return false;
+    if (to && inv.deadline > to) return false;
+    return true;
+  });
+}
 
 export interface DashboardPresetDefinition {
   id: Exclude<DashboardPresetId, "all">;
@@ -18,46 +59,31 @@ export interface DashboardPresetDefinition {
 }
 
 export const DASHBOARD_PRESETS: DashboardPresetDefinition[] = [
-  {
-    id: "overdue",
-    label: "Overdue",
-    emptyState: "No invoices are overdue right now.",
-  },
-  {
-    id: "awaiting-payment",
-    label: "Awaiting my payment",
-    emptyState: "Nothing is awaiting your payment right now.",
-  },
-  {
-    id: "needs-approval",
-    label: "Needs my approval",
-    emptyState: "Nothing is waiting for your approval right now.",
-  },
+  { id: "active",   label: "Active",   emptyState: "No active invoices right now." },
+  { id: "funded",   label: "Funded",   emptyState: "No funded invoices right now." },
+  { id: "refunded", label: "Refunded", emptyState: "No refunded invoices." },
+  { id: "expired",  label: "Expired",  emptyState: "No expired invoices right now." },
+  { id: "draft",    label: "Draft",    emptyState: "No draft invoices." },
 ];
 
 export function matchesDashboardPreset(
-  invoice: DashboardInvoice,
-  publicKey: string | null | undefined,
+  invoice: Invoice,
   preset: DashboardPresetId,
   now = Math.floor(Date.now() / 1000),
 ): boolean {
   if (preset === "all") return true;
 
-  if (invoice.status !== "Pending") return false;
-
   switch (preset) {
-    case "overdue":
-      return (
-        typeof invoice.deadline === "number" &&
-        invoice.deadline > 0 &&
-        invoice.deadline < now &&
-        Boolean(invoice.approver) &&
-        invoice.approved === false
-      );
-    case "awaiting-payment":
-      return invoice.recipients.some((recipient) => recipient.address === publicKey);
-    case "needs-approval":
-      return invoice.approver === publicKey && invoice.approved === false;
+    case "active":
+      return invoice.status === "Pending" && invoice.deadline > now;
+    case "funded":
+      return invoice.status === "Pending" && invoice.funded > 0n;
+    case "refunded":
+      return invoice.status === "Refunded";
+    case "expired":
+      return invoice.status === "Pending" && invoice.deadline <= now;
+    case "draft":
+      return (invoice as any).status === "Draft";
     default:
       return false;
   }
@@ -120,10 +146,8 @@ export function matchesStatusFilter(
 }
 
 export function filterDashboardInvoices(
-  invoices: DashboardInvoice[],
-  publicKey: string | null | undefined,
+  invoices: Invoice[],
   preset: DashboardPresetId,
-  query: string,
   now = Math.floor(Date.now() / 1000),
   selectedStatuses: InvoiceStatusFilter[] = [],
 ): DashboardInvoice[] {
@@ -133,17 +157,20 @@ export function filterDashboardInvoices(
     const matchesStatus = matchesStatusFilter(invoice, selectedStatuses, now);
     return matchesPreset && matchesQuery && matchesStatus;
   });
+): Invoice[] {
+  return invoices.filter((invoice) =>
+    matchesDashboardPreset(invoice, preset, now),
+  );
 }
 
 export function getDashboardPresetCounts(
-  invoices: DashboardInvoice[],
-  publicKey: string | null | undefined,
+  invoices: Invoice[],
   now = Math.floor(Date.now() / 1000),
 ): Record<Exclude<DashboardPresetId, "all">, number> {
   return DASHBOARD_PRESETS.reduce(
     (counts, preset) => {
       counts[preset.id] = invoices.filter((invoice) =>
-        matchesDashboardPreset(invoice, publicKey, preset.id, now),
+        matchesDashboardPreset(invoice, preset.id, now),
       ).length;
       return counts;
     },

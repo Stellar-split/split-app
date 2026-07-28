@@ -6,16 +6,9 @@ import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount } from "@stellar-split/sdk";
 import RecipientForm from "@/components/RecipientForm";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
+import { findBatchDuplicates, type DuplicateGroup, type InvoiceRow } from "@/lib/batchUtils";
 
-interface RecipientRow {
-  address: string;
-  amount: string;
-}
 
-interface InvoiceRow {
-  recipients: RecipientRow[];
-  deadlineDays: number;
-}
 
 const MAX_ROWS = 5;
 
@@ -23,24 +16,22 @@ function emptyRow(): InvoiceRow {
   return { recipients: [{ address: "", amount: "" }], deadlineDays: 7 };
 }
 
-/**
- * Batch invoice creation — up to 5 invoices submitted in one action.
- */
 export default function BatchInvoicePage() {
   const [rows, setRows] = useState<InvoiceRow[]>([emptyRow()]);
   const [submitting, setSubmitting] = useState(false);
   const [createdIds, setCreatedIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<DuplicateGroup[] | null>(null);
 
   const token = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "";
 
   const updateRow = (i: number, patch: Partial<InvoiceRow>) =>
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitBatch = async () => {
     setError(null);
     setSubmitting(true);
+    setDuplicateWarning(null);
     try {
       const creator = await getFreighterPublicKey();
       const params = rows.map((row) => ({
@@ -55,7 +46,9 @@ export default function BatchInvoicePage() {
 
       // splitClient.createBatch — sequential fallback if not available
       const ids: string[] = [];
+      // as any: createBatch is not yet declared in the published @stellar-split/sdk types
       if (typeof (splitClient as any).createBatch === "function") {
+        // as any: createBatch is not yet declared in the published @stellar-split/sdk types
         const results = await (splitClient as any).createBatch(params);
         ids.push(...results.map((r: any) => r.invoiceId));
       } else {
@@ -78,6 +71,16 @@ export default function BatchInvoicePage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const dupes = findBatchDuplicates(rows);
+    if (dupes.length > 0) {
+      setDuplicateWarning(dupes);
+      return;
+    }
+    await submitBatch();
   };
 
   if (createdIds.length > 0) {
@@ -158,6 +161,36 @@ export default function BatchInvoicePage() {
           >
             + Add Invoice
           </button>
+        )}
+
+        {duplicateWarning && (
+          <div className="bg-amber-950/60 border border-amber-700 rounded-xl p-4" role="alert">
+            <h3 className="text-amber-300 font-semibold mb-2">Duplicate entries detected</h3>
+            <ul className="text-sm text-amber-200 mb-4 flex flex-col gap-1">
+              {duplicateWarning.map((d, i) => (
+                <li key={i}>
+                  Rows {d.rowNumbers.join(", ")}: {d.recipient.length > 16 ? d.recipient.slice(0, 8) + "…" + d.recipient.slice(-4) : d.recipient} — {d.amount} USDC
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => submitBatch()}
+                disabled={submitting}
+                className="min-h-11 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {submitting ? "Creating…" : "Submit anyway"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDuplicateWarning(null)}
+                className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm transition-colors"
+              >
+                Go back and fix
+              </button>
+            </div>
+          </div>
         )}
 
         {error && <p className="text-red-400 text-sm">{error}</p>}

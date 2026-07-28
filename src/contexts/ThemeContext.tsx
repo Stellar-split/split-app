@@ -14,7 +14,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "theme";
+const STORAGE_KEY = "split-theme";
 const THEME_CYCLE: ThemeMode[] = ["light", "dark", "system"];
 
 function getStoredTheme(): ThemeMode | null {
