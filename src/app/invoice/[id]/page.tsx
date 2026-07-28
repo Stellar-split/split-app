@@ -36,9 +36,11 @@ import CloneLineageTree from "@/components/CloneLineageTree";
 import CountdownTimer from "@/components/CountdownTimer";
 import SplitCalculator from "@/components/SplitCalculator";
 import type { SplitMeta } from "@/hooks/useSplitCalculator";
+import type { InstallmentMilestone } from "@/components/invoice/InvoiceView";
 import ActivityFeed from "@/components/ActivityFeed";
 import InstallmentTracker from "@/components/InstallmentTracker";
 import InstallmentPanel from "@/components/InstallmentPanel";
+import InvoiceView from "@/components/invoice/InvoiceView";
 import CoCreatorPanel from "@/components/CoCreatorPanel";
 import PaymentChannelPanel from "@/components/PaymentChannelPanel";
 import DisputeTimeline from "@/components/DisputeTimeline";
@@ -360,7 +362,7 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (loading) {
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16 overflow-x-hidden">
         <div className="animate-pulse space-y-4">
           <div className="h-8 w-48 bg-gray-700 rounded" />
           <div className="h-4 w-full bg-gray-700 rounded" />
@@ -693,18 +695,28 @@ export default function InvoiceDetailPage({ params }: Props) {
       />
 
       {/* Installment schedule — only shown to payers with a registered plan */}
-      {publicKey && (
-        <>
-          <InstallmentTracker
-            invoice={invoice}
-            publicKey={publicKey}
-            onPayNow={(amount) => {
-              setPayAmount(formatAmount(amount));
-              setShowPayModal(true);
-            }}
-          />
-          <InstallmentPanel invoiceId={id} publicKey={publicKey} />
-        </>
+      {publicKey && loadedSplitMeta?.installments && loadedSplitMeta.installments.length > 0 && (
+        <InvoiceView
+          invoice={invoice}
+          installments={loadedSplitMeta.installments as InstallmentMilestone[]}
+          publicKey={publicKey}
+          onPaid={async (milestoneId, txHash) => {
+            const updated = (loadedSplitMeta.installments || []).map((m) =>
+              m.id === milestoneId ? { ...m, status: 'paid', txHash } : m
+            );
+            const newSplitMeta = { ...loadedSplitMeta, installments: updated } as SplitMeta;
+            setLoadedSplitMeta(newSplitMeta);
+            try {
+              await fetch(`/api/invoices/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ splitMeta: newSplitMeta }),
+              });
+            } catch {
+              // ignore persistence errors
+            }
+          }}
+        />
       )}
 
       {/* Deadline extension voting — shown to payers on Pending invoices */}
