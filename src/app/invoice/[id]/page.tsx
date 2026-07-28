@@ -55,6 +55,7 @@ import ActivityFeed from "@/components/ActivityFeed";
 import InstallmentTracker from "@/components/InstallmentTracker";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import InvoiceView from "@/components/invoice/InvoiceView";
+import InvoiceSummaryPanel from "@/components/invoice/InvoiceSummaryPanel";
 import CoCreatorPanel from "@/components/CoCreatorPanel";
 import PaymentChannelPanel from "@/components/PaymentChannelPanel";
 import DisputeTimeline from "@/components/DisputeTimeline";
@@ -449,7 +450,9 @@ export default function InvoiceDetailPage({ params }: Props) {
     process.env.NEXT_PUBLIC_CONTRACT_ID ?? invoice.token;
 
   return (
-    <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
+    <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+        <div className="min-w-0">
       {/* Reconnecting indicator */}
       {showReconnecting && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
@@ -878,6 +881,11 @@ export default function InvoiceDetailPage({ params }: Props) {
           publicKey={publicKey}
         />
       )}
+        </div>
+        <div className="lg:sticky lg:top-4 lg:max-h-screen lg:overflow-y-auto">
+          <InvoiceSummaryPanel invoice={invoice} total={total} publicKey={publicKey} />
+        </div>
+      </div>
 
       {showPayModal && invoice && publicKey && (
         <PayModal
