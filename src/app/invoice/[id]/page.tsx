@@ -35,6 +35,7 @@ import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
 import CloneLineageTree from "@/components/CloneLineageTree";
 import CountdownTimer from "@/components/CountdownTimer";
 import SplitCalculator from "@/components/SplitCalculator";
+import InvoiceTagEditor from "@/components/invoice/InvoiceTagEditor";
 import type { SplitMeta } from "@/hooks/useSplitCalculator";
 import type { InstallmentMilestone } from "@/components/invoice/InvoiceView";
 import ActivityFeed from "@/components/ActivityFeed";
@@ -62,6 +63,7 @@ import type { PaymentChannelState } from "@/components/PaymentChannelPanel";
 import { useInvoicePresence } from "@/hooks/useInvoicePresence";
 import PresenceBar from "@/components/PresenceBar";
 import InvoiceSection from "@/components/InvoiceSection";
+import AmountDisplay from "@/components/invoice/AmountDisplay";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
 const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
@@ -141,6 +143,29 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   const prevStatusRef = useRef<string | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+  // Focus restoration refs — track which button opened the most-recently opened modal
+  const cancelModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const shareModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const shareQRModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const payModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const duplicateModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+
+  // Restore focus to the trigger button when each modal closes
+  useEffect(() => {
+    if (!showShareModal) shareModalTriggerRef.current?.focus();
+  }, [showShareModal]);
+  useEffect(() => {
+    if (!showShareQRModal) shareQRModalTriggerRef.current?.focus();
+  }, [showShareQRModal]);
+  useEffect(() => {
+    if (!showDuplicateModal) duplicateModalTriggerRef.current?.focus();
+  }, [showDuplicateModal]);
+  useEffect(() => {
+    if (!showCancelModal) cancelModalTriggerRef.current?.focus();
+  }, [showCancelModal]);
+  useEffect(() => {
+    if (!showPayModal) payModalTriggerRef.current?.focus();
+  }, [showPayModal]);
   const [exportingTimeline, setExportingTimeline] = useState(false);
   const { status: pushStatus, subscribe: subscribeToPush, unsubscribe: unsubscribeFromPush } =
     usePushNotifications(id);
@@ -396,7 +421,7 @@ export default function InvoiceDetailPage({ params }: Props) {
     process.env.NEXT_PUBLIC_CONTRACT_ID ?? invoice.token;
 
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+    <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
       {/* Reconnecting indicator */}
       {showReconnecting && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
@@ -450,11 +475,12 @@ export default function InvoiceDetailPage({ params }: Props) {
           )}
           <CopyButton text={id} className="!py-1 !px-2 text-xs" />
         </div>
-        <div className="ml-auto flex items-center gap-2 flex-wrap">
+        <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
           <button
             type="button"
             onClick={() => setShowShareModal(true)}
+            ref={shareModalTriggerRef}
             className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
             aria-label="Share invoice"
           >
@@ -463,6 +489,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => setShowDuplicateModal(true)}
+            ref={duplicateModalTriggerRef}
             className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm transition-colors"
             aria-label="Duplicate invoice"
           >
@@ -489,6 +516,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => setShowShareQRModal(true)}
+            ref={shareQRModalTriggerRef}
             className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
             aria-label="Share invoice via QR"
           >
@@ -521,8 +549,22 @@ export default function InvoiceDetailPage({ params }: Props) {
           >
             Print Invoice
           </button>
+          {invoice.status === "Pending" && publicKey === invoice.creator && (
+            <button
+              type="button"
+              ref={cancelModalTriggerRef}
+              onClick={() => setShowCancelModal(true)}
+              className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              aria-label="Cancel this invoice"
+            >
+              Cancel Invoice
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Tags */}
+      <InvoiceTagEditor invoiceId={id} className="mb-6" />
 
       {/* Details Section */}
       <InvoiceSection
@@ -537,6 +579,10 @@ export default function InvoiceDetailPage({ params }: Props) {
           <p className="text-sm font-mono text-gray-200 truncate" title={invoice.creator}>
             {truncateAddress(invoice.creator, 6)}
           </p>
+        </div>
+        <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total</p>
+          <AmountDisplay amount={total} className="text-2xl font-bold text-white" />
         </div>
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Recipients</p>
@@ -612,7 +658,7 @@ export default function InvoiceDetailPage({ params }: Props) {
                       {truncateAddress(p.payer)}
                     </td>
                     <td className="px-4 py-2 text-right text-indigo-300 font-medium">
-                      {formatAmount(p.amount)} USDC
+                      <AmountDisplay amount={p.amount} inline />
                     </td>
                   </tr>
                 ))}
@@ -893,7 +939,10 @@ export default function InvoiceDetailPage({ params }: Props) {
             await load();
             setShowCancelModal(false);
           }}
-          onClose={() => setShowCancelModal(false)}
+          onClose={() => {
+            setShowCancelModal(false);
+            // focus restored by useEffect watching showCancelModal
+          }}
         />
       )}
 

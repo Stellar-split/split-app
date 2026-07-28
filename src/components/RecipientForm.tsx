@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import AddressBookPicker from "@/components/settings/AddressBookPicker";
-import { searchEntries, addEntry, type AddressEntry } from "@/lib/addressBook";
+import { searchEntries, addEntry, getEmailForAddress, type AddressEntry } from "@/lib/addressBook";
+import Avatar from "@/components/ui/Avatar";
 import { searchAddressHistory, searchAmountHistory } from "@/lib/invoiceHistory";
 import { searchRecipients, touchRecipient, type RecipientEntry } from "@/lib/recipients";
 import { truncateAddress } from "@stellar-split/sdk";
@@ -111,6 +112,25 @@ export default function RecipientForm({
 
   const savedRecipients = useMemo(() => searchRecipients(savedSearchQuery), [savedSearchQuery]);
 
+  // Contact emails come from localStorage, so they can only be resolved after
+  // mount; the deterministic avatar renders identically on both passes.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const addressKey = recipients.map((r) => r.address).join("|");
+  const emailByAddress = useMemo(() => {
+    if (!mounted) return {} as Record<string, string | undefined>;
+    const map: Record<string, string | undefined> = {};
+    for (const address of addressKey.split("|")) {
+      if (address && map[address] === undefined) {
+        map[address] = getEmailForAddress(address);
+      }
+    }
+    return map;
+    // addressKey is the serialized dependency for `recipients`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressKey, mounted]);
+
   const handleAddFromSaved = (recipient: RecipientEntry) => {
     const emptyIndex = recipients.findIndex((r) => !r.address);
     const targetIndex = emptyIndex >= 0 ? emptyIndex : recipients.length;
@@ -149,6 +169,13 @@ export default function RecipientForm({
     <div className="flex flex-col gap-3">
       {recipients.map((row, i) => (
         <div key={i} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-start min-w-0">
+          <Avatar
+            address={row.address}
+            email={emailByAddress[row.address]}
+            size={32}
+            className="mt-1.5 hidden sm:inline-flex"
+          />
+
           <div className="relative flex-1 min-w-0 w-full">
             <AddressBookPicker
               value={row.address}
