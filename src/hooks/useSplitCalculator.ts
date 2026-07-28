@@ -43,6 +43,12 @@ export interface SplitCalculatorResult {
   validation: SplitValidation;
 }
 
+export interface RoundingResolution {
+  amounts: number[];
+  roundingAdjustment: number;
+  recipientIndex: number;
+}
+
 const STROOP_SCALE = 1e7;
 
 function roundToStroops(value: number): number {
@@ -156,5 +162,32 @@ export function defaultRecipientLine(address = ''): RecipientLine {
     sharePercent: 0,
     taxRatePercent: 0,
     fixedFeeXLM: 0,
+  };
+}
+
+export function resolveRounding(
+  percentages: number[],
+  totalAmount: number
+): RoundingResolution {
+  const STROOP_SCALE_INT = 1e7;
+  const totalStroops = Math.round(totalAmount * STROOP_SCALE_INT);
+
+  const amounts = percentages.map((pct) => {
+    const stroopAmount = Math.round((totalStroops * pct) / 100);
+    return stroopAmount / STROOP_SCALE_INT;
+  });
+
+  const sumStroops = amounts.reduce((s, a) => s + Math.round(a * STROOP_SCALE_INT), 0);
+  const discrepancy = totalStroops - sumStroops;
+
+  if (discrepancy !== 0 && amounts.length > 0) {
+    const firstRecipientStroops = Math.round(amounts[0] * STROOP_SCALE_INT) + discrepancy;
+    amounts[0] = firstRecipientStroops / STROOP_SCALE_INT;
+  }
+
+  return {
+    amounts,
+    roundingAdjustment: discrepancy,
+    recipientIndex: 0,
   };
 }

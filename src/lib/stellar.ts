@@ -302,3 +302,10 @@ export async function validateFederationAddress(address: string): Promise<{
     return { isFunded: false, requiresMemo: false };
   }
 }
+
+export function validateRecipientAmountSum(amounts: number[], totalAmount: number): boolean {
+  const STROOP_SCALE = 1e7;
+  const totalStroops = Math.round(totalAmount * STROOP_SCALE);
+  const sumStroops = amounts.reduce((s, a) => s + Math.round(a * STROOP_SCALE), 0);
+  return totalStroops === sumStroops;
+}
