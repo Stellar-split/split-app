@@ -4,10 +4,12 @@ import { splitClient } from "@/lib/stellar";
 const PAGE_SIZE = 20;
 
 /**
- * GET /api/invoices?cursor=<id>&limit=20&publicKey=<address>
+ * GET /api/invoices?cursor=<id>&limit=20&publicKey=<address>&q=<query>
  *
  * Cursor-paginated invoice list. `cursor` is the exclusive lower bound —
  * the first page omits it, subsequent pages pass the last invoice id returned.
+ *
+ * With `q` parameter, performs case-insensitive prefix matching on title and memo.
  *
  * Response shape:
  *   { invoices: Invoice[], nextCursor: string | null }
@@ -19,6 +21,7 @@ export async function GET(request: NextRequest) {
   const publicKey = searchParams.get("publicKey");
   const cursorParam = searchParams.get("cursor");
   const limitParam = searchParams.get("limit");
+  const q = searchParams.get("q")?.trim().toLowerCase() || "";
 
   if (!publicKey) {
     return NextResponse.json(
@@ -49,8 +52,19 @@ export async function GET(request: NextRequest) {
       const mine =
         inv.creator === publicKey ||
         inv.recipients.some((r) => r.address === publicKey);
+
       if (mine) {
-        results.push(inv);
+        if (q) {
+          const memo = (inv as any).memo as string | undefined;
+          const matchesQuery =
+            (inv.title || "").toLowerCase().startsWith(q) ||
+            (memo || "").toLowerCase().startsWith(q);
+          if (matchesQuery) {
+            results.push(inv);
+          }
+        } else {
+          results.push(inv);
+        }
       }
     } catch {
       // splitClient throws when invoice id does not exist — treat as end of list
