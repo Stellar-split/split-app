@@ -1,0 +1,33 @@
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { webhookStore } from "../store";
+
+/** DELETE /api/settings/webhooks/:id — remove a webhook endpoint */
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const idx = webhookStore.findIndex((w) => w.id === params.id);
+  if (idx === -1) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  webhookStore.splice(idx, 1);
+  return new NextResponse(null, { status: 204 });
+}
+
+/** POST /api/settings/webhooks/:id/rotate — generate a new HMAC secret */
+export async function POST(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const endpoint = webhookStore.find((w) => w.id === params.id);
+  if (!endpoint) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const secret = `whsec_${crypto.randomBytes(24).toString("hex")}`;
+  endpoint.secretHash = crypto.createHash("sha256").update(secret).digest("hex");
+
+  const { secretHash: _s, ...safe } = endpoint;
+  return NextResponse.json({ ...safe, secret });
+}
