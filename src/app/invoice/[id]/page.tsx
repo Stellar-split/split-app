@@ -33,34 +33,49 @@ import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
 import CloneLineageTree from "@/components/CloneLineageTree";
+import TransferOwnershipModal from "@/components/TransferOwnershipModal";
+import StellarErrorBoundary from "@/components/error/StellarErrorBoundary";
+import { useStellarQuery } from "@/hooks/useStellarQuery";
+
+const POLL_MS = 10_000;
+
+// Extend the SDK Invoice type with vesting fields (not yet in published SDK)
+type InvoiceWithVesting = Invoice & {
+  vestingCliff?: number;    // unix timestamp (seconds)
+  claimed?: string[];       // addresses that have claimed
+  extensionVotes?: number;  // current votes to extend deadline
+};
 import CountdownTimer from "@/components/CountdownTimer";
 import SplitCalculator from "@/components/SplitCalculator";
+import InvoiceTagEditor from "@/components/invoice/InvoiceTagEditor";
+import type { SplitMeta } from "@/hooks/useSplitCalculator";
+import type { InstallmentMilestone } from "@/components/invoice/InvoiceView";
 import ActivityFeed from "@/components/ActivityFeed";
 import InstallmentTracker from "@/components/InstallmentTracker";
 import InstallmentPanel from "@/components/InstallmentPanel";
-import CoCreatorPanel, { canUserEditInvoice } from "@/components/CoCreatorPanel";
+import InvoiceView from "@/components/invoice/InvoiceView";
+import CoCreatorPanel from "@/components/CoCreatorPanel";
 import PaymentChannelPanel from "@/components/PaymentChannelPanel";
 import DisputeTimeline from "@/components/DisputeTimeline";
 import ConfidentialPaymentFlow from "@/components/ConfidentialPaymentFlow";
 import AuditLogTable from "@/components/AuditLogTable";
 import VersionHistory from "@/components/VersionHistory";
 import CommentSection from "@/components/CommentSection";
+import CommentThread from "@/components/invoice/CommentThread";
+import { loadPermissions } from "@/components/CoCreatorPanel";
 import InvoiceTimeline from "@/components/InvoiceTimeline";
 import InvoiceExportButton from "@/components/InvoiceExportButton";
 import ReleaseBanner from "@/components/ReleaseBanner";
-import { useInvoiceCollaboration } from "@/hooks/useInvoiceCollaboration";
-import CursorOverlay from "@/components/CursorOverlay";
-import PresencePill from "@/components/PresencePill";
-import ReconnectionBanner from "@/components/ReconnectionBanner";
-import {
-  isSubscribedToInvoice,
-  subscribeToInvoice,
-  requestNotificationPermission,
-} from "@/lib/notifications";
 import { cancelReminder, setReminder } from "@/lib/reminders";
 import { recordCooldown } from "@/lib/cooldown";
 import { exportTimelineAsImage } from "@/lib/timelineImageExport";
+import { isRetroactiveInvoiceId, getRetroactiveInvoice } from "@/lib/retroactiveInvoices";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import type { PaymentChannelState } from "@/components/PaymentChannelPanel";
+import { useInvoicePresence } from "@/hooks/useInvoicePresence";
+import PresenceBar from "@/components/PresenceBar";
+import InvoiceSection from "@/components/InvoiceSection";
+import AmountDisplay from "@/components/invoice/AmountDisplay";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
 const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
@@ -87,6 +102,21 @@ function showToast(message: string, type: "success" | "error" | "info" = "info")
   }
 }
 
+/**
+ * Runs a live invoice RPC read for as long as the Pay section is mounted.
+ * A genuine child of StellarErrorBoundary — the query's render-phase throw
+ * on exhausted failure only propagates to boundaries wrapping this
+ * component's own subtree, not to whatever renders InvoiceDetailPage.
+ */
+function PaySectionRpcGate({ id, children }: { id: string; children: React.ReactNode }) {
+  useStellarQuery(() => splitClient.getInvoice(id), [id]);
+  return <>{children}</>;
+}
+
+/**
+ * Invoice detail page — shows status, payment progress, Pay button,
+ * reminder system, and webhook configuration (creator only).
+ */
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
   const router = useRouter();
@@ -94,6 +124,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadedSplitMeta, setLoadedSplitMeta] = useState<SplitMeta | null>(null);
 
   // Live stream
   const {
@@ -103,22 +134,16 @@ export default function InvoiceDetailPage({ params }: Props) {
     error: streamError,
   } = useInvoiceStream(id);
 
-  const hasWritePermission = publicKey
-    ? canUserEditInvoice(invoice ?? ({} as Invoice), publicKey)
-    : false;
-
+  // Presence indicators for co-creator awareness
   const {
-    remoteCursors,
-    remotePresence,
-    isConnected: collabConnected,
-    connectionError: collabError,
-    focusedField,
-    setFocusedField,
-    emitFieldBlur,
-  } = useInvoiceCollaboration({
+    presenceRoster,
+    currentFocusedSection,
+    updateFocusedSection,
+  } = useInvoicePresence({
     invoiceId: id,
-    currentAddress: publicKey,
-    hasWritePermission,
+    userId: publicKey || "anonymous",
+    displayName: publicKey ? truncateAddress(publicKey) : "Anonymous",
+    enabled: Boolean(publicKey),
   });
 
   const [payAmount, setPayAmount] = useState("");
@@ -138,14 +163,39 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [amountLocked, setAmountLocked] = useState(false);
   const prevPayAmountRef = useRef("");
   const [cooldownExpiresAt, setCooldownExpiresAt] = useState<number | null>(null);
-  const [activeDetailsTab, setActiveDetailsTab] = useState<"audit" | "history" | "notes">("audit");
+  const [activeDetailsTab, setActiveDetailsTab] = useState<"audit" | "history" | "notes" | "comments">(
+    "audit"
+  );
   const [payerNonce, setPayerNonce] = useState<bigint | null>(null);
 
   const prevStatusRef = useRef<string | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+  // Focus restoration refs — track which button opened the most-recently opened modal
+  const cancelModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const shareModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const shareQRModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const payModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const duplicateModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+
+  // Restore focus to the trigger button when each modal closes
+  useEffect(() => {
+    if (!showShareModal) shareModalTriggerRef.current?.focus();
+  }, [showShareModal]);
+  useEffect(() => {
+    if (!showShareQRModal) shareQRModalTriggerRef.current?.focus();
+  }, [showShareQRModal]);
+  useEffect(() => {
+    if (!showDuplicateModal) duplicateModalTriggerRef.current?.focus();
+  }, [showDuplicateModal]);
+  useEffect(() => {
+    if (!showCancelModal) cancelModalTriggerRef.current?.focus();
+  }, [showCancelModal]);
+  useEffect(() => {
+    if (!showPayModal) payModalTriggerRef.current?.focus();
+  }, [showPayModal]);
   const [exportingTimeline, setExportingTimeline] = useState(false);
-  const [notifySubscribed, setNotifySubscribed] = useState(false);
-  const [notifyDenied, setNotifyDenied] = useState(false);
+  const { status: pushStatus, subscribe: subscribeToPush, unsubscribe: unsubscribeFromPush } =
+    usePushNotifications(id);
   const [lastFailedPayment, setLastFailedPayment] = useState<{ amount: bigint } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
@@ -164,12 +214,16 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showReleaseBanner, setShowReleaseBanner] = useState(false);
 
   useEffect(() => {
-    if (!streamConnected || !collabConnected) {
+    if (isRetroactiveInvoiceId(id)) {
+      setShowReconnecting(false);
+      return;
+    }
+    if (!isConnected) {
       setShowReconnecting(true);
     } else {
       setShowReconnecting(false);
     }
-  }, [streamConnected, collabConnected]);
+  }, [isConnected, id]);
 
   useEffect(() => {
     if (latestEvent?.type === "InvoiceReleased") {
@@ -177,32 +231,40 @@ export default function InvoiceDetailPage({ params }: Props) {
     }
   }, [latestEvent]);
 
-  useEffect(() => {
-    // TODO: implement notification subscription
-    // setNotifySubscribed(isSubscribedToInvoice(id));
-  }, [id]);
-
-  const handleNotifyMe = async () => {
-    // TODO: implement notification permissions
-    // const permission = await requestNotificationPermission();
-    // if (permission !== "granted") {
-    //   setNotifyDenied(true);
-    //   return;
-    // }
-    // subscribeToInvoice(id);
-    // setNotifySubscribed(true);
-    // setNotifyDenied(false);
-  };
+  const isRetroactive = isRetroactiveInvoiceId(id);
 
   const load = async () => {
+    if (isRetroactive) {
+      const retro = getRetroactiveInvoice(id);
+      if (!retro) throw new Error("Retroactive invoice not found.");
+      setInvoice(retro);
+      setLoading(false);
+      return;
+    }
     const inv = await splitClient.getInvoice(id);
     setInvoice(inv);
+    try {
+      const res = await fetch(`/api/invoices/${id}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.splitMeta) setLoadedSplitMeta(json.splitMeta);
+      }
+    } catch {
+      // ignore splitMeta fetch failures; invoice still loads
+    }
     setLoading(false);
   };
 
   useEffect(() => {
-    load().catch((e) => setError(String(e)));
     getFreighterPublicKey().then(setPublicKey).catch(() => null);
+    if (isRetroactive) {
+      load().catch((e) => {
+        setError(String(e));
+        setLoading(false);
+      });
+      return;
+    }
+    load().catch((e) => setError(String(e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // Only fallback load if stream hasn't already provided invoice
     if (!streamInvoice) {
@@ -211,9 +273,6 @@ export default function InvoiceDetailPage({ params }: Props) {
         setLoading(false);
       });
     }
-    getFreighterPublicKey()
-      .then((key) => setPublicKey(key))
-      .catch(() => null);
   }, [id]);
 
   useEffect(() => {
@@ -326,6 +385,11 @@ export default function InvoiceDetailPage({ params }: Props) {
         localStorage.setItem("stellarsplit_adapter_usage", JSON.stringify(existing));
       } catch { /* ignore storage errors */ }
       window.dispatchEvent(new CustomEvent("usdc-balance-refresh"));
+      fetch("/api/cron/funding-thresholds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: id }),
+      }).catch(() => null);
     } catch (err) {
       setInvoice(originalInvoice);
       setPaymentError(err instanceof Error ? err.message : String(err));
@@ -350,7 +414,7 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (loading) {
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16 overflow-x-hidden">
         <div className="animate-pulse space-y-4">
           <div className="h-8 w-48 bg-gray-700 rounded" />
           <div className="h-4 w-full bg-gray-700 rounded" />
@@ -384,14 +448,15 @@ export default function InvoiceDetailPage({ params }: Props) {
     process.env.NEXT_PUBLIC_CONTRACT_ID ?? invoice.token;
 
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
-      {/* Collaboration presence */}
-      {publicKey && <PresencePill presences={remotePresence} currentAddress={publicKey} />}
-
-      {/* Collaboration permission/connection error */}
-      {collabError && !collabConnected && (
-        <div className="mb-4 bg-red-950/40 border border-red-800 text-red-300 px-4 py-2 rounded-lg text-sm flex items-center gap-2">
-          <span>Collaboration: {collabError}</span>
+    <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
+      {/* Reconnecting indicator */}
+      {showReconnecting && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
+          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span className="text-sm font-medium">Reconnecting...</span>
         </div>
       )}
 
@@ -409,20 +474,46 @@ export default function InvoiceDetailPage({ params }: Props) {
         />
       )}
 
+      {/* Presence Bar — shows active co-creators */}
+      {presenceRoster.length > 0 && (
+        <div className="mb-6">
+          <PresenceBar presenceRoster={presenceRoster} currentUserId={publicKey || ""} />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl sm:text-3xl font-bold text-white">
             Invoice #{id}
           </h1>
-          <StatusBadge status={invoice.status as any} size="sm" />
+          {(invoice as any).retroactive ? (
+            <span
+              role="status"
+              aria-label="Status: Fully Paid"
+              className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-0.5 bg-green-500/20 text-green-400"
+            >
+              ✓ Fully Paid
+            </span>
+          ) : (
+            <StatusBadge status={invoice.status as any} size="sm" />
+          )}
+          {(invoice as any).retroactive && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300"
+              title={`Imported from transaction ${(invoice as any).sourceTxHash}`}
+            >
+              Retroactive
+            </span>
+          )}
           <CopyButton text={id} className="!py-1 !px-2 text-xs" />
         </div>
-        <div className="ml-auto flex items-center gap-2 flex-wrap">
+        <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
           <button
             type="button"
             onClick={() => setShowShareModal(true)}
+            ref={shareModalTriggerRef}
             className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
             aria-label="Share invoice"
           >
@@ -431,15 +522,34 @@ export default function InvoiceDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => setShowDuplicateModal(true)}
+            ref={duplicateModalTriggerRef}
             className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm transition-colors"
             aria-label="Duplicate invoice"
           >
             Duplicate
           </button>
           <InvoiceExportButton invoice={invoice} total={total} />
+          {pushStatus !== "unsupported" && !isRetroactive && (
+            <button
+              type="button"
+              onClick={() => (pushStatus === "active" ? unsubscribeFromPush() : subscribeToPush())}
+              disabled={pushStatus === "denied"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50 ${
+                pushStatus === "active"
+                  ? "bg-green-800/60 text-green-300 hover:bg-green-800"
+                  : "bg-gray-700 hover:bg-gray-600 text-white"
+              }`}
+              aria-label={pushStatus === "active" ? "Notifications active" : "Enable notifications"}
+              title={pushStatus === "denied" ? "Notifications blocked in browser settings" : undefined}
+            >
+              <span aria-hidden="true">{pushStatus === "active" ? "🔔" : "🔕"}</span>
+              {pushStatus === "active" ? "Notifications active" : "Notifications off"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowShareQRModal(true)}
+            ref={shareQRModalTriggerRef}
             className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
             aria-label="Share invoice via QR"
           >
@@ -472,16 +582,40 @@ export default function InvoiceDetailPage({ params }: Props) {
           >
             Print Invoice
           </button>
+          {invoice.status === "Pending" && publicKey === invoice.creator && (
+            <button
+              type="button"
+              ref={cancelModalTriggerRef}
+              onClick={() => setShowCancelModal(true)}
+              className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              aria-label="Cancel this invoice"
+            >
+              Cancel Invoice
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Quick Info Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+      {/* Tags */}
+      <InvoiceTagEditor invoiceId={id} className="mb-6" />
+
+      {/* Details Section */}
+      <InvoiceSection
+        sectionId="details"
+        onFocusChange={updateFocusedSection}
+        className="mb-8"
+      >
+        {/* Quick Info Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Creator</p>
           <p className="text-sm font-mono text-gray-200 truncate" title={invoice.creator}>
             {truncateAddress(invoice.creator, 6)}
           </p>
+        </div>
+        <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total</p>
+          <AmountDisplay amount={total} className="text-2xl font-bold text-white" />
         </div>
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Recipients</p>
@@ -525,8 +659,14 @@ export default function InvoiceDetailPage({ params }: Props) {
         <h2 id="timeline-heading" className="text-lg font-semibold text-white mb-4">Status Timeline</h2>
         <StatusTimeline invoice={invoice} total={total} />
       </section>
+      </InvoiceSection>
 
-      {/* Payments */}
+      {/* Payments Section */}
+      <InvoiceSection
+        sectionId="payments"
+        onFocusChange={updateFocusedSection}
+        className="mb-8"
+      >
       <section className="mb-8">
         <h2 className="text-lg font-semibold text-white mb-3">
           Payments ({invoice.payments.length})
@@ -551,7 +691,7 @@ export default function InvoiceDetailPage({ params }: Props) {
                       {truncateAddress(p.payer)}
                     </td>
                     <td className="px-4 py-2 text-right text-indigo-300 font-medium">
-                      {formatAmount(p.amount)} USDC
+                      <AmountDisplay amount={p.amount} inline />
                     </td>
                   </tr>
                 ))}
@@ -560,6 +700,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           </div>
         )}
       </section>
+      </InvoiceSection>
 
       {invoice.status === "Pending" && (
         <div className="flex flex-col gap-6">
@@ -616,11 +757,20 @@ export default function InvoiceDetailPage({ params }: Props) {
         </div>
       )}
 
-      {/* Recipients */}
-      <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
+      {/* Recipients Section */}
+      <InvoiceSection
+        sectionId="recipients"
+        onFocusChange={updateFocusedSection}
+        className="mb-8"
+      >
+        <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
+      </InvoiceSection>
 
       {/* Split Calculator */}
-      {invoice.status === "Pending" && <SplitCalculator invoice={invoice} />}
+      <SplitCalculator
+        splitMeta={loadedSplitMeta ?? ((invoice as any).splitMeta as SplitMeta | undefined)}
+        readOnly
+      />
 
       <ActivityFeed
         invoice={{
@@ -631,18 +781,28 @@ export default function InvoiceDetailPage({ params }: Props) {
       />
 
       {/* Installment schedule — only shown to payers with a registered plan */}
-      {publicKey && (
-        <>
-          <InstallmentTracker
-            invoice={invoice}
-            publicKey={publicKey}
-            onPayNow={(amount) => {
-              setPayAmount(formatAmount(amount));
-              setShowPayModal(true);
-            }}
-          />
-          <InstallmentPanel invoiceId={id} publicKey={publicKey} />
-        </>
+      {publicKey && loadedSplitMeta?.installments && loadedSplitMeta.installments.length > 0 && (
+        <InvoiceView
+          invoice={invoice}
+          installments={loadedSplitMeta.installments as InstallmentMilestone[]}
+          publicKey={publicKey}
+          onPaid={async (milestoneId, txHash) => {
+            const updated = (loadedSplitMeta.installments || []).map((m) =>
+              m.id === milestoneId ? { ...m, status: 'paid', txHash } : m
+            );
+            const newSplitMeta = { ...loadedSplitMeta, installments: updated } as SplitMeta;
+            setLoadedSplitMeta(newSplitMeta);
+            try {
+              await fetch(`/api/invoices/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ splitMeta: newSplitMeta }),
+              });
+            } catch {
+              // ignore persistence errors
+            }
+          }}
+        />
       )}
 
       {/* Deadline extension voting — shown to payers on Pending invoices */}
@@ -670,6 +830,15 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Pay button → opens modal */}
       {invoice.status === "Pending" && publicKey && (
+        <StellarErrorBoundary>
+        <PaySectionRpcGate id={id}>
+        <section aria-labelledby="pay-heading" className="mb-8">
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
+            <CooldownBadge expiresAt={cooldownExpiresAt} />
+          </div>
+          <PaymentMethodSelector onMethodChange={setPaymentMethod} />
+          <form onSubmit={handlePay} className="flex flex-col gap-4">
         <section className="mb-8 bg-gray-800/60 border border-gray-700 rounded-xl p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Pay Toward Invoice</h2>
           <PaymentMethodSelector
@@ -714,6 +883,8 @@ export default function InvoiceDetailPage({ params }: Props) {
             </button>
           </form>
         </section>
+        </PaySectionRpcGate>
+        </StellarErrorBoundary>
       )}
 
       {showConfidentialFlow && (invoice as any).confidential && publicKey && (
@@ -728,8 +899,19 @@ export default function InvoiceDetailPage({ params }: Props) {
           invoice={invoice}
           total={total}
           publicKey={publicKey}
-          onPay={async (amount, email) => {
-            return splitClient.pay({ payer: publicKey, invoiceId: id, amount });
+          onPay={async (amount, email, options, mfaToken) => {
+            const result = await splitClient.pay({
+              payer: publicKey,
+              invoiceId: id,
+              amount,
+              metadata: mfaToken ? { mfaToken } : undefined,
+            });
+            fetch("/api/cron/funding-thresholds", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ invoiceId: id }),
+            }).catch(() => null);
+            return result;
           }}
           onClose={() => setShowPayModal(false)}
         />
@@ -757,11 +939,16 @@ export default function InvoiceDetailPage({ params }: Props) {
         <InvoiceTimeline invoiceId={id} />
       </section>
 
-      {/* Tabbed detail section: Audit Log / History / Notes */}
+      {/* Tabbed detail section: Audit Log / History / Notes / Comments */}
       <section className="mb-8">
         <div className="flex gap-1 border-b border-gray-700 mb-4" role="tablist" aria-label="Invoice details">
-          {(["audit", "history", "notes"] as const).map((tab) => {
-            const labels: Record<string, string> = { audit: "Audit Log", history: "History", notes: "Notes" };
+          {(["audit", "history", "notes", "comments"] as const).map((tab) => {
+            const labels: Record<string, string> = {
+              audit: "Audit Log",
+              history: "History",
+              notes: "Notes",
+              comments: "Comments",
+            };
             return (
               <button
                 key={tab}
@@ -785,6 +972,19 @@ export default function InvoiceDetailPage({ params }: Props) {
         {activeDetailsTab === "notes" && publicKey && (
           <CommentSection invoiceId={id} walletAddress={publicKey} />
         )}
+        {activeDetailsTab === "comments" && (
+          <CommentThread
+            invoiceId={id}
+            publicKey={publicKey}
+            isCreator={publicKey === invoice.creator}
+            coCreatorWritePermission={
+              !!publicKey &&
+              loadPermissions(id).some(
+                (p) => p.address === publicKey && (p.permissionLevel === "edit" || p.permissionLevel === "admin")
+              )
+            }
+          />
+        )}
       </section>
       
 
@@ -797,7 +997,10 @@ export default function InvoiceDetailPage({ params }: Props) {
             await load();
             setShowCancelModal(false);
           }}
-          onClose={() => setShowCancelModal(false)}
+          onClose={() => {
+            setShowCancelModal(false);
+            // focus restored by useEffect watching showCancelModal
+          }}
         />
       )}
 

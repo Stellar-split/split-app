@@ -1,6 +1,6 @@
 import type { Invoice } from "@stellar-split/sdk";
 
-export type DashboardPresetId = "all" | "active" | "funded" | "refunded" | "expired" | "draft";
+export type DashboardPresetId = "all" | "active" | "funded" | "refunded" | "expired" | "draft" | "overdue";
 export type DashboardSortId = "newest" | "oldest" | "amount-desc" | "amount-asc" | "deadline";
 
 export const SORT_OPTIONS: { id: DashboardSortId; label: string }[] = [
@@ -64,12 +64,14 @@ export const DASHBOARD_PRESETS: DashboardPresetDefinition[] = [
   { id: "refunded", label: "Refunded", emptyState: "No refunded invoices." },
   { id: "expired",  label: "Expired",  emptyState: "No expired invoices right now." },
   { id: "draft",    label: "Draft",    emptyState: "No draft invoices." },
+  { id: "overdue",  label: "Overdue",  emptyState: "No overdue installments right now." },
 ];
 
 export function matchesDashboardPreset(
   invoice: Invoice,
   preset: DashboardPresetId,
   now = Math.floor(Date.now() / 1000),
+  splitMeta?: { installments?: { dueDate: number; status: string }[] } | null,
 ): boolean {
   if (preset === "all") return true;
 
@@ -84,29 +86,101 @@ export function matchesDashboardPreset(
       return invoice.status === "Pending" && invoice.deadline <= now;
     case "draft":
       return (invoice as any).status === "Draft";
+    case "overdue":
+      if (invoice.status !== "Pending") return false;
+      const installments = splitMeta?.installments ?? [];
+      return installments.some(
+        (m) => m.status !== "paid" && m.dueDate < now
+      );
     default:
       return false;
   }
+}
+
+export function matchesTextSearch(invoice: DashboardInvoice, query: string): boolean {
+  const trimmed = query.trim();
+  if (!trimmed) return true;
+
+  if (/^\d+$/.test(trimmed)) {
+    return String(invoice.id) === trimmed;
+  }
+
+  const haystack = trimmed.toLowerCase();
+  return invoice.recipients.some((recipient) =>
+    recipient.address.toLowerCase().includes(haystack),
+  );
+}
+
+/**
+ * Lifecycle status as shown in the status filter chips. The SDK's
+ * Invoice.status only has 3 real values (Pending/Released/Refunded); these
+ * 5 are derived from status + funded + deadline so users can filter by a
+ * more useful lifecycle view. "Refunded" invoices don't get a dedicated
+ * chip (edge case, always visible under "All") and there's no "Draft"
+ * concept since every fetched invoice already exists on-chain.
+ */
+export type InvoiceStatusFilter = "Pending" | "Funded" | "Partial" | "Released" | "Expired";
+
+export const INVOICE_STATUS_FILTERS: InvoiceStatusFilter[] = [
+  "Pending",
+  "Funded",
+  "Partial",
+  "Released",
+  "Expired",
+];
+
+export function getInvoiceDisplayStatus(
+  invoice: DashboardInvoice,
+  now = Math.floor(Date.now() / 1000),
+): InvoiceStatusFilter | "Refunded" {
+  if (invoice.status === "Released") return "Released";
+  if (invoice.status === "Refunded") return "Refunded";
+
+  const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
+
+  if (invoice.deadline > 0 && invoice.deadline < now) return "Expired";
+  if (total > 0n && invoice.funded >= total) return "Funded";
+  if (invoice.funded > 0n) return "Partial";
+  return "Pending";
+}
+
+export function matchesStatusFilter(
+  invoice: DashboardInvoice,
+  selectedStatuses: InvoiceStatusFilter[],
+  now = Math.floor(Date.now() / 1000),
+): boolean {
+  if (selectedStatuses.length === 0) return true;
+  return selectedStatuses.includes(getInvoiceDisplayStatus(invoice, now) as InvoiceStatusFilter);
 }
 
 export function filterDashboardInvoices(
   invoices: Invoice[],
   preset: DashboardPresetId,
   now = Math.floor(Date.now() / 1000),
+  selectedStatuses: InvoiceStatusFilter[] = [],
+): DashboardInvoice[] {
+  return invoices.filter((invoice) => {
+    const matchesPreset = matchesDashboardPreset(invoice, publicKey, preset, now);
+    const matchesQuery = matchesTextSearch(invoice, query);
+    const matchesStatus = matchesStatusFilter(invoice, selectedStatuses, now);
+    return matchesPreset && matchesQuery && matchesStatus;
+  });
+  splitMetaMap?: Record<string, { installments?: { dueDate: number; status: string }[] }>,
 ): Invoice[] {
   return invoices.filter((invoice) =>
-    matchesDashboardPreset(invoice, preset, now),
+    matchesDashboardPreset(invoice, preset, now, splitMetaMap?.[invoice.id]),
   );
 }
 
 export function getDashboardPresetCounts(
   invoices: Invoice[],
   now = Math.floor(Date.now() / 1000),
+  splitMetaMap?: Record<string, { installments?: { dueDate: number; status: string }[] }>,
 ): Record<Exclude<DashboardPresetId, "all">, number> {
   return DASHBOARD_PRESETS.reduce(
     (counts, preset) => {
       counts[preset.id] = invoices.filter((invoice) =>
-        matchesDashboardPreset(invoice, preset.id, now),
+        matchesDashboardPreset(invoice, preset.id, now, splitMetaMap?.[invoice.id]),
       ).length;
       return counts;
     },

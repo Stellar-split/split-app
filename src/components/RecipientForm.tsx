@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
-import { searchEntries, addEntry, type AddressEntry } from "@/lib/addressBook";
+import { useState, useRef, useMemo, useEffect } from "react";
+import AddressBookPicker from "@/components/settings/AddressBookPicker";
+import { searchEntries, addEntry, getEmailForAddress, type AddressEntry } from "@/lib/addressBook";
+import Avatar from "@/components/ui/Avatar";
 import { searchAddressHistory, searchAmountHistory } from "@/lib/invoiceHistory";
 import { searchRecipients, touchRecipient, type RecipientEntry } from "@/lib/recipients";
 import { truncateAddress } from "@stellar-split/sdk";
 import CsvRecipientImport from "@/components/CsvRecipientImport";
 
-interface RecipientRow {
+export interface RecipientRow {
   address: string;
   amount: string;
+  label?: string;
 }
 
 interface Props {
@@ -19,14 +22,9 @@ interface Props {
   amountOverride?: string;
 }
 
-interface AddressSuggestion extends AddressEntry {
-  count?: number;
-  source?: "book" | "history";
-}
-
 /**
  * RecipientForm — dynamic add/remove rows for recipients and split amounts.
- * Address input auto-suggests saved addresses from the address book and invoice history.
+ * Integrates AddressBookPicker with smart label support on /invoice/new.
  */
 export default function RecipientForm({
   recipients,
@@ -34,7 +32,6 @@ export default function RecipientForm({
   equalSplit = false,
   amountOverride,
 }: Props) {
-  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [amountSuggestions, setAmountSuggestions] = useState<string[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [activeField, setActiveField] = useState<"address" | "amount" | null>(null);
@@ -49,9 +46,10 @@ export default function RecipientForm({
     const ext = file.name.split(".").pop()?.toLowerCase();
     if (ext === "json") {
       const data = JSON.parse(text);
-      return (Array.isArray(data) ? data : []).map((r: { address?: string; amount?: string }) => ({
+      return (Array.isArray(data) ? data : []).map((r: { address?: string; amount?: string; label?: string }) => ({
         address: r.address ?? "",
         amount: r.amount ?? "",
+        label: r.label ?? "",
       }));
     }
     // CSV
@@ -64,54 +62,29 @@ export default function RecipientForm({
       return {
         address: idx("address") >= 0 ? cols[idx("address")] ?? "" : cols[0] ?? "",
         amount: idx("amount") >= 0 ? cols[idx("amount")] ?? "" : cols[1] ?? "",
+        label: idx("label") >= 0 ? cols[idx("label")] ?? "" : "",
       };
     }).filter((r) => r.address);
   };
 
-  const update = (index: number, field: keyof RecipientRow, value: string) => {
+  const updateRow = (index: number, address: string, label?: string) => {
     const next = recipients.map((r, i) =>
-      i === index ? { ...r, [field]: value } : r
+      i === index ? { ...r, address, label: label !== undefined ? label : r.label } : r
     );
     onChange(next);
   };
 
-  const addRow = () => onChange([...recipients, { address: "", amount: "" }]);
+  const updateAmount = (index: number, amount: string) => {
+    const next = recipients.map((r, i) =>
+      i === index ? { ...r, amount } : r
+    );
+    onChange(next);
+  };
+
+  const addRow = () => onChange([...recipients, { address: "", amount: "", label: "" }]);
 
   const removeRow = (index: number) =>
     onChange(recipients.filter((_, i) => i !== index));
-
-  const buildAddressSuggestions = (query: string) => {
-    const book = query.trim().length >= 2 ? searchEntries(query.trim()) : [];
-    const history = searchAddressHistory(query.trim());
-    const merged = new Map<string, AddressSuggestion>();
-
-    book.forEach((entry) => {
-      merged.set(entry.address, { ...entry, source: "book" });
-    });
-
-    history.forEach((entry) => {
-      const existing = merged.get(entry.address);
-      if (existing) {
-        merged.set(entry.address, {
-          ...existing,
-          count: entry.count,
-          source: "book",
-        });
-      } else {
-        merged.set(entry.address, {
-          nickname: entry.address.slice(0, 8) + "…",
-          address: entry.address,
-          count: entry.count,
-          source: "history",
-        });
-      }
-    });
-
-    return Array.from(merged.values()).sort((a, b) => {
-      if ((b.count ?? 0) !== (a.count ?? 0)) return (b.count ?? 0) - (a.count ?? 0);
-      return a.nickname.localeCompare(b.nickname);
-    });
-  };
 
   const updateAmountSuggestions = (index: number, value: string) => {
     const address = recipients[index]?.address || undefined;
@@ -121,62 +94,50 @@ export default function RecipientForm({
     setActiveField("amount");
   };
 
-  const handleAddressChange = (index: number, value: string) => {
-    update(index, "address", value);
-    setActiveIndex(index);
-    setActiveField("address");
-    setAddressSuggestions(buildAddressSuggestions(value));
-    setAmountSuggestions([]);
-    handleAddressSave(value);
-  };
-
   const handleAmountChange = (index: number, value: string) => {
-    update(index, "amount", value);
+    updateAmount(index, value);
     updateAmountSuggestions(index, value);
   };
 
-  const selectAddressSuggestion = (index: number, entry: AddressSuggestion) => {
-    update(index, "address", entry.address);
-    setAddressSuggestions([]);
-    setActiveIndex(null);
-    setActiveField(null);
-  };
-
   const selectAmountSuggestion = (index: number, amount: string) => {
-    update(index, "amount", amount);
+    updateAmount(index, amount);
     setAmountSuggestions([]);
     setActiveIndex(null);
     setActiveField(null);
-  };
-
-  const handleAddressBlur = () => {
-    setTimeout(() => {
-      setAddressSuggestions([]);
-      setActiveIndex(null);
-      setActiveField(null);
-    }, 150);
   };
 
   const handleAmountFocus = (index: number) => {
     updateAmountSuggestions(index, recipients[index]?.amount ?? "");
   };
 
-  // Save address to book when a valid G... address is entered
-  const handleAddressSave = (address: string) => {
-    if (address.startsWith("G") && address.length >= 56) {
-      addEntry({ nickname: address.slice(0, 8) + "…", address });
-    }
-  };
-
   const savedRecipients = useMemo(() => searchRecipients(savedSearchQuery), [savedSearchQuery]);
+
+  // Contact emails come from localStorage, so they can only be resolved after
+  // mount; the deterministic avatar renders identically on both passes.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const addressKey = recipients.map((r) => r.address).join("|");
+  const emailByAddress = useMemo(() => {
+    if (!mounted) return {} as Record<string, string | undefined>;
+    const map: Record<string, string | undefined> = {};
+    for (const address of addressKey.split("|")) {
+      if (address && map[address] === undefined) {
+        map[address] = getEmailForAddress(address);
+      }
+    }
+    return map;
+    // addressKey is the serialized dependency for `recipients`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressKey, mounted]);
 
   const handleAddFromSaved = (recipient: RecipientEntry) => {
     const emptyIndex = recipients.findIndex((r) => !r.address);
     const targetIndex = emptyIndex >= 0 ? emptyIndex : recipients.length;
     if (emptyIndex >= 0) {
-      update(targetIndex, "address", recipient.address);
+      updateRow(targetIndex, recipient.address, recipient.nickname);
     } else {
-      onChange([...recipients, { address: recipient.address, amount: "" }]);
+      onChange([...recipients, { address: recipient.address, amount: "", label: recipient.nickname }]);
     }
     touchRecipient(recipient.address);
     setShowSavedDropdown(false);
@@ -208,39 +169,21 @@ export default function RecipientForm({
     <div className="flex flex-col gap-3">
       {recipients.map((row, i) => (
         <div key={i} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-start min-w-0">
+          <Avatar
+            address={row.address}
+            email={emailByAddress[row.address]}
+            size={32}
+            className="mt-1.5 hidden sm:inline-flex"
+          />
+
           <div className="relative flex-1 min-w-0 w-full">
-            <input
-              type="text"
-              placeholder="G... address"
+            <AddressBookPicker
               value={row.address}
-              onChange={(e) => handleAddressChange(i, e.target.value)}
-              onBlur={handleAddressBlur}
-              required
-              aria-label={`Recipient ${i + 1} address`}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 min-h-11 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 font-mono"
+              label={row.label}
+              onChange={(address, label) => updateRow(i, address, label)}
+              placeholder="G... or name*domain.com address"
+              ariaLabel={`Recipient ${i + 1} address`}
             />
-            {activeField === "address" && activeIndex === i && addressSuggestions.length > 0 && (
-              <ul className="absolute z-10 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto">
-                {addressSuggestions.map((entry) => (
-                  <li key={entry.address}>
-                    <button
-                      type="button"
-                      onMouseDown={() => selectAddressSuggestion(i, entry)}
-                      className="w-full min-h-11 text-left px-3 py-2 text-sm hover:bg-gray-700 font-mono truncate"
-                    >
-                      <div className="truncate">
-                        {entry.nickname} — {entry.address}
-                      </div>
-                      {entry.source === "history" && entry.count ? (
-                        <div className="text-xs text-gray-400">
-                          Used {entry.count} time{entry.count > 1 ? "s" : ""}
-                        </div>
-                      ) : null}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
 
           <div className="relative w-full sm:w-28">
@@ -257,20 +200,20 @@ export default function RecipientForm({
               readOnly={equalSplit}
               required
               aria-label={`Recipient ${i + 1} amount`}
-              className={`w-full bg-gray-800 border rounded-lg px-3 py-2 min-h-11 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              className={`w-full bg-gray-800 border rounded-lg px-3 py-2 min-h-11 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 equalSplit
                   ? "border-gray-600 text-gray-400 cursor-not-allowed"
                   : "border-gray-700"
               }`}
             />
             {activeField === "amount" && activeIndex === i && amountSuggestions.length > 0 && !equalSplit && (
-              <ul className="absolute z-10 right-0 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto">
+              <ul className="absolute z-10 right-0 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
                 {amountSuggestions.map((amount) => (
                   <li key={amount}>
                     <button
                       type="button"
                       onMouseDown={() => selectAmountSuggestion(i, amount)}
-                      className="w-full min-h-11 text-left px-3 py-2 text-sm hover:bg-gray-700 font-mono"
+                      className="w-full min-h-11 text-left px-3 py-2 text-sm hover:bg-gray-700 font-mono text-gray-200"
                     >
                       {amount} USDC
                     </button>
@@ -296,7 +239,7 @@ export default function RecipientForm({
       <button
         type="button"
         onClick={addRow}
-        className="self-start min-h-11 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        className="self-start min-h-11 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         + Add Recipient
       </button>
@@ -305,14 +248,14 @@ export default function RecipientForm({
         <button
           type="button"
           onClick={() => setShowSavedDropdown((v) => !v)}
-          className="self-start min-h-11 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors"
+          className="self-start min-h-11 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 transition-colors"
         >
           📌 Add from saved
         </button>
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="self-start min-h-11 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors"
+          className="self-start min-h-11 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 transition-colors"
         >
           📥 Import Recipients
         </button>
@@ -336,7 +279,7 @@ export default function RecipientForm({
             placeholder="Search saved recipients..."
             value={savedSearchQuery}
             onChange={(e) => setSavedSearchQuery(e.target.value)}
-            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             autoFocus
           />
           {savedRecipients.length > 0 && (

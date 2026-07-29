@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
+import Stepper, { type Step } from "@/components/ui/Stepper";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
@@ -12,6 +14,26 @@ import { useI18n } from "@/components/I18nProvider";
 import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
 import { decodeTemplate } from "@/lib/templateSharing";
+import type { ImportedTxData } from "@/lib/txImport";
+import {
+  generateRetroactiveInvoiceId,
+  saveRetroactiveInvoice,
+  type RetroactiveInvoice,
+} from "@/lib/retroactiveInvoices";
+import { useOfflineDraftAutosave } from "@/hooks/useOfflineDraftAutosave";
+import {
+  getOrCreateLocalUserId,
+  listDraftsForUser,
+  type StoredDraft,
+} from "@/lib/offlineDraftDB";
+import SplitCalculator from "@/components/SplitCalculator";
+import TagInput from "@/components/invoice/TagInput";
+import { useInvoiceTags } from "@/hooks/useInvoiceTags";
+import {
+  calculateSplit,
+  type SplitMeta,
+} from "@/hooks/useSplitCalculator";
+import InstallmentPlanBuilder from "@/components/invoice/InstallmentPlanBuilder";
 
 import { useInvoiceCollaboration } from "@/hooks/useInvoiceCollaboration";
 import CursorOverlay from "@/components/CursorOverlay";
@@ -20,6 +42,8 @@ import ReconnectionBanner from "@/components/ReconnectionBanner";
 
 const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
+const TxImportPanel = dynamic(() => import("@/components/invoice/TxImportPanel"), { ssr: false });
+const DraftRecoveryBanner = dynamic(() => import("@/components/invoice/DraftRecoveryBanner"), { ssr: false });
 
 interface RecipientRow {
   address: string;
@@ -52,6 +76,13 @@ function useToasts() {
 
 const STEPS = ["Basic Info", "Recipients", "Options", "Review & Submit"];
 
+/** Clamp an arbitrary `?step=` value onto a real step index. */
+function parseStep(raw: string | null): number {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1 || n > STEPS.length) return 0;
+  return n - 1;
+}
+
 function ChangedField({ changed, children }: { changed: boolean; children: React.ReactNode }) {
   if (!changed) return <>{children}</>;
   return (
@@ -78,8 +109,24 @@ export default function NewInvoicePage() {
 function NewInvoiceForm() {
   const { t } = useI18n();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [step, setStep] = useState(0);
+  // The active step lives in the URL rather than component state so browser
+  // back/forward moves through the form instead of leaving the page.
+  const step = parseStep(searchParams.get("step"));
+  const goToStep = useCallback(
+    (next: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next === 0) {
+        params.delete("step");
+      } else {
+        params.set("step", String(next + 1));
+      }
+      const query = params.toString();
+      router.push(query ? `${pathname}?${query}` : pathname);
+    },
+    [router, pathname, searchParams]
+  );
   const [recipients, setRecipients] = useState<RecipientRow[]>([
     { address: "", amount: "" },
   ]);
@@ -90,6 +137,10 @@ function NewInvoiceForm() {
   const [recurring, setRecurring] = useState(false);
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
+  const [splitMeta, setSplitMeta] = useState<SplitMeta | null>(null);
+  const [installments, setInstallments] = useState<{ id: string; amount: number; dueDate: number; status: string; txHash?: string }[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const { allTags, saveTags } = useInvoiceTags();
 
   const fromId = searchParams.get("from");
   const deadlineParam = searchParams.get("deadline");
@@ -99,20 +150,120 @@ function NewInvoiceForm() {
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
   const [cloneDeadlineIso, setCloneDeadlineIso] = useState<string>(deadlineParam ?? "");
 
+  const [formMode, setFormMode] = useState<"create" | "import">("create");
+  const [importedTx, setImportedTx] = useState<ImportedTxData | null>(null);
+  const [retroSubmitting, setRetroSubmitting] = useState(false);
+  const [retroError, setRetroError] = useState<string | null>(null);
+
+  const [draftUserId, setDraftUserId] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [recoveredDraft, setRecoveredDraft] = useState<StoredDraft | null>(null);
+
+  useEffect(() => {
+    getFreighterPublicKey()
+      .then((pk) => setDraftUserId(pk))
+      .catch(() => setDraftUserId(getOrCreateLocalUserId()));
+    setDraftId(crypto.randomUUID());
+  }, []);
+
+  useEffect(() => {
+    if (!draftUserId || fromId || searchParams.get("template") || searchParams.get("address")) return;
+    listDraftsForUser(draftUserId)
+      .then((drafts) => {
+        if (drafts.length > 0) setRecoveredDraft(drafts[0]);
+      })
+      .catch(() => null);
+    // Only check once per mount, independent of draftId (the newly generated
+    // draft won't exist yet so it can never be the one we find here).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftUserId]);
+
+  const draftSnapshot = {
+    recipients,
+    token,
+    deadlineDays,
+    recurring,
+    intervalDays,
+    splitMeta,
+    installments,
+  };
+
+  const { isOffline: draftOffline, discardDraft } = useOfflineDraftAutosave(
+    draftUserId ?? "",
+    formMode === "create" && !cloneSourceId ? draftId ?? "" : "",
+    draftSnapshot
+  );
+
+  const handleRestoreDraft = () => {
+    if (!recoveredDraft) return;
+    setRecipients(recoveredDraft.data.recipients);
+    setToken(recoveredDraft.data.token);
+    setDeadlineDays(recoveredDraft.data.deadlineDays);
+    setRecurring(recoveredDraft.data.recurring);
+    setIntervalDays(recoveredDraft.data.intervalDays);
+    if ((recoveredDraft.data as any).splitMeta) {
+      setSplitMeta((recoveredDraft.data as any).splitMeta);
+    }
+    if (draftUserId) {
+      import("@/lib/offlineDraftDB").then(({ deleteDraft }) =>
+        deleteDraft(draftUserId, recoveredDraft.draftId)
+      );
+    }
+    setRecoveredDraft(null);
+    addToast("Draft restored", "success");
+  };
+
+  const handleDiscardDraft = () => {
+    if (recoveredDraft && draftUserId) {
+      import("@/lib/offlineDraftDB").then(({ deleteDraft }) =>
+        deleteDraft(draftUserId, recoveredDraft.draftId)
+      );
+    }
+    setRecoveredDraft(null);
+  };
+
   const { toasts, addToast } = useToasts();
 
-  const {
-    remoteCursors,
-    remotePresence,
-    isConnected: collabConnected,
-    focusedField,
-    setFocusedField,
-    emitFieldBlur,
-  } = useInvoiceCollaboration({
-    invoiceId: "new",
-    currentAddress: publicKey,
-    hasWritePermission: true,
-  });
+  const handleImported = (data: ImportedTxData) => {
+    setImportedTx(data);
+    setRetroError(null);
+  };
+
+  const handleRetroactiveSubmit = async () => {
+    if (!importedTx) return;
+    setRetroSubmitting(true);
+    setRetroError(null);
+    try {
+      const creator = await getFreighterPublicKey().catch(() => importedTx.recipients[0]?.address ?? "unknown");
+      const recipients = importedTx.recipients.map((r) => ({
+        address: r.address,
+        amount: parseAmount(r.amount),
+      }));
+      const total = recipients.reduce((s, r) => s + r.amount, 0n);
+      const id = generateRetroactiveInvoiceId(importedTx.txHash);
+      const record: RetroactiveInvoice = {
+        id,
+        creator,
+        recipients,
+        token: importedTx.recipients[0]?.asset ?? "XLM",
+        deadline: 0,
+        funded: total,
+        status: "Released",
+        payments: [{ payer: creator, amount: total }],
+        retroactive: true,
+        sourceTxHash: importedTx.txHash,
+        memo: importedTx.memo,
+        createdAt: importedTx.createdAt,
+      };
+      saveRetroactiveInvoice(record);
+      addToast(`Retroactive invoice #${id} created`, "success");
+      router.push(`/invoice/${id}`);
+    } catch (err) {
+      setRetroError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRetroSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const address = searchParams.get("address");
@@ -264,6 +415,16 @@ function NewInvoiceForm() {
           setStepErrors((prev) => ({ ...prev, [s]: "Each recipient needs a valid G... address and positive amount" }));
           return false;
         }
+        if (splitMeta && splitMeta.recipients.length > 0) {
+          const splitResult = calculateSplit(splitMeta.totalAmount, splitMeta.recipients, splitMeta.assetCode);
+          if (!splitResult.validation.isValid) {
+            setStepErrors((prev) => ({
+              ...prev,
+              [s]: splitResult.validation.errorMessage ?? "Split calculator has invalid configuration",
+            }));
+            return false;
+          }
+        }
         setStepErrors((prev) => ({ ...prev, [s]: null }));
         return true;
       }
@@ -275,14 +436,35 @@ function NewInvoiceForm() {
     }
   };
 
+  /**
+   * Reason the split is not submittable, or null when it is. Drives both the
+   * disabled state and the tooltip on the create button so the user can see
+   * *why* it is blocked without first clicking it.
+   */
+  const splitBlockReason = useMemo(() => {
+    if (!splitMeta || splitMeta.recipients.length === 0) return null;
+    const { validation } = calculateSplit(
+      splitMeta.totalAmount,
+      splitMeta.recipients,
+      splitMeta.assetCode
+    );
+    return validation.isValid ? null : validation.errorMessage ?? "Split configuration is invalid";
+  }, [splitMeta]);
+
   const handleNext = () => {
     if (validateStep(step)) {
-      setStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+      goToStep(Math.min(step + 1, STEPS.length - 1));
     }
   };
 
   const handleBack = () => {
-    setStep((prev) => Math.max(prev - 1, 0));
+    goToStep(Math.max(step - 1, 0));
+  };
+
+  const payloadForApi = () => {
+    if (!splitMeta) return null;
+    if (installments.length === 0) return splitMeta;
+    return { ...splitMeta, installments };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -322,6 +504,17 @@ function NewInvoiceForm() {
           recipients.map((r) => ({ address: r.address, amount: r.amount }))
         );
         addToast(`Invoice #${invoiceId} created`, "success");
+        const apiPayload = payloadForApi();
+        if (apiPayload && (apiPayload as any).recipients?.length > 0) {
+          fetch(`/api/invoices/${invoiceId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ splitMeta: apiPayload }),
+          }).catch(() => null);
+        }
+        if (tags.length > 0) {
+          saveTags(invoiceId, tags).catch(() => null);
+        }
         setTxModal({ txHash, invoiceId });
       } else {
         const { invoiceId, txHash } = await splitClient.createInvoice({
@@ -341,8 +534,20 @@ function NewInvoiceForm() {
             amount: equalSplit ? (perRecipientAmount ?? "0") : r.amount,
           }))
         );
+        const apiPayload = payloadForApi();
+        if (apiPayload && (apiPayload as any).recipients?.length > 0) {
+          fetch(`/api/invoices/${invoiceId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ splitMeta: apiPayload }),
+          }).catch(() => null);
+        }
+        if (tags.length > 0) {
+          saveTags(invoiceId, tags).catch(() => null);
+        }
         setTxModal({ txHash, invoiceId });
       }
+      discardDraft();
     } catch (err) {
       const msg = String(err);
       setError(msg);
@@ -352,37 +557,17 @@ function NewInvoiceForm() {
     }
   };
 
+  const stepperSteps: Step[] = useMemo(
+    () =>
+      STEPS.map((label, index) => ({
+        label,
+        status: index < step ? "complete" : index === step ? "current" : "upcoming",
+      })),
+    [step]
+  );
+
   const renderStepIndicator = () => (
-    <div className="flex items-center gap-1 mb-8" aria-label="Form steps">
-      {STEPS.map((label, i) => {
-        const isActive = i === step;
-        const isPast = i < step;
-        return (
-          <div key={i} className="flex items-center gap-1 flex-1">
-            <button
-              type="button"
-              onClick={() => { if (i < step || validateStep(step)) setStep(i); }}
-              className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full transition-colors ${
-                isActive
-                  ? "bg-indigo-600 text-white"
-                  : isPast
-                  ? "bg-indigo-900/50 text-indigo-300"
-                  : "bg-gray-800 text-gray-400"
-              }`}
-              aria-current={isActive ? "step" : undefined}
-            >
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-black/20 text-[10px] font-bold">
-                {isPast ? "\u2713" : i + 1}
-              </span>
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-            {i < STEPS.length - 1 && (
-              <div className={`h-0.5 flex-1 rounded ${isPast ? "bg-indigo-600" : "bg-gray-700"}`} />
-            )}
-          </div>
-        );
-      })}
-    </div>
+    <Stepper steps={stepperSteps} onStepClick={goToStep} className="mb-8" />
   );
 
   const renderBasicInfo = () => (
@@ -595,12 +780,26 @@ function NewInvoiceForm() {
           />
         </ChangedField>
       </div>
+
+      <SplitCalculator
+        initialTotal={equalSplit ? totalAmount : recipients.reduce((s, r) => s + parseFloat(r.amount || "0"), 0).toFixed(7)}
+        onSplitMetaChange={setSplitMeta}
+      />
     </div>
   );
 
-  const renderOptions = () => (
+  const renderOptions = () => {
+    const total = recipients.reduce((s, r) => s + parseFloat(r.amount || "0"), 0);
+    return (
     <div className="flex flex-col gap-6">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Options</h2>
+
+      <TagInput
+        value={tags}
+        onChange={setTags}
+        suggestions={allTags}
+        placeholder="e.g. design, q3-retainer"
+      />
 
       {cloneSourceId && (
         <div className="flex items-center gap-2 text-sm bg-indigo-950/60 border border-indigo-700 text-indigo-300 rounded-lg px-3 py-2">
@@ -624,7 +823,7 @@ function NewInvoiceForm() {
 
       {autofilled && !cloneSourceId && (
         <p className="text-xs text-indigo-400 bg-indigo-950/50 border border-indigo-800 rounded-lg px-3 py-2">
-          Autofilled from history — you can override any value.
+          Autofilled from history — you can override any value below.
         </p>
       )}
 
@@ -635,8 +834,16 @@ function NewInvoiceForm() {
           </p>
         </div>
       )}
+
+      <InstallmentPlanBuilder
+        totalAmount={total}
+        installments={installments}
+        assetCode={token === (process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "") ? "USDC" : "XLM"}
+        onChange={setInstallments}
+      />
     </div>
-  );
+    );
+  };
 
   const renderReview = () => {
     const total = recipients.reduce((s, r) => s + parseFloat(r.amount || "0"), 0);
@@ -740,8 +947,92 @@ function NewInvoiceForm() {
         />
       )}
 
-      <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+      <div className="flex items-center gap-3 mb-8 flex-wrap">
+        <h1 className="text-3xl font-bold">Create Invoice</h1>
+        {draftOffline && (
+          <span
+            role="status"
+            className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400"
+          >
+            ⚠ Offline — drafts save locally
+          </span>
+        )}
+      </div>
 
+      {recoveredDraft && (
+        <DraftRecoveryBanner
+          updatedAt={recoveredDraft.updatedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+        />
+      )}
+
+      {!cloneSourceId && (
+        <div className="flex gap-1 border-b border-gray-700 mb-8" role="tablist" aria-label="Invoice creation mode">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={formMode === "create"}
+            onClick={() => setFormMode("create")}
+            className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg -mb-px border-b-2 ${
+              formMode === "create"
+                ? "border-indigo-500 text-indigo-300"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Create New
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={formMode === "import"}
+            onClick={() => setFormMode("import")}
+            className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg -mb-px border-b-2 ${
+              formMode === "import"
+                ? "border-indigo-500 text-indigo-300"
+                : "border-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Import from Transaction
+          </button>
+        </div>
+      )}
+
+      {formMode === "import" && !cloneSourceId ? (
+        <div className="flex flex-col gap-6">
+          <TxImportPanel onImported={handleImported} />
+
+          {importedTx && (
+            <div className="flex flex-col gap-4 rounded-lg bg-indigo-950/40 border border-indigo-800 px-4 py-4">
+              <p className="text-sm text-indigo-200">
+                This invoice will be created as <strong>retroactive</strong> and marked{" "}
+                <strong>Fully Paid</strong> automatically — no on-chain payment is required.
+              </p>
+              {retroError && (
+                <p role="alert" className="text-red-400 text-sm">{retroError}</p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleRetroactiveSubmit}
+                  disabled={retroSubmitting}
+                  className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50"
+                >
+                  {retroSubmitting ? "Creating…" : "Create Retroactive Invoice"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImportedTx(null)}
+                  className="min-h-11 px-6 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 font-medium transition-colors"
+                >
+                  Start Over
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+      <>
       {/* Cloned-from banner */}
       {cloneSourceId && (
         <div className="mb-6 flex items-center gap-2 text-sm bg-indigo-950/60 border border-indigo-700 text-indigo-300 rounded-lg px-3 py-2">
@@ -813,8 +1104,10 @@ function NewInvoiceForm() {
             ) : (
               <button
                 type="submit"
-                disabled={submitting || !!deadlineError}
-                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50"
+                disabled={submitting || !!deadlineError || !!splitBlockReason}
+                title={splitBlockReason ?? undefined}
+                aria-describedby={splitBlockReason ? "split-block-reason" : undefined}
+                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting
                   ? cloneSourceId
@@ -825,9 +1118,20 @@ function NewInvoiceForm() {
                   : t("invoiceNew.create")}
               </button>
             )}
+            {step === STEPS.length - 1 && splitBlockReason && (
+              <p
+                id="split-block-reason"
+                role="status"
+                className="mt-2 max-w-xs text-right text-xs text-red-400"
+              >
+                {splitBlockReason}
+              </p>
+            )}
           </div>
         </div>
       </form>
+      </>
+      )}
     </main>
   );
 }

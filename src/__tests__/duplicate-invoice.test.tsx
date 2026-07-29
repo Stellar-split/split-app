@@ -58,8 +58,10 @@ const mockSearchParams = vi.hoisted(() => new Map<string, string>());
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/invoice/new",
   useSearchParams: () => ({
     get: (key: string) => mockSearchParams.get(key) ?? null,
+    toString: () => new URLSearchParams([...mockSearchParams]).toString(),
   }),
 }));
 
@@ -110,6 +112,37 @@ vi.mock("@/lib/invoiceHistory", () => ({
   recordInvoiceHistory: vi.fn(),
 }));
 
+vi.mock("@/components/SplitCalculator", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/hooks/useOfflineDraftAutosave", () => ({
+  useOfflineDraftAutosave: () => ({
+    isOffline: false,
+    discardDraft: vi.fn(),
+  }),
+}));
+
+vi.mock("@/lib/offlineDraftDB", () => ({
+  getOrCreateLocalUserId: () => "local-user-id",
+  listDraftsForUser: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/components/invoice/DraftRecoveryBanner", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/components/invoice/TxImportPanel", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/lib/templateSharing", () => ({
+  decodeTemplate: vi.fn(),
+}));
+
 describe("NewInvoicePage — URL pre-fill (clone mode)", () => {
   beforeEach(() => {
     mockSearchParams.clear();
@@ -143,11 +176,15 @@ describe("NewInvoicePage — URL pre-fill (clone mode)", () => {
     const deadlineIso = deadline.toISOString().slice(0, 16);
     mockSearchParams.set("from", "42");
     mockSearchParams.set("deadline", deadlineIso);
+    // Clone mode's deadline field lives on the default step (Basic Info).
 
     render(<NewInvoicePage />);
 
     await waitFor(() => {
-      const input = screen.getByLabelText(/deadline/i) as HTMLInputElement;
+      // Scope to the input — the stepper's nav aria-label also contains "Deadline".
+      const input = screen.getByLabelText(/deadline/i, {
+        selector: "input",
+      }) as HTMLInputElement;
       expect(input.value).toBe(deadlineIso);
     });
   });

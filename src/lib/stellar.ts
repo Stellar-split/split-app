@@ -9,7 +9,7 @@ import { NETWORK_PASSPHRASE } from "./freighter";
 
 let _client: StellarSplitClient | null = null;
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
+export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
 const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ??
   (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
@@ -150,6 +150,66 @@ export async function payWithNonce(params: {
   });
 }
 
+export async function payMilestone(params: {
+  payer: string;
+  invoiceId: string;
+  amount: bigint;
+  milestoneId: string;
+}): Promise<{ txHash: string }> {
+  const client = getSplitClient();
+  const { TransactionBuilder, Networks, BASE_FEE, Memo, nativeToScVal, SorobanRpc } = await import("@stellar/stellar-sdk");
+  const { signWithFreighter } = await import("./freighter");
+
+  const memoText = `INV:${params.invoiceId}:M:${params.milestoneId}`.slice(0, 28);
+
+  const operation = client.contract.call(
+    "pay",
+    nativeToScVal(params.payer, { type: "address" }),
+    nativeToScVal(BigInt(params.invoiceId), { type: "u64" }),
+    nativeToScVal(params.amount, { type: "i128" })
+  );
+
+  const sourceAccount = await client.server.getAccount(params.payer);
+  const networkPassphrase = client.config.networkPassphrase;
+
+  const tx = new TransactionBuilder(sourceAccount, {
+    fee: BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(operation)
+    .addMemo(Memo.text(memoText))
+    .setTimeout(30)
+    .build();
+
+  const simResult = await client.server.simulateTransaction(tx);
+  if (SorobanRpc.Api.isSimulationError(simResult)) {
+    throw new Error(`Simulation failed: ${simResult.error}`);
+  }
+
+  const preparedTx = SorobanRpc.assembleTransaction(tx, simResult).build();
+  const signedXdr = await signWithFreighter(preparedTx.toXDR(), networkPassphrase);
+  const signedTx = TransactionBuilder.fromXDR(signedXdr, networkPassphrase);
+  const sendResult = await client.server.sendTransaction(signedTx);
+
+  if (sendResult.status === "ERROR") {
+    throw new Error(`Transaction failed: ${JSON.stringify(sendResult.errorResult)}`);
+  }
+
+  let getResult = await client.server.getTransaction(sendResult.hash);
+  let attempts = 0;
+  while (getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND && attempts < 20) {
+    await new Promise((r) => setTimeout(r, 1500));
+    getResult = await client.server.getTransaction(sendResult.hash);
+    attempts++;
+  }
+
+  if (getResult.status !== SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+    throw new Error(`Transaction not confirmed: ${getResult.status}`);
+  }
+
+  return { txHash: sendResult.hash };
+}
+
 /**
  * Fetch the USDC token balance for a given address.
  *
@@ -205,4 +265,40 @@ export async function fetchUsdcBalance(
   if (!retval) return 0n;
 
   return scValToBigInt(retval);
+}
+
+/**
+ * Resolve a federation address (e.g., alice*example.com) to a Stellar address
+ */
+export async function resolveFederationAddress(federationAddress: string): Promise<string | null> {
+  try {
+    const { FederationServer } = await import("@stellar/stellar-sdk");
+    const result = await FederationServer.resolveAddress(federationAddress);
+    return result.account_id;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Validate a Stellar address and check if it's funded and requires memo
+ */
+export async function validateFederationAddress(address: string): Promise<{
+  isFunded: boolean;
+  requiresMemo: boolean;
+}> {
+  try {
+    const { Horizon } = await import("@stellar/stellar-sdk");
+    const server = new Horizon.Server(HORIZON_URL);
+
+    const account = await server.loadAccount(address);
+    const balances = account.balances;
+
+    const isFunded = balances.length > 0;
+    const requiresMemo = account.flags?.require_auth_memoized_flag || false;
+
+    return { isFunded, requiresMemo };
+  } catch (error) {
+    return { isFunded: false, requiresMemo: false };
+  }
 }
