@@ -1,73 +1,67 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 
-interface RateLimitState {
-  isRateLimited: boolean;
-  resetTimestamp: number | null;
-  retryAfterSeconds: number | null;
+interface InvoiceFormState {
+  expiryDate: string;
+  timezone: string;
 }
 
 export function useInvoiceForm() {
-  const [rateLimitState, setRateLimitState] = useState<RateLimitState>({
-    isRateLimited: false,
-    resetTimestamp: null,
-    retryAfterSeconds: null,
-  });
+  const [state, setState] = useState<InvoiceFormState>(() => ({
+    expiryDate: '',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  }));
 
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
+  const setExpiryDate = useCallback((date: string) => {
+    setState((prev) => ({ ...prev, expiryDate: date }));
+  }, []);
 
-  useEffect(() => {
-    if (!rateLimitState.isRateLimited || !rateLimitState.resetTimestamp) {
-      return;
-    }
+  const setTimezone = useCallback((tz: string) => {
+    setState((prev) => ({ ...prev, timezone: tz }));
+  }, []);
 
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const remaining = Math.max(0, Math.ceil((rateLimitState.resetTimestamp! - now) / 1000));
-      setSecondsRemaining(remaining);
+  const validation = useMemo(() => {
+    const errors: Record<string, string> = {};
 
-      if (remaining <= 0) {
-        setRateLimitState({
-          isRateLimited: false,
-          resetTimestamp: null,
-          retryAfterSeconds: null,
-        });
-        clearInterval(interval);
+    if (state.expiryDate) {
+      const date = new Date(state.expiryDate);
+      if (date < new Date()) {
+        errors.expiryDate = 'Expiry date cannot be in the past';
       }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [rateLimitState.isRateLimited, rateLimitState.resetTimestamp]);
-
-  const handleRateLimit = useCallback((response: Response) => {
-    if (response.status === 429) {
-      const retryAfterHeader = response.headers.get('Retry-After');
-      const retryAfterSeconds = retryAfterHeader ? parseInt(retryAfterHeader, 10) : 60;
-      const resetTimestamp = Date.now() + retryAfterSeconds * 1000;
-
-      setRateLimitState({
-        isRateLimited: true,
-        resetTimestamp,
-        retryAfterSeconds,
-      });
-      setSecondsRemaining(retryAfterSeconds);
     }
-  }, []);
 
-  const resetRateLimit = useCallback(() => {
-    setRateLimitState({
-      isRateLimited: false,
-      resetTimestamp: null,
-      retryAfterSeconds: null,
-    });
-    setSecondsRemaining(0);
-  }, []);
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors,
+    };
+  }, [state.expiryDate]);
+
+  const getUtcTimestamp = useCallback((): number | null => {
+    if (!state.expiryDate || !validation.isValid) {
+      return null;
+    }
+
+    const localDate = new Date(state.expiryDate);
+    return Math.floor(localDate.getTime() / 1000);
+  }, [state.expiryDate, validation.isValid]);
+
+  const convertToUtcIso = useCallback((): string | null => {
+    if (!state.expiryDate) {
+      return null;
+    }
+
+    const localDate = new Date(state.expiryDate);
+    return localDate.toISOString();
+  }, [state.expiryDate]);
 
   return {
-    ...rateLimitState,
-    secondsRemaining,
-    handleRateLimit,
-    resetRateLimit,
+    expiryDate: state.expiryDate,
+    timezone: state.timezone,
+    setExpiryDate,
+    setTimezone,
+    validation,
+    getUtcTimestamp,
+    convertToUtcIso,
   };
 }

@@ -9,6 +9,7 @@ import { NETWORK_PASSPHRASE } from "./freighter";
 
 let _client: StellarSplitClient | null = null;
 
+export const MEMO_MAX_BYTES = 28;
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
 const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ??
@@ -17,6 +18,8 @@ const HORIZON_URL =
     : "https://horizon-testnet.stellar.org");
 
 export const USDC_CONTRACT_ID = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "";
+
+export const MAX_RECIPIENTS = 10;
 
 export function getSplitClient(): StellarSplitClient {
   if (!_client) {
