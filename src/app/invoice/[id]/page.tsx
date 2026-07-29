@@ -56,6 +56,7 @@ import InstallmentPanel from "@/components/InstallmentPanel";
 import InvoiceView from "@/components/invoice/InvoiceView";
 import CoCreatorPanel from "@/components/CoCreatorPanel";
 import PaymentChannelPanel from "@/components/PaymentChannelPanel";
+import DisputePanel from "@/components/DisputePanel";
 import DisputeTimeline from "@/components/DisputeTimeline";
 import ConfidentialPaymentFlow from "@/components/ConfidentialPaymentFlow";
 import AuditLogTable from "@/components/AuditLogTable";
@@ -901,6 +902,17 @@ export default function InvoiceDetailPage({ params }: Props) {
         <p className="text-gray-400 text-sm mb-8">
           This invoice is {invoice.status.toLowerCase()} and no longer accepts payments.
         </p>
+      )}
+
+      {/* Dispute Panel — Full arbitration interface for Disputed invoices */}
+      {invoice.status === "Disputed" && publicKey && (
+        <DisputePanel
+          invoice={invoice}
+          publicKey={publicKey}
+          onRefresh={async () => {
+            await load();
+          }}
+        />
       )}
 
       {/* Dispute Timeline — shown when invoice has an active or resolved dispute */}
