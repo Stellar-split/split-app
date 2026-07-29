@@ -1,23 +1,33 @@
-import { NextResponse } from "next/server";
-import { HORIZON_URL } from "@/lib/stellar";
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(`${HORIZON_URL}/fee_stats`, {
-      cache: "no-store",
+    const horizonUrl = process.env.NEXT_PUBLIC_HORIZON_URL || 'https://horizon.stellar.org';
+
+    const response = await fetch(`${horizonUrl}/fee_stats`, {
+      headers: {
+        'Accept': 'application/json',
+      },
     });
 
     if (!response.ok) {
-      return NextResponse.json({ error: "Failed to fetch fee stats" }, { status: 502 });
+      return NextResponse.json(
+        { error: 'Failed to fetch fee stats from Horizon' },
+        { status: response.status }
+      );
     }
 
-    const stats = await response.json();
+    const data = await response.json();
+
     return NextResponse.json({
-      p95_accepted_fee: Number(stats?.fee_charged?.p95 ?? stats?.max_fee?.p95 ?? 0),
+      baseFee: data.base_fee?.toString() || '100',
+      resourceFee: data.soroban_resource_fee?.toString() || '0',
+      ledgerCapacityUsage: data.ledger_capacity_usage?.toString() || '0',
     });
   } catch (error) {
+    console.error('Error fetching fee stats:', error);
     return NextResponse.json(
-      { error: "Failed to fetch fee stats", details: error instanceof Error ? error.message : String(error) },
+      { error: 'Failed to fetch fee data' },
       { status: 500 }
     );
   }
