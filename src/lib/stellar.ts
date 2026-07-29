@@ -19,6 +19,8 @@ const HORIZON_URL =
 
 export const USDC_CONTRACT_ID = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "";
 
+export const MAX_RECIPIENTS = 10;
+
 export function getSplitClient(): StellarSplitClient {
   if (!_client) {
     const contractId = process.env.NEXT_PUBLIC_CONTRACT_ID ?? "";

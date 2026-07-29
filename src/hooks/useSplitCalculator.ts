@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { MAX_RECIPIENTS } from '@/lib/stellar';
 
 export interface RecipientLine {
   address: string;
@@ -41,6 +42,8 @@ export interface SplitCalculatorResult {
   totalFees: number;
   totalNet: number;
   validation: SplitValidation;
+  canAddRecipient: boolean;
+  recipientCount: number;
 }
 
 const STROOP_SCALE = 1e7;
@@ -136,6 +139,8 @@ export function calculateSplit(
     totalFees,
     totalNet,
     validation,
+    canAddRecipient: recipients.length < MAX_RECIPIENTS,
+    recipientCount: recipients.length,
   };
 }
 
