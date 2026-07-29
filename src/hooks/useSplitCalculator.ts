@@ -46,6 +46,12 @@ export interface SplitCalculatorResult {
   recipientCount: number;
 }
 
+export interface RoundingResolution {
+  amounts: number[];
+  roundingAdjustment: number;
+  recipientIndex: number;
+}
+
 const STROOP_SCALE = 1e7;
 
 function roundToStroops(value: number): number {
