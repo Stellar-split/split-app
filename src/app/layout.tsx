@@ -23,6 +23,7 @@ import QueryProvider from "@/contexts/QueryProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import { FiatRateProvider } from "@/hooks/useFiatRate";
+import { ShortcutRegistryProvider } from "@/context/ShortcutRegistry";
 
 const themeBootstrap = `
 (function () {
@@ -184,6 +185,7 @@ export default function RootLayout({
                   <ToastProvider>
                     <UserPreferencesProvider>
                       <FiatRateProvider>
+                        <ShortcutRegistryProvider>
                         <Navbar />
                         <SimulationBanner />
                         <UpgradeBanner />
@@ -201,6 +203,7 @@ export default function RootLayout({
                         <RecipientOnboarding />
                         <InstallBanner />
                         <ToastContainer />
+                        </ShortcutRegistryProvider>
                       </FiatRateProvider>
                     </UserPreferencesProvider>
                   </ToastProvider>
