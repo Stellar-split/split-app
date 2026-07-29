@@ -14,19 +14,19 @@ import { render, act } from "@testing-library/react";
 import QRModal from "@/components/QRModal";
 
 // ── mock isWalletConnected ────────────────────────────────────────────────────
-const mockIsWalletConnected = jest.fn();
-jest.mock("@/lib/freighter", () => ({
+const mockIsWalletConnected = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/freighter", () => ({
   isWalletConnected: (...args: unknown[]) => mockIsWalletConnected(...args),
 }));
 
 // ── mock FocusTrap (renders children) ────────────────────────────────────────
-jest.mock("@/components/FocusTrap", () => ({
+vi.mock("@/components/FocusTrap", () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 // ── mock qrcode.react ─────────────────────────────────────────────────────────
-jest.mock("qrcode.react", () => ({
+vi.mock("qrcode.react", () => ({
   QRCodeCanvas: () => <canvas />,
 }));
 
@@ -53,7 +53,7 @@ test("onConnected fires exactly once when wallet connects", async () => {
   render(<QRModal {...baseProps} onConnected={onConnected} pollingInterval={2000} />);
 
   await act(async () => {
-    jest.advanceTimersByTime(2000);
+    await vi.advanceTimersByTimeAsync(2000);
   });
 
   expect(onConnected).toHaveBeenCalledTimes(1);
@@ -65,10 +65,9 @@ test("onConnected does not fire again if connection stays true", async () => {
 
   render(<QRModal {...baseProps} onConnected={onConnected} pollingInterval={2000} />);
 
-  // Advance tick-by-tick so the async callback resolves and sets firedRef before the next tick
   for (let i = 0; i < 4; i++) {
     await act(async () => {
-      jest.advanceTimersByTime(2000);
+      await vi.advanceTimersByTimeAsync(2000);
     });
   }
 
@@ -136,7 +135,7 @@ test("no interval leak: re-opening fires onConnected exactly once per cycle", as
   );
 
   await act(async () => {
-    jest.advanceTimersByTime(2000);
+    await vi.advanceTimersByTimeAsync(2000);
   });
 
   // Should fire exactly once for the new cycle, not multiple times from leaked intervals
@@ -156,7 +155,7 @@ test("pollingInterval prop controls tick frequency", async () => {
   expect(onConnected).toHaveBeenCalledTimes(0);
 
   await act(async () => {
-    jest.advanceTimersByTime(100); // reaches 500ms
+    await vi.advanceTimersByTimeAsync(100); // reaches 500ms
   });
   expect(onConnected).toHaveBeenCalledTimes(1);
 });

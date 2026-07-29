@@ -5,17 +5,23 @@ import type { Invoice } from "@stellar-split/sdk";
 
 const SCALE = 10_000_000n;
 
-jest.mock("@stellar-split/sdk", () => ({
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock("@stellar-split/sdk", () => ({
   formatAmount: (value: bigint) => (Number(value) / 10_000_000).toFixed(2),
   parseAmount: (value: string) => BigInt(Math.round(Number(value) * 10_000_000)),
 }));
 
-jest.mock("@/lib/stellar", () => ({
+vi.mock("@/lib/stellar", () => ({
   USDC_CONTRACT_ID: "CUSDC",
-  fetchUsdcBalance: jest.fn().mockResolvedValue(1_000_000_000n),
+  fetchUsdcBalance: vi.fn().mockResolvedValue(1_000_000_000n),
 }));
 
-jest.mock("@/components/FocusTrap", () => ({
+vi.mock("@/components/FocusTrap", () => ({
   __esModule: true,
   default: function FocusTrap({ children }: { children: React.ReactNode }) {
     return <>{children}</>;

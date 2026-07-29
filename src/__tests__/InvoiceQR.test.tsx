@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import InvoiceQR, { clampAmount, MIN_AMOUNT } from "@/components/InvoiceQR";
 
-jest.mock("qrcode.react", () => ({
+vi.mock("qrcode.react", () => ({
   QRCodeCanvas: ({ value }: { value: string }) => (
     <canvas data-testid="qr-canvas" data-value={value} />
   ),

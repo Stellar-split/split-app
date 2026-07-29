@@ -10,7 +10,52 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { resolveCloneChain } from "@/components/CloneLineageTree";
 import type { CloneInvoice } from "@/components/CloneLineageTree";
 
-// ── Shared invoice factory ─────────────────────────────────────────────────
+// ── Hoist invoice fixtures so they're available inside vi.mock factories ──────
+// 3-level chain: root(1) → mid(2) → current(3)
+// mid has 2 other clones (siblings of current): sib-a, sib-b
+const INVOICES = vi.hoisted(() => {
+  const makeInv = (id: string, parentInvoiceId?: string, clones?: string[]) => ({
+    id,
+    creator: "GCREATOR",
+    recipients: [{ address: "GRECP", amount: 10_000_000n }],
+    token: "CUSDC",
+    deadline: Math.floor(Date.now() / 1000) + 86400,
+    funded: 0n,
+    status: "Pending",
+    payments: [],
+    parentInvoiceId,
+    ...(clones ? { clones } : {}),
+  });
+  return {
+    "1": makeInv("1"),
+    "2": makeInv("2", "1", ["3", "sib-a", "sib-b"]),
+    "3": makeInv("3", "2"),
+    "sib-a": makeInv("sib-a", "2"),
+    "sib-b": makeInv("sib-b", "2"),
+  } as Record<string, ReturnType<typeof makeInv>>;
+});
+
+// ── Mock stellar client ────────────────────────────────────────────────────
+
+vi.mock("@/lib/stellar", () => ({
+  splitClient: {
+    getInvoice: vi.fn(async (id: string) => {
+      const invoice = INVOICES[id];
+      if (!invoice) throw new Error(`Invoice ${id} not found`);
+      return invoice;
+    }),
+  },
+}));
+
+// next/link renders an <a> in tests
+vi.mock("next/link", () => ({
+  __esModule: true,
+  default: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+    <a href={href} {...props}>{children}</a>
+  ),
+}));
+
+// ── Shared invoice factory (used in describe block) ────────────────────────
 
 const BASE: Omit<CloneInvoice, "id" | "parentInvoiceId" | "cloneDepth"> = {
   creator: "GCREATOR",
@@ -29,36 +74,6 @@ function inv(
 ): CloneInvoice {
   return { ...BASE, id, parentInvoiceId, ...(clones ? { clones } : {}) } as CloneInvoice;
 }
-
-// ── Mock stellar client ────────────────────────────────────────────────────
-
-// 3-level chain: root(1) → mid(2) → current(3)
-// mid has 2 other clones (siblings of current): sib-a, sib-b
-const INVOICES: Record<string, CloneInvoice> = {
-  "1": inv("1"),
-  "2": inv("2", "1", ["3", "sib-a", "sib-b"]),
-  "3": inv("3", "2"),
-  "sib-a": inv("sib-a", "2"),
-  "sib-b": inv("sib-b", "2"),
-};
-
-jest.mock("@/lib/stellar", () => ({
-  splitClient: {
-    getInvoice: jest.fn(async (id: string) => {
-      const inv = INVOICES[id];
-      if (!inv) throw new Error(`Invoice ${id} not found`);
-      return inv;
-    }),
-  },
-}));
-
-// next/link renders an <a> in tests
-jest.mock("next/link", () => ({
-  __esModule: true,
-  default: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
-    <a href={href} {...props}>{children}</a>
-  ),
-}));
 
 // ── resolveCloneChain unit tests ───────────────────────────────────────────
 

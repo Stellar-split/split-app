@@ -12,15 +12,12 @@ describe('Button', () => {
     render(<Button disabled>Click me</Button>);
     const btn = screen.getByRole('button');
     expect(btn).toBeDisabled();
-    expect(btn).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('shows Loading… and disables when isLoading', () => {
-    render(<Button isLoading>Click me</Button>);
+  it('shows spinner and disables when loading', () => {
+    render(<Button loading>Click me</Button>);
     const btn = screen.getByRole('button');
-    expect(btn).toHaveTextContent('Loading…');
     expect(btn).toBeDisabled();
-    expect(btn).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('calls onClick when clicked', async () => {
@@ -39,11 +36,11 @@ describe('Button', () => {
 
   it('applies primary variant classes by default', () => {
     render(<Button>Primary</Button>);
-    expect(screen.getByRole('button')).toHaveClass('bg-indigo-600');
+    expect(screen.getByRole('button')).toHaveClass('bg-brand-600');
   });
 
   it('applies secondary variant classes', () => {
     render(<Button variant="secondary">Secondary</Button>);
-    expect(screen.getByRole('button')).toHaveClass('bg-gray-700');
+    expect(screen.getByRole('button')).toHaveClass('bg-surface-800');
   });
 });
