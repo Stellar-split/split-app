@@ -3,15 +3,23 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * PATCH /api/invoices/bulk
  *
- * Bulk archive/unarchive operation endpoint.
- * Accepts up to 200 invoice IDs per request with archive status.
+ * Bulk operation endpoint for archive, delete, and tag operations.
+ * Accepts up to 200 invoice IDs per request.
+ *
+ * Request body:
+ * - invoiceIds: string[] (required)
+ * - action: 'archive' | 'delete' | 'tag' (required)
+ * - archived?: boolean (for archive action)
+ * - tags?: string[] (for tag action)
  */
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { invoiceIds, archived } = body as {
+    const { invoiceIds, action, archived, tags } = body as {
       invoiceIds: string[];
-      archived: boolean;
+      action: string;
+      archived?: boolean;
+      tags?: string[];
     };
 
     // Validate inputs
@@ -29,23 +37,53 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    if (typeof archived !== "boolean") {
+    if (!["archive", "delete", "tag"].includes(action)) {
       return NextResponse.json(
-        { error: "archived must be a boolean" },
+        { error: "action must be 'archive', 'delete', or 'tag'" },
         { status: 400 },
       );
     }
 
-    // TODO: Implement actual database storage of archived status
-    // For now, this endpoint validates the request and returns success.
-    // In production, store archived status in database alongside invoice data.
+    if (action === "archive" && typeof archived !== "boolean") {
+      return NextResponse.json(
+        { error: "archived must be a boolean for archive action" },
+        { status: 400 },
+      );
+    }
+
+    if (action === "tag" && !Array.isArray(tags)) {
+      return NextResponse.json(
+        { error: "tags must be an array for tag action" },
+        { status: 400 },
+      );
+    }
+
+    // TODO: Implement actual database operations
+    // For now, validate the request and return success.
+    // In production:
+    // - archive: Update archived status in database
+    // - delete: Mark invoices as deleted or remove them
+    // - tag: Apply tags to invoices
+
+    let message = "";
+    switch (action) {
+      case "archive":
+        message = `${invoiceIds.length} invoices ${archived ? "archived" : "unarchived"}`;
+        break;
+      case "delete":
+        message = `${invoiceIds.length} invoices deleted`;
+        break;
+      case "tag":
+        message = `${invoiceIds.length} invoices tagged with: ${tags?.join(", ")}`;
+        break;
+    }
 
     return NextResponse.json(
       {
         success: true,
         count: invoiceIds.length,
-        archived,
-        message: `${invoiceIds.length} invoices ${archived ? "archived" : "unarchived"}`,
+        action,
+        message,
       },
       { status: 200 },
     );

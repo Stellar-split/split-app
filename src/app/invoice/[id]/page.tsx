@@ -32,10 +32,11 @@ import VotingPanel from "@/components/VotingPanel";
 import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
+import RecipientListSkeleton from "@/components/invoice/RecipientListSkeleton";
 import CloneLineageTree from "@/components/CloneLineageTree";
-import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import StellarErrorBoundary from "@/components/error/StellarErrorBoundary";
 import { useStellarQuery } from "@/hooks/useStellarQuery";
+import { useRecentInvoices } from "@/hooks/useRecentInvoices";
 
 const POLL_MS = 10_000;
 
@@ -54,6 +55,7 @@ import ActivityFeed from "@/components/ActivityFeed";
 import InstallmentTracker from "@/components/InstallmentTracker";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import InvoiceView from "@/components/invoice/InvoiceView";
+import InvoiceSummaryPanel from "@/components/invoice/InvoiceSummaryPanel";
 import CoCreatorPanel from "@/components/CoCreatorPanel";
 import PaymentChannelPanel from "@/components/PaymentChannelPanel";
 import DisputeTimeline from "@/components/DisputeTimeline";
@@ -76,6 +78,7 @@ import { useInvoicePresence } from "@/hooks/useInvoicePresence";
 import PresenceBar from "@/components/PresenceBar";
 import InvoiceSection from "@/components/InvoiceSection";
 import AmountDisplay from "@/components/invoice/AmountDisplay";
+import { Copy } from "lucide-react";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
 const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
@@ -120,6 +123,7 @@ function PaySectionRpcGate({ id, children }: { id: string; children: React.React
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
   const router = useRouter();
+  const { addRecent } = useRecentInvoices();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +134,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const {
     invoice: streamInvoice,
     latestEvent,
-    isConnected,
+    isConnected: streamConnected,
     error: streamError,
   } = useInvoiceStream(id);
 
@@ -239,10 +243,12 @@ export default function InvoiceDetailPage({ params }: Props) {
       if (!retro) throw new Error("Retroactive invoice not found.");
       setInvoice(retro);
       setLoading(false);
+      addRecent(id);
       return;
     }
     const inv = await splitClient.getInvoice(id);
     setInvoice(inv);
+    addRecent(id);
     try {
       const res = await fetch(`/api/invoices/${id}`);
       if (res.ok) {
@@ -350,6 +356,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const total = invoice
     ? invoice.recipients.reduce((s, r) => s + r.amount, 0n)
     : 0n;
+  const role = useInvoiceRole(invoice, publicKey);
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -436,6 +443,12 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   if (!invoice) return null;
 
+  const isCreator = role === "creator";
+  const isRecipient = role === "recipient";
+  const canAct = isCreator || isRecipient;
+  const recipientShare = publicKey
+    ? invoice.recipients.find((recipient) => recipient.address === publicKey)
+    : undefined;
   const remaining = total - invoice.funded;
   const status = statusConfig[invoice.status] || { label: invoice.status, color: "bg-gray-500", icon: "⌛" };
 
@@ -448,7 +461,9 @@ export default function InvoiceDetailPage({ params }: Props) {
     process.env.NEXT_PUBLIC_CONTRACT_ID ?? invoice.token;
 
   return (
-    <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
+    <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+        <div className="min-w-0">
       {/* Reconnecting indicator */}
       {showReconnecting && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
@@ -459,6 +474,12 @@ export default function InvoiceDetailPage({ params }: Props) {
           <span className="text-sm font-medium">Reconnecting...</span>
         </div>
       )}
+
+      {/* Reconnecting indicator */}
+      <ReconnectionBanner
+        show={showReconnecting}
+        isConnected={streamConnected && collabConnected}
+      />
 
       {/* Release Banner */}
       {showReleaseBanner && (
@@ -500,7 +521,7 @@ export default function InvoiceDetailPage({ params }: Props) {
               Retroactive
             </span>
           )}
-          <CopyButton text={id} className="!py-1 !px-2 text-xs" />
+          {canAct && <CopyButton text={id} className="!py-1 !px-2 text-xs" />}
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
           <CopyLinkButton url={`${typeof window !== "undefined" ? window.location.origin : ""}/verify/${id}`} />
@@ -512,6 +533,16 @@ export default function InvoiceDetailPage({ params }: Props) {
             aria-label="Share invoice"
           >
             Share
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/invoice/new?cloneFrom=${id}`)}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm transition-colors inline-flex items-center gap-1.5"
+            aria-label="Clone invoice to create a new one"
+            title="Create a new invoice pre-filled with this invoice's data"
+          >
+            <Copy size={14} />
+            Clone
           </button>
           <button
             type="button"
@@ -540,16 +571,18 @@ export default function InvoiceDetailPage({ params }: Props) {
               {pushStatus === "active" ? "Notifications active" : "Notifications off"}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setShowShareQRModal(true)}
-            ref={shareQRModalTriggerRef}
-            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
-            aria-label="Share invoice via QR"
-          >
-            Share via QR
-          </button>
-          {(invoice as any).confidential && (
+          {canAct && (
+            <button
+              type="button"
+              onClick={() => setShowShareQRModal(true)}
+              ref={shareQRModalTriggerRef}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+              aria-label="Share invoice via QR"
+            >
+              Share via QR
+            </button>
+          )}
+          {isRecipient && (invoice as any).confidential && (
             <button
               type="button"
               onClick={() => setShowConfidentialFlow(true)}
@@ -559,24 +592,28 @@ export default function InvoiceDetailPage({ params }: Props) {
               Pay Confidentially
             </button>
           )}
-          <select
-            value={locale}
-            onChange={(e) => setLocale(e.target.value as Locale)}
-            className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm transition-colors"
-            aria-label="Receipt language"
-          >
-            <option value="en">EN</option>
-            <option value="es">ES</option>
-            <option value="fr">FR</option>
-          </select>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
-          >
-            Print Invoice
-          </button>
-          {invoice.status === "Pending" && publicKey === invoice.creator && (
+          {canAct && (
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as Locale)}
+              className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm transition-colors"
+              aria-label="Receipt language"
+            >
+              <option value="en">EN</option>
+              <option value="es">ES</option>
+              <option value="fr">FR</option>
+            </select>
+          )}
+          {isCreator && (
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
+            >
+              Print Invoice
+            </button>
+          )}
+          {invoice.status === "Pending" && isCreator && (
             <button
               type="button"
               ref={cancelModalTriggerRef}
@@ -655,6 +692,8 @@ export default function InvoiceDetailPage({ params }: Props) {
       </section>
       </InvoiceSection>
 
+      {canAct && <SplitSummaryCard invoice={invoice} total={total} />}
+
       {/* Payments Section */}
       <InvoiceSection
         sectionId="payments"
@@ -696,12 +735,20 @@ export default function InvoiceDetailPage({ params }: Props) {
       </section>
       </InvoiceSection>
 
-      {invoice.status === "Pending" && (
+      {invoice.status === "Pending" && isRecipient && (
         <div className="flex flex-col gap-6">
-          {/* ── Option 1: Pay with Freighter ──────────────────────────── */}
           {publicKey && (
             <form onSubmit={handlePay} className="flex flex-col gap-4">
               <h2 className="text-lg font-semibold">Pay with Freighter</h2>
+              {recipientShare && (
+                <button
+                  type="button"
+                  onClick={() => setPayAmount(formatAmount(recipientShare.amount))}
+                  className="self-start rounded-lg bg-gray-700 px-3 py-1.5 text-sm text-white hover:bg-gray-600"
+                >
+                  Pay my share
+                </button>
+              )}
               <input
                 type="number"
                 step="0.0000001"
@@ -709,10 +756,17 @@ export default function InvoiceDetailPage({ params }: Props) {
                 placeholder="Amount in USDC"
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
+                onFocus={() => setFocusedField("pay-amount-freighter")}
+                onBlur={() => {
+                  if (focusedField === "pay-amount-freighter") {
+                    emitFieldBlur();
+                  }
+                }}
                 required
                 aria-label="Amount in USDC"
                 className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+              <CursorOverlay cursors={remoteCursors} fieldName="pay-amount-freighter" />
               {error && <p className="text-red-400 text-sm">{error}</p>}
               {txHash && (
                 <p className="text-green-400 text-sm">
@@ -750,7 +804,11 @@ export default function InvoiceDetailPage({ params }: Props) {
         onFocusChange={updateFocusedSection}
         className="mb-8"
       >
-        <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
+        {loading ? (
+          <RecipientListSkeleton count={3} />
+        ) : (
+          <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
+        )}
       </InvoiceSection>
 
       {/* Split Calculator */}
@@ -768,7 +826,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       />
 
       {/* Installment schedule — only shown to payers with a registered plan */}
-      {publicKey && loadedSplitMeta?.installments && loadedSplitMeta.installments.length > 0 && (
+      {isRecipient && publicKey && loadedSplitMeta?.installments && loadedSplitMeta.installments.length > 0 && (
         <InvoiceView
           invoice={invoice}
           installments={loadedSplitMeta.installments as InstallmentMilestone[]}
@@ -782,7 +840,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             try {
               await fetch(`/api/invoices/${id}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "x-wallet-public-key": publicKey },
                 body: JSON.stringify({ splitMeta: newSplitMeta }),
               });
             } catch {
@@ -793,12 +851,12 @@ export default function InvoiceDetailPage({ params }: Props) {
       )}
 
       {/* Deadline extension voting — shown to payers on Pending invoices */}
-      {publicKey && (
+      {isRecipient && publicKey && (
         <VotingPanel invoice={invoice} publicKey={publicKey} />
       )}
 
       {/* Deadline extension request/approval flow */}
-      {invoice.status === "Pending" && (
+      {invoice.status === "Pending" && canAct && (
         <DeadlineExtensionPanel
           invoiceId={id}
           invoiceCreator={invoice.creator}
@@ -808,7 +866,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       )}
 
       {/* Co-Creator Management — only shown to primary creator */}
-      {publicKey && (
+      {isCreator && publicKey && (
         <CoCreatorPanel invoice={invoice} publicKey={publicKey} onUpdate={load} />
       )}
 
@@ -816,22 +874,23 @@ export default function InvoiceDetailPage({ params }: Props) {
       {/* TODO: Re-enable when payment channel is fully implemented */}
 
       {/* Pay button → opens modal */}
-      {invoice.status === "Pending" && publicKey && (
+      {invoice.status === "Pending" && isRecipient && publicKey && (
         <StellarErrorBoundary>
         <PaySectionRpcGate id={id}>
-        <section aria-labelledby="pay-heading" className="mb-8">
+        <section aria-labelledby="pay-heading" className="mb-8 bg-gray-800/60 border border-gray-700 rounded-xl p-6">
           <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
+            <h2 id="pay-heading" className="text-lg font-semibold text-white">Pay toward this invoice</h2>
             <CooldownBadge expiresAt={cooldownExpiresAt} />
           </div>
-          <PaymentMethodSelector onMethodChange={setPaymentMethod} />
-          <form onSubmit={handlePay} className="flex flex-col gap-4">
-        <section className="mb-8 bg-gray-800/60 border border-gray-700 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Pay Toward Invoice</h2>
+          {recipientShare && (
+            <p className="mb-4 text-sm text-gray-300">
+              Your share is <span className="font-semibold text-indigo-300">{formatAmount(recipientShare.amount)} USDC</span>.
+            </p>
+          )}
           <PaymentMethodSelector
             onMethodChange={setPaymentMethod}
             payerAddress={publicKey}
-            recipientAddress={invoice.recipients[0]?.address}
+            recipientAddress={recipientShare?.address}
           />
           <form onSubmit={handlePay} className="flex flex-col gap-4 mt-4">
             <div>
@@ -847,10 +906,26 @@ export default function InvoiceDetailPage({ params }: Props) {
                 placeholder="0.00"
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
+                onFocus={() => setFocusedField("pay-amount")}
+                onBlur={() => {
+                  if (focusedField === "pay-amount") {
+                    emitFieldBlur();
+                  }
+                }}
                 required
                 className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+              <CursorOverlay cursors={remoteCursors} fieldName="pay-amount" />
             </div>
+            {recipientShare && (
+              <button
+                type="button"
+                onClick={() => setPayAmount(formatAmount(recipientShare.amount))}
+                className="self-start rounded-lg bg-gray-700 px-3 py-1.5 text-sm text-white hover:bg-gray-600"
+              >
+                Pay my share
+              </button>
+            )}
             {paymentError && (
               <p role="alert" className="text-red-400 text-sm">{paymentError}</p>
             )}
@@ -873,6 +948,11 @@ export default function InvoiceDetailPage({ params }: Props) {
           publicKey={publicKey}
         />
       )}
+        </div>
+        <div className="lg:sticky lg:top-4 lg:max-h-screen lg:overflow-y-auto">
+          <InvoiceSummaryPanel invoice={invoice} total={total} publicKey={publicKey} />
+        </div>
+      </div>
 
       {showPayModal && invoice && publicKey && (
         <PayModal

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { splitClient } from "@/lib/stellar";
 import { truncateAddress } from "@stellar-split/sdk";
+import RelativeTime from "@/components/ui/RelativeTime";
 import {
   buildInvoiceArchive,
   generateArchiveFilename,
@@ -108,22 +109,6 @@ export default function AuditLogTable({ invoiceId, invoice }: Props) {
   const startIdx = (currentPage - 1) * ENTRIES_PER_PAGE;
   const paginatedEntries = entries.slice(startIdx, startIdx + ENTRIES_PER_PAGE);
 
-  const formatTimestamp = (timestamp: number): string => {
-    try {
-      return new Intl.DateTimeFormat("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        timeZoneName: "short",
-      }).format(new Date(timestamp * 1000));
-    } catch {
-      return new Date(timestamp * 1000).toISOString();
-    }
-  };
-
   return (
     <section className="mb-8">
       <div className="flex items-center justify-between mb-4">
@@ -148,7 +133,7 @@ export default function AuditLogTable({ invoiceId, invoice }: Props) {
                   {truncateAddress(entry.actor)}
                 </td>
                 <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">
-                  {formatTimestamp(entry.timestamp)}
+                  <RelativeTime iso={new Date(entry.timestamp * 1000).toISOString()} />
                 </td>
               </tr>
             ))}

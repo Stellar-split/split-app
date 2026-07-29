@@ -7,6 +7,7 @@ import {
   type ActivityEvent,
 } from "@/hooks/useActivityFeed";
 import type { ActivityEventType } from "@/types/activity";
+import RelativeTime from "@/components/ui/RelativeTime";
 
 const EVENT_TYPE_LABELS: Record<ActivityEventType, string> = {
   payment_received: "Payment",
@@ -32,18 +33,6 @@ const EVENT_TYPE_ICONS: Record<ActivityEventType, string> = {
 function truncateAddress(address: string): string {
   if (address.length <= 12) return address;
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
-function formatTimestamp(ts: number): string {
-  const diff = Date.now() - ts;
-  const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
 }
 
 function describeEvent(event: ActivityEvent): string {
@@ -135,9 +124,7 @@ function FeedItem({
             <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
               {describeEvent(event)}
             </p>
-            <time className="text-xs text-gray-400" dateTime={new Date(event.timestamp).toISOString()}>
-              {formatTimestamp(event.timestamp)}
-            </time>
+            <RelativeTime iso={new Date(event.timestamp).toISOString()} className="text-xs text-gray-400" />
           </div>
         </div>
       </Link>

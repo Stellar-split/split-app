@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import WalletAddress from './WalletAddress';
+import RelativeTime from '@/components/ui/RelativeTime';
 
 export interface InvoiceEvent {
   type:
@@ -43,18 +44,6 @@ const EVENT_META: Record<
   Frozen: { icon: '🧊', color: 'text-orange-400', dot: 'bg-orange-500' },
   Archived: { icon: '📦', color: 'text-gray-400', dot: 'bg-gray-500' },
 };
-
-function relativeTime(ts: number): string {
-  const diff = Math.floor(Date.now() / 1000) - ts;
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
-function absoluteTime(ts: number): string {
-  return new Date(ts * 1000).toLocaleString();
-}
 
 // Attempt to call SDK getInvoiceEvents — falls back to empty array if not available
 async function fetchEvents(invoiceId: string, cursor?: string): Promise<{ events: InvoiceEvent[]; nextCursor?: string }> {
@@ -134,12 +123,7 @@ export default function InvoiceTimeline({ invoiceId }: Props) {
                 <span className={`font-medium text-sm ${meta.color}`}>
                   {meta.icon} {evt.type.replace(/([A-Z])/g, ' $1').trim()}
                 </span>
-                <span
-                  className="text-xs text-gray-500 cursor-default"
-                  title={absoluteTime(evt.timestamp)}
-                >
-                  {relativeTime(evt.timestamp)}
-                </span>
+                <RelativeTime iso={new Date(evt.timestamp * 1000).toISOString()} className="text-xs text-gray-500 cursor-default" />
               </div>
               <p className="text-xs text-gray-400 mt-0.5">{evt.description}</p>
               {evt.actor && (
