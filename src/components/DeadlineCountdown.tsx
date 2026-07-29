@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { isExpired } from "@stellar-split/sdk";
+import RelativeTime from "@/components/ui/RelativeTime";
 
 interface Props {
   deadline: number; // unix seconds
@@ -13,21 +14,10 @@ function calcTimeLeft(deadline: number) {
 }
 
 function formatDeadlineTooltip(deadline: number) {
-  const date = new Date(deadline * 1000);
-  const datePart = date.toLocaleDateString("en-US", {
-    timeZone: "UTC",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-  const timePart = date.toLocaleTimeString("en-US", {
-    timeZone: "UTC",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-
-  return `Expires ${datePart} at ${timePart} UTC`;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "full",
+    timeStyle: "long",
+  }).format(new Date(deadline * 1000));
 }
 
 function getColorClass(timeLeft: number) {
@@ -67,9 +57,13 @@ export default function DeadlineCountdown({ deadline, compact = false }: Props) 
 
   if (isExpired(deadline) || timeLeft === 0) {
     return (
-      <span className="text-red-500 font-mono text-xs font-semibold" title={formatDeadlineTooltip(deadline)}>
+      <time
+        dateTime={new Date(deadline * 1000).toISOString()}
+        className="text-red-500 font-mono text-xs font-semibold"
+        title={formatDeadlineTooltip(deadline)}
+      >
         Expired
-      </span>
+      </time>
     );
   }
 
@@ -86,7 +80,12 @@ export default function DeadlineCountdown({ deadline, compact = false }: Props) 
   const display = `${parts.join(" ")} remaining`;
   const colorClass = getColorClass(timeLeft);
 
-  return (
+  return compact ? (
+    <RelativeTime
+      iso={new Date(deadline * 1000).toISOString()}
+      className={`font-mono text-xs font-semibold tabular-nums ${colorClass}`}
+    />
+  ) : (
     <span
       className={`font-mono text-xs font-semibold tabular-nums ${colorClass}`}
       title={formatDeadlineTooltip(deadline)}

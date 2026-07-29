@@ -1,6 +1,7 @@
 "use client";
 
 import type { Invoice } from "@stellar-split/sdk";
+import RelativeTime from "@/components/ui/RelativeTime";
 
 interface TimelineEvent {
   key: string;
@@ -8,18 +9,6 @@ interface TimelineEvent {
   label: string;
   timestamp: number | null;
   actor?: string;
-}
-
-function relativeTime(ts: number): string {
-  const diff = Math.floor((Date.now() / 1000) - ts);
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
-function absoluteTime(ts: number): string {
-  return new Date(ts * 1000).toLocaleString();
 }
 
 function truncate(addr: string) {
@@ -164,11 +153,8 @@ export default function StatusTimeline({ invoice, total }: Props) {
                     </p>
                   )}
                   {ev.timestamp ? (
-                    <p
-                      className="text-xs text-gray-500 mt-0.5 cursor-default"
-                      title={absoluteTime(ev.timestamp)}
-                    >
-                      {relativeTime(ev.timestamp)}
+                    <p className="text-xs text-gray-500 mt-0.5 cursor-default">
+                      <RelativeTime iso={new Date(ev.timestamp * 1000).toISOString()} />
                     </p>
                   ) : (
                     <p className="text-xs text-gray-600 mt-0.5 italic">timestamp pending</p>

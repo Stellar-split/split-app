@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { parseMentions, notifyMention } from "@/lib/notifications";
+import RelativeTime from "@/components/ui/RelativeTime";
 
 interface Comment {
   id: string;
@@ -45,14 +46,6 @@ function deleteComment(id: string) {
     STORAGE_KEY,
     JSON.stringify(all.filter((c) => c.id !== id))
   );
-}
-
-function relativeTime(timestamp: number): string {
-  const diff = (Date.now() - timestamp) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
-  return `${Math.floor(diff / 86400)} days ago`;
 }
 
 /** Stellar address pattern — must match parseMentions regex. */
@@ -137,7 +130,9 @@ export default function CommentSection({ invoiceId, walletAddress }: Props) {
             >
               <div className="flex-1 min-w-0">
                 <p className="text-gray-200 break-words">{renderCommentText(c.text)}</p>
-                <p className="text-xs text-gray-500 mt-1">{relativeTime(c.timestamp)}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  <RelativeTime iso={new Date(c.timestamp).toISOString()} />
+                </p>
               </div>
               <button
                 onClick={() => handleDelete(c.id)}

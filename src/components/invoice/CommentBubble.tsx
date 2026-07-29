@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import { truncateAddress } from "@stellar-split/sdk";
 import ReactionBar from "./ReactionBar";
 import type { AllowedEmoji } from "@/lib/commentStore";
+import RelativeTime from "@/components/ui/RelativeTime";
 
 export interface CommentWithReactions {
   id: string;
@@ -22,14 +23,6 @@ interface Props {
   onDelete: (commentId: string) => void;
   onToggleReaction: (commentId: string, emoji: AllowedEmoji) => void;
   reactionsDisabled?: boolean;
-}
-
-function relativeTime(timestamp: number): string {
-  const diff = (Date.now() - timestamp) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
 }
 
 export default function CommentBubble({
@@ -55,7 +48,7 @@ export default function CommentBubble({
             <span className="text-sm font-medium text-gray-200 font-mono truncate">
               {truncateAddress(comment.authorAddress)}
             </span>
-            <span className="text-xs text-gray-500 shrink-0">{relativeTime(comment.createdAt)}</span>
+            <RelativeTime iso={new Date(comment.createdAt).toISOString()} className="text-xs text-gray-500 shrink-0" />
           </div>
           {canDelete && (
             <button

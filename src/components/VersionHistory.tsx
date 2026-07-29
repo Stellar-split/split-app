@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { splitClient } from "@/lib/stellar";
 import { truncateAddress } from "@stellar-split/sdk";
+import RelativeTime from "@/components/ui/RelativeTime";
 
 interface HistoryEntry {
   action: string;
@@ -117,13 +118,7 @@ export default function VersionHistory({ invoiceId }: Props) {
           <div className="flex-1 pt-0.5">
             <p className="font-semibold text-gray-200">{entry.action}</p>
             <p className="text-xs text-gray-400 mt-1">
-              {new Intl.DateTimeFormat("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              }).format(new Date(entry.timestamp * 1000))}
+              <RelativeTime iso={new Date(entry.timestamp * 1000).toISOString()} />
             </p>
 
             {/* Diff display */}
