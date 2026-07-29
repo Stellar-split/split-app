@@ -37,6 +37,7 @@ import CloneLineageTree from "@/components/CloneLineageTree";
 import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import StellarErrorBoundary from "@/components/error/StellarErrorBoundary";
 import { useStellarQuery } from "@/hooks/useStellarQuery";
+import { useRecentInvoices } from "@/hooks/useRecentInvoices";
 
 const POLL_MS = 10_000;
 
@@ -122,6 +123,7 @@ function PaySectionRpcGate({ id, children }: { id: string; children: React.React
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
   const router = useRouter();
+  const { addRecent } = useRecentInvoices();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -241,10 +243,12 @@ export default function InvoiceDetailPage({ params }: Props) {
       if (!retro) throw new Error("Retroactive invoice not found.");
       setInvoice(retro);
       setLoading(false);
+      addRecent(id);
       return;
     }
     const inv = await splitClient.getInvoice(id);
     setInvoice(inv);
+    addRecent(id);
     try {
       const res = await fetch(`/api/invoices/${id}`);
       if (res.ok) {

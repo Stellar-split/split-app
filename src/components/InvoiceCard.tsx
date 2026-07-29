@@ -6,6 +6,7 @@ import DeadlineCountdown from "./DeadlineCountdown";
 import TagPills from "./invoice/TagPills";
 import Link from "next/link";
 import AmountDisplay from "@/components/invoice/AmountDisplay";
+import { getRelativeAge } from "@/lib/dateUtils";
 
 interface Props {
   invoice: Invoice;
@@ -25,6 +26,8 @@ interface Props {
 export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompareToggle, isComparing, isChecked, tags = [] }: Props) {
   const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
   const deadlineLabel = new Date(invoice.deadline * 1000).toLocaleDateString();
+  const createdDate = new Date(parseInt(invoice.id) * 1000 || 0); // Rough estimate from id
+  const isOverdue = invoice.deadline > 0 && invoice.deadline < Math.floor(Date.now() / 1000) && (invoice.status === "Pending" || invoice.status === "Active");
 
   return (
     <div className={`bg-gray-100 dark:bg-gray-900 rounded-xl p-4 sm:p-5 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors min-w-0 ${isComparing ? "relative" : "cursor-pointer"}`}>
@@ -67,10 +70,21 @@ export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompa
             </button>
           )}
           <StatusBadge status={invoice.status as any} size="sm" />
+          {isOverdue && (
+            <span
+              role="status"
+              aria-label="Status: Overdue"
+              className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-0.5 bg-red-500/20 text-red-400"
+            >
+              Overdue
+            </span>
+          )}
         </div>
       </div>
 
-      <p className="text-xs text-gray-500 mb-3">Due {deadlineLabel}</p>
+      <p className="text-xs text-gray-500 mb-3">
+        Created {getRelativeAge(createdDate)} · Due {deadlineLabel}
+      </p>
 
       {tags.length > 0 && <TagPills tags={tags} max={4} className="mb-3" />}
 
