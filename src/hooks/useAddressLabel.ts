@@ -15,8 +15,8 @@ export async function resolveAddressLabel(address: string): Promise<string | nul
   // 1. Resolve federation address (e.g., user*domain.com or *domain.com)
   if (trimmed.includes("*")) {
     try {
-      const { FederationServer } = await import("@stellar/stellar-sdk");
-      const record = await FederationServer.resolve(trimmed);
+      const { Federation } = await import("@stellar/stellar-sdk");
+      const record = await Federation.Server.resolve(trimmed);
       if (record) {
         const username = trimmed.split("*")[0];
         if (username && username.length > 0) {

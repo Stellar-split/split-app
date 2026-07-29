@@ -101,14 +101,15 @@ export const validateDeepLinkParams = (
 export const generateQRCode = async (
   url: string
 ): Promise<string> => {
-  // In real implementation, would use a QR code library
-  // For testing, we'll return a mock data URL
-  return `data:image/svg+xml;base64,${Buffer.from(`<svg></svg>`).toString("base64")}`;
+  // In real implementation, would use a QR code library. For testing, the
+  // payload URL is embedded so distinct payloads produce distinct codes.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg"><data>${url}</data></svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 };
 
 describe("invoiceDeepLinkGenerator", () => {
   const validParams: DeepLinkParams = {
-    to: "GBTCHKH4IIT3DYQF7GAZPRMH5CHA4RTJOY2O3YYJWCEPIA3XBKXZMWP",
+    to: "GBTCHKH4IIT3DYQF7GAZPRMH5CHA4RTJOY2O3YYJWCEPIA3XBKXZMWPA",
     asset: "USDC",
     amount: "100.50",
   };
@@ -117,7 +118,7 @@ describe("invoiceDeepLinkGenerator", () => {
     it("generates a URL with required parameters", () => {
       const url = generateDeepLink(validParams);
       expect(url).toContain("/pay/new?");
-      expect(url).toContain("to=GBTCHKH4IIT3DYQF7GAZPRMH5CHA4RTJOY2O3YYJWCEPIA3XBKXZMWP");
+      expect(url).toContain("to=GBTCHKH4IIT3DYQF7GAZPRMH5CHA4RTJOY2O3YYJWCEPIA3XBKXZMWPA");
       expect(url).toContain("asset=USDC");
       expect(url).toContain("amount=100.50");
     });
@@ -160,7 +161,7 @@ describe("invoiceDeepLinkGenerator", () => {
 
   describe("parseDeepLinkParams", () => {
     it("parses URL with required parameters", () => {
-      const url = "/pay/new?to=GBTCHKH4IIT3DYQF7GAZPRMH5CHA4RTJOY2O3YYJWCEPIA3XBKXZMWP&asset=USDC&amount=100.50";
+      const url = "/pay/new?to=GBTCHKH4IIT3DYQF7GAZPRMH5CHA4RTJOY2O3YYJWCEPIA3XBKXZMWPA&asset=USDC&amount=100.50";
       const params = parseDeepLinkParams(url);
       expect(params).toEqual(validParams);
     });

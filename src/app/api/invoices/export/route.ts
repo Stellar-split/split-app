@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     // Return file
     const filename = generateExportFilename('invoices');
-    return new NextResponse(excelData, {
+    return new NextResponse(excelData as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type':

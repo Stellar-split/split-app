@@ -58,7 +58,11 @@ export function calculateFraudRiskScore(
     (f) => f.type === AnomalyType.RAPID_SUCCESSION,
   ).length;
   if (rapidCount > 0) {
-    const contribution = Math.min(rapidCount * 15, WEIGHTS.RAPID_SUCCESSION);
+    // Each rapid-succession flag carries the full signal weight (capped).
+    const contribution = Math.min(
+      rapidCount * WEIGHTS.RAPID_SUCCESSION,
+      WEIGHTS.RAPID_SUCCESSION,
+    );
     signals.push({
       signal: "rapid_succession",
       weight: WEIGHTS.RAPID_SUCCESSION,
@@ -73,8 +77,9 @@ export function calculateFraudRiskScore(
     (f) => f.type === AnomalyType.FIRST_TIME_LARGE,
   ).length;
   if (firstTimeLargeCount > 0) {
+    // Each first-time large-payer flag carries the full signal weight (capped).
     const contribution = Math.min(
-      firstTimeLargeCount * 20,
+      firstTimeLargeCount * WEIGHTS.FIRST_TIME_LARGE,
       WEIGHTS.FIRST_TIME_LARGE,
     );
     signals.push({
@@ -94,7 +99,7 @@ export function calculateFraudRiskScore(
   if (invoiceTotal > 1_000_000n) {
     // Large invoice threshold (>1M stroops)
     const contribution = Math.min(
-      (Number(invoiceTotal) / 1_000_000n) * 5,
+      (Number(invoiceTotal) / 1_000_000) * 5,
       WEIGHTS.LARGE_AMOUNT,
     );
     signals.push({

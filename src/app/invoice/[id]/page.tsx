@@ -17,6 +17,7 @@ import FundingProgress from "@/components/FundingProgress";
 import StatusBadge from "@/components/StatusBadge";
 import StatusTimeline from "@/components/StatusTimeline";
 import { InvoiceDetailSkeleton } from "@/components/Skeleton";
+import CooldownBadge from "@/components/CooldownBadge";
 import PayModal from "@/components/PayModal";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
 import DeadlineCountdown from "@/components/DeadlineCountdown";
@@ -33,7 +34,6 @@ import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
 import CloneLineageTree from "@/components/CloneLineageTree";
-import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import StellarErrorBoundary from "@/components/error/StellarErrorBoundary";
 import { useStellarQuery } from "@/hooks/useStellarQuery";
 
@@ -50,10 +50,11 @@ import SplitCalculator from "@/components/SplitCalculator";
 import InvoiceTagEditor from "@/components/invoice/InvoiceTagEditor";
 import type { SplitMeta } from "@/hooks/useSplitCalculator";
 import type { InstallmentMilestone } from "@/components/invoice/InvoiceView";
-import ActivityFeed from "@/components/ActivityFeed";
 import InstallmentTracker from "@/components/InstallmentTracker";
 import InstallmentPanel from "@/components/InstallmentPanel";
-import InvoiceView from "@/components/invoice/InvoiceView";
+import InvoiceView, { BrandHeader } from "@/components/invoice/InvoiceView";
+import { fetchBrandSettings } from "@/lib/branding";
+import type { BrandSettings } from "@/lib/brandSettings";
 import CoCreatorPanel from "@/components/CoCreatorPanel";
 import PaymentChannelPanel from "@/components/PaymentChannelPanel";
 import DisputeTimeline from "@/components/DisputeTimeline";
@@ -125,6 +126,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadedSplitMeta, setLoadedSplitMeta] = useState<SplitMeta | null>(null);
+  const [branding, setBranding] = useState<BrandSettings | null>(null);
 
   // Live stream
   const {
@@ -201,7 +203,6 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [channelState, setChannelState] = useState<PaymentChannelState | null>(null);
   const [channelLoading, setChannelLoading] = useState(false);
   const [channelError, setChannelError] = useState<string | null>(null);
-  const [previousInvoice, setPreviousInvoice] = useState<Invoice | null>(null);
   const [reminderDate, setReminderDate] = useState("");
   const [reminderMsg, setReminderMsg] = useState("");
   const [hasReminder, setHasReminder] = useState(false);
@@ -274,6 +275,22 @@ export default function InvoiceDetailPage({ params }: Props) {
       });
     }
   }, [id]);
+
+  // Load the invoice creator's account branding (logo / accent / tagline) so
+  // the live invoice view and PDF export can render it. Falls back to
+  // platform-default styling when the creator has no branding configured.
+  useEffect(() => {
+    if (!invoice?.creator) return;
+    let cancelled = false;
+    fetchBrandSettings(invoice.creator)
+      .then((settings) => {
+        if (!cancelled) setBranding(settings);
+      })
+      .catch(() => null);
+    return () => {
+      cancelled = true;
+    };
+  }, [invoice?.creator]);
 
   useEffect(() => {
     if (!publicKey) return;
@@ -522,7 +539,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           >
             Duplicate
           </button>
-          <InvoiceExportButton invoice={invoice} total={total} />
+          <InvoiceExportButton invoice={invoice} total={total} branding={branding} />
           {pushStatus !== "unsupported" && !isRetroactive && (
             <button
               type="button"
@@ -589,6 +606,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           )}
         </div>
       </div>
+
+      {/* Creator branding (logo / accent / tagline) — hidden when unset */}
+      <BrandHeader branding={branding} />
 
       {/* Tags */}
       <InvoiceTagEditor invoiceId={id} className="mb-6" />
@@ -759,20 +779,13 @@ export default function InvoiceDetailPage({ params }: Props) {
         readOnly
       />
 
-      <ActivityFeed
-        invoice={{
-          ...invoice,
-          payments: invoice.payments.filter((p) => !(p as any).pending),
-        }}
-        previousInvoice={previousInvoice}
-      />
-
       {/* Installment schedule — only shown to payers with a registered plan */}
       {publicKey && loadedSplitMeta?.installments && loadedSplitMeta.installments.length > 0 && (
         <InvoiceView
           invoice={invoice}
           installments={loadedSplitMeta.installments as InstallmentMilestone[]}
           publicKey={publicKey}
+          branding={branding}
           onPaid={async (milestoneId, txHash) => {
             const updated = (loadedSplitMeta.installments || []).map((m) =>
               m.id === milestoneId ? { ...m, status: 'paid', txHash } : m
@@ -819,15 +832,11 @@ export default function InvoiceDetailPage({ params }: Props) {
       {invoice.status === "Pending" && publicKey && (
         <StellarErrorBoundary>
         <PaySectionRpcGate id={id}>
-        <section aria-labelledby="pay-heading" className="mb-8">
+        <section aria-labelledby="pay-heading" className="mb-8 bg-gray-800/60 border border-gray-700 rounded-xl p-6">
           <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <h2 id="pay-heading" className="text-lg font-semibold">Pay toward this invoice</h2>
+            <h2 id="pay-heading" className="text-lg font-semibold text-white">Pay Toward Invoice</h2>
             <CooldownBadge expiresAt={cooldownExpiresAt} />
           </div>
-          <PaymentMethodSelector onMethodChange={setPaymentMethod} />
-          <form onSubmit={handlePay} className="flex flex-col gap-4">
-        <section className="mb-8 bg-gray-800/60 border border-gray-700 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Pay Toward Invoice</h2>
           <PaymentMethodSelector
             onMethodChange={setPaymentMethod}
             payerAddress={publicKey}
@@ -880,12 +889,14 @@ export default function InvoiceDetailPage({ params }: Props) {
           total={total}
           publicKey={publicKey}
           onPay={async (amount, email, options, mfaToken) => {
+            // `metadata` (MFA token) is forwarded to the contract ABI at
+            // runtime but missing from the published SDK PayParams type.
             const result = await splitClient.pay({
               payer: publicKey,
               invoiceId: id,
               amount,
               metadata: mfaToken ? { mfaToken } : undefined,
-            });
+            } as Parameters<typeof splitClient.pay>[0] & { metadata?: { mfaToken: string } });
             fetch("/api/cron/funding-thresholds", {
               method: "POST",
               headers: { "Content-Type": "application/json" },

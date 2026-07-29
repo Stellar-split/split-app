@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import Stepper, { type Step } from "@/components/ui/Stepper";
@@ -33,7 +32,7 @@ import {
   calculateSplit,
   type SplitMeta,
 } from "@/hooks/useSplitCalculator";
-import InstallmentPlanBuilder from "@/components/invoice/InstallmentPlanBuilder";
+import InstallmentPlanBuilder, { type InstallmentMilestone as PlanMilestone } from "@/components/invoice/InstallmentPlanBuilder";
 
 const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
@@ -133,7 +132,7 @@ function NewInvoiceForm() {
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
   const [splitMeta, setSplitMeta] = useState<SplitMeta | null>(null);
-  const [installments, setInstallments] = useState<{ id: string; amount: number; dueDate: number; status: string; txHash?: string }[]>([]);
+  const [installments, setInstallments] = useState<PlanMilestone[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const { allTags, saveTags } = useInvoiceTags();
 

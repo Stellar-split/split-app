@@ -325,7 +325,7 @@ export default function SplitCalculator({
       <div className="space-y-3 mb-5">
         {derivedLines.length === 0 && !readOnly && (
           <p className="text-sm text-gray-500 text-center py-6">
-            No recipients yet. Click "Add Line" to begin.
+            No recipients yet. Click &quot;Add Line&quot; to begin.
           </p>
         )}
 
