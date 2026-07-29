@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import Stepper, { type Step } from "@/components/ui/Stepper";
+import FormField from "@/components/ui/FormField";
+import UnsavedChangesModal from "@/components/ui/UnsavedChangesModal";
+import FeeTooltip from "@/components/ui/FeeTooltip";
+import { useNetworkFeeBreakdown } from "@/hooks/useNetworkFeeBreakdown";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
@@ -161,12 +165,29 @@ function NewInvoiceForm() {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [recoveredDraft, setRecoveredDraft] = useState<StoredDraft | null>(null);
 
+  const isDraftDirty = () => {
+    if (!hasUserInteracted) return false;
+    return recipients.length > 0 || deadlineDays !== 7 || token !== (process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "") || tags.length > 0;
+  };
+
   useEffect(() => {
     getFreighterPublicKey()
       .then((pk) => setDraftUserId(pk))
       .catch(() => setDraftUserId(getOrCreateLocalUserId()));
     setDraftId(crypto.randomUUID());
   }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDraftDirty()) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUserInteracted, recipients, deadlineDays, token, tags]);
 
   useEffect(() => {
     if (!draftUserId || fromId || searchParams.get("template") || searchParams.get("address")) return;
@@ -179,6 +200,20 @@ function NewInvoiceForm() {
     // draft won't exist yet so it can never be the one we find here).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftUserId]);
+
+  useEffect(() => {
+    if (hasUserInteracted) return;
+    const initialRecipients = [{ address: "", amount: "" }];
+    const initialToken = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "";
+    const initialDeadline = 7;
+
+    if (JSON.stringify(recipients) !== JSON.stringify(initialRecipients) ||
+        token !== initialToken ||
+        deadlineDays !== initialDeadline ||
+        tags.length > 0) {
+      setHasUserInteracted(true);
+    }
+  }, [recipients, token, deadlineDays, tags, hasUserInteracted]);
 
   const draftSnapshot = {
     recipients,
@@ -225,6 +260,76 @@ function NewInvoiceForm() {
   };
 
   const { toasts, addToast } = useToasts();
+
+  const handleSplitEqually = () => {
+    if (recipients.length <= 1) return;
+
+    setPreviousRecipientsForUndo([...recipients]);
+
+    const { perRecipient, remainder } = (() => {
+      const pp = Math.floor(100 / recipients.length);
+      const rem = 100 - (pp * recipients.length);
+      return { perRecipient: pp, remainder: rem };
+    })();
+
+    const newRecipients = recipients.map((r, index) => ({
+      ...r,
+      amount: (100 / recipients.length).toFixed(7),
+    }));
+
+    if (remainder > 0 && newRecipients.length > 0) {
+      const firstAmount = parseFloat(newRecipients[0].amount) + (remainder / recipients.length);
+      newRecipients[0].amount = firstAmount.toFixed(7);
+    }
+
+    setRecipients(newRecipients);
+    addToast("Split distributed equally", "success");
+  };
+
+  const handleUndoSplit = () => {
+    if (previousRecipientsForUndo) {
+      setRecipients(previousRecipientsForUndo);
+      setPreviousRecipientsForUndo(null);
+      addToast("Distribution undone", "success");
+    }
+  };
+
+  const markFieldTouched = (fieldName: string) => {
+    setTouchedFields((prev) => new Set([...prev, fieldName]));
+  };
+
+  const validateField = (fieldName: string, value: unknown): string | null => {
+    if (fieldName === 'token') {
+      const tokenValue = value as string;
+      if (!tokenValue || !tokenValue.startsWith('C')) {
+        return 'Valid token contract address (starting with C) is required';
+      }
+    } else if (fieldName === 'deadlineDays') {
+      const days = value as number;
+      if (days < 1 || days > 365) {
+        return 'Deadline must be between 1 and 365 days';
+      }
+    } else if (fieldName === 'cloneDeadline') {
+      const deadlineError = validateDeadline(value as string);
+      return deadlineError;
+    }
+    return null;
+  };
+
+  const handleFieldBlur = (fieldName: string, value: unknown) => {
+    markFieldTouched(fieldName);
+    setHasUserInteracted(true);
+    const error = validateField(fieldName, value);
+    setFieldErrors((prev) => ({ ...prev, [fieldName]: error }));
+  };
+
+  const handleFieldChange = (fieldName: string, value: unknown) => {
+    setHasUserInteracted(true);
+    if (touchedFields.has(fieldName)) {
+      const error = validateField(fieldName, value);
+      setFieldErrors((prev) => ({ ...prev, [fieldName]: error }));
+    }
+  };
 
   const handleImported = (data: ImportedTxData) => {
     setImportedTx(data);
@@ -306,6 +411,13 @@ function NewInvoiceForm() {
   const [loading, setLoading] = useState(false);
   const [autofilled, setAutofilled] = useState(false);
   const [stepErrors, setStepErrors] = useState<Record<number, string | null>>({});
+  const [previousRecipientsForUndo, setPreviousRecipientsForUndo] = useState<RecipientRow[] | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [pendingNavigationHref, setPendingNavigationHref] = useState<string | null>(null);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const { feeBreakdown, isLoading: feeLoading, error: feeError, refetch: refetchFees } = useNetworkFeeBreakdown();
 
   // Denomination toggle state (XLM / USDC)
   type Denomination = "XLM" | "USDC";
@@ -476,7 +588,18 @@ function NewInvoiceForm() {
   };
 
   const handleBack = () => {
-    goToStep(Math.max(step - 1, 0));
+    if (step > 0) {
+      goToStep(Math.max(step - 1, 0));
+    }
+  };
+
+  const handleProtectedNavigation = (href: string) => {
+    if (isDraftDirty()) {
+      setPendingNavigationHref(href);
+      setShowUnsavedModal(true);
+    } else {
+      router.push(href);
+    }
   };
 
   const payloadForApi = () => {
@@ -600,13 +723,14 @@ function NewInvoiceForm() {
         />
       )}
 
-      <div>
-        <label htmlFor="token-address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {t("invoiceNew.tokenAddress")}
-        </label>
-        <ChangedField changed={tokenChanged}>
+      <ChangedField changed={tokenChanged}>
+        <FormField
+          id="token-address"
+          label={t("invoiceNew.tokenAddress")}
+          error={touchedFields.has('token') ? fieldErrors['token'] : null}
+          required
+        >
           <input
-            id="token-address"
             type="text"
             value={token}
             onChange={(e) => setToken(e.target.value)}
@@ -616,47 +740,46 @@ function NewInvoiceForm() {
             }}
             required
             placeholder="C..."
-            className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className={`w-full min-h-11 bg-gray-800 border rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              touchedFields.has('token') && fieldErrors['token']
+                ? 'border-red-500'
+                : 'border-gray-700'
+            }`}
           />
           <CursorOverlay cursors={remoteCursors} fieldName="token-address" />
         </ChangedField>
       </div>
 
       {cloneSourceId ? (
-        <div>
-          <label htmlFor="clone-deadline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {t("invoiceNew.deadline")}
-          </label>
+        <FormField
+          id="clone-deadline"
+          label={t("invoiceNew.deadline")}
+          error={touchedFields.has('cloneDeadline') ? fieldErrors['cloneDeadline'] : null}
+          required
+        >
           <input
-            id="clone-deadline"
             type="datetime-local"
             value={cloneDeadlineIso.slice(0, 16)}
             onChange={(e) => {
               setCloneDeadlineIso(e.target.value);
-              const err = validateDeadline(e.target.value);
-              setDeadlineError(err);
-              setStepErrors((prev) => ({ ...prev, [0]: err }));
+              handleFieldChange('cloneDeadline', e.target.value);
             }}
-            required
+            onBlur={(e) => handleFieldBlur('cloneDeadline', e.target.value)}
             className={`w-full min-h-11 bg-gray-800 border rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              deadlineError ? "border-red-500" : "border-gray-700"
+              touchedFields.has('cloneDeadline') && fieldErrors['cloneDeadline']
+                ? 'border-red-500'
+                : 'border-gray-700'
             }`}
-            aria-describedby={deadlineError ? "clone-deadline-error" : undefined}
-            aria-invalid={!!deadlineError}
           />
-          {deadlineError && (
-            <p id="clone-deadline-error" role="alert" className="text-red-600 dark:text-red-400 text-sm mt-1">
-              {deadlineError}
-            </p>
-          )}
-        </div>
+        </FormField>
       ) : (
-        <div>
-          <label htmlFor="deadline-days" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {t("invoiceNew.deadline")}
-          </label>
+        <FormField
+          id="deadline-days"
+          label={t("invoiceNew.deadline")}
+          error={touchedFields.has('deadlineDays') ? fieldErrors['deadlineDays'] : null}
+          required
+        >
           <input
-            id="deadline-days"
             type="number"
             min={1}
             max={365}
@@ -681,7 +804,21 @@ function NewInvoiceForm() {
             recipientCount={recipients.filter((r) => r.address).length}
             onUseSuggestion={(days: number) => setDeadlineDays(days)}
           />
-        </div>
+        </FormField>
+      )}
+
+      {!cloneSourceId && (
+        <DeadlineSuggester
+          totalAmount={
+            equalSplit
+              ? totalAmount
+              : recipients
+                  .reduce((sum, r) => sum + parseFloat(r.amount || "0"), 0)
+                  .toString()
+          }
+          recipientCount={recipients.filter((r) => r.address).length}
+          onUseSuggestion={(days: number) => setDeadlineDays(days)}
+        />
       )}
 
       {!cloneSourceId && (
@@ -732,36 +869,59 @@ function NewInvoiceForm() {
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recipients</h2>
 
       {!cloneSourceId && (
-        <div className="flex items-center justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
-          <label htmlFor="equal-split-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
-            {t("invoiceNew.equalSplit")}
-          </label>
-          <button
-            id="equal-split-toggle"
-            type="button"
-            role="switch"
-            aria-checked={equalSplit}
-            aria-label="Toggle equal split mode"
-            onClick={() => setEqualSplit((v) => !v)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              equalSplit ? "bg-indigo-600" : "bg-gray-300 dark:bg-gray-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                equalSplit ? "translate-x-6" : "translate-x-1"
+        <>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between rounded-lg bg-gray-800 border border-gray-700 px-4 py-3">
+            <label htmlFor="equal-split-toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
+              {t("invoiceNew.equalSplit")}
+            </label>
+            <button
+              id="equal-split-toggle"
+              type="button"
+              role="switch"
+              aria-checked={equalSplit}
+              aria-label="Toggle equal split mode"
+              onClick={() => setEqualSplit((v) => !v)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                equalSplit ? "bg-indigo-600" : "bg-gray-300 dark:bg-gray-600"
               }`}
-            />
-          </button>
-        </div>
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  equalSplit ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+
+          {!equalSplit && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleSplitEqually}
+                disabled={recipients.length <= 1}
+                aria-label="Distribute all amounts equally among recipients"
+                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-sm text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                Split equally
+              </button>
+              {previousRecipientsForUndo && (
+                <button
+                  type="button"
+                  onClick={handleUndoSplit}
+                  aria-label="Undo the equal split distribution"
+                  className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm text-gray-200 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  ↶ Undo
+                </button>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {equalSplit && !cloneSourceId && (
-        <div>
-          <label htmlFor="total-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {t("invoiceNew.totalAmount")}
-          </label>
-          <input
+        <>
+          <FormField
             id="total-amount"
             type="number"
             placeholder="0.00"
@@ -778,11 +938,11 @@ function NewInvoiceForm() {
           />
           <CursorOverlay cursors={remoteCursors} fieldName="total-amount" />
           {perRecipientAmount && (
-            <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               {perRecipientAmount} {t("invoiceNew.perRecipient")}
             </p>
           )}
-        </div>
+        </>
       )}
 
       <div>
@@ -930,9 +1090,16 @@ function NewInvoiceForm() {
           </div>
           <div className="px-4 py-3 flex justify-between">
             <span className="text-sm text-gray-400">Total</span>
-            <span className="text-sm text-gray-200 font-semibold">
-              {equalSplit ? totalAmount : total.toFixed(7)} USDC
-            </span>
+            <FeeTooltip
+              feeBreakdown={feeBreakdown}
+              isLoading={feeLoading}
+              error={feeError}
+              onRefresh={refetchFees}
+            >
+              <span className="text-sm text-gray-200 font-semibold cursor-help hover:text-indigo-300 transition-colors">
+                {equalSplit ? totalAmount : total.toFixed(7)} USDC
+              </span>
+            </FeeTooltip>
           </div>
         </div>
 
@@ -993,6 +1160,14 @@ function NewInvoiceForm() {
       )}
 
       <div className="flex items-center gap-3 mb-8 flex-wrap">
+        <button
+          type="button"
+          onClick={() => handleProtectedNavigation('/')}
+          className="text-2xl hover:opacity-70 transition-opacity focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+          aria-label="Back to home"
+        >
+          ←
+        </button>
         <h1 className="text-3xl font-bold">Create Invoice</h1>
         {draftOffline && (
           <span
@@ -1177,6 +1352,21 @@ function NewInvoiceForm() {
       </form>
       </>
       )}
+
+      <UnsavedChangesModal
+        isOpen={showUnsavedModal}
+        onDiscard={() => {
+          setShowUnsavedModal(false);
+          discardDraft();
+          if (pendingNavigationHref) {
+            router.push(pendingNavigationHref);
+          }
+        }}
+        onKeepEditing={() => {
+          setShowUnsavedModal(false);
+          setPendingNavigationHref(null);
+        }}
+      />
     </main>
   );
 }

@@ -163,3 +163,12 @@ export function defaultRecipientLine(address = ''): RecipientLine {
     fixedFeeXLM: 0,
   };
 }
+
+export function calculateEqualSplit(recipientCount: number): { perRecipient: number; remainder: number } {
+  if (recipientCount <= 0) {
+    return { perRecipient: 0, remainder: 0 };
+  }
+  const perRecipient = Math.floor(100 / recipientCount);
+  const remainder = 100 - (perRecipient * recipientCount);
+  return { perRecipient, remainder };
+}
