@@ -1,116 +1,185 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useRegisterShortcuts, useShortcutRegistry } from "@/context/ShortcutRegistry";
 
 /**
- * Manages global keyboard shortcut state.
+ * useKeyboardShortcuts
  *
- * Shortcuts:
- * - `?` opens the keyboard shortcuts reference modal
- * - `Cmd/Ctrl + K` opens the command palette
- * - `N` on dashboard opens the Create Invoice form
- * - `Esc` closes any open modal or panel
- * - `G` then `D` navigates to Dashboard
- * - `G` then `S` navigates to Search
- * - `G` then `L` navigates to Leaderboard
+ * Registers all global application shortcuts into the ShortcutRegistry and
+ * exposes the help-overlay open/close state.
+ *
+ * This hook should be mounted once — inside HeaderShortcutsButton which is
+ * rendered in the Navbar (present on every page).
+ *
+ * Shortcuts registered here:
+ * - `?`           — Open/close the keyboard shortcuts help overlay
+ * - `Esc`         — Close the help overlay
+ * - `N`           — Create new invoice (only on /dashboard)
+ * - `G` then `D`  — Navigate to Dashboard
+ * - `G` then `S`  — Navigate to Search
+ * - `G` then `L`  — Navigate to Leaderboard
  */
 export function useKeyboardShortcuts() {
   const [isOpen, setIsOpen] = useState(false);
-  const [gPressed, setGPressed] = useState(false);
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
+
+  // g-key chord state tracked via ref to avoid re-creating handlers on change
+  const gPressedRef = useRef(false);
+  const gTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const router = useRouter();
 
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      // Do not trigger when typing inside an editable element
-      const target = e.target as HTMLElement | null;
-      if (!target) return;
+  const resetGTimer = useCallback(() => {
+    if (gTimerRef.current) clearTimeout(gTimerRef.current);
+    gTimerRef.current = setTimeout(() => {
+      gPressedRef.current = false;
+    }, 2000);
+  }, []);
 
-      const tag = target.tagName;
-      const isEditable =
-        tag === "INPUT" ||
-        tag === "TEXTAREA" ||
-        tag === "SELECT" ||
-        target.isContentEditable;
-
-      if (isEditable) return;
-
-      // Esc closes modal or clears g-state
-      if (e.key === "Escape") {
-        if (isOpen) {
+  useRegisterShortcuts(
+    [
+      // ── Help overlay ───────────────────────────────────────────────────────
+      {
+        id: "global:help",
+        keys: ["?"],
+        description: "Open keyboard shortcuts reference",
+        group: "General",
+        handler: (e) => {
+          if (e.key !== "?") return;
+          if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
           e.preventDefault();
-          setIsOpen(false);
-        }
-        if (gPressed) {
+          setIsOpen((prev) => !prev);
+        },
+      },
+
+      // ── Close overlay ──────────────────────────────────────────────────────
+      {
+        id: "global:escape",
+        keys: ["Esc"],
+        description: "Close modal / dismiss overlay",
+        group: "General",
+        handler: (e) => {
+          if (e.key !== "Escape") return;
+          if (isOpenRef.current) {
+            e.preventDefault();
+            setIsOpen(false);
+          }
+          if (gPressedRef.current) {
+            e.preventDefault();
+            gPressedRef.current = false;
+            if (gTimerRef.current) clearTimeout(gTimerRef.current);
+          }
+        },
+      },
+
+      // ── Create invoice ─────────────────────────────────────────────────────
+      {
+        id: "dashboard:new-invoice",
+        keys: ["N"],
+        description: "Create new invoice (on dashboard)",
+        group: "Invoices",
+        handler: (e) => {
+          if (e.key !== "n") return;
+          if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+          if (window.location.pathname !== "/dashboard") return;
           e.preventDefault();
-          setGPressed(false);
-        }
-        return;
-      }
+          window.dispatchEvent(new CustomEvent("keyboard:create-invoice"));
+        },
+      },
 
-      // ? opens keyboard shortcuts
-      if (e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-        e.preventDefault();
-        setIsOpen((prev) => !prev);
-        return;
-      }
-
-      // G-key navigation (G then D/S/L)
-      if (e.key === "g" && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-        e.preventDefault();
-        setGPressed(true);
-        // Reset after 2 seconds of inactivity
-        const timer = setTimeout(() => setGPressed(false), 2000);
-        return;
-      }
-
-      // G navigation shortcuts
-      if (gPressed && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-        if (e.key === "d") {
+      // ── G-chord: activate ──────────────────────────────────────────────────
+      {
+        id: "global:g-chord",
+        keys: ["G"],
+        description: "Start navigation chord (G then D/S/L)",
+        group: "Navigation",
+        handler: (e) => {
+          if (e.key !== "g") return;
+          if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+          if (gPressedRef.current) return; // already in chord
           e.preventDefault();
-          setGPressed(false);
+          gPressedRef.current = true;
+          resetGTimer();
+        },
+      },
+
+      // ── G + D: dashboard ───────────────────────────────────────────────────
+      {
+        id: "nav:dashboard",
+        keys: ["G", "D"],
+        description: "Navigate to Dashboard",
+        group: "Navigation",
+        handler: (e) => {
+          if (!gPressedRef.current) return;
+          if (e.key !== "d") return;
+          if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+          e.preventDefault();
+          gPressedRef.current = false;
+          if (gTimerRef.current) clearTimeout(gTimerRef.current);
           router.push("/dashboard");
-          return;
-        }
-        if (e.key === "s") {
+        },
+      },
+
+      // ── G + S: search ──────────────────────────────────────────────────────
+      {
+        id: "nav:search",
+        keys: ["G", "S"],
+        description: "Navigate to Search",
+        group: "Navigation",
+        handler: (e) => {
+          if (!gPressedRef.current) return;
+          if (e.key !== "s") return;
+          if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
           e.preventDefault();
-          setGPressed(false);
+          gPressedRef.current = false;
+          if (gTimerRef.current) clearTimeout(gTimerRef.current);
           router.push("/search");
-          return;
-        }
-        if (e.key === "l") {
+        },
+      },
+
+      // ── G + L: leaderboard ─────────────────────────────────────────────────
+      {
+        id: "nav:leaderboard",
+        keys: ["G", "L"],
+        description: "Navigate to Leaderboard",
+        group: "Navigation",
+        handler: (e) => {
+          if (!gPressedRef.current) return;
+          if (e.key !== "l") return;
+          if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
           e.preventDefault();
-          setGPressed(false);
+          gPressedRef.current = false;
+          if (gTimerRef.current) clearTimeout(gTimerRef.current);
           router.push("/leaderboard");
-          return;
-        }
-        // Invalid G-key combo, reset
-        if (!/[dsl]/.test(e.key)) {
-          setGPressed(false);
-        }
-        return;
-      }
+        },
+      },
 
-      // N opens Create Invoice form on dashboard
-      if (e.key === "n" && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-        // Only trigger if on dashboard
-        if (window.location.pathname === "/dashboard") {
+      // ── G + N: new invoice (global, not just dashboard) ────────────────────
+      {
+        id: "nav:new-invoice",
+        keys: ["G", "N"],
+        description: "Go to New Invoice",
+        group: "Navigation",
+        handler: (e) => {
+          if (!gPressedRef.current) return;
+          if (e.key !== "n") return;
+          if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
           e.preventDefault();
-          // Dispatch custom event for DashboardClient to listen to
-          window.dispatchEvent(
-            new CustomEvent("keyboard:create-invoice")
-          );
-        }
-        return;
-      }
-    };
-
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [isOpen, gPressed, router]);
+          gPressedRef.current = false;
+          if (gTimerRef.current) clearTimeout(gTimerRef.current);
+          router.push("/invoice/new");
+        },
+      },
+    ],
+    // Stable deps — router reference is stable in Next.js App Router
+    [],
+  );
 
   return { isOpen, open, close };
 }
