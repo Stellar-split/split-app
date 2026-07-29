@@ -130,7 +130,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const {
     invoice: streamInvoice,
     latestEvent,
-    isConnected,
+    isConnected: streamConnected,
     error: streamError,
   } = useInvoiceStream(id);
 
@@ -460,6 +460,12 @@ export default function InvoiceDetailPage({ params }: Props) {
         </div>
       )}
 
+      {/* Reconnecting indicator */}
+      <ReconnectionBanner
+        show={showReconnecting}
+        isConnected={streamConnected && collabConnected}
+      />
+
       {/* Release Banner */}
       {showReleaseBanner && (
         <ReleaseBanner
@@ -709,10 +715,17 @@ export default function InvoiceDetailPage({ params }: Props) {
                 placeholder="Amount in USDC"
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
+                onFocus={() => setFocusedField("pay-amount-freighter")}
+                onBlur={() => {
+                  if (focusedField === "pay-amount-freighter") {
+                    emitFieldBlur();
+                  }
+                }}
                 required
                 aria-label="Amount in USDC"
                 className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+              <CursorOverlay cursors={remoteCursors} fieldName="pay-amount-freighter" />
               {error && <p className="text-red-400 text-sm">{error}</p>}
               {txHash && (
                 <p className="text-green-400 text-sm">
@@ -847,9 +860,16 @@ export default function InvoiceDetailPage({ params }: Props) {
                 placeholder="0.00"
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
+                onFocus={() => setFocusedField("pay-amount")}
+                onBlur={() => {
+                  if (focusedField === "pay-amount") {
+                    emitFieldBlur();
+                  }
+                }}
                 required
                 className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+              <CursorOverlay cursors={remoteCursors} fieldName="pay-amount" />
             </div>
             {paymentError && (
               <p role="alert" className="text-red-400 text-sm">{paymentError}</p>

@@ -28,6 +28,16 @@ export function loadPermissions(invoiceId: string): CoCreatorEntry[] {
   }
 }
 
+export function canUserEditInvoice(
+  invoice: { creator: string; id: string; coCreators?: string[] },
+  address: string,
+): boolean {
+  if (address === invoice.creator) return true;
+  const permissions = loadPermissions(invoice.id);
+  const entry = permissions.find((e) => e.address === address);
+  return entry?.permissionLevel === "edit" || entry?.permissionLevel === "admin";
+}
+
 function savePermissions(invoiceId: string, entries: CoCreatorEntry[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(storageKey(invoiceId), JSON.stringify(entries));
