@@ -32,10 +32,12 @@ import VotingPanel from "@/components/VotingPanel";
 import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
+import RecipientListSkeleton from "@/components/invoice/RecipientListSkeleton";
 import CloneLineageTree from "@/components/CloneLineageTree";
 import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import StellarErrorBoundary from "@/components/error/StellarErrorBoundary";
 import { useStellarQuery } from "@/hooks/useStellarQuery";
+import { useRecentInvoices } from "@/hooks/useRecentInvoices";
 
 const POLL_MS = 10_000;
 
@@ -54,6 +56,7 @@ import ActivityFeed from "@/components/ActivityFeed";
 import InstallmentTracker from "@/components/InstallmentTracker";
 import InstallmentPanel from "@/components/InstallmentPanel";
 import InvoiceView from "@/components/invoice/InvoiceView";
+import InvoiceSummaryPanel from "@/components/invoice/InvoiceSummaryPanel";
 import CoCreatorPanel from "@/components/CoCreatorPanel";
 import PaymentChannelPanel from "@/components/PaymentChannelPanel";
 import DisputeTimeline from "@/components/DisputeTimeline";
@@ -121,6 +124,7 @@ function PaySectionRpcGate({ id, children }: { id: string; children: React.React
 export default function InvoiceDetailPage({ params }: Props) {
   const { id } = params;
   const router = useRouter();
+  const { addRecent } = useRecentInvoices();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -131,7 +135,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const {
     invoice: streamInvoice,
     latestEvent,
-    isConnected,
+    isConnected: streamConnected,
     error: streamError,
   } = useInvoiceStream(id);
 
@@ -240,10 +244,12 @@ export default function InvoiceDetailPage({ params }: Props) {
       if (!retro) throw new Error("Retroactive invoice not found.");
       setInvoice(retro);
       setLoading(false);
+      addRecent(id);
       return;
     }
     const inv = await splitClient.getInvoice(id);
     setInvoice(inv);
+    addRecent(id);
     try {
       const res = await fetch(`/api/invoices/${id}`);
       if (res.ok) {
@@ -449,7 +455,9 @@ export default function InvoiceDetailPage({ params }: Props) {
     process.env.NEXT_PUBLIC_CONTRACT_ID ?? invoice.token;
 
   return (
-    <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
+    <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+        <div className="min-w-0">
       {/* Reconnecting indicator */}
       {showReconnecting && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
@@ -460,6 +468,12 @@ export default function InvoiceDetailPage({ params }: Props) {
           <span className="text-sm font-medium">Reconnecting...</span>
         </div>
       )}
+
+      {/* Reconnecting indicator */}
+      <ReconnectionBanner
+        show={showReconnecting}
+        isConnected={streamConnected && collabConnected}
+      />
 
       {/* Release Banner */}
       {showReleaseBanner && (
@@ -720,10 +734,17 @@ export default function InvoiceDetailPage({ params }: Props) {
                 placeholder="Amount in USDC"
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
+                onFocus={() => setFocusedField("pay-amount-freighter")}
+                onBlur={() => {
+                  if (focusedField === "pay-amount-freighter") {
+                    emitFieldBlur();
+                  }
+                }}
                 required
                 aria-label="Amount in USDC"
                 className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+              <CursorOverlay cursors={remoteCursors} fieldName="pay-amount-freighter" />
               {error && <p className="text-red-400 text-sm">{error}</p>}
               {txHash && (
                 <p className="text-green-400 text-sm">
@@ -761,7 +782,11 @@ export default function InvoiceDetailPage({ params }: Props) {
         onFocusChange={updateFocusedSection}
         className="mb-8"
       >
-        <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
+        {loading ? (
+          <RecipientListSkeleton count={3} />
+        ) : (
+          <RecipientPayoutTracker invoice={invoice} publicKey={publicKey} />
+        )}
       </InvoiceSection>
 
       {/* Split Calculator */}
@@ -858,9 +883,16 @@ export default function InvoiceDetailPage({ params }: Props) {
                 placeholder="0.00"
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
+                onFocus={() => setFocusedField("pay-amount")}
+                onBlur={() => {
+                  if (focusedField === "pay-amount") {
+                    emitFieldBlur();
+                  }
+                }}
                 required
                 className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+              <CursorOverlay cursors={remoteCursors} fieldName="pay-amount" />
             </div>
             {paymentError && (
               <p role="alert" className="text-red-400 text-sm">{paymentError}</p>
@@ -884,6 +916,11 @@ export default function InvoiceDetailPage({ params }: Props) {
           publicKey={publicKey}
         />
       )}
+        </div>
+        <div className="lg:sticky lg:top-4 lg:max-h-screen lg:overflow-y-auto">
+          <InvoiceSummaryPanel invoice={invoice} total={total} publicKey={publicKey} />
+        </div>
+      </div>
 
       {showPayModal && invoice && publicKey && (
         <PayModal

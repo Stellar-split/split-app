@@ -37,6 +37,7 @@ import {
 } from "@/lib/dashboardFilters";
 import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import { invoiceHasTag } from "@/lib/invoiceTags";
+import InvoiceTable from "@/components/InvoiceTable";
 
 // ── URL helpers ──────────────────────────────────────────────────────────────
 
@@ -170,6 +171,7 @@ export default function DashboardClient() {
   const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   const router = useRouter();
   const pathname = usePathname();
@@ -472,27 +474,8 @@ export default function DashboardClient() {
       </div>
 
       {/* Date range */}
-      <div className="flex flex-wrap gap-3 items-end">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500" htmlFor="filter-from">From</label>
-          <input
-            id="filter-from"
-            type="date"
-            value={dateFrom}
-            onChange={(e) => pushParams({ from: e.target.value })}
-            className="min-h-9 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500" htmlFor="filter-to">To</label>
-          <input
-            id="filter-to"
-            type="date"
-            value={dateTo}
-            onChange={(e) => pushParams({ to: e.target.value })}
-            className="min-h-9 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+      <div className="flex items-end gap-2">
+        <DateRangeFilter from={dateFrom} to={dateTo} />
       </div>
 
       {/* Tag */}
@@ -578,6 +561,47 @@ export default function DashboardClient() {
             >
               Compare
             </button>
+          )}
+          {/* View toggle: Cards / Table */}
+          {!multiSelect && !reminderSelect && !compareMode && invoices.length > 0 && (
+            <div
+              role="group"
+              aria-label="Invoice view mode"
+              className="inline-flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700"
+            >
+              <button
+                type="button"
+                onClick={() => setViewMode("cards")}
+                aria-pressed={viewMode === "cards"}
+                title="Card view"
+                className={`min-h-9 px-3 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                  viewMode === "cards"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                <span className="hidden sm:inline">Cards</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                aria-pressed={viewMode === "table"}
+                title="Table view"
+                className={`min-h-9 px-3 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5 border-l border-gray-300 dark:border-gray-700 ${
+                  viewMode === "table"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18M10 6h4M10 18h4M3 6h4M3 18h4M17 6h4M17 18h4" />
+                </svg>
+                <span className="hidden sm:inline">Table</span>
+              </button>
+            </div>
           )}
           {multiSelect && (
             <>
@@ -818,6 +842,23 @@ export default function DashboardClient() {
           <p className="text-gray-400">No invoices match the current filters.</p>
         </div>
       ) : (
+        viewMode === "table" && !multiSelect && !reminderSelect && !compareMode ? (
+          <InvoiceTable
+            invoices={visibleInvoices}
+            displayNumbers={Object.fromEntries(
+              visibleInvoices.map((inv) => [inv.id, getOrAssignDisplayNumber(inv.id)])
+            )}
+            tagsByInvoice={tagsByInvoice}
+            rowAction={(inv) => (
+              <Link
+                href={`/invoice/${inv.id}`}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 hover:text-indigo-200 text-xs font-semibold transition-colors"
+              >
+                View →
+              </Link>
+            )}
+          />
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleInvoices.map((inv) => {
             const isSelectable = multiSelect && inv.status === "Pending";
@@ -977,6 +1018,7 @@ export default function DashboardClient() {
           })}
           {loading && [...Array(3)].map((_, i) => <SkeletonCard key={`sk-${i}`} />)}
         </div>
+        )
       )}
 
       {/* Infinite scroll sentinel — only shown when we have a non-empty list */}
