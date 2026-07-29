@@ -34,6 +34,8 @@ import {
   type SplitMeta,
 } from "@/hooks/useSplitCalculator";
 import InstallmentPlanBuilder from "@/components/invoice/InstallmentPlanBuilder";
+import AmountDenominationInput from "@/components/AmountDenominationInput";
+import { useXlmUsdcRate } from "@/hooks/useXlmUsdcRate";
 
 import { useInvoiceCollaboration } from "@/hooks/useInvoiceCollaboration";
 import CursorOverlay from "@/components/CursorOverlay";
@@ -305,6 +307,22 @@ function NewInvoiceForm() {
   const [autofilled, setAutofilled] = useState(false);
   const [stepErrors, setStepErrors] = useState<Record<number, string | null>>({});
 
+  // Denomination toggle state (XLM / USDC)
+  type Denomination = "XLM" | "USDC";
+  const [amountDenom, setAmountDenom] = useState<Denomination>("USDC");
+  const xlmUsdcRate = useXlmUsdcRate();
+
+  /** Convert an amount string from current denomination to USDC for on-chain use */
+  const toUsdc = useCallback(
+    (amount: string): string => {
+      if (amountDenom === "USDC" || !xlmUsdcRate) return amount;
+      const n = parseFloat(amount);
+      if (isNaN(n)) return amount;
+      return (n * xlmUsdcRate).toFixed(7).replace(/\.?0+$/, "");
+    },
+    [amountDenom, xlmUsdcRate],
+  );
+
   useEffect(() => {
     getFreighterPublicKey().then(setPublicKey).catch(() => null);
   }, []);
@@ -494,7 +512,7 @@ function NewInvoiceForm() {
           sourceInvoiceId: cloneSourceId,
           recipients: recipients.map((r) => ({
             address: r.address,
-            amount: parseAmount(r.amount),
+            amount: parseAmount(toUsdc(r.amount)),
           })),
           token,
           deadline: deadlineTs,
@@ -521,7 +539,7 @@ function NewInvoiceForm() {
           creator,
           recipients: recipients.map((r) => ({
             address: r.address,
-            amount: parseAmount(equalSplit ? (perRecipientAmount ?? "0") : r.amount),
+            amount: parseAmount(equalSplit ? toUsdc(perRecipientAmount ?? "0") : toUsdc(r.amount)),
           })),
           token,
           deadline: deadlineFromDays(deadlineDays),
@@ -768,9 +786,36 @@ function NewInvoiceForm() {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {equalSplit ? t("invoiceNew.recipients") : t("invoiceNew.recipientsAndAmounts")}
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {equalSplit ? t("invoiceNew.recipients") : t("invoiceNew.recipientsAndAmounts")}
+          </label>
+          {!equalSplit && !cloneSourceId && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-500">Amounts in:</span>
+              <button
+                type="button"
+                onClick={() => setAmountDenom((d) => d === "XLM" ? "USDC" : "XLM")}
+                aria-label={`Switch amount denomination to ${amountDenom === "XLM" ? "USDC" : "XLM"}`}
+                title={xlmUsdcRate ? `1 XLM ≈ ${xlmUsdcRate.toFixed(4)} USDC` : "Rate unavailable"}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border transition-colors ${
+                  amountDenom === "XLM"
+                    ? "bg-yellow-500/15 border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/25"
+                    : "bg-blue-500/15 border-blue-500/40 text-blue-300 hover:bg-blue-500/25"
+                }`}
+              >
+                <span aria-hidden="true">{amountDenom === "XLM" ? "✦" : "$"}</span>
+                {amountDenom}
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+              </button>
+              {xlmUsdcRate && (
+                <span className="text-xs text-gray-500">1 XLM ≈ {xlmUsdcRate.toFixed(4)} USDC</span>
+              )}
+            </div>
+          )}
+        </div>
         <ChangedField changed={recipientsChanged}>
           <RecipientForm
             recipients={recipients}
