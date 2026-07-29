@@ -1,6 +1,4 @@
-import type { Invoice } from "@stellar-split/sdk";
-
-type InvoiceStatus = Invoice["status"] | "Archived" | "Expired";
+import { STATUS_CONFIG, type InvoiceStatus } from "@/lib/invoiceStatus";
 
 interface Props {
   status: InvoiceStatus;
@@ -13,39 +11,22 @@ const SIZE: Record<string, string> = {
   lg: "text-base px-4 py-1.5",
 };
 
-const STYLES: Record<string, string> = {
-  Pending:  "bg-yellow-500/20  text-yellow-400",
-  Active:   "bg-blue-500/20    text-blue-400",
-  Funded:   "bg-cyan-500/20    text-cyan-400",
-  Released: "bg-green-500/20   text-green-400",
-  Refunded: "bg-gray-500/20    text-gray-400",
-  Disputed: "bg-red-500/20     text-red-400",
-  Frozen:   "bg-indigo-500/20  text-indigo-400",
-  Archived: "bg-stone-500/20   text-stone-400",
-  Expired:  "bg-orange-500/20  text-orange-400",
-};
-
-const ICON: Record<string, string> = {
-  Released: "✓",
-  Disputed: "⚠",
-  Frozen:   "🔒",
-};
-
 /**
  * StatusBadge — colour-coded chip for every invoice state.
+ * Consumes centralized STATUS_CONFIG from src/lib/invoiceStatus.ts
  */
 export default function StatusBadge({ status, size = "md" }: Props) {
-  const icon = ICON[status];
-  const style = STYLES[status] ?? "bg-gray-500/20 text-gray-400";
+  const config = STATUS_CONFIG[status];
+  if (!config) return null;
 
   return (
     <span
       role="status"
       aria-label={`Status: ${status}`}
-      className={`inline-flex items-center gap-1 rounded-full font-semibold ${SIZE[size]} ${style}`}
+      className={`inline-flex items-center gap-1 rounded-full font-semibold ${SIZE[size]} ${config.colorClass}`}
     >
-      {icon && <span aria-hidden="true">{icon}</span>}
-      {status}
+      {config.icon && <span aria-hidden="true">{config.icon}</span>}
+      {config.label}
     </span>
   );
 }

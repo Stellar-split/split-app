@@ -19,6 +19,8 @@ import { formatAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 import { useInfiniteInvoices } from "@/hooks/useInfiniteInvoices";
 import InvoiceListSentinel from "@/components/InvoiceListSentinel";
+import { useInvoiceSelection } from "@/hooks/useInvoiceSelection";
+import BulkActionToolbar from "@/components/invoice/BulkActionToolbar";
 import {
   DASHBOARD_PRESETS,
   SORT_OPTIONS,
@@ -34,6 +36,7 @@ import {
 } from "@/lib/dashboardFilters";
 import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import { invoiceHasTag } from "@/lib/invoiceTags";
+import InvoiceTable from "@/components/InvoiceTable";
 
 // ── URL helpers ──────────────────────────────────────────────────────────────
 
@@ -87,6 +90,18 @@ export default function DashboardClient() {
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
 
+  // Multi-select state management
+  const {
+    selectedIds,
+    isSelecting,
+    toggleSelecting,
+    toggleInvoice,
+    selectAll,
+    deselectAll,
+    isSelected,
+    selectedCount,
+  } = useInvoiceSelection();
+
   // ── URL mutation helpers ────────────────────────────────────────────────────
 
   const pushParams = useCallback(
@@ -114,8 +129,66 @@ export default function DashboardClient() {
     setSearchValue("");
   };
 
+
   // Lifecycle display-status chips (separate URL param so it never clashes
   // with the preset `status` param above).
+
+  const isFiltered =
+    statuses.length > 0 || dateFrom || dateTo || sort !== "newest" || !!tag;
+
+  const handleBulkArchive = async () => {
+    try {
+      const response = await fetch("/api/invoices/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceIds: Array.from(selectedIds),
+          action: "archive",
+          archived: true,
+        }),
+      });
+
+      if (response.ok) {
+        deselectAll();
+        // Optionally refresh the invoice list
+      }
+    } catch (error) {
+      console.error("Bulk archive failed:", error);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      const response = await fetch("/api/invoices/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceIds: Array.from(selectedIds),
+          action: "delete",
+        }),
+      });
+
+      if (response.ok) {
+        deselectAll();
+        // Optionally refresh the invoice list
+      }
+    } catch (error) {
+      console.error("Bulk delete failed:", error);
+    }
+  };
+
+  // ── Data fetching ───────────────────────────────────────────────────────────
+  const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
+  const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+
   const selectedStatuses = useMemo<InvoiceStatusFilter[]>(() => {
     const raw = searchParams.get("display");
     if (!raw) return [];
@@ -388,6 +461,7 @@ export default function DashboardClient() {
       </div>
 
       {/* Date range */}
+
       <div className="flex flex-wrap gap-3 items-end">
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500" htmlFor="filter-from">
@@ -413,6 +487,10 @@ export default function DashboardClient() {
             className="min-h-9 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
+
+      <div className="flex items-end gap-2">
+        <DateRangeFilter from={dateFrom} to={dateTo} />
+
       </div>
 
       {/* Tag */}
@@ -512,6 +590,47 @@ export default function DashboardClient() {
               Compare
             </button>
           )}
+          {/* View toggle: Cards / Table */}
+          {!multiSelect && !reminderSelect && !compareMode && invoices.length > 0 && (
+            <div
+              role="group"
+              aria-label="Invoice view mode"
+              className="inline-flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700"
+            >
+              <button
+                type="button"
+                onClick={() => setViewMode("cards")}
+                aria-pressed={viewMode === "cards"}
+                title="Card view"
+                className={`min-h-9 px-3 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                  viewMode === "cards"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                <span className="hidden sm:inline">Cards</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                aria-pressed={viewMode === "table"}
+                title="Table view"
+                className={`min-h-9 px-3 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5 border-l border-gray-300 dark:border-gray-700 ${
+                  viewMode === "table"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18M10 6h4M10 18h4M3 6h4M3 18h4M17 6h4M17 18h4" />
+                </svg>
+                <span className="hidden sm:inline">Table</span>
+              </button>
+            </div>
+          )}
           {multiSelect && (
             <>
               <button
@@ -563,6 +682,24 @@ export default function DashboardClient() {
                 Compare Selected ({compareSelected.size}/2)
               </button>
             </>
+          )}
+          {!isSelecting && !compareMode && !reminderSelect && (
+            <button
+              onClick={toggleSelecting}
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition-colors"
+              aria-label="Enable multi-select mode"
+            >
+              Select
+            </button>
+          )}
+          {isSelecting && (
+            <button
+              onClick={toggleSelecting}
+              className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors text-gray-300"
+              aria-label="Exit multi-select mode"
+            >
+              Cancel Selection
+            </button>
           )}
           <Link
             href="/invoice/new"
@@ -744,6 +881,23 @@ export default function DashboardClient() {
           </p>
         </div>
       ) : (
+        viewMode === "table" && !multiSelect && !reminderSelect && !compareMode ? (
+          <InvoiceTable
+            invoices={visibleInvoices}
+            displayNumbers={Object.fromEntries(
+              visibleInvoices.map((inv) => [inv.id, getOrAssignDisplayNumber(inv.id)])
+            )}
+            tagsByInvoice={tagsByInvoice}
+            rowAction={(inv) => (
+              <Link
+                href={`/invoice/${inv.id}`}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 hover:text-indigo-200 text-xs font-semibold transition-colors"
+              >
+                View →
+              </Link>
+            )}
+          />
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleInvoices.map((inv) => {
             const isSelectable = multiSelect && inv.status === "Pending";
@@ -752,10 +906,40 @@ export default function DashboardClient() {
             const isReminderSelected = reminderSelected.has(inv.id);
             const isCompareSelectable = compareMode;
             const isCompareSelected = compareSelected.has(inv.id);
+            const isMultiSelectable = isSelecting;
+            const isMultiSelected = isSelected(inv.id);
 
             return (
               <div key={inv.id}>
-                {isSelectable ? (
+                {isMultiSelectable ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleInvoice(inv.id)}
+                    aria-pressed={isMultiSelected}
+                    aria-label={`${isMultiSelected ? "Deselect" : "Select"} Invoice #${inv.id}`}
+                    className={`w-full text-left rounded-xl ring-2 transition-all ${
+                      isMultiSelected
+                        ? "ring-indigo-500"
+                        : "ring-transparent hover:ring-gray-600"
+                    }`}
+                  >
+                    <div className="relative">
+                      {isMultiSelected && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold z-10"
+                        >
+                          ✓
+                        </span>
+                      )}
+                      <InvoiceCard
+                        invoice={inv}
+                        displayNumber={getOrAssignDisplayNumber(inv.id)}
+                        tags={tagsByInvoice[inv.id] ?? []}
+                      />
+                    </div>
+                  </button>
+                ) : isSelectable ? (
                   <button
                     type="button"
                     onClick={() => toggleSelect(inv.id)}
@@ -864,6 +1048,7 @@ export default function DashboardClient() {
           })}
           {loading && [...Array(3)].map((_, i) => <SkeletonCard key={`sk-${i}`} />)}
         </div>
+        )
       )}
 
       {/* Infinite scroll sentinel — only shown when we have a non-empty list */}
@@ -943,6 +1128,21 @@ export default function DashboardClient() {
         invoiceId={shareQRInvoiceId || ""}
         onClose={() => setShareQRInvoiceId(null)}
       />
+
+      {isSelecting && selectedCount > 0 && (
+        <BulkActionToolbar
+          selectedCount={selectedCount}
+          selectedIds={selectedIds}
+          totalVisible={visibleInvoices.length}
+          onSelectAll={() => selectAll(visibleInvoices.map(inv => inv.id))}
+          onDeselectAll={deselectAll}
+          onArchive={handleBulkArchive}
+          onDelete={handleBulkDelete}
+          onTag={() => {
+            // TODO: Implement tagging dialog
+          }}
+        />
+      )}
 
       <ActivityFeed open={feedOpen} />
     </>

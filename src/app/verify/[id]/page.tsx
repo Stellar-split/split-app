@@ -7,6 +7,7 @@ import CustomizationDisplay from "@/components/CustomizationDisplay";
 import VerifyPayButton from "./VerifyPayButton";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import ReputationBadge from "@/components/ReputationBadge";
+import SplitSummaryCard from "@/components/invoice/SplitSummaryCard";
 
 interface Props {
   params: { id: string };
@@ -133,6 +134,8 @@ export default async function VerifyPage({ params }: Props) {
           ))}
         </ul>
       </section>
+
+      <SplitSummaryCard invoice={invoice} total={total} />
 
       <section aria-labelledby="verify-payments-heading">
         <h2 id="verify-payments-heading" className="text-base font-semibold mb-2 text-gray-700 dark:text-gray-300">
