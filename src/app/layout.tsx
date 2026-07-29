@@ -23,6 +23,8 @@ import QueryProvider from "@/contexts/QueryProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import { FiatRateProvider } from "@/hooks/useFiatRate";
+import { RateLimitProvider } from "@/context/RateLimitContext";
+import RateLimitBar from "@/components/layout/RateLimitBar";
 
 const themeBootstrap = `
 (function () {
@@ -184,23 +186,26 @@ export default function RootLayout({
                   <ToastProvider>
                     <UserPreferencesProvider>
                       <FiatRateProvider>
-                        <Navbar />
-                        <SimulationBanner />
-                        <UpgradeBanner />
-                        <ErrorBoundary>{children}</ErrorBoundary>
-                        <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
-                          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-                            <p className="text-xs text-gray-500">
-                              © {new Date().getFullYear()} StellarSplit
-                            </p>
-                            <LanguageSwitcher />
-                          </div>
-                        </footer>
-                        <CommandPalette />
-                        <OnboardingFlow />
-                        <RecipientOnboarding />
-                        <InstallBanner />
-                        <ToastContainer />
+                        <RateLimitProvider>
+                          <RateLimitBar />
+                          <Navbar />
+                          <SimulationBanner />
+                          <UpgradeBanner />
+                          <ErrorBoundary>{children}</ErrorBoundary>
+                          <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
+                            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+                              <p className="text-xs text-gray-500">
+                                © {new Date().getFullYear()} StellarSplit
+                              </p>
+                              <LanguageSwitcher />
+                            </div>
+                          </footer>
+                          <CommandPalette />
+                          <OnboardingFlow />
+                          <RecipientOnboarding />
+                          <InstallBanner />
+                          <ToastContainer />
+                        </RateLimitProvider>
                       </FiatRateProvider>
                     </UserPreferencesProvider>
                   </ToastProvider>
