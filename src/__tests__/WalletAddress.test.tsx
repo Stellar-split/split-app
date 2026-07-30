@@ -1,4 +1,6 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
 import WalletAddress from '@/components/WalletAddress';
 
 const ADDR = 'GABCDEFGHIJKLMNOPQRSTUVWXYZ1234567';
@@ -18,5 +20,21 @@ describe('WalletAddress', () => {
   it('sets title to full address', () => {
     render(<WalletAddress address={ADDR} />);
     expect(screen.getByTitle(ADDR)).toBeInTheDocument();
+  });
+
+  it('shows a copy button and copies the address on click', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    render(<WalletAddress address={ADDR} />);
+
+    await user.click(screen.getByRole('button', { name: /copy/i }));
+
+    expect(writeText).toHaveBeenCalledWith(ADDR);
+    expect(screen.getByText('Copied!')).toBeInTheDocument();
   });
 });

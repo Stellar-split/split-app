@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEmailValidation } from "@/hooks/useEmailValidation";
 import RecipientPaymentHistory from "@/components/invoice/RecipientPaymentHistory";
+import CopyButton from "@/components/CopyButton";
 
 // ─── Form Row (invoice creation) ──────────────────────────────────────────
 
@@ -140,16 +141,21 @@ export function RecipientDetailRow({
 
         {/* Address */}
         <td
-          className="px-4 py-3 text-sm font-mono text-gray-300 truncate max-w-[200px]"
+          className="px-4 py-3 text-sm font-mono text-gray-300 max-w-[200px]"
           title={address}
         >
-          <span className="sm:hidden">{truncated}</span>
-          <span className="hidden sm:inline">{address}</span>
-          {isCurrentWallet && (
-            <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-indigo-500 text-white font-semibold inline-flex items-center gap-1">
-              You
+          <div className="flex items-center gap-2">
+            <span className="truncate">
+              <span className="sm:hidden">{truncated}</span>
+              <span className="hidden sm:inline">{address}</span>
             </span>
-          )}
+            <CopyButton text={address} className="!px-1.5 !py-0.5 text-[11px] shrink-0" />
+            {isCurrentWallet && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-500 text-white font-semibold inline-flex items-center gap-1 shrink-0">
+                You
+              </span>
+            )}
+          </div>
         </td>
 
         {/* Share */}

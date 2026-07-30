@@ -8,7 +8,7 @@ interface Props {
   showCopy?: boolean;
 }
 
-export default function WalletAddress({ address, truncate = true, showCopy = false }: Props) {
+export default function WalletAddress({ address, truncate = true, showCopy = true }: Props) {
   const display = truncate ? `${address.slice(0, 4)}…${address.slice(-4)}` : address;
   return (
     <span className="inline-flex items-center gap-1.5">
