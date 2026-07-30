@@ -6,6 +6,7 @@ import {
   reactorEmojis,
   type StoredComment,
 } from "@/lib/commentStore";
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 function serialise(comment: StoredComment, reactorId: string | null) {
   return {
@@ -32,6 +33,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   const body = await request.json().catch(() => null);
   const authorAddress = body?.authorAddress;
   const text = typeof body?.text === "string" ? body.text.trim() : "";

@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { webhookStore } from "../store";
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 /** DELETE /api/settings/webhooks/:id — remove a webhook endpoint */
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const csrfError = await assertCsrf(req);
+  if (csrfError) return csrfError;
+
   const idx = webhookStore.findIndex((w) => w.id === params.id);
   if (idx === -1) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -17,9 +21,12 @@ export async function DELETE(
 
 /** POST /api/settings/webhooks/:id/rotate — generate a new HMAC secret */
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const csrfError = await assertCsrf(req);
+  if (csrfError) return csrfError;
+
   const endpoint = webhookStore.find((w) => w.id === params.id);
   if (!endpoint) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

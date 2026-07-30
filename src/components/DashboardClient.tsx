@@ -13,6 +13,7 @@ import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 import { SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
 import StatusFilterChips from "@/components/invoice/StatusFilterChips";
+import DateRangeFilter from "@/components/invoice/DateRangeFilter";
 import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
 import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
 import { formatAmount } from "@stellar-split/sdk";
@@ -31,22 +32,25 @@ import {
   sortInvoices,
   filterByDateRange,
   type DashboardPresetId,
+  type InvoiceStatusFilter,
   type DashboardSortId,
   type InvoiceStatusFilter,
 } from "@/lib/dashboardFilters";
 import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import { invoiceHasTag } from "@/lib/invoiceTags";
 import InvoiceTable from "@/components/InvoiceTable";
+import FilterPresetDropdown from "@/components/invoices/FilterPresetDropdown";
+import { apiFetch } from "@/lib/apiClient";
 
 // ── URL helpers ──────────────────────────────────────────────────────────────
 
 function readParams(sp: URLSearchParams) {
-  const statuses = (sp.get("status") ?? "").split(",").filter(Boolean) as DashboardPresetId[];
+  const presetFilters = (sp.get("preset") ?? "").split(",").filter(Boolean) as DashboardPresetId[];
   const sort = (sp.get("sort") ?? "newest") as DashboardSortId;
   const dateFrom = sp.get("from") ?? "";
   const dateTo = sp.get("to") ?? "";
   const tag = sp.get("tag") ?? "";
-  return { statuses, sort, dateFrom, dateTo, tag };
+  return { presetFilters, sort, dateFrom, dateTo, tag };
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -57,10 +61,18 @@ export default function DashboardClient() {
   const searchParams = useSearchParams();
 
   // URL-derived filter state
-  const { statuses, sort, dateFrom, dateTo, tag } = useMemo(
+  const { presetFilters, sort, dateFrom, dateTo, tag } = useMemo(
     () => readParams(searchParams),
     [searchParams],
   );
+
+  const selectedStatuses = useMemo<InvoiceStatusFilter[]>(() => {
+    const raw = searchParams.get("status");
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .filter((s): s is InvoiceStatusFilter => INVOICE_STATUS_FILTERS.includes(s as InvoiceStatusFilter));
+  }, [searchParams]);
 
   const { allTags, tagsByInvoice } = useInvoiceTags();
 
@@ -90,7 +102,7 @@ export default function DashboardClient() {
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
 
-  // Multi-select state management
+  // Multi-select state management (bulk archive/delete toolbar)
   const {
     selectedIds,
     isSelecting,
@@ -98,7 +110,7 @@ export default function DashboardClient() {
     toggleInvoice,
     selectAll,
     deselectAll,
-    isSelected,
+    isSelected: isBulkSelected,
     selectedCount,
   } = useInvoiceSelection();
 
@@ -117,16 +129,25 @@ export default function DashboardClient() {
     [router, pathname, searchParams],
   );
 
-  const toggleStatus = (preset: DashboardPresetId) => {
-    const next = statuses.includes(preset)
-      ? statuses.filter((s) => s !== preset)
-      : [...statuses, preset];
+  const togglePresetFilter = (preset: DashboardPresetId) => {
+    const next = presetFilters.includes(preset)
+      ? presetFilters.filter((s) => s !== preset)
+      : [...presetFilters, preset];
+    pushParams({ preset: next.join(",") });
+  };
+
+  const toggleStatus = (status: InvoiceStatusFilter) => {
+    const next = selectedStatuses.includes(status)
+      ? selectedStatuses.filter((s) => s !== status)
+      : [...selectedStatuses, status];
     pushParams({ status: next.join(",") });
   };
 
   const clearFilters = () => {
     router.replace(pathname, { scroll: false });
     setSearchValue("");
+    setNumericResult(null);
+    router.replace(pathname, { scroll: false });
   };
 
 
@@ -134,11 +155,39 @@ export default function DashboardClient() {
   // with the preset `status` param above).
 
   const isFiltered =
-    statuses.length > 0 || dateFrom || dateTo || sort !== "newest" || !!tag;
+    presetFilters.length > 0 ||
+    selectedStatuses.length > 0 ||
+    !!dateFrom ||
+    !!dateTo ||
+    sort !== "newest" ||
+    !!tag;
+
+  // ── Saved filter presets ────────────────────────────────────────────────────
+
+  const currentFilterState = useMemo<Record<string, string>>(
+    () => ({
+      preset: presetFilters.join(","),
+      status: selectedStatuses.join(","),
+      sort: sort !== "newest" ? sort : "",
+      from: dateFrom,
+      to: dateTo,
+      tag,
+    }),
+    [presetFilters, selectedStatuses, sort, dateFrom, dateTo, tag],
+  );
+
+  const applyFilterPreset = (filters: Record<string, string>) => {
+    const sp = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) {
+      if (v) sp.set(k, v);
+    }
+    const qs = sp.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
 
   const handleBulkArchive = async () => {
     try {
-      const response = await fetch("/api/invoices/bulk", {
+      const response = await apiFetch("/api/invoices/bulk", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -150,7 +199,6 @@ export default function DashboardClient() {
 
       if (response.ok) {
         deselectAll();
-        // Optionally refresh the invoice list
       }
     } catch (error) {
       console.error("Bulk archive failed:", error);
@@ -159,7 +207,7 @@ export default function DashboardClient() {
 
   const handleBulkDelete = async () => {
     try {
-      const response = await fetch("/api/invoices/bulk", {
+      const response = await apiFetch("/api/invoices/bulk", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -170,7 +218,6 @@ export default function DashboardClient() {
 
       if (response.ok) {
         deselectAll();
-        // Optionally refresh the invoice list
       }
     } catch (error) {
       console.error("Bulk delete failed:", error);
@@ -312,7 +359,7 @@ export default function DashboardClient() {
     const now = Math.floor(Date.now() / 1000);
     // 1. preset chips (multi-select); if none selected show all
     let result =
-      statuses.length === 0
+      presetFilters.length === 0
         ? invoices
         : invoices.filter((inv) =>
             statuses.some(
@@ -438,13 +485,13 @@ export default function DashboardClient() {
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Status</p>
         <div className="flex flex-wrap gap-2">
           {DASHBOARD_PRESETS.map((preset) => {
-            const active = statuses.includes(preset.id);
+            const active = presetFilters.includes(preset.id);
             const count = presetCounts[preset.id] ?? 0;
             return (
               <button
                 key={preset.id}
                 type="button"
-                onClick={() => toggleStatus(preset.id)}
+                onClick={() => togglePresetFilter(preset.id)}
                 aria-pressed={active}
                 className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
                   active
@@ -539,6 +586,12 @@ export default function DashboardClient() {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Saved presets */}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Presets</p>
+        <FilterPresetDropdown currentFilters={currentFilterState} onApply={applyFilterPreset} />
       </div>
 
       {/* Clear */}

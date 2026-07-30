@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { webhookStore, ALL_EVENTS, type WebhookEndpoint, type WebhookEventType } from "./store";
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 function generateSecret() {
   return `whsec_${crypto.randomBytes(24).toString("hex")}`;
@@ -13,6 +14,9 @@ export function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const csrfError = await assertCsrf(req);
+  if (csrfError) return csrfError;
+
   const body = await req.json().catch(() => null);
 
   if (!body?.url || typeof body.url !== "string") {

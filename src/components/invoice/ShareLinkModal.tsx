@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import FocusTrap from '@/components/FocusTrap';
 import { formatShareLinkDuration } from '@/lib/shareLink';
 import type { ShareLinkPermission } from '@/lib/shareLink';
+import { apiFetch } from '@/lib/apiClient';
 
 interface ActiveShareLink {
   tokenHash: string;
@@ -66,7 +67,7 @@ export default function ShareLinkModal({
     setGeneratedLink(null);
 
     try {
-      const response = await fetch('/api/invoices/share-links', {
+      const response = await apiFetch('/api/invoices/share-links', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -107,7 +108,7 @@ export default function ShareLinkModal({
 
   const handleRevokeLink = async (tokenHash: string) => {
     try {
-      const response = await fetch('/api/invoices/share-links', {
+      const response = await apiFetch('/api/invoices/share-links', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokenHash }),

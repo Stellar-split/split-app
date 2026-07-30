@@ -16,6 +16,9 @@ import { getTags, setTags, normalizeTags } from "@/lib/invoiceTags";
  *   { invoiceIds: string[], action: 'archive' | 'delete' | 'tag', archived?: boolean, tags?: string[] }
  */
 export async function PATCH(request: NextRequest) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const body = await request.json();
 

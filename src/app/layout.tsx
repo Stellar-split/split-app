@@ -159,7 +159,9 @@ export default function RootLayout({
                         <Navbar />
                         <SimulationBanner />
                         <UpgradeBanner />
-                        <ErrorBoundary>{children}</ErrorBoundary>
+                        <TransitionProvider>
+                          <ErrorBoundary>{children}</ErrorBoundary>
+                        </TransitionProvider>
                         <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
                           <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
                             <p className="text-xs text-gray-500">

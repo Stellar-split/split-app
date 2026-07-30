@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/apiClient";
 
 interface TagListResponse {
   tags: string[];
@@ -116,7 +117,7 @@ export function useInvoiceTags(): UseInvoiceTagsResult {
     });
 
     try {
-      const res = await fetch(`/api/invoices/${invoiceId}/tags`, {
+      const res = await apiFetch(`/api/invoices/${invoiceId}/tags`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tags }),

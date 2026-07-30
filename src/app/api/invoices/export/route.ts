@@ -9,6 +9,7 @@ import {
   generateExportFilename,
   type ExportFilterOptions,
 } from '@/lib/invoiceExcelExport';
+import { assertCsrf } from '@/lib/middleware/csrfMiddleware';
 
 interface ExportRequest {
   invoices: Invoice[];
@@ -23,6 +24,9 @@ interface ExportRequest {
  * For exports >= 500 invoices: returns job ID with 202 Accepted for async processing
  */
 export async function POST(request: NextRequest) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const body: ExportRequest = await request.json();
     const { invoices, filters = {} } = body;

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import WebhookForm from "@/components/settings/WebhookForm";
 import type { WebhookEventType } from "@/app/api/settings/webhooks/store";
+import { apiFetch } from "@/lib/apiClient";
 
 interface Webhook {
   id: string;
@@ -122,7 +123,7 @@ export default function WebhooksPage() {
   };
 
   const handleDelete = async (webhook: Webhook) => {
-    const res = await fetch(`/api/settings/webhooks/${webhook.id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/settings/webhooks/${webhook.id}`, { method: "DELETE" });
     if (res.ok || res.status === 204) {
       setWebhooks((prev) => prev.filter((w) => w.id !== webhook.id));
     }
@@ -130,7 +131,7 @@ export default function WebhooksPage() {
   };
 
   const handleRotate = async (id: string) => {
-    const res = await fetch(`/api/settings/webhooks/${id}`, { method: "POST" });
+    const res = await apiFetch(`/api/settings/webhooks/${id}`, { method: "POST" });
     if (!res.ok) return;
     const data = await res.json();
     setRevealSecret(data.secret);

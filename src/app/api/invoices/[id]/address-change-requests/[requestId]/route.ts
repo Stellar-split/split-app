@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AddressChangeRequestStatus } from '@/types/addressChangeRequest';
+import { assertCsrf } from '@/lib/middleware/csrfMiddleware';
 
 // Import the store (in real implementation, would use database)
 // For now using a simple in-memory approach (would be shared across routes)
@@ -9,6 +10,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string; requestId: string } }
 ) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const { id: invoiceId, requestId } = params;
     const body = await request.json();

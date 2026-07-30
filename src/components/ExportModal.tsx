@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import type { Invoice } from '@stellar-split/sdk';
 import type { ExportFilterOptions } from '@/lib/invoiceExcelExport';
 import { downloadExcel, generateExportFilename } from '@/lib/invoiceExcelExport';
+import { apiFetch } from '@/lib/apiClient';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -67,7 +68,7 @@ export default function ExportModal({
         filters.assets = selectedAssets;
       }
 
-      const response = await fetch('/api/invoices/export', {
+      const response = await apiFetch('/api/invoices/export', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

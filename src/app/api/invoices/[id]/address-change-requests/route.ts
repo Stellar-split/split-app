@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AddressChangeRequest, AddressChangeRequestStatus } from '@/types/addressChangeRequest';
+import { assertCsrf } from '@/lib/middleware/csrfMiddleware';
 
 // In-memory store for address change requests
 // In production, this would use a database
@@ -41,6 +42,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const invoiceId = params.id;
     const body = await request.json();

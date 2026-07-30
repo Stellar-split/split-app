@@ -10,6 +10,7 @@ import FeeTooltip from "@/components/ui/FeeTooltip";
 import { useNetworkFeeBreakdown } from "@/hooks/useNetworkFeeBreakdown";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
+import { apiFetch } from "@/lib/apiClient";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
@@ -651,7 +652,7 @@ function NewInvoiceForm() {
         addToast(`Invoice #${invoiceId} created`, "success");
         const apiPayload = payloadForApi();
         if (apiPayload && (apiPayload as any).recipients?.length > 0) {
-          fetch(`/api/invoices/${invoiceId}`, {
+          apiFetch(`/api/invoices/${invoiceId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json", "x-wallet-public-key": creator },
             body: JSON.stringify({ splitMeta: apiPayload }),
@@ -681,7 +682,7 @@ function NewInvoiceForm() {
         );
         const apiPayload = payloadForApi();
         if (apiPayload && (apiPayload as any).recipients?.length > 0) {
-          fetch(`/api/invoices/${invoiceId}`, {
+          apiFetch(`/api/invoices/${invoiceId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json", "x-wallet-public-key": creator },
             body: JSON.stringify({ splitMeta: apiPayload }),
