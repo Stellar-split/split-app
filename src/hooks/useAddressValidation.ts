@@ -98,10 +98,10 @@ export function useAddressValidation() {
 
             // Try to extract memo info from federation resolution
             try {
-              const { FederationServer } = await import('@stellar/stellar-sdk');
-              const federationResult = await FederationServer.resolveAddress(address);
-              if (federationResult.memo_id) {
-                federationMemoId = federationResult.memo_id;
+              const { Federation } = await import('@stellar/stellar-sdk');
+              const federationResult = await Federation.Server.resolve(address);
+              if (federationResult.memo) {
+                federationMemoId = federationResult.memo;
               }
               if (federationResult.memo_type) {
                 federationMemoType = federationResult.memo_type;

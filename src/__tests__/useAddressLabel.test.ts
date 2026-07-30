@@ -13,10 +13,12 @@ describe("useAddressLabel / resolveAddressLabel", () => {
 
   it("derives label for federation addresses (user*domain.com)", async () => {
     vi.mock("@stellar/stellar-sdk", () => ({
-      FederationServer: {
-        resolve: vi.fn().mockResolvedValue({
-          account_id: "G12345678901234567890123456789012345678901234567890123456",
-        }),
+      Federation: {
+        Server: {
+          resolve: vi.fn().mockResolvedValue({
+            account_id: "G12345678901234567890123456789012345678901234567890123456",
+          }),
+        },
       },
     }));
 

@@ -331,8 +331,8 @@ describe("PaymentConfirmationOverlay", () => {
 
   describe("User Interactions", () => {
     it("calls onDismiss when close button is clicked", async () => {
-      const { user } = await import("@testing-library/user-event");
-      const userEvent = await user.default;
+      // user-event's default export; clicking is simulated manually below.
+      await import("@testing-library/user-event");
 
       render(
         <PaymentConfirmationOverlay

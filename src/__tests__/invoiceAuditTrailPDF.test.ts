@@ -47,7 +47,8 @@ export const createAuditTrailPDF = (entries: AuditLogEntry[]): AuditTrailPDF => 
 
   sortedEntries.forEach((entry, index) => {
     auditDataString += `Entry ${index + 1}\n`;
-    auditDataString += `Timestamp: ${entry.timestamp.toISOString()}\n`;
+    // ISO 8601 without milliseconds for a stable, human-readable audit trail
+    auditDataString += `Timestamp: ${entry.timestamp.toISOString().replace(/\.\d{3}Z$/, "Z")}\n`;
     auditDataString += `Actor: ${entry.actor}\n`;
     auditDataString += `Action: ${entry.action}\n`;
     auditDataString += `Details: ${entry.details}\n`;
@@ -80,8 +81,11 @@ export const validateAuditTrailIntegrity = (
   pdfContent: string,
   claimedHash: string
 ): boolean => {
-  // Remove verification hash section for validation
-  const contentWithoutHash = pdfContent.split("Verification Hash")[0].trim();
+  // Reconstruct the exact pre-hash content: the hash is computed over the
+  // entry block BEFORE the trailing separator line ("\n====…\n") that
+  // introduces the Verification Hash section is appended.
+  const beforeHashSection = pdfContent.split("Verification Hash")[0];
+  const contentWithoutHash = beforeHashSection.replace(/\n=+\n$/, "");
   const calculatedHash = generateSHA256Hash(contentWithoutHash);
   return calculatedHash === claimedHash;
 };

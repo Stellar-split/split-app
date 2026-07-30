@@ -93,15 +93,18 @@ export function transactionsToExportRows(invoices: Invoice[]): TransactionExport
 
   for (const invoice of invoices) {
     for (const payment of invoice.payments) {
+      // `timestamp` is set at runtime by the indexer but is not part of the
+      // published SDK Payment type — read it defensively.
+      const timestamp = (payment as { timestamp?: number }).timestamp;
       rows.push({
         invoiceId: invoice.id,
         payer: payment.payer,
         amount: formatAmount(payment.amount),
-        timestamp: payment.timestamp
+        timestamp: timestamp
           ? new Date(
-              payment.timestamp < 10000000000
-                ? payment.timestamp * 1000
-                : payment.timestamp
+              timestamp < 10000000000
+                ? timestamp * 1000
+                : timestamp
             ).toISOString()
           : 'Unknown',
         txHash: (payment as any).txHash || '',
@@ -248,7 +251,7 @@ export function downloadExcel(
 ): void {
   if (typeof window === 'undefined') return;
 
-  const blob = new Blob([data], {
+  const blob = new Blob([data as unknown as BlobPart], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
   const url = URL.createObjectURL(blob);

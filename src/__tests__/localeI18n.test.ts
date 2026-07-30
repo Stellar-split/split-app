@@ -252,8 +252,10 @@ describe('Number and currency formatting', () => {
       return new Intl.NumberFormat(locale).format(num);
     };
 
-    const enFormatted = formatNumber(1234.56, 'en-US');
-    const esFormatted = formatNumber(1234.56, 'es-ES');
+    // 5+ integer digits because modern CLDR only groups es-ES numbers with
+    // >= 5 integer digits (minimumGroupingDigits = 2 since CLDR 42).
+    const enFormatted = formatNumber(12345.67, 'en-US');
+    const esFormatted = formatNumber(12345.67, 'es-ES');
 
     expect(enFormatted).toContain(',');
     expect(esFormatted).toContain('.');
@@ -270,7 +272,8 @@ describe('Number and currency formatting', () => {
     const enFormatted = formatCurrency(100.5, 'en-US', 'USD');
     const esFormatted = formatCurrency(100.5, 'es-ES', 'EUR');
 
-    expect(enFormatted).toContain('USD') || expect(enFormatted).toContain('$');
+    // ICU versions differ: some render "$100.50", others "100.50 USD".
+    expect(enFormatted).toMatch(/USD|\$/);
     expect(esFormatted).toContain('€');
   });
 

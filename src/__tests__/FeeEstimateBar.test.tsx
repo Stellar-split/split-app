@@ -48,7 +48,7 @@ describe("FeeEstimateBar Component (#411)", () => {
     expect(screen.getByText(/xlm/i)).toBeInTheDocument();
   });
 
-  it("shows loading state when fee data is loading", () => {
+  it("shows loading state when fee data is loading", async () => {
     const { useFeeEstimate } = await import("@/hooks/useFeeEstimate");
     vi.mocked(useFeeEstimate).mockReturnValue({
       baseFee: undefined,
@@ -63,7 +63,7 @@ describe("FeeEstimateBar Component (#411)", () => {
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 
-  it("shows error state when fee stats returns an error", () => {
+  it("shows error state when fee stats returns an error", async () => {
     const { useFeeEstimate } = await import("@/hooks/useFeeEstimate");
     vi.mocked(useFeeEstimate).mockReturnValue({
       baseFee: 100,

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import userEvent from "@testing-library/user-event";
@@ -168,28 +169,31 @@ describe("Recipient Payout History (#409)", () => {
         });
       }) as any;
 
-      const { rerender } = render(
-        <div data-testid="payouts">
-          {payouts
-            .filter((p) => p.asset === "XLM")
-            .map((p) => (
-              <div key={p.id}>{p.asset}</div>
-            ))}
-        </div>
-      );
+      // Inline test component: loads payouts once on mount, filters client-side.
+      const PayoutList = ({ assetFilter }: { assetFilter: string }) => {
+        const [data, setData] = useState<typeof payouts>([]);
+        useEffect(() => {
+          fetch("/api/payouts")
+            .then((r: any) => r.json())
+            .then((j: any) => setData(j.payouts));
+        }, []);
+        return (
+          <div data-testid="payouts">
+            {data
+              .filter((p) => p.asset === assetFilter)
+              .map((p) => (
+                <div key={p.id}>{p.asset}</div>
+              ))}
+          </div>
+        );
+      };
+
+      const { rerender } = render(<PayoutList assetFilter="XLM" />);
 
       expect(fetchCount).toBe(1);
 
       // Filter client-side should not trigger new fetch
-      rerender(
-        <div data-testid="payouts">
-          {payouts
-            .filter((p) => p.asset === "USDC")
-            .map((p) => (
-              <div key={p.id}>{p.asset}</div>
-            ))}
-        </div>
-      );
+      rerender(<PayoutList assetFilter="USDC" />);
 
       expect(fetchCount).toBe(1);
     });

@@ -156,10 +156,10 @@ describe("Issue #415: Dynamic Public Invoice Status Page", () => {
       const initialState = { amountPaid: "600", amountDue: "400" };
       const updatedState = { amountPaid: "800", amountDue: "200" };
 
-      expect(updatedState.amountPaid).toBeGreaterThan(
+      expect(parseFloat(updatedState.amountPaid)).toBeGreaterThan(
         parseFloat(initialState.amountPaid)
       );
-      expect(updatedState.amountDue).toBeLessThan(
+      expect(parseFloat(updatedState.amountDue)).toBeLessThan(
         parseFloat(initialState.amountDue)
       );
     });

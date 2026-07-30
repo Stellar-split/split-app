@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import userEvent from "@testing-library/user-event";
@@ -147,13 +148,29 @@ describe("Invoice Template Marketplace (#410)", () => {
     });
 
     it("displays pagination controls and loads next page on click", async () => {
-      render(
-        <div data-testid="pagination">
-          <button data-testid="prev-page">Previous</button>
-          <span data-testid="page-info">Page 1 of 5</span>
-          <button data-testid="next-page">Next</button>
-        </div>
-      );
+      const Pagination = () => {
+        const [page, setPage] = useState(1);
+        return (
+          <div data-testid="pagination">
+            <button
+              data-testid="prev-page"
+              disabled={page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </button>
+            <span data-testid="page-info">Page {page} of 5</span>
+            <button
+              data-testid="next-page"
+              onClick={() => setPage((p) => Math.min(5, p + 1))}
+            >
+              Next
+            </button>
+          </div>
+        );
+      };
+
+      render(<Pagination />);
 
       const nextBtn = screen.getByTestId("next-page");
       fireEvent.click(nextBtn);
@@ -237,7 +254,16 @@ describe("Invoice Template Marketplace (#410)", () => {
 
       await fetch("/api/templates/tpl1/clone", { method: "POST" });
 
-      expect(clonedTemplate).toEqual(expect.objectContaining(sourceTemplate));
+      // Everything except the new id / "(cloned)"-suffixed title must be
+      // an exact copy of the source template.
+      expect(clonedTemplate).toEqual(
+        expect.objectContaining({
+          description: sourceTemplate.description,
+          structure: sourceTemplate.structure,
+          category: sourceTemplate.category,
+        })
+      );
+      expect(clonedTemplate.id).not.toBe(sourceTemplate.id);
       expect(clonedTemplate.title).toContain("(cloned)");
     });
   });

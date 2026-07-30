@@ -14,6 +14,11 @@ export interface InvoiceDiff {
   hasDifferences: boolean;
 }
 
+// JSON.stringify cannot serialize BigInt — normalize BigInt values to
+// strings before comparing invoice field snapshots.
+const safeStringify = (value: unknown): string =>
+  JSON.stringify(value, (_key, v) => (typeof v === 'bigint' ? `${v}n` : v));
+
 export const invoiceDiff = (
   invoice1: Invoice,
   invoice2: Invoice
@@ -33,7 +38,7 @@ export const invoiceDiff = (
   const fields: DiffField[] = fieldsToCompare.map((field) => {
     const value1 = invoice1[field];
     const value2 = invoice2[field];
-    const isDifferent = JSON.stringify(value1) !== JSON.stringify(value2);
+    const isDifferent = safeStringify(value1) !== safeStringify(value2);
 
     return {
       field: field as string,

@@ -387,7 +387,7 @@ export default function SettingsAddressBookPage() {
               </h2>
               <p className="text-sm text-gray-300 mb-6">
                 Are you sure you want to delete contact{" "}
-                <span className="font-semibold text-white">"{deleteConfirmContact.label}"</span> (
+                <span className="font-semibold text-white">&quot;{deleteConfirmContact.label}&quot;</span> (
                 <span className="font-mono text-xs text-gray-400">
                   {truncateAddress(deleteConfirmContact.address)}
                 </span>

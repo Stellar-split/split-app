@@ -64,7 +64,7 @@ export default function PaymentReceiptEmail({
         </p>
 
         <p style={{ margin: "0 0 20px 0", fontSize: "16px", lineHeight: "1.6" }}>
-          We're confirming that we've received your payment for Invoice #{invoice.id}. Thank you!
+          We&apos;re confirming that we&apos;ve received your payment for Invoice #{invoice.id}. Thank you!
         </p>
 
         {/* Payment Summary Box */}
