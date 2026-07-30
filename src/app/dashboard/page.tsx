@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import DashboardClient from "@/components/DashboardClient";
-import { InvoiceListSkeleton } from "@/components/Skeleton";
-import FaucetWidget from "@/components/dev/FaucetWidget";
+import { SkeletonCard } from "@/components/Skeleton";
 
 export const metadata = {
   robots: { index: false, follow: false },
@@ -17,8 +16,15 @@ export const metadata = {
 export default async function DashboardPage() {
   return (
     <main className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
-      <FaucetWidget />
-      <Suspense fallback={<InvoiceListSkeleton />}>
+      <Suspense
+        fallback={
+          <div className="flex flex-col gap-4">
+            {[...Array(8)].map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        }
+      >
         <DashboardClient />
       </Suspense>
     </main>

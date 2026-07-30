@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
-import { authenticator } from "otplib";
+import { generateSecret, generateURI, verifySync } from "otplib";
 import QRCode from "qrcode";
 
 export interface SecuritySettings {
@@ -84,8 +84,8 @@ export function getSecuritySettings(userId: string): SecuritySettings {
 }
 
 export async function beginMfaEnrollment(userId: string) {
-  const secret = authenticator.generateSecret();
-  const otpauthUrl = authenticator.keyuri(userId, "Stellar Split", secret);
+  const secret = generateSecret();
+  const otpauthUrl = generateURI({ issuer: "Stellar Split", label: userId, secret });
   const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
 
   PENDING_ENROLLMENTS.set(userId, {
@@ -113,7 +113,7 @@ export function confirmMfaEnrollment(userId: string, code: string) {
     return { success: false, error: "Enrollment expired. Start again." };
   }
 
-  const isValid = authenticator.check(code, pending.secret);
+  const isValid = verifySync({ secret: pending.secret, token: code }).valid;
   if (!isValid) {
     return { success: false, error: "The verification code was invalid." };
   }
@@ -138,7 +138,7 @@ export function disableMfa(userId: string, code: string) {
   }
 
   const secret = decryptSecret(settings.encryptedSecret);
-  const isValid = authenticator.check(code, secret);
+  const isValid = verifySync({ secret: secret, token: code }).valid;
   if (!isValid) {
     return { success: false, error: "The verification code was invalid." };
   }
@@ -175,7 +175,7 @@ export function verifyMfaCode(userId: string, code: string) {
 
   try {
     const secret = decryptSecret(settings.encryptedSecret);
-    const isValid = authenticator.check(code, secret);
+    const isValid = verifySync({ secret: secret, token: code }).valid;
     if (!isValid) {
       const nextAttempts = (settings.failedAttempts || 0) + 1;
       const lockedUntil = nextAttempts >= MAX_FAILURES ? now + LOCKOUT_MS : undefined;

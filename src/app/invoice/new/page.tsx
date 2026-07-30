@@ -37,6 +37,9 @@ import {
   calculateSplit,
   type SplitMeta,
 } from "@/hooks/useSplitCalculator";
+
+import InstallmentPlanBuilder, { type InstallmentMilestone as PlanMilestone } from "@/components/invoice/InstallmentPlanBuilder";
+
 import InstallmentPlanBuilder from "@/components/invoice/InstallmentPlanBuilder";
 import AmountDenominationInput from "@/components/AmountDenominationInput";
 import { useXlmUsdcRate } from "@/hooks/useXlmUsdcRate";
@@ -45,6 +48,7 @@ import { useInvoiceCollaboration } from "@/hooks/useInvoiceCollaboration";
 import CursorOverlay from "@/components/CursorOverlay";
 import PresencePill from "@/components/PresencePill";
 import ReconnectionBanner from "@/components/ReconnectionBanner";
+
 
 const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
@@ -145,7 +149,7 @@ function NewInvoiceForm() {
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
   const [splitMeta, setSplitMeta] = useState<SplitMeta | null>(null);
-  const [installments, setInstallments] = useState<{ id: string; amount: number; dueDate: number; status: string; txHash?: string }[]>([]);
+  const [installments, setInstallments] = useState<PlanMilestone[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const { allTags, saveTags } = useInvoiceTags();
 

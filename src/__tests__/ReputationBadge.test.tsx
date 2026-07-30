@@ -76,7 +76,7 @@ const ReputationBadge: React.FC<ReputationBadgeProps> = ({
         className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-700 text-gray-400"
         data-testid="reputation-skeleton"
       >
-        ⏳ Loading
+        <span aria-hidden="true">⏳</span> Loading
       </span>
     );
   }

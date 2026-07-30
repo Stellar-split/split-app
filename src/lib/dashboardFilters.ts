@@ -1,5 +1,8 @@
 import type { Invoice } from "@stellar-split/sdk";
 
+/** Dashboard view model for an invoice. Currently a direct alias of the SDK type. */
+export type DashboardInvoice = Invoice;
+
 export type DashboardPresetId = "all" | "active" | "funded" | "refunded" | "expired" | "draft" | "overdue";
 export type DashboardSortId = "newest" | "oldest" | "amount-desc" | "amount-asc" | "deadline";
 
@@ -158,9 +161,14 @@ export function filterDashboardInvoices(
   preset: DashboardPresetId,
   now = Math.floor(Date.now() / 1000),
   splitMetaMap?: Record<string, { installments?: { dueDate: number; status: string }[] }>,
+  selectedStatuses: InvoiceStatusFilter[] = [],
+  query = "",
 ): Invoice[] {
-  return invoices.filter((invoice) =>
-    matchesDashboardPreset(invoice, preset, now, splitMetaMap?.[invoice.id]),
+  return invoices.filter(
+    (invoice) =>
+      matchesDashboardPreset(invoice, preset, now, splitMetaMap?.[invoice.id]) &&
+      matchesStatusFilter(invoice, selectedStatuses, now) &&
+      matchesTextSearch(invoice, query),
   );
 }
 

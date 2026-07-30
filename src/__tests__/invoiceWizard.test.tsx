@@ -132,7 +132,7 @@ describe("Issue #414: Invoice Creation Guided Wizard Multi-Step", () => {
       const isValidStellarAddress = (address: string) =>
         /^G[A-Z2-7]{55}$/.test(address);
 
-      const validAddress = "GBRPYHIL2CI3WHZDTOOQFC6EB4WXONTZJ3TXFLQ5XJJIJF4OJZC6J65";
+      const validAddress = "GBRPYHIL2CI3WHZDTOOQFC6EB4WXONTZJ3TXFLQ5XJJIJF4OJZC6J65A";
       expect(isValidStellarAddress(validAddress)).toBe(true);
     });
 

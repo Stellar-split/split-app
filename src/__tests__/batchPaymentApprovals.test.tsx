@@ -522,7 +522,7 @@ describe("Issue #412: Invoice Batch Payment Approval Queue", () => {
 
     it("should validate all recipients have valid Stellar addresses", () => {
       const recipients = [
-        { address: "GBRPYHIL2CI3WHZDTOOQFC6EB4WXONTZJ3TXFLQ5XJJIJF4OJZC6J65" },
+        { address: "GBRPYHIL2CI3WHZDTOOQFC6EB4WXONTZJ3TXFLQ5XJJIJF4OJZC6J65A" },
       ];
 
       const allValid = recipients.every((r) =>

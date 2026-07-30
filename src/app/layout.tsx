@@ -21,8 +21,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import { FiatRateProvider } from "@/hooks/useFiatRate";
 import { ShortcutRegistryProvider } from "@/context/ShortcutRegistry";
-import TransitionProvider from "@/components/layout/TransitionProvider";
-import "@/styles/transitions.css";
+import { getNonce } from "@/lib/csp";
 
 const themeBootstrap = `
 (function () {
@@ -107,18 +106,50 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const nonce = getNonce();
+
   return (
     // dir="ltr" is set here as scaffold; I18nProvider will update it client-side when RTL locales (ar/he) are added
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
-        <script dangerouslySetInnerHTML={{ __html: accessibilityBootstrap }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: accessibilityBootstrap }} />
       </head>
       <body suppressHydrationWarning className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased overflow-x-hidden">
         <QueryProvider>
           <ThemeProvider>
             <AccessibilityProvider>
+
               <WalletProvider>
+                <I18nProvider>
+                  <SessionLockProvider>
+                    <ToastProvider>
+                      <UserPreferencesProvider>
+                        <FiatRateProvider>
+                          <Navbar />
+                          <SimulationBanner />
+                          <UpgradeBanner />
+                          <ErrorBoundary>{children}</ErrorBoundary>
+                          <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
+                            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+                              <p className="text-xs text-gray-500">
+                                © {new Date().getFullYear()} StellarSplit
+                              </p>
+                              <LanguageSwitcher />
+                            </div>
+                          </footer>
+                          <CommandPalette />
+                          <OnboardingFlow />
+                          <RecipientOnboarding />
+                          <InstallBanner />
+                          <ToastContainer />
+                        </FiatRateProvider>
+                      </UserPreferencesProvider>
+                    </ToastProvider>
+                  </SessionLockProvider>
+                </I18nProvider>
+              </WalletProvider>
+
               <I18nProvider>
                 <SessionLockProvider>
                   <ToastProvider>
@@ -150,11 +181,11 @@ export default function RootLayout({
                   </ToastProvider>
                 </SessionLockProvider>
               </I18nProvider>
-              </WalletProvider>
+
             </AccessibilityProvider>
           </ThemeProvider>
         </QueryProvider>
-        <Script id="register-sw" strategy="afterInteractive">
+        <Script id="register-sw" strategy="afterInteractive" nonce={nonce}>
           {`if ("serviceWorker" in navigator) {
             window.addEventListener("load", function () {
               navigator.serviceWorker.register("/sw.js");
