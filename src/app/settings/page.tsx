@@ -67,6 +67,11 @@ export default function SettingsPage() {
             </a>
           </li>
           <li>
+            <a href="/settings/branding" className="text-indigo-400 hover:text-indigo-300">
+              Branding
+            </a>
+          </li>
+          <li>
             <a href="/settings/notifications" className="text-indigo-400 hover:text-indigo-300">
               Notifications
             </a>

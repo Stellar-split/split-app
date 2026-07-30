@@ -113,7 +113,7 @@ export default function ExpiryCountdownBanner({
             </p>
             <p className={`text-sm mt-1 ${textColor} opacity-90`}>
               This invoice is past its due date. Please reach out to the payer if payment
-              hasn't been received.
+              hasn&apos;t been received.
             </p>
           </div>
         </div>
