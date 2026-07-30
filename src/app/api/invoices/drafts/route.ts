@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 /**
  * Accepts an uploaded invoice draft once the browser is back online. There's
@@ -7,6 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
  * successful response.
  */
 export async function POST(request: NextRequest) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   const body = await request.json().catch(() => null);
   const draftId = body?.draftId;
   const userId = body?.userId;

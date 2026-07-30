@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
+import { apiFetch } from "@/lib/apiClient";
 import { formatAmount, parseAmount, truncateAddress, type Invoice } from "@stellar-split/sdk";
 import PaymentProgress from "@/components/PaymentProgress";
 import CrossChainPayment from "@/components/CrossChainPayment";
@@ -839,7 +840,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             const newSplitMeta = { ...loadedSplitMeta, installments: updated } as SplitMeta;
             setLoadedSplitMeta(newSplitMeta);
             try {
-              await fetch(`/api/invoices/${id}`, {
+              await apiFetch(`/api/invoices/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json", "x-wallet-public-key": publicKey },
                 body: JSON.stringify({ splitMeta: newSplitMeta }),

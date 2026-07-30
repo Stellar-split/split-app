@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import CommentBubble, { type CommentWithReactions } from "./CommentBubble";
 import { getOrCreateAnonymousReactorId } from "@/lib/anonymousReactor";
 import type { AllowedEmoji } from "@/lib/commentStore";
+import { apiFetch } from "@/lib/apiClient";
 
 interface Props {
   invoiceId: string;
@@ -86,7 +87,7 @@ export default function CommentThread({
     setPosting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/invoices/${invoiceId}/comments`, {
+      const res = await apiFetch(`/api/invoices/${invoiceId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ authorAddress: publicKey, text: trimmed }),
@@ -105,7 +106,7 @@ export default function CommentThread({
   const handleDelete = async (commentId: string) => {
     setComments((prev) => prev.filter((c) => c.id !== commentId));
     try {
-      await fetch(`/api/invoices/${invoiceId}/comments/${commentId}`, {
+      await apiFetch(`/api/invoices/${invoiceId}/comments/${commentId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -133,7 +134,7 @@ export default function CommentThread({
     );
 
     try {
-      await fetch(`/api/invoices/${invoiceId}/comments/${commentId}/reactions`, {
+      await apiFetch(`/api/invoices/${invoiceId}/comments/${commentId}/reactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ emoji, reactorId: reactorId.current }),

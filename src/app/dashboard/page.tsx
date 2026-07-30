@@ -1,6 +1,12 @@
 import { Suspense } from "react";
 import DashboardClient from "@/components/DashboardClient";
-import { SkeletonCard } from "@/components/Skeleton";
+import { InvoiceListSkeleton } from "@/components/Skeleton";
+import FaucetWidget from "@/components/dev/FaucetWidget";
+
+export const metadata = {
+  robots: { index: false, follow: false },
+  title: "Your Invoices — StellarSplit",
+};
 
 /**
  * Dashboard page with streaming SSR.
@@ -11,25 +17,7 @@ import { SkeletonCard } from "@/components/Skeleton";
 export default async function DashboardPage() {
   return (
     <main className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
-      <Suspense
-        fallback={
-          <div className="flex flex-col gap-4">
-            {[...Array(8)].map((_, i) => (
-              <SkeletonCard key={i} />
-            ))}
-          </div>
-        }
-      >
-import { InvoiceListSkeleton } from "@/components/Skeleton";
-
-export const metadata = {
-  robots: { index: false, follow: false },
-  title: "Your Invoices — StellarSplit",
-};
-
-export default async function DashboardPage() {
-  return (
-    <main className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
+      <FaucetWidget />
       <Suspense fallback={<InvoiceListSkeleton />}>
         <DashboardClient />
       </Suspense>

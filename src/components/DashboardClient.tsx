@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useRouter, useSearchParams } from "next/navigation";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { splitClient } from "@/lib/stellar";
 import InvoiceSearch from "@/components/InvoiceSearch";
@@ -14,6 +13,7 @@ import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 import { InvoiceListSkeleton, SkeletonCard } from "@/components/Skeleton";
 import BatchPayModal from "@/components/BatchPayModal";
 import StatusFilterChips from "@/components/invoice/StatusFilterChips";
+import DateRangeFilter from "@/components/invoice/DateRangeFilter";
 import { setBulkReminders, type BulkReminderResult } from "@/lib/reminders";
 import { getOrAssignDisplayNumber } from "@/lib/invoiceNumbering";
 import { formatAmount } from "@stellar-split/sdk";
@@ -28,39 +28,50 @@ import {
   filterDashboardInvoices,
   getDashboardPresetCounts,
   INVOICE_STATUS_FILTERS,
-  type DashboardPresetId,
-  type InvoiceStatusFilter,
+  matchesStatusFilter,
   sortInvoices,
   filterByDateRange,
   type DashboardPresetId,
+  type InvoiceStatusFilter,
   type DashboardSortId,
 } from "@/lib/dashboardFilters";
 import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import { invoiceHasTag } from "@/lib/invoiceTags";
 import InvoiceTable from "@/components/InvoiceTable";
+import FilterPresetDropdown from "@/components/invoices/FilterPresetDropdown";
+import { apiFetch } from "@/lib/apiClient";
 
 // ── URL helpers ──────────────────────────────────────────────────────────────
 
 function readParams(sp: URLSearchParams) {
-  const statuses = (sp.get("status") ?? "").split(",").filter(Boolean) as DashboardPresetId[];
+  const presetFilters = (sp.get("preset") ?? "").split(",").filter(Boolean) as DashboardPresetId[];
   const sort = (sp.get("sort") ?? "newest") as DashboardSortId;
   const dateFrom = sp.get("from") ?? "";
   const dateTo = sp.get("to") ?? "";
   const tag = sp.get("tag") ?? "";
-  return { statuses, sort, dateFrom, dateTo, tag };
+  return { presetFilters, sort, dateFrom, dateTo, tag };
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function DashboardClient() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   // URL-derived filter state
-  const { statuses, sort, dateFrom, dateTo, tag } = useMemo(
+  const { presetFilters, sort, dateFrom, dateTo, tag } = useMemo(
     () => readParams(searchParams),
     [searchParams],
   );
+
+  const selectedStatuses = useMemo<InvoiceStatusFilter[]>(() => {
+    const raw = searchParams.get("status");
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .filter((s): s is InvoiceStatusFilter => INVOICE_STATUS_FILTERS.includes(s as InvoiceStatusFilter));
+  }, [searchParams]);
 
   const { allTags, tagsByInvoice } = useInvoiceTags();
 
@@ -83,8 +94,12 @@ export default function DashboardClient() {
   const [feedOpen, setFeedOpen] = useState(false);
   const { unreadCount } = useActivityFeed();
   const [splitMetaMap, setSplitMetaMap] = useState<Record<string, { installments?: { dueDate: number; status: string }[] }>>({});
+  const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
-  // Multi-select state management
+  // Multi-select state management (bulk archive/delete toolbar)
   const {
     selectedIds,
     isSelecting,
@@ -92,7 +107,7 @@ export default function DashboardClient() {
     toggleInvoice,
     selectAll,
     deselectAll,
-    isSelected,
+    isSelected: isBulkSelected,
     selectedCount,
   } = useInvoiceSelection();
 
@@ -110,24 +125,60 @@ export default function DashboardClient() {
     [router, searchParams],
   );
 
-  const toggleStatus = (preset: DashboardPresetId) => {
-    const next = statuses.includes(preset)
-      ? statuses.filter((s) => s !== preset)
-      : [...statuses, preset];
+  const togglePresetFilter = (preset: DashboardPresetId) => {
+    const next = presetFilters.includes(preset)
+      ? presetFilters.filter((s) => s !== preset)
+      : [...presetFilters, preset];
+    pushParams({ preset: next.join(",") });
+  };
+
+  const toggleStatus = (status: InvoiceStatusFilter) => {
+    const next = selectedStatuses.includes(status)
+      ? selectedStatuses.filter((s) => s !== status)
+      : [...selectedStatuses, status];
     pushParams({ status: next.join(",") });
   };
 
   const clearFilters = () => {
-    router.replace("?", { scroll: false });
     setSearchValue("");
+    setNumericResult(null);
+    router.replace(pathname, { scroll: false });
   };
 
   const isFiltered =
-    statuses.length > 0 || dateFrom || dateTo || sort !== "newest" || !!tag;
+    presetFilters.length > 0 ||
+    selectedStatuses.length > 0 ||
+    !!dateFrom ||
+    !!dateTo ||
+    sort !== "newest" ||
+    !!tag;
+
+  // ── Saved filter presets ────────────────────────────────────────────────────
+
+  const currentFilterState = useMemo<Record<string, string>>(
+    () => ({
+      preset: presetFilters.join(","),
+      status: selectedStatuses.join(","),
+      sort: sort !== "newest" ? sort : "",
+      from: dateFrom,
+      to: dateTo,
+      tag,
+    }),
+    [presetFilters, selectedStatuses, sort, dateFrom, dateTo, tag],
+  );
+
+  const applyFilterPreset = (filters: Record<string, string>) => {
+    const sp = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) {
+      if (v) sp.set(k, v);
+    }
+    const qs = sp.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
 
   const handleBulkArchive = async () => {
     try {
-      const response = await fetch("/api/invoices/bulk", {
+      const response = await apiFetch("/api/invoices/bulk", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -139,7 +190,6 @@ export default function DashboardClient() {
 
       if (response.ok) {
         deselectAll();
-        // Optionally refresh the invoice list
       }
     } catch (error) {
       console.error("Bulk archive failed:", error);
@@ -148,7 +198,7 @@ export default function DashboardClient() {
 
   const handleBulkDelete = async () => {
     try {
-      const response = await fetch("/api/invoices/bulk", {
+      const response = await apiFetch("/api/invoices/bulk", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -159,46 +209,10 @@ export default function DashboardClient() {
 
       if (response.ok) {
         deselectAll();
-        // Optionally refresh the invoice list
       }
     } catch (error) {
       console.error("Bulk delete failed:", error);
     }
-  };
-
-  // ── Data fetching ───────────────────────────────────────────────────────────
-  const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
-  const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
-  const [compareMode, setCompareMode] = useState(false);
-  const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
-
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const selectedStatuses = useMemo<InvoiceStatusFilter[]>(() => {
-    const raw = searchParams.get("status");
-    if (!raw) return [];
-    return raw
-      .split(",")
-      .filter((s): s is InvoiceStatusFilter =>
-        INVOICE_STATUS_FILTERS.includes(s as InvoiceStatusFilter),
-      );
-  }, [searchParams]);
-
-  const toggleStatus = (status: InvoiceStatusFilter) => {
-    const next = selectedStatuses.includes(status)
-      ? selectedStatuses.filter((s) => s !== status)
-      : [...selectedStatuses, status];
-    const params = new URLSearchParams(searchParams.toString());
-    if (next.length > 0) {
-      params.set("status", next.join(","));
-    } else {
-      params.delete("status");
-    }
-    const qs = params.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
   // Get wallet public key
@@ -232,31 +246,6 @@ export default function DashboardClient() {
     };
   }, [router]);
 
-  // Fetch invoices progressively
-  useEffect(() => {
-    if (!publicKey) return;
-    const fetchInvoices = async () => {
-      setLoading(true);
-      const results: Invoice[] = [];
-      for (let id = 1; id <= 50; id++) {
-        try {
-          const inv = await splitClient.getInvoice(String(id));
-          const mine =
-            inv.creator === publicKey ||
-            inv.recipients.some((r) => r.address === publicKey);
-          if (mine) {
-            results.push(inv);
-            setInvoices([...results]);
-          }
-        } catch {
-          break;
-        }
-      }
-      setLoading(false);
-    };
-    fetchInvoices().catch((e) => { setError(String(e)); setLoading(false); });
-  }, [publicKey]);
-
   // Fetch splitMeta for overdue detection
   useEffect(() => {
     if (!publicKey || invoices.length === 0) return;
@@ -283,7 +272,6 @@ export default function DashboardClient() {
     return () => { cancelled = true; };
   }, [publicKey, invoices]);
 
-  // Numeric search debounce
   // ── Numeric search debounce ─────────────────────────────────────────────────
   useEffect(() => {
     const trimmed = searchValue.trim();
@@ -309,29 +297,32 @@ export default function DashboardClient() {
 
   // ── Derived data ────────────────────────────────────────────────────────────
 
-  const presetCounts = useMemo(() => getDashboardPresetCounts(invoices, Math.floor(Date.now() / 1000), splitMetaMap), [invoices, splitMetaMap]);
+  const presetCounts = useMemo(
+    () => getDashboardPresetCounts(invoices, Math.floor(Date.now() / 1000), splitMetaMap),
+    [invoices, splitMetaMap],
+  );
 
   const visibleInvoices = useMemo(() => {
-    // 1. status filter (multi-select chips); if none selected show all
+    const now = Math.floor(Date.now() / 1000);
+    // 1. preset filter (multi-select chips); if none selected show all
     let result =
-      statuses.length === 0
+      presetFilters.length === 0
         ? invoices
         : invoices.filter((inv) =>
-            statuses.some((s) =>
-              filterDashboardInvoices([inv], s, Math.floor(Date.now() / 1000), splitMetaMap).length > 0,
-            ),
+            presetFilters.some((p) => filterDashboardInvoices([inv], p, now, splitMetaMap).length > 0),
           );
-    // 2. date range
+    // 2. lifecycle status filter
+    result = result.filter((inv) => matchesStatusFilter(inv, selectedStatuses, now));
+    // 3. date range
     result = filterByDateRange(result, dateFrom, dateTo);
-    // 3. tag
+    // 4. tag
     if (tag) {
       result = result.filter((inv) => invoiceHasTag(tagsByInvoice[inv.id] ?? [], tag));
     }
-    // 4. sort
+    // 5. sort
     result = sortInvoices(result, sort);
     return result;
-  }, [invoices, statuses, dateFrom, dateTo, sort, splitMetaMap]);
-  }, [invoices, statuses, dateFrom, dateTo, sort, tag, tagsByInvoice]);
+  }, [invoices, presetFilters, selectedStatuses, dateFrom, dateTo, tag, sort, splitMetaMap, tagsByInvoice]);
 
   const { totalActive, totalValueLocked, totalReleased } = useMemo(() => {
     const now = Math.floor(Date.now() / 1000);
@@ -375,13 +366,6 @@ export default function DashboardClient() {
     setBulkReminderResults(null);
   };
 
-  const clearFilters = () => {
-    setActivePreset("all");
-    setSearchValue("");
-    setNumericResult(null);
-    if (searchParams.get("status")) {
-      router.replace(pathname, { scroll: false });
-    }
   const toggleCompareSelect = (id: string) => {
     if (compareSelected.size >= 2 && !compareSelected.has(id)) {
       return; // Max 2 invoices
@@ -406,24 +390,6 @@ export default function DashboardClient() {
     }
   };
 
-  const pendingInvoices = invoices.filter((inv) => inv.status === "Pending");
-  const selectedInvoices = invoices.filter((inv) => selected.has(inv.id));
-  const presetCounts = useMemo(
-    () => getDashboardPresetCounts(invoices, publicKey),
-    [invoices, publicKey],
-  );
-  const visibleInvoices = useMemo(
-    () =>
-      filterDashboardInvoices(
-        invoices,
-        publicKey,
-        activePreset,
-        searchValue,
-        undefined,
-        selectedStatuses,
-      ),
-    [invoices, publicKey, activePreset, searchValue, selectedStatuses],
-  );
   const handleScheduleBulkReminders = () => {
     if (!reminderDateTime || reminderSelected.size === 0) return;
     const results = setBulkReminders(
@@ -451,13 +417,13 @@ export default function DashboardClient() {
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Status</p>
         <div className="flex flex-wrap gap-2">
           {DASHBOARD_PRESETS.map((preset) => {
-            const active = statuses.includes(preset.id);
+            const active = presetFilters.includes(preset.id);
             const count = presetCounts[preset.id] ?? 0;
             return (
               <button
                 key={preset.id}
                 type="button"
-                onClick={() => toggleStatus(preset.id)}
+                onClick={() => togglePresetFilter(preset.id)}
                 aria-pressed={active}
                 className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
                   active
@@ -514,6 +480,12 @@ export default function DashboardClient() {
             <option key={o.id} value={o.id}>{o.label}</option>
           ))}
         </select>
+      </div>
+
+      {/* Saved presets */}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Presets</p>
+        <FilterPresetDropdown currentFilters={currentFilterState} onApply={applyFilterPreset} />
       </div>
 
       {/* Clear */}
@@ -688,7 +660,6 @@ export default function DashboardClient() {
 
       <StatusFilterChips selected={selectedStatuses} onToggle={toggleStatus} />
 
-      <div className="flex flex-wrap items-center gap-2 mb-6">
       {/* Summary Stats */}
       {!loading && invoices.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -726,35 +697,6 @@ export default function DashboardClient() {
           </svg>
           Filters {isFiltered && <span className="ml-1 rounded-full bg-indigo-600 text-white text-xs px-1.5 py-0.5">on</span>}
         </button>
-        {DASHBOARD_PRESETS.map((preset) => {
-          const isActive = activePreset === preset.id;
-          const count = presetCounts[preset.id] ?? 0;
-
-          return (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => handlePresetToggle(preset.id)}
-              className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
-                isActive
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-              }`}
-              aria-pressed={isActive}
-            >
-              <span>{preset.label}</span>
-              <span className="ml-2 rounded-full bg-white/15 px-2 py-0.5 text-xs">
-                {count}
-              </span>
-            </button>
-          );
-        })}
-        {(activePreset !== "all" || searchValue.trim().length > 0 || selectedStatuses.length > 0) && (
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="rounded-full border border-gray-700 px-3 py-1.5 text-sm font-semibold text-gray-300 transition-colors hover:bg-gray-800"
-          >
         {isFiltered && (
           <button type="button" onClick={clearFilters} className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
             Clear filters
@@ -787,13 +729,13 @@ export default function DashboardClient() {
       {/* Multi-select messages */}
       {multiSelect && <p className="text-sm text-gray-400 mb-4" role="status">Select pending invoices to pay in a single transaction.</p>}
       {reminderSelect && <p className="text-sm text-gray-400 mb-4" role="status">Select invoices to schedule a reminder for.</p>}
-
-      {/* Bulk reminder results */}
       {compareMode && (
         <p className="text-sm text-gray-400 mb-4" role="status">
           Select up to 2 invoices to compare side-by-side.
         </p>
       )}
+
+      {/* Bulk reminder results */}
       {bulkReminderResults && (
         <div className="mb-4 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reminder scheduling results:</p>
@@ -812,11 +754,6 @@ export default function DashboardClient() {
 
       {/* Invoice grid */}
       {loading && invoices.length === 0 ? (
-        <div className="flex flex-col gap-4">
-          {[...Array(8)].map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
         <InvoiceListSkeleton />
       ) : invoices.length === 0 ? (
         <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-12 text-center">
@@ -827,19 +764,14 @@ export default function DashboardClient() {
           </Link>
         </div>
       ) : visibleInvoices.length === 0 ? (
-        <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 text-center">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 p-6 text-center">
           <p className="text-gray-400">
-            {activePreset !== "all"
-              ? DASHBOARD_PRESETS.find((preset) => preset.id === activePreset)
-                  ?.emptyState ?? "No invoices match this view."
-              : searchValue.trim()
+            {searchValue.trim()
               ? "No invoices match your search."
-              : selectedStatuses.length > 0
-              ? "No invoices match the selected status."
+              : isFiltered
+              ? "No invoices match the current filters."
               : "No invoices found. Create your first one!"}
           </p>
-        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 p-6 text-center">
-          <p className="text-gray-400">No invoices match the current filters.</p>
         </div>
       ) : (
         viewMode === "table" && !multiSelect && !reminderSelect && !compareMode ? (
@@ -868,11 +800,7 @@ export default function DashboardClient() {
             const isCompareSelectable = compareMode;
             const isCompareSelected = compareSelected.has(inv.id);
             const isMultiSelectable = isSelecting;
-            const isMultiSelected = isSelected(inv.id);
-
-            const card = (
-              <InvoiceCard invoice={inv} displayNumber={getOrAssignDisplayNumber(inv.id)} tags={tagsByInvoice[inv.id] ?? []} />
-            );
+            const isMultiSelected = isBulkSelected(inv.id);
 
             return (
               <div key={inv.id}>

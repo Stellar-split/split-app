@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { WebhookEventType } from "@/app/api/settings/webhooks/store";
+import { apiFetch } from "@/lib/apiClient";
 
 const ALL_EVENTS: { value: WebhookEventType; label: string }[] = [
   { value: "invoice.created",  label: "Invoice Created"  },
@@ -53,7 +54,7 @@ export default function WebhookForm({ onCreated }: Props) {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/settings/webhooks", {
+      const res = await apiFetch("/api/settings/webhooks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, events: Array.from(events) }),

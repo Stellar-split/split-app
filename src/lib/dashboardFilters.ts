@@ -97,7 +97,7 @@ export function matchesDashboardPreset(
   }
 }
 
-export function matchesTextSearch(invoice: DashboardInvoice, query: string): boolean {
+export function matchesTextSearch(invoice: Invoice, query: string): boolean {
   const trimmed = query.trim();
   if (!trimmed) return true;
 
@@ -130,7 +130,7 @@ export const INVOICE_STATUS_FILTERS: InvoiceStatusFilter[] = [
 ];
 
 export function getInvoiceDisplayStatus(
-  invoice: DashboardInvoice,
+  invoice: Invoice,
   now = Math.floor(Date.now() / 1000),
 ): InvoiceStatusFilter | "Refunded" {
   if (invoice.status === "Released") return "Released";
@@ -145,7 +145,7 @@ export function getInvoiceDisplayStatus(
 }
 
 export function matchesStatusFilter(
-  invoice: DashboardInvoice,
+  invoice: Invoice,
   selectedStatuses: InvoiceStatusFilter[],
   now = Math.floor(Date.now() / 1000),
 ): boolean {
@@ -157,14 +157,6 @@ export function filterDashboardInvoices(
   invoices: Invoice[],
   preset: DashboardPresetId,
   now = Math.floor(Date.now() / 1000),
-  selectedStatuses: InvoiceStatusFilter[] = [],
-): DashboardInvoice[] {
-  return invoices.filter((invoice) => {
-    const matchesPreset = matchesDashboardPreset(invoice, publicKey, preset, now);
-    const matchesQuery = matchesTextSearch(invoice, query);
-    const matchesStatus = matchesStatusFilter(invoice, selectedStatuses, now);
-    return matchesPreset && matchesQuery && matchesStatus;
-  });
   splitMetaMap?: Record<string, { installments?: { dueDate: number; status: string }[] }>,
 ): Invoice[] {
   return invoices.filter((invoice) =>

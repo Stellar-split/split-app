@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "@/lib/apiClient";
 
 interface Props {
   isOpen: boolean;
@@ -58,7 +59,7 @@ export default function MFAGate({ isOpen, onClose, onSuccess }: Props) {
     setError(null);
 
     try {
-      const response = await fetch("/api/settings/mfa/verify", {
+      const response = await apiFetch("/api/settings/mfa/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: walletAddress, code }),

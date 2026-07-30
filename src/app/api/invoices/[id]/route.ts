@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { splitClient } from "@/lib/stellar";
 import { safeParseSplitMeta, type SplitMetaInput } from "@/lib/splitMetaSchema";
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 interface SplitMetaStore {
   [invoiceId: string]: SplitMetaInput;
@@ -12,6 +13,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const invoiceId = params.id;
     const walletPublicKey = request.headers.get("x-wallet-public-key");

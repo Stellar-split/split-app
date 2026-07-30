@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 /**
  * PATCH /api/invoices/bulk
@@ -13,6 +14,9 @@ import { NextRequest, NextResponse } from "next/server";
  * - tags?: string[] (for tag action)
  */
 export async function PATCH(request: NextRequest) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const body = await request.json();
     const { invoiceIds, action, archived, tags } = body as {

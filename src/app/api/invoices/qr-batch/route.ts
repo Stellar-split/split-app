@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 interface QRCodeResult {
   invoiceId: string;
@@ -26,6 +27,9 @@ interface QRCodeResult {
 }
 
 export async function POST(request: NextRequest) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const body = await request.json();
     const invoiceIds: string[] = body.invoiceIds || [];
