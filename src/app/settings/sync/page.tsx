@@ -8,6 +8,8 @@ import {
   downloadBlob,
   type StateBlob,
 } from "@/lib/stateSync";
+import { clearInvoiceCache } from "@/lib/db/invoiceCache";
+import { useToast } from "@/contexts/ToastContext";
 
 type Status = { type: "idle" } | { type: "loading" } | { type: "success"; message: string } | { type: "error"; message: string };
 
@@ -15,7 +17,9 @@ export default function StateSyncPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<Status>({ type: "idle" });
   const [importStatus, setImportStatus] = useState<Status>({ type: "idle" });
+  const [clearingCache, setClearingCache] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   useEffect(() => {
     getFreighterPublicKey().then(setWalletAddress).catch(() => null);
@@ -50,6 +54,18 @@ export default function StateSyncPage() {
     } finally {
       // Reset file input so the same file can be re-imported
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleClearCache = async () => {
+    setClearingCache(true);
+    try {
+      await clearInvoiceCache();
+      toast.success("Invoice cache cleared.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to clear cache.");
+    } finally {
+      setClearingCache(false);
     }
   };
 
@@ -123,6 +139,23 @@ export default function StateSyncPage() {
         {importStatus.type === "error" && (
           <p role="alert" className="mt-3 text-red-400 text-sm">{importStatus.message}</p>
         )}
+      </section>
+
+      {/* Cache */}
+      <section aria-labelledby="cache-heading" className="bg-gray-900 rounded-xl p-5 mt-6">
+        <h2 id="cache-heading" className="text-lg font-semibold mb-1">Invoice Cache</h2>
+        <p className="text-sm text-gray-400 mb-4">
+          Your invoice list is cached in IndexedDB for faster loading. Clearing it forces the
+          next load to fetch fresh data from the network — no page reload required.
+        </p>
+        <button
+          type="button"
+          onClick={handleClearCache}
+          disabled={clearingCache}
+          className="min-h-11 px-5 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 font-semibold text-sm transition-colors disabled:opacity-50"
+        >
+          {clearingCache ? "Clearing…" : "Clear Cache"}
+        </button>
       </section>
     </main>
   );

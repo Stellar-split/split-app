@@ -21,6 +21,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import { FiatRateProvider } from "@/hooks/useFiatRate";
 import { ShortcutRegistryProvider } from "@/context/ShortcutRegistry";
+import { getNonce } from "@/lib/csp";
 
 const themeBootstrap = `
 (function () {
@@ -105,12 +106,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const nonce = getNonce();
+
   return (
     // dir="ltr" is set here as scaffold; I18nProvider will update it client-side when RTL locales (ar/he) are added
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
-        <script dangerouslySetInnerHTML={{ __html: accessibilityBootstrap }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: accessibilityBootstrap }} />
       </head>
       <body suppressHydrationWarning className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased overflow-x-hidden">
         <QueryProvider>
@@ -180,7 +183,7 @@ export default function RootLayout({
             </AccessibilityProvider>
           </ThemeProvider>
         </QueryProvider>
-        <Script id="register-sw" strategy="afterInteractive">
+        <Script id="register-sw" strategy="afterInteractive" nonce={nonce}>
           {`if ("serviceWorker" in navigator) {
             window.addEventListener("load", function () {
               navigator.serviceWorker.register("/sw.js");
