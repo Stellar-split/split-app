@@ -35,17 +35,15 @@ export async function uploadToIpfs(file: File): Promise<string> {
     throw new Error("File type not supported. Use PDF, images, or text documents.");
   }
 
+  const apiKey = process.env.NEXT_PUBLIC_IPFS_API_KEY;
+
   try {
-    // Use Web3.Storage or similar IPFS pinning service
-    // This is a simplified implementation - in production you'd use the Web3.Storage SDK
     const formData = new FormData();
     formData.append("file", file);
 
     const response = await fetch(`${IPFS_GATEWAY}/upload`, {
       method: "POST",
-      headers: IPFS_API_KEY ? {
-        "Authorization": `Bearer ${IPFS_API_KEY}`,
-      } : {},
+      headers: apiKey ? { "Authorization": `Bearer ${apiKey}` } : {},
       body: formData,
     });
 
@@ -54,10 +52,8 @@ export async function uploadToIpfs(file: File): Promise<string> {
     }
 
     const data = await response.json();
-    
-    // Extract CID from response (format depends on gateway)
     const cid = data.cid || data.Hash || data.ipfsHash;
-    
+
     if (!cid) {
       throw new Error("No CID returned from IPFS gateway");
     }
@@ -65,9 +61,11 @@ export async function uploadToIpfs(file: File): Promise<string> {
     return cid;
   } catch (error) {
     console.error("IPFS upload error:", error);
-    throw new Error(
-      error instanceof Error ? error.message : "Failed to upload file to IPFS"
-    );
+    if (error instanceof Error && error.message !== "Failed to upload file to IPFS") {
+      const knownMessages = ["No CID returned", "IPFS upload failed", "File size", "File type"];
+      if (knownMessages.some((m) => error.message.startsWith(m))) throw error;
+    }
+    throw new Error("Failed to upload file to IPFS");
   }
 }
 
@@ -104,10 +102,16 @@ export function isValidCid(cid: string): boolean {
  * Mock IPFS upload for development/testing when gateway is not configured.
  * Generates a deterministic mock CID based on file content.
  */
+const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
 export async function mockIpfsUpload(file: File): Promise<string> {
-  // Generate a deterministic mock CID based on file name and size
   const hash = await hashFile(file);
-  return `Qm${hash.substring(0, 44)}`;
+  let encoded = "";
+  for (let i = 0; i < hash.length && encoded.length < 44; i++) {
+    encoded += BASE58[parseInt(hash[i], 16) * 3 % 58];
+  }
+  while (encoded.length < 44) encoded += "1";
+  return "Qm" + encoded.slice(0, 44);
 }
 
 async function hashFile(file: File): Promise<string> {

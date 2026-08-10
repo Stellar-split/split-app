@@ -39,8 +39,6 @@ import {
 } from "@/hooks/useSplitCalculator";
 
 import InstallmentPlanBuilder, { type InstallmentMilestone as PlanMilestone } from "@/components/invoice/InstallmentPlanBuilder";
-
-import InstallmentPlanBuilder from "@/components/invoice/InstallmentPlanBuilder";
 import AmountDenominationInput from "@/components/AmountDenominationInput";
 import { useXlmUsdcRate } from "@/hooks/useXlmUsdcRate";
 
@@ -169,6 +167,7 @@ function NewInvoiceForm() {
   const [draftUserId, setDraftUserId] = useState<string | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [recoveredDraft, setRecoveredDraft] = useState<StoredDraft | null>(null);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
   const isDraftDirty = () => {
     if (!hasUserInteracted) return false;
@@ -421,13 +420,24 @@ function NewInvoiceForm() {
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const [pendingNavigationHref, setPendingNavigationHref] = useState<string | null>(null);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const { feeBreakdown, isLoading: feeLoading, error: feeError, refetch: refetchFees } = useNetworkFeeBreakdown();
 
   // Denomination toggle state (XLM / USDC)
   type Denomination = "XLM" | "USDC";
   const [amountDenom, setAmountDenom] = useState<Denomination>("USDC");
   const xlmUsdcRate = useXlmUsdcRate();
+
+  const {
+    remoteCursors,
+    remotePresence,
+    isConnected: collabConnected,
+    focusedField,
+    setFocusedField,
+    emitFieldBlur,
+  } = useInvoiceCollaboration({
+    invoiceId: draftId ?? "new",
+    currentAddress: publicKey,
+  });
 
   /** Convert an amount string from current denomination to USDC for on-chain use */
   const toUsdc = useCallback(
@@ -752,8 +762,8 @@ function NewInvoiceForm() {
             }`}
           />
           <CursorOverlay cursors={remoteCursors} fieldName="token-address" />
-        </ChangedField>
-      </div>
+        </FormField>
+      </ChangedField>
 
       {cloneSourceId ? (
         <FormField

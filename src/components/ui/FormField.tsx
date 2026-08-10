@@ -29,11 +29,12 @@ export default function FormField({
       </label>
 
       <div className="relative">
-        {React.cloneElement(children as React.ReactElement, {
+        {React.cloneElement(React.Children.toArray(children)[0] as React.ReactElement, {
           id,
           'aria-describedby': errorId || helperText ? `${id}-hint` : undefined,
           'aria-invalid': !!error,
         })}
+        {React.Children.toArray(children).slice(1)}
 
         {error && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">

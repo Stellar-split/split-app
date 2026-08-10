@@ -1,17 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import DisputePanel from "../DisputePanel";
 import type { Invoice } from "@stellar-split/sdk";
 
-// Mock dependencies
+// Shared mock client so component and tests reference the same functions
+const mockVoteDispute = vi.hoisted(() => vi.fn().mockResolvedValue({ txHash: "mockTxHash" }));
+const mockAddDisputeEvidence = vi.hoisted(() => vi.fn().mockResolvedValue({ txHash: "mockTxHash" }));
+
 vi.mock("@/lib/ipfs", () => ({
   uploadToIpfs: vi.fn().mockResolvedValue("QmMockCID123456789abcdefghijklmnopqrstuvwxyz"),
 }));
 
 vi.mock("@/lib/stellar", () => ({
   getSplitClient: vi.fn(() => ({
-    voteDispute: vi.fn().mockResolvedValue({ txHash: "mockTxHash" }),
-    addDisputeEvidence: vi.fn().mockResolvedValue({ txHash: "mockTxHash" }),
+    voteDispute: mockVoteDispute,
+    addDisputeEvidence: mockAddDisputeEvidence,
   })),
 }));
 
@@ -52,16 +55,11 @@ const mockInvoice: Invoice & { disputeStatus?: any } = {
 describe("DisputePanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock window toast container
-    (global as any).window = {
-      __toastContainer: {
-        addToast: vi.fn(),
-      },
-    };
+    (window as any).__toastContainer = { addToast: vi.fn() };
   });
 
   afterEach(() => {
-    delete (global as any).window;
+    delete (window as any).__toastContainer;
   });
 
   describe("Conditional Rendering", () => {
@@ -130,8 +128,9 @@ describe("DisputePanel", () => {
         />
       );
 
-      // truncateAddress should show truncated version
-      expect(screen.getByText(/GPAYER/i)).toBeInTheDocument();
+      // Scope to the "Initiated By" card to avoid matching the evidence submitter
+      const initiatedByLabel = screen.getByText("Initiated By");
+      expect(initiatedByLabel.parentElement).toHaveTextContent(/GPAYER/i);
     });
 
     it("displays vote tally correctly", () => {
@@ -175,7 +174,7 @@ describe("DisputePanel", () => {
 
       await waitFor(() => {
         expect(screen.getByRole("dialog")).toBeInTheDocument();
-        expect(screen.getByText("Submit Evidence")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Submit Evidence" })).toBeInTheDocument();
       });
     });
 
@@ -195,8 +194,6 @@ describe("DisputePanel", () => {
 
     it("uploads file and submits CID on evidence submission", async () => {
       const mockRefresh = vi.fn().mockResolvedValue(undefined);
-      const { getSplitClient } = await import("@/lib/stellar");
-      const mockClient = getSplitClient();
 
       render(
         <DisputePanel
@@ -219,12 +216,13 @@ describe("DisputePanel", () => {
       const fileInput = screen.getByLabelText(/Select file/i);
       fireEvent.change(fileInput, { target: { files: [file] } });
 
-      // Submit
-      const submitModalButton = screen.getByRole("button", { name: /Submit Evidence/i });
+      // Use within(dialog) to scope the Submit Evidence button to the modal
+      const dialog = screen.getByRole("dialog");
+      const submitModalButton = within(dialog).getByRole("button", { name: /Submit Evidence/i });
       fireEvent.click(submitModalButton);
 
       await waitFor(() => {
-        expect(mockClient.addDisputeEvidence).toHaveBeenCalledWith({
+        expect(mockAddDisputeEvidence).toHaveBeenCalledWith({
           invoiceId: "invoice-123",
           submitter: "GARBITRATOR2",
           evidenceCid: "QmMockCID123456789abcdefghijklmnopqrstuvwxyz",
@@ -304,8 +302,6 @@ describe("DisputePanel", () => {
 
     it("calls voteDispute with correct parameters on Approve Release", async () => {
       const mockRefresh = vi.fn().mockResolvedValue(undefined);
-      const { getSplitClient } = await import("@/lib/stellar");
-      const mockClient = getSplitClient();
 
       render(
         <DisputePanel
@@ -319,7 +315,7 @@ describe("DisputePanel", () => {
       fireEvent.click(approveButton);
 
       await waitFor(() => {
-        expect(mockClient.voteDispute).toHaveBeenCalledWith({
+        expect(mockVoteDispute).toHaveBeenCalledWith({
           invoiceId: "invoice-123",
           arbitrator: "GARBITRATOR2",
           vote: 1, // Release
@@ -330,8 +326,6 @@ describe("DisputePanel", () => {
 
     it("calls voteDispute with correct parameters on Reject/Refund", async () => {
       const mockRefresh = vi.fn().mockResolvedValue(undefined);
-      const { getSplitClient } = await import("@/lib/stellar");
-      const mockClient = getSplitClient();
 
       render(
         <DisputePanel
@@ -345,7 +339,7 @@ describe("DisputePanel", () => {
       fireEvent.click(rejectButton);
 
       await waitFor(() => {
-        expect(mockClient.voteDispute).toHaveBeenCalledWith({
+        expect(mockVoteDispute).toHaveBeenCalledWith({
           invoiceId: "invoice-123",
           arbitrator: "GARBITRATOR2",
           vote: 0, // Refund
@@ -442,7 +436,9 @@ describe("DisputePanel", () => {
       const fileInput = screen.getByLabelText(/Select file/i);
       fireEvent.change(fileInput, { target: { files: [file] } });
 
-      const submitButton = screen.getByRole("button", { name: /Submit Evidence/i });
+      // Use within(dialog) to scope to the modal's Submit Evidence button
+      const dialog = screen.getByRole("dialog");
+      const submitButton = within(dialog).getByRole("button", { name: /Submit Evidence/i });
       fireEvent.click(submitButton);
 
       await waitFor(() => {

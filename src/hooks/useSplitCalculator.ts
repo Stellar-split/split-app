@@ -178,3 +178,16 @@ export function calculateEqualSplit(recipientCount: number): { perRecipient: num
   const remainder = 100 - (perRecipient * recipientCount);
   return { perRecipient, remainder };
 }
+
+export function resolveRounding(percentages: number[], totalAmount: number): RoundingResolution {
+  const totalStroops = Math.round(totalAmount * STROOP_SCALE);
+  const flooredStroops = percentages.map((p) => Math.floor((totalAmount * p) / 100 * STROOP_SCALE));
+  const sumFloored = flooredStroops.reduce((s, v) => s + v, 0);
+  const remainder = totalStroops - sumFloored;
+  flooredStroops[0] += remainder;
+  return {
+    amounts: flooredStroops.map((s) => s / STROOP_SCALE),
+    roundingAdjustment: remainder / STROOP_SCALE,
+    recipientIndex: 0,
+  };
+}

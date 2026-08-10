@@ -1,7 +1,12 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { GET, POST, PUT, DELETE } from "@/app/api/settings/address-book/route";
 import { resetServerAddressBook } from "@/lib/serverAddressBook";
+
+vi.mock("@/lib/middleware/csrfMiddleware", () => ({
+  assertCsrf: vi.fn().mockResolvedValue(null),
+  CSRF_HEADER: "x-csrf-token",
+}));
 
 describe("Address Book API (/api/settings/address-book)", () => {
   beforeEach(() => {

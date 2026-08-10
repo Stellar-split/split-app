@@ -2,11 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { uploadToIpfs, getIpfsUrl, isValidCid, mockIpfsUpload } from "../ipfs";
 
 global.fetch = vi.fn();
-global.crypto = {
-  subtle: {
-    digest: vi.fn(),
-  },
-} as any;
+vi.stubGlobal("crypto", { subtle: { digest: vi.fn() } });
 
 describe("IPFS utilities", () => {
   beforeEach(() => {

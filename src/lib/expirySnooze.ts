@@ -65,7 +65,7 @@ export function snoozeInvoice(
     case "until-tomorrow":
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
+      tomorrow.setHours(8, 0, 0, 0);
       snoozedUntil = tomorrow.getTime();
       break;
   }

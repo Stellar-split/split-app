@@ -13,6 +13,11 @@
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
+import { ShortcutRegistryProvider } from "@/context/ShortcutRegistry";
+
+function renderWithRegistry(ui: React.ReactElement) {
+  return render(<ShortcutRegistryProvider>{ui}</ShortcutRegistryProvider>);
+}
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
@@ -60,7 +65,7 @@ function pressKey(
 
 describe("KeyboardShortcutsModal — ? key trigger", () => {
   test("pressing ? outside an input opens the modal", () => {
-    render(<HeaderShortcutsButton />);
+    renderWithRegistry(<HeaderShortcutsButton />);
 
     expect(screen.queryByRole("dialog")).toBeNull();
 
@@ -73,7 +78,7 @@ describe("KeyboardShortcutsModal — ? key trigger", () => {
   });
 
   test("pressing ? a second time closes the modal (toggle)", () => {
-    render(<HeaderShortcutsButton />);
+    renderWithRegistry(<HeaderShortcutsButton />);
 
     pressKey("?");
     expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -83,7 +88,7 @@ describe("KeyboardShortcutsModal — ? key trigger", () => {
   });
 
   test("pressing ? inside an <input> does NOT open the modal", () => {
-    render(
+    renderWithRegistry(
       <div>
         <HeaderShortcutsButton />
         <input data-testid="text-input" />
@@ -97,7 +102,7 @@ describe("KeyboardShortcutsModal — ? key trigger", () => {
   });
 
   test("pressing ? inside a <textarea> does NOT open the modal", () => {
-    render(
+    renderWithRegistry(
       <div>
         <HeaderShortcutsButton />
         <textarea data-testid="text-area" />
@@ -113,7 +118,7 @@ describe("KeyboardShortcutsModal — ? key trigger", () => {
 
 describe("KeyboardShortcutsModal — Escape closes the modal", () => {
   test("pressing Escape closes the open modal", () => {
-    render(<HeaderShortcutsButton />);
+    renderWithRegistry(<HeaderShortcutsButton />);
 
     pressKey("?");
     expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -125,7 +130,7 @@ describe("KeyboardShortcutsModal — Escape closes the modal", () => {
 
 describe("KeyboardShortcutsModal — header button", () => {
   test("clicking the ? header button opens the modal", () => {
-    render(<HeaderShortcutsButton />);
+    renderWithRegistry(<HeaderShortcutsButton />);
 
     expect(screen.queryByRole("dialog")).toBeNull();
 
@@ -137,7 +142,7 @@ describe("KeyboardShortcutsModal — header button", () => {
   });
 
   test("clicking the close (×) button inside the modal dismisses it", () => {
-    render(<HeaderShortcutsButton />);
+    renderWithRegistry(<HeaderShortcutsButton />);
 
     act(() => {
       screen.getByRole("button", { name: /keyboard shortcuts/i }).click();
@@ -155,11 +160,11 @@ describe("KeyboardShortcutsModal — header button", () => {
 
 describe("KeyboardShortcutsModal — shortcut list content", () => {
   test("modal displays the required shortcut entries", () => {
-    render(<HeaderShortcutsButton />);
+    renderWithRegistry(<HeaderShortcutsButton />);
     pressKey("?");
 
     // Check the four mandatory shortcuts from the acceptance criteria
-    expect(screen.getByText("Open command palette")).toBeInTheDocument();
+    expect(screen.getByText("Open keyboard shortcuts reference")).toBeInTheDocument();
     expect(screen.getByText("Navigate to Search")).toBeInTheDocument();
     expect(screen.getByText("Create new invoice (on dashboard)")).toBeInTheDocument();
     expect(screen.getByText(/close modal/i)).toBeInTheDocument();

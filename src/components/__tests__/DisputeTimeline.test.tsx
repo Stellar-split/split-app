@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import DisputeTimeline from "../DisputeTimeline";
 
 // Mock the stellar client
-const mockGetDisputeEvents = vi.fn();
+const mockGetDisputeEvents = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/stellar", () => ({
   splitClient: {
@@ -239,7 +239,11 @@ describe("DisputeTimeline", () => {
       );
 
       await waitFor(() => {
-        const byTexts = screen.getAllByText(/^By /);
+        const byTexts = screen.getAllByText(
+          (_content, element) =>
+            element?.tagName === 'P' &&
+            (element.textContent?.trim().startsWith('By ') ?? false),
+        );
         expect(byTexts.length).toBe(3);
       });
     });

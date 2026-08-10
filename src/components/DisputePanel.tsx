@@ -216,7 +216,7 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
                     onClick={() => handleVote("Refund")}
                     disabled={voting}
                     className="flex-1 px-4 py-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Vote to reject and refund"
+                    aria-label="Reject / Refund"
                   >
                     {voting ? "Submitting..." : "↩️ Reject / Refund"}
                   </button>

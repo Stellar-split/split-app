@@ -14,10 +14,13 @@ function calcTimeLeft(deadline: number) {
 }
 
 function formatDeadlineTooltip(deadline: number) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "full",
-    timeStyle: "long",
-  }).format(new Date(deadline * 1000));
+  const date = new Date(deadline * 1000);
+  const month = date.toLocaleString("en-US", { month: "long", timeZone: "UTC" });
+  const day = date.getUTCDate();
+  const year = date.getUTCFullYear();
+  const hours = String(date.getUTCHours()).padStart(2, "0");
+  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+  return `Expires ${month} ${day}, ${year} at ${hours}:${minutes} UTC`;
 }
 
 function getColorClass(timeLeft: number) {
