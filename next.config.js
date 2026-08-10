@@ -5,7 +5,9 @@ const { withSentryConfig } = require("@sentry/nextjs");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ["@stellar/stellar-sdk", "@vercel/blob"],
+  experimental: {
+    serverComponentsExternalPackages: ["@stellar/stellar-sdk", "@vercel/blob"],
+  },
   images: {
     // Recipient avatars fall back to Gravatar; served unoptimized so no image
     // requests are proxied through the Next.js optimizer.

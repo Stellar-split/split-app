@@ -748,6 +748,7 @@ function NewInvoiceForm() {
         >
           <input
             type="text"
+            aria-label="Token address"
             value={token}
             onChange={(e) => setToken(e.target.value)}
             onFocus={() => setFocusedField("token-address")}
@@ -1216,8 +1217,8 @@ function NewInvoiceForm() {
             onClick={() => setFormMode("create")}
             className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg -mb-px border-b-2 ${
               formMode === "create"
-                ? "border-indigo-500 text-indigo-300"
-                : "border-transparent text-gray-400 hover:text-gray-200"
+                ? "border-indigo-500 text-indigo-600 dark:text-indigo-300"
+                : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
           >
             Create New

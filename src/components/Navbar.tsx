@@ -89,7 +89,7 @@ export default function Navbar() {
             <button
               ref={hamburgerRef}
               className="lg:hidden ml-1 flex items-center justify-center h-9 w-9 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
-              aria-label="Open navigation menu"
+              aria-label="Open menu"
               aria-expanded={sidebarOpen}
               aria-controls="mobile-sidebar"
               onClick={() => setSidebarOpen(true)}
