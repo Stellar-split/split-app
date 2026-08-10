@@ -319,32 +319,30 @@ export default function InvoiceTable({
                     <span className="font-mono text-gray-200">
                       {formatAmount(inv.funded)} USDC
                     </span>
-                    {total > 0n && (
-                      <div
-                        className="w-20 h-1.5 rounded-full bg-gray-700 overflow-hidden"
-                        role="progressbar"
-                        aria-label="Funding progress"
-                        aria-valuenow={Number((inv.funded * 100n) / total)}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                      >
+                    {total > 0n && (() => {
+                      const pct = Math.min(100, Number((inv.funded * 100n) / total));
+                      return (
                         <div
-                          className={`h-full rounded-full transition-all ${
-                            inv.funded >= total
-                              ? "bg-green-400"
-                              : inv.funded > 0n
-                              ? "bg-indigo-400"
-                              : "bg-gray-600"
-                          }`}
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              Number((inv.funded * 100n) / total),
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                    )}
+                          className="w-20 h-1.5 rounded-full bg-gray-700 overflow-hidden"
+                          role="progressbar"
+                          aria-label="Funding progress"
+                          aria-valuenow={pct}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                        >
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              inv.funded >= total
+                                ? "bg-green-400"
+                                : inv.funded > 0n
+                                ? "bg-indigo-400"
+                                : "bg-gray-600"
+                            }`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      );
+                    })()}
                   </div>
                 </td>
 

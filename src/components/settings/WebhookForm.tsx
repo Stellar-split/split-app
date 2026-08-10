@@ -11,7 +11,7 @@ const ALL_EVENTS: { value: WebhookEventType; label: string }[] = [
 ];
 
 interface Props {
-  onCreated: (webhook: { id: string; url: string; events: WebhookEventType[]; status: string; createdAt: string; secret: string }) => void;
+  onCreated: (webhook: { id: string; url: string; events: WebhookEventType[]; status: "active" | "disabled"; createdAt: string; secret: string }) => void;
 }
 
 export default function WebhookForm({ onCreated }: Props) {

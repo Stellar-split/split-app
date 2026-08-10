@@ -34,7 +34,6 @@ import {
   type DashboardPresetId,
   type InvoiceStatusFilter,
   type DashboardSortId,
-  type InvoiceStatusFilter,
 } from "@/lib/dashboardFilters";
 import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import { invoiceHasTag } from "@/lib/invoiceTags";
@@ -101,6 +100,8 @@ export default function DashboardClient() {
   const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
+  const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   // Multi-select state management (bulk archive/delete toolbar)
   const {
@@ -143,6 +144,23 @@ export default function DashboardClient() {
     pushParams({ status: next.join(",") });
   };
 
+  const displayStatuses = useMemo<InvoiceStatusFilter[]>(() => {
+    const raw = searchParams.get("display");
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .filter((s): s is InvoiceStatusFilter =>
+        INVOICE_STATUS_FILTERS.includes(s as InvoiceStatusFilter),
+      );
+  }, [searchParams]);
+
+  const toggleDisplayStatus = (status: InvoiceStatusFilter) => {
+    const next = displayStatuses.includes(status)
+      ? displayStatuses.filter((s) => s !== status)
+      : [...displayStatuses, status];
+    pushParams({ display: next.join(",") });
+  };
+
   const clearFilters = () => {
     router.replace(pathname, { scroll: false });
     setSearchValue("");
@@ -157,6 +175,7 @@ export default function DashboardClient() {
   const isFiltered =
     presetFilters.length > 0 ||
     selectedStatuses.length > 0 ||
+    displayStatuses.length > 0 ||
     !!dateFrom ||
     !!dateTo ||
     sort !== "newest" ||
@@ -223,43 +242,6 @@ export default function DashboardClient() {
       console.error("Bulk delete failed:", error);
     }
   };
-
-  // ── Data fetching ───────────────────────────────────────────────────────────
-  const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
-  const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
-  const [compareMode, setCompareMode] = useState(false);
-  const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
-
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-
-  const selectedStatuses = useMemo<InvoiceStatusFilter[]>(() => {
-    const raw = searchParams.get("display");
-    if (!raw) return [];
-    return raw
-      .split(",")
-      .filter((s): s is InvoiceStatusFilter =>
-        INVOICE_STATUS_FILTERS.includes(s as InvoiceStatusFilter),
-      );
-  }, [searchParams]);
-
-  const toggleDisplayStatus = (status: InvoiceStatusFilter) => {
-    const next = selectedStatuses.includes(status)
-      ? selectedStatuses.filter((s) => s !== status)
-      : [...selectedStatuses, status];
-    pushParams({ display: next.join(",") });
-  };
-
-  const isFiltered =
-    statuses.length > 0 ||
-    selectedStatuses.length > 0 ||
-    dateFrom ||
-    dateTo ||
-    sort !== "newest" ||
-    !!tag;
 
   // ── Data fetching ───────────────────────────────────────────────────────────
 
@@ -362,7 +344,7 @@ export default function DashboardClient() {
       presetFilters.length === 0
         ? invoices
         : invoices.filter((inv) =>
-            statuses.some(
+            presetFilters.some(
               (s) => filterDashboardInvoices([inv], s, now, splitMetaMap).length > 0,
             ),
           );
@@ -377,7 +359,7 @@ export default function DashboardClient() {
     // 5. sort
     result = sortInvoices(result, sort);
     return result;
-  }, [invoices, statuses, selectedStatuses, dateFrom, dateTo, sort, tag, tagsByInvoice, splitMetaMap]);
+  }, [invoices, presetFilters, selectedStatuses, dateFrom, dateTo, sort, tag, tagsByInvoice, splitMetaMap]);
 
   const { totalActive, totalValueLocked, totalReleased } = useMemo(() => {
     const now = Math.floor(Date.now() / 1000);
@@ -538,6 +520,7 @@ export default function DashboardClient() {
       <div className="flex items-end gap-2">
         <DateRangeFilter from={dateFrom} to={dateTo} />
 
+      </div>
       </div>
 
       {/* Tag */}
@@ -777,7 +760,7 @@ export default function DashboardClient() {
         </div>
       </div>
 
-      <StatusFilterChips selected={selectedStatuses} onToggle={toggleDisplayStatus} />
+      <StatusFilterChips selected={displayStatuses} onToggle={toggleDisplayStatus} />
 
       {/* Summary Stats */}
       {!loading && invoices.length > 0 && (
@@ -925,8 +908,8 @@ export default function DashboardClient() {
       ) : visibleInvoices.length === 0 ? (
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 p-6 text-center">
           <p className="text-gray-400">
-            {statuses.length === 1
-              ? DASHBOARD_PRESETS.find((preset) => preset.id === statuses[0])?.emptyState ??
+            {presetFilters.length === 1
+              ? DASHBOARD_PRESETS.find((preset) => preset.id === presetFilters[0])?.emptyState ??
                 "No invoices match this view."
               : searchValue.trim()
               ? "No invoices match your search."
@@ -960,7 +943,7 @@ export default function DashboardClient() {
             const isCompareSelectable = compareMode;
             const isCompareSelected = compareSelected.has(inv.id);
             const isMultiSelectable = isSelecting;
-            const isMultiSelected = isSelected(inv.id);
+            const isMultiSelected = isBulkSelected(inv.id);
 
             return (
               <div key={inv.id}>

@@ -135,7 +135,10 @@ export default async function VerifyPage({ params }: Props) {
         </ul>
       </section>
 
-      <SplitSummaryCard invoice={invoice} total={total} />
+      <SplitSummaryCard
+        totalAmount={Number(total)}
+        recipientCount={invoice.recipients.length}
+      />
 
       <section aria-labelledby="verify-payments-heading">
         <h2 id="verify-payments-heading" className="text-base font-semibold mb-2 text-gray-700 dark:text-gray-300">

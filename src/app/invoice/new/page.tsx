@@ -437,6 +437,7 @@ function NewInvoiceForm() {
   } = useInvoiceCollaboration({
     invoiceId: draftId ?? "new",
     currentAddress: publicKey,
+    hasWritePermission: true,
   });
 
   /** Convert an amount string from current denomination to USDC for on-chain use */
@@ -936,14 +937,14 @@ function NewInvoiceForm() {
 
       {equalSplit && !cloneSourceId && (
         <>
-          <FormField
+          <input
             id="total-amount"
             type="number"
             placeholder="0.00"
             step="0.0000001"
             min="0.0000001"
             value={totalAmount}
-            onChange={(e) => setTotalAmount(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTotalAmount(e.target.value)}
             onFocus={() => setFocusedField("total-amount")}
             onBlur={() => {
               if (focusedField === "total-amount") emitFieldBlur();

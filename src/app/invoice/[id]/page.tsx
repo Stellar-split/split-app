@@ -56,11 +56,9 @@ import type { InstallmentMilestone } from "@/components/invoice/InvoiceView";
 import InstallmentTracker from "@/components/InstallmentTracker";
 import InstallmentPanel from "@/components/InstallmentPanel";
 
-import InvoiceView, { BrandHeader } from "@/components/invoice/InvoiceView";
+import InvoiceView from "@/components/invoice/InvoiceView";
 import { fetchBrandSettings } from "@/lib/branding";
 import type { BrandSettings } from "@/lib/brandSettings";
-
-import InvoiceView from "@/components/invoice/InvoiceView";
 import InvoiceSummaryPanel from "@/components/invoice/InvoiceSummaryPanel";
 
 import CoCreatorPanel from "@/components/CoCreatorPanel";
@@ -87,6 +85,11 @@ import PresenceBar from "@/components/PresenceBar";
 import InvoiceSection from "@/components/InvoiceSection";
 import AmountDisplay from "@/components/invoice/AmountDisplay";
 import { Copy } from "lucide-react";
+import { useInvoiceCollaboration } from "@/hooks/useInvoiceCollaboration";
+import { useInvoiceRole } from "@/hooks/useInvoiceRole";
+import CursorOverlay from "@/components/CursorOverlay";
+import ReconnectionBanner from "@/components/ReconnectionBanner";
+import SplitSummaryCard from "@/components/invoice/SplitSummaryCard";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
 const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
@@ -230,12 +233,12 @@ export default function InvoiceDetailPage({ params }: Props) {
       setShowReconnecting(false);
       return;
     }
-    if (!isConnected) {
+    if (!streamConnected) {
       setShowReconnecting(true);
     } else {
       setShowReconnecting(false);
     }
-  }, [isConnected, id]);
+  }, [streamConnected, id]);
 
   useEffect(() => {
     if (latestEvent?.type === "InvoiceReleased") {
@@ -381,6 +384,18 @@ export default function InvoiceDetailPage({ params }: Props) {
     ? invoice.recipients.reduce((s, r) => s + r.amount, 0n)
     : 0n;
   const role = useInvoiceRole(invoice, publicKey);
+
+  const {
+    remoteCursors,
+    isConnected: collabConnected,
+    focusedField,
+    setFocusedField,
+    emitFieldBlur,
+  } = useInvoiceCollaboration({
+    invoiceId: id,
+    currentAddress: publicKey,
+    hasWritePermission: role !== "viewer",
+  });
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -651,9 +666,6 @@ export default function InvoiceDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Creator branding (logo / accent / tagline) — hidden when unset */}
-      <BrandHeader branding={branding} />
-
       {/* Tags */}
       <InvoiceTagEditor invoiceId={id} className="mb-6" />
 
@@ -719,7 +731,12 @@ export default function InvoiceDetailPage({ params }: Props) {
       </section>
       </InvoiceSection>
 
-      {canAct && <SplitSummaryCard invoice={invoice} total={total} />}
+      {canAct && invoice && (
+        <SplitSummaryCard
+          totalAmount={Number(total)}
+          recipientCount={invoice.recipients.length}
+        />
+      )}
 
       {/* Payments Section */}
       <InvoiceSection
@@ -850,7 +867,6 @@ export default function InvoiceDetailPage({ params }: Props) {
           invoice={invoice}
           installments={loadedSplitMeta.installments as InstallmentMilestone[]}
           publicKey={publicKey}
-          branding={branding}
           onPaid={async (milestoneId, txHash) => {
             const updated = (loadedSplitMeta.installments || []).map((m) =>
               m.id === milestoneId ? { ...m, status: 'paid', txHash } : m
@@ -899,11 +915,6 @@ export default function InvoiceDetailPage({ params }: Props) {
         <PaySectionRpcGate id={id}>
         <section aria-labelledby="pay-heading" className="mb-8 bg-gray-800/60 border border-gray-700 rounded-xl p-6">
           <div className="flex items-center gap-3 mb-4 flex-wrap">
-
-            <h2 id="pay-heading" className="text-lg font-semibold text-white">Pay Toward Invoice</h2>
-            <CooldownBadge expiresAt={cooldownExpiresAt} />
-          </div>
-
             <h2 id="pay-heading" className="text-lg font-semibold text-white">Pay toward this invoice</h2>
             <CooldownBadge expiresAt={cooldownExpiresAt} />
           </div>
@@ -1012,7 +1023,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       )}
 
       {/* Dispute Panel — Full arbitration interface for Disputed invoices */}
-      {invoice.status === "Disputed" && publicKey && (
+      {(invoice.status as string) === "Disputed" && publicKey && (
         <DisputePanel
           invoice={invoice}
           publicKey={publicKey}

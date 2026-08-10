@@ -38,18 +38,18 @@ interface Props {
  * and enables authorized arbitrators to vote on dispute outcome.
  */
 export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
-  // Only render for Disputed invoices
-  if (invoice.status !== "Disputed") return null;
-
-  // Access dispute data from extended invoice type
-  const dispute = (invoice as Invoice & { disputeStatus?: DisputeStatus }).disputeStatus;
-  if (!dispute) return null;
-
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
+
+  // Only render for Disputed invoices
+  if ((invoice.status as string) !== "Disputed") return null;
+
+  // Access dispute data from extended invoice type
+  const dispute = (invoice as Invoice & { disputeStatus?: DisputeStatus }).disputeStatus;
+  if (!dispute) return null;
 
   const isArbitrator = dispute.arbitrators.includes(publicKey);
   const hasVoted = dispute.votedArbitrators.includes(publicKey);

@@ -44,7 +44,7 @@ export default function DisconnectModal({
             </p>
           )}
           <p className="mt-3 text-sm font-medium text-amber-600 dark:text-amber-500">
-            You'll need to reconnect to continue using the app.
+            You&apos;ll need to reconnect to continue using the app.
           </p>
         </div>
 

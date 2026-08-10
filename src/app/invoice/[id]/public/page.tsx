@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { splitClient, formatAmount, type Invoice } from "@stellar-split/sdk";
+import { formatAmount, type Invoice } from "@stellar-split/sdk";
+import { splitClient } from "@/lib/stellar";
 import StatusBadge from "@/components/StatusBadge";
 import WalletAddress from "@/components/WalletAddress";
 import { InvoiceDetailSkeleton } from "@/components/Skeleton";

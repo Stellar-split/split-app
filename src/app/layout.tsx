@@ -22,6 +22,7 @@ import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import { FiatRateProvider } from "@/hooks/useFiatRate";
 import { ShortcutRegistryProvider } from "@/context/ShortcutRegistry";
 import { getNonce } from "@/lib/csp";
+import TransitionProvider from "@/components/layout/TransitionProvider";
 
 const themeBootstrap = `
 (function () {

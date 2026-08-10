@@ -74,7 +74,7 @@ export default function SplitBuilder({
           const fixedAmount = r.fixedAmount || 0;
           const sharePercent = parsedTotal > 0 ? (fixedAmount / parsedTotal) * 100 : 0;
           return { ...r, sharePercent };
-        }));
+        });
       }
       return prev;
     });
@@ -195,7 +195,7 @@ export default function SplitBuilder({
       <div className="space-y-3 mb-5">
         {recipients.length === 0 && !readOnly && (
           <p className="text-sm text-gray-500 text-center py-6">
-            No recipients yet. Click "+ Add Recipient" to begin.
+            No recipients yet. Click &ldquo;+ Add Recipient&rdquo; to begin.
           </p>
         )}
 

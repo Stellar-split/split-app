@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { splitClient, formatAmount } from "@stellar-split/sdk";
+import { formatAmount } from "@stellar-split/sdk";
+import { splitClient } from "@/lib/stellar";
 
 interface Props {
   params: { id: string };
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   try {
     const invoice = await splitClient.getInvoice(id);
-    const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
+    const total = invoice.recipients.reduce((s: bigint, r: { amount: bigint }) => s + r.amount, 0n);
     const pct = total === 0n ? 0 : Number((invoice.funded * 100n) / total);
 
     const title = `Invoice #${id} — StellarSplit`;
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title,
       description,
-      robots: invoice.status === "Draft" ? { index: false } : undefined,
+      robots: (invoice.status as string) === "Draft" ? { index: false } : undefined,
       openGraph: {
         title,
         description,

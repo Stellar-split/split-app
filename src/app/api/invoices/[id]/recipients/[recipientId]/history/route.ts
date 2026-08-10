@@ -68,7 +68,7 @@ export async function GET(
       .filter((p) => {
         // The SDK Payment type includes a `recipient` field on some builds;
         // fall back to checking whether the to-address matches recipientId.
-        const payment = p as Record<string, unknown>;
+        const payment = p as unknown as Record<string, unknown>;
         return (
           payment.recipient === recipientId ||
           payment.to === recipientId ||
@@ -79,7 +79,7 @@ export async function GET(
         );
       })
       .map((p, idx) => {
-        const payment = p as Record<string, unknown>;
+        const payment = p as unknown as Record<string, unknown>;
         const ts = payment.timestamp;
         const tsMs =
           typeof ts === "number"

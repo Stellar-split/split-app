@@ -107,7 +107,7 @@ export default function InvoiceSearch({ onSelectInvoice }: InvoiceSearchProps) {
 
       {!loading && inputValue && results.length === 0 && !error && (
         <div className="text-sm text-gray-400">
-          No results for "<span className="font-medium">{inputValue}</span>"
+          No results for &ldquo;<span className="font-medium">{inputValue}</span>&rdquo;
         </div>
       )}
 
