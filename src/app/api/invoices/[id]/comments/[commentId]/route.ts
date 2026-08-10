@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { deleteComment, getComment } from "@/lib/commentStore";
 import { getSplitClient } from "@/lib/stellar";
+
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 export async function DELETE(

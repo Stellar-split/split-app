@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ??
   (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"

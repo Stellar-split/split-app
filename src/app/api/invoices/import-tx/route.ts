@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { fetchImportedTransaction, TxImportError } from "@/lib/txImport";
 
 export async function GET(request: NextRequest) {

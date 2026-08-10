@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { beginMfaEnrollment, confirmMfaEnrollment, disableMfa, getSecuritySettings, saveHighValueThreshold } from "@/lib/securitySettings";
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
+
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

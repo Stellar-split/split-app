@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 interface CursorEvent {
   type: "cursor";
   address: string;
@@ -83,7 +85,7 @@ export async function GET(
       const invoiceClients = clients.get(invoiceId);
       if (invoiceClients) {
         const remaining = invoiceClients.filter(
-          (c) => !c.controller.locked
+          (c) => !(c.controller as unknown as { locked?: boolean }).locked
         );
         if (remaining.length === 0) {
           clients.delete(invoiceId);

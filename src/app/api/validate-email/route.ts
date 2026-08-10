@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { promises as dns } from "dns";
 
 export async function POST(request: Request) {

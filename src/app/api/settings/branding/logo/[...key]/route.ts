@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { getStoredBrandAsset, isValidAssetKey } from "@/lib/brandAssetStorage";
 
 export const runtime = "nodejs";

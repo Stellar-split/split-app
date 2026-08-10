@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { type ApiKeyScope } from "@/lib/apiKeys";
 import { generateSignedApiKey } from "@/lib/signedApiKeys";
+
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 function isScope(value: unknown): value is ApiKeyScope {

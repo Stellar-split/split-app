@@ -9,21 +9,18 @@
 
 const TOKEN_TTL_MS = 60 * 60 * 1000; // 60 minutes
 
-// Fail fast: a missing secret means every token would be forgeable, so this
-// throws as soon as this module is loaded rather than degrading to an
-// insecure default.
-const CSRF_SECRET = (() => {
+function getCsrfSecret(): string {
   const secret = process.env.CSRF_SECRET;
   if (!secret) {
     throw new Error("CSRF_SECRET environment variable is required but not set");
   }
   return secret;
-})();
+}
 
 async function hmac(data: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(CSRF_SECRET),
+    new TextEncoder().encode(getCsrfSecret()),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]

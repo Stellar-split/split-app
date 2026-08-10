@@ -1,6 +1,13 @@
-import type { Invoice } from "@stellar-split/sdk";
-
-export type InvoiceStatus = Invoice["status"] | "Archived" | "Expired";
+export type InvoiceStatus =
+  | "Pending"
+  | "Active"
+  | "Funded"
+  | "Released"
+  | "Refunded"
+  | "Disputed"
+  | "Frozen"
+  | "Archived"
+  | "Expired";
 
 export interface StatusConfig {
   label: string;

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = "force-dynamic";
 import type { CoCreatorPresence, PresenceHeartbeat } from '@/types/presence';
 
 // In-memory store for presence data

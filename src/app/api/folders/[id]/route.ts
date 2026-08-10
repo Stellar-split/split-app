@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { FolderNameSchema, deleteFolder, getFolder, renameFolder } from "@/lib/folders";
 
 /** PATCH /api/folders/:id — rename a folder. */

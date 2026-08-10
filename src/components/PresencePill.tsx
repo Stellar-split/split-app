@@ -27,7 +27,7 @@ export default function PresencePill({ presences, currentAddress }: Props) {
             className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white ring-2"
             style={{
               backgroundColor: p.color,
-              ringColor: p.color,
+              outlineColor: p.color,
             }}
             title={p.address}
           >

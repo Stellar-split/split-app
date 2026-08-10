@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { StrKey } from "@stellar/stellar-sdk";
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
+
 
 const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ??

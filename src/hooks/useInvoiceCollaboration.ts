@@ -13,6 +13,7 @@ interface RemotePresence {
   address: string;
   online: boolean;
   color: string;
+  timestamp: number;
 }
 
 const COLOR_PALETTE = [
@@ -156,6 +157,7 @@ export function useInvoiceCollaboration({
                 address: data.address,
                 online: true,
                 color: colorForAddress(data.address),
+                timestamp: Date.now(),
               });
             }
             return filtered;

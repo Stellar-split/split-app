@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import {
   MAX_TAGS_PER_INVOICE,
   TagsPayloadSchema,
@@ -6,6 +8,7 @@ import {
   setTags,
 } from "@/lib/invoiceTags";
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
+
 
 /** GET /api/invoices/:id/tags — tags currently applied to one invoice. */
 export async function GET(

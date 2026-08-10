@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { splitClient } from "@/lib/stellar";
 import { safeParseSplitMeta, type SplitMetaInput } from "@/lib/splitMetaSchema";
+
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 interface SplitMetaStore {

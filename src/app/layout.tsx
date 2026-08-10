@@ -127,61 +127,33 @@ export default function RootLayout({
                     <ToastProvider>
                       <UserPreferencesProvider>
                         <FiatRateProvider>
-                          <Navbar />
-                          <SimulationBanner />
-                          <UpgradeBanner />
-                          <ErrorBoundary>{children}</ErrorBoundary>
-                          <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
-                            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-                              <p className="text-xs text-gray-500">
-                                © {new Date().getFullYear()} StellarSplit
-                              </p>
-                              <LanguageSwitcher />
-                            </div>
-                          </footer>
-                          <CommandPalette />
-                          <OnboardingFlow />
-                          <RecipientOnboarding />
-                          <InstallBanner />
-                          <ToastContainer />
+                          <ShortcutRegistryProvider>
+                            <Navbar />
+                            <SimulationBanner />
+                            <UpgradeBanner />
+                            <TransitionProvider>
+                              <ErrorBoundary>{children}</ErrorBoundary>
+                            </TransitionProvider>
+                            <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
+                              <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+                                <p className="text-xs text-gray-500">
+                                  © {new Date().getFullYear()} StellarSplit
+                                </p>
+                                <LanguageSwitcher />
+                              </div>
+                            </footer>
+                            <CommandPalette />
+                            <OnboardingFlow />
+                            <RecipientOnboarding />
+                            <InstallBanner />
+                            <ToastContainer />
+                          </ShortcutRegistryProvider>
                         </FiatRateProvider>
                       </UserPreferencesProvider>
                     </ToastProvider>
                   </SessionLockProvider>
                 </I18nProvider>
               </WalletProvider>
-
-              <I18nProvider>
-                <SessionLockProvider>
-                  <ToastProvider>
-                    <UserPreferencesProvider>
-                      <FiatRateProvider>
-                        <ShortcutRegistryProvider>
-                        <Navbar />
-                        <SimulationBanner />
-                        <UpgradeBanner />
-                        <TransitionProvider>
-                          <ErrorBoundary>{children}</ErrorBoundary>
-                        </TransitionProvider>
-                        <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
-                          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-                            <p className="text-xs text-gray-500">
-                              © {new Date().getFullYear()} StellarSplit
-                            </p>
-                            <LanguageSwitcher />
-                          </div>
-                        </footer>
-                        <CommandPalette />
-                        <OnboardingFlow />
-                        <RecipientOnboarding />
-                        <InstallBanner />
-                        <ToastContainer />
-                        </ShortcutRegistryProvider>
-                      </FiatRateProvider>
-                    </UserPreferencesProvider>
-                  </ToastProvider>
-                </SessionLockProvider>
-              </I18nProvider>
 
             </AccessibilityProvider>
           </ThemeProvider>

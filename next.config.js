@@ -5,6 +5,7 @@ const { withSentryConfig } = require("@sentry/nextjs");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverExternalPackages: ["@stellar/stellar-sdk", "@vercel/blob"],
   images: {
     // Recipient avatars fall back to Gravatar; served unoptimized so no image
     // requests are proxied through the Next.js optimizer.
@@ -61,10 +62,16 @@ const nextConfig = {
         tls: false,
       };
     }
-    // Exclude sodium-native from webpack entirely
+    // Exclude server-only / ESM-incompatible packages from webpack bundling
     config.externals = [
       ...(Array.isArray(config.externals) ? config.externals : []),
       "sodium-native",
+      ...(isServer
+        ? [
+            { "@stellar/stellar-sdk": "commonjs2 @stellar/stellar-sdk" },
+            { "@vercel/blob": "commonjs2 @vercel/blob" },
+          ]
+        : []),
     ];
     // @apm-js-collab/tracing-hooks is an optional Sentry internal — skip it
     config.resolve.alias = {

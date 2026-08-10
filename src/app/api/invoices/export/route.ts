@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = "force-dynamic";
 import type { Invoice } from '@stellar-split/sdk';
 import {
+
   filterInvoices,
   invoicesToExportRows,
   lineItemsToExportRows,
@@ -10,6 +13,7 @@ import {
   type ExportFilterOptions,
 } from '@/lib/invoiceExcelExport';
 import { assertCsrf } from '@/lib/middleware/csrfMiddleware';
+
 
 interface ExportRequest {
   invoices: Invoice[];

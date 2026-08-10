@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import {
   getServerAddressBook,
   addServerAddressBookEntry,
@@ -6,6 +8,7 @@ import {
   deleteServerAddressBookEntry,
 } from "@/lib/serverAddressBook";
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
+
 
 /**
  * GET /api/settings/address-book

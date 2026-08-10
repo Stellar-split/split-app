@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { addSubscription, removeSubscription, type StoredPushSubscription } from "@/lib/pushSubscriptionStore";
 
 function isValidSubscription(value: unknown): value is StoredPushSubscription {

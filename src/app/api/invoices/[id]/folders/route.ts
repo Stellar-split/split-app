@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { FolderMembershipSchema, getFoldersForInvoice, setFoldersForInvoice } from "@/lib/folders";
 
 /** GET /api/invoices/:id/folders — folder ids this invoice currently belongs to. */

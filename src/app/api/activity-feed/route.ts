@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { subscribe, getRecentEvents } from "@/lib/activityFeedStore";
 
+export const dynamic = "force-dynamic";
+
 function toSseChunk(data: Record<string, unknown>): string {
   return `data: ${JSON.stringify(data)}\n\n`;
 }

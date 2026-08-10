@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import {
   ALLOWED_LOGO_MIME_TYPES,
   isAllowedLogoMimeType,
@@ -9,6 +11,7 @@ import {
   MAX_LOGO_BYTES,
 } from "@/lib/brandSettings";
 import { storeBrandAsset } from "@/lib/brandAssetStorage";
+
 
 export const runtime = "nodejs";
 

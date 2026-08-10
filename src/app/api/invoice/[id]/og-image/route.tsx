@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { splitClient, formatAmount } from "@stellar-split/sdk";
+import { formatAmount } from "@stellar-split/sdk";
+import { splitClient } from "@/lib/stellar";
 
 const appUrl =
   process.env.NEXT_PUBLIC_APP_URL ??
@@ -11,7 +12,7 @@ export async function GET(
 ) {
   try {
     const invoice = await splitClient.getInvoice(params.id);
-    const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
+    const total = invoice.recipients.reduce((s: bigint, r: { amount: bigint }) => s + r.amount, 0n);
     const pct = total === 0n ? 0 : Number((invoice.funded * 100n) / total);
 
     const svg = `<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">

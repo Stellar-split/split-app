@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { subscribe, reactionCounts, type CommentEvent } from "@/lib/commentStore";
 
 function toSseChunk(event: CommentEvent): string {

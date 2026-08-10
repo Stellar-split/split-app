@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { getTags, setTags, normalizeTags } from "@/lib/invoiceTags";
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
+
 
 /**
  * PATCH /api/invoices/bulk

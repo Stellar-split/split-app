@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import {
   brandSettingsSchema,
   DEFAULT_BRAND_SETTINGS,
   isStellarAddress,
 } from "@/lib/brandSettings";
 import {
+
   clearBrandSettings,
   getBrandSettings,
   saveBrandSettings,

@@ -24,7 +24,7 @@ export default function InvoiceSummaryPanel({ invoice, total, publicKey }: Props
   const canPay =
     invoice.status === "Pending" && publicKey && publicKey !== invoice.creator;
   const canRelease =
-    invoice.status === "Funded" && publicKey === invoice.creator;
+    (invoice.status as string) === "Funded" && publicKey === invoice.creator;
   const canRefund =
     invoice.status === "Released" && publicKey === invoice.creator;
 

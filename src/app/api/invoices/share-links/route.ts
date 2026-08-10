@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = "force-dynamic";
 import {
   createShareLink,
   getShareLinksForInvoice,
@@ -6,6 +8,7 @@ import {
   type ShareLinkPermission,
 } from '@/lib/shareLink';
 import { assertCsrf } from '@/lib/middleware/csrfMiddleware';
+
 
 interface CreateShareLinkRequest {
   invoiceId: string;

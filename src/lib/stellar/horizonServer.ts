@@ -46,9 +46,9 @@ export async function fetchInvoicesForAddress(
 
       if (mine) {
         if (q) {
-          const memo = (inv as { memo?: string }).memo;
+          const invExt = inv as { title?: string; memo?: string };
           const matchesQuery =
-            (inv.title || "").toLowerCase().startsWith(q) || (memo || "").toLowerCase().startsWith(q);
+            (invExt.title || "").toLowerCase().startsWith(q) || (invExt.memo || "").toLowerCase().startsWith(q);
           if (matchesQuery) results.push(inv);
         } else {
           results.push(inv);

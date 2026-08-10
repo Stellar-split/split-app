@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { getComment, isAllowedEmoji, toggleReaction, ALLOWED_EMOJIS } from "@/lib/commentStore";
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
+
 
 export async function POST(
   request: NextRequest,

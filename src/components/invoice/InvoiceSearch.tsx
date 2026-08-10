@@ -121,7 +121,7 @@ export default function InvoiceSearch({ onSelectInvoice }: InvoiceSearchProps) {
               >
                 <div className="font-medium text-gray-100">
                   <HighlightedText
-                    text={invoice.title || `Invoice #${invoice.id}`}
+                    text={(invoice as Invoice & { title?: string }).title || `Invoice #${invoice.id}`}
                     query={inputValue}
                   />
                 </div>

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import crypto from "crypto";
 import { webhookStore, ALL_EVENTS, type WebhookEndpoint, type WebhookEventType } from "./store";
+
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 function generateSecret() {

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = "force-dynamic";
 import type { AddressChangeRequest, AddressChangeRequestStatus } from '@/types/addressChangeRequest';
 import { assertCsrf } from '@/lib/middleware/csrfMiddleware';
+
 
 // In-memory store for address change requests
 // In production, this would use a database

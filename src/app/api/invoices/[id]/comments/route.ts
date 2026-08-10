@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import {
   addComment,
   listComments,
@@ -7,6 +9,7 @@ import {
   type StoredComment,
 } from "@/lib/commentStore";
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
+
 
 function serialise(comment: StoredComment, reactorId: string | null) {
   return {

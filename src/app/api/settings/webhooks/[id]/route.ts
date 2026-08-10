@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import crypto from "crypto";
 import { webhookStore } from "../store";
+
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 /** DELETE /api/settings/webhooks/:id — remove a webhook endpoint */

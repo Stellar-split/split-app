@@ -40,7 +40,7 @@ export function matchesQuery(invoice: Invoice, query: string): boolean {
   const trimmed = query.trim();
   if (!trimmed) return true;
 
-  const memo = (invoice as { memo?: string }).memo;
-  const haystack = `${invoice.title ?? ""} ${memo ?? ""}`.toLowerCase();
+  const inv = invoice as { title?: string; memo?: string };
+  const haystack = `${inv.title ?? ""} ${inv.memo ?? ""}`.toLowerCase();
   return haystack.includes(trimmed.toLowerCase());
 }
