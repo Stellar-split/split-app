@@ -1230,8 +1230,8 @@ function NewInvoiceForm() {
             onClick={() => setFormMode("import")}
             className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg -mb-px border-b-2 ${
               formMode === "import"
-                ? "border-indigo-500 text-indigo-300"
-                : "border-transparent text-gray-400 hover:text-gray-200"
+                ? "border-indigo-500 text-indigo-600 dark:text-indigo-300"
+                : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
           >
             Import from Transaction

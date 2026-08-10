@@ -76,7 +76,8 @@ export default function MobileSidebar({ isOpen, onClose, triggerRef }: MobileSid
           isOpen ? "translate-x-0" : "-translate-x-full",
         ].join(" ")}
       >
-        {isOpen && (
+        {/* Always in DOM so Playwright/screen-reader can find the nav; CSS hides when closed */}
+        <div className={isOpen ? "flex flex-col flex-1 min-h-0" : "hidden"}>
           <FocusTrap onClose={() => { onClose(); triggerRef.current?.focus(); }}>
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-white/[0.06]">
@@ -139,7 +140,7 @@ export default function MobileSidebar({ isOpen, onClose, triggerRef }: MobileSid
               </div>
             </nav>
           </FocusTrap>
-        )}
+        </div>
       </div>
     </>
   );
