@@ -1,14 +1,14 @@
 export type InvoiceStatus = 'Draft' | 'Pending' | 'Partially Paid' | 'Fully Paid' | 'Disputed';
 
-const validTransitions: Record<InvoiceStatus, InvoiceStatus[]> = {
+const ALLOWED_TRANSITIONS: Record<InvoiceStatus, InvoiceStatus[]> = {
   Draft: ['Pending', 'Disputed'],
-  Pending: ['Partially Paid', 'Fully Paid', 'Disputed', 'Draft'],
-  'Partially Paid': ['Fully Paid', 'Disputed', 'Pending'],
-  'Fully Paid': ['Disputed'],
-  Disputed: ['Draft', 'Pending', 'Fully Paid'],
+  Pending: ['Partially Paid', 'Fully Paid', 'Disputed'],
+  'Partially Paid': ['Fully Paid', 'Disputed'],
+  'Fully Paid': [],
+  Disputed: ['Pending', 'Fully Paid']
 };
 
-export function isValidTransition(from: InvoiceStatus, to: InvoiceStatus): boolean {
-  if (from === to) return true;
-  return validTransitions[from]?.includes(to) ?? false;
+export function statusTransitionGuard(current: InvoiceStatus, target: InvoiceStatus): boolean {
+  if (current === target) return true;
+  return ALLOWED_TRANSITIONS[current]?.includes(target) ?? false;
 }

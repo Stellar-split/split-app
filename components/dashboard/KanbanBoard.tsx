@@ -1,9 +1,11 @@
-'use client';
-
+'tsx' // placeholder for syntax hint
 import React, { useState } from 'react';
-import { InvoiceStatus, isValidTransition } from '@/lib/invoiceStateMachine';
+import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { InvoiceStatus, statusTransitionGuard } from '@/lib/invoiceStateMachine';
 
-interface Invoice {
+interface InvoiceCardData {
   id: string;
   recipientCount: number;
   amount: string;
@@ -11,69 +13,75 @@ interface Invoice {
   status: InvoiceStatus;
 }
 
+interface KanbanBoardProps {
+  invoices: InvoiceCardData[];
+  onStatusChange: (id: string, newStatus: InvoiceStatus) => Promise<void>;
+  onToast: (msg: string) => void;
+}
+
 const COLUMNS: InvoiceStatus[] = ['Draft', 'Pending', 'Partially Paid', 'Fully Paid', 'Disputed'];
 
-export const KanbanBoard: React.FC = () => {
-  const [invoices, setInvoices] = useState<Invoice[]>([
-    { id: 'INV-001', recipientCount: 3, amount: '$1,200.00', dueDate: '2026-08-01', status: 'Draft' },
-    { id: 'INV-002', recipientCount: 5, amount: '$3,450.00', dueDate: '2026-08-05', status: 'Pending' },
-  ]);
-  const [toast, setToast] = useState<string | null>(null);
+function SortableItem({ invoice }: { invoice: InvoiceCardData }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: invoice.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
 
-  const handleStatusChange = (invoiceId: string, newStatus: InvoiceStatus) => {
-    setInvoices((prev) => {
-      const inv = prev.find((i) => i.id === invoiceId);
-      if (!inv) return prev;
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} tabIndex={0} className="bg-white p-4 rounded-lg shadow mb-3 cursor-grab focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      <div className="font-semibold text-gray-900">ID: {invoice.id}</div>
+      <div className="text-sm text-gray-600">Recipients: {invoice.recipientCount}</div>
+      <div className="text-sm font-medium text-gray-800 mt-1">{invoice.amount}</div>
+      <span className="inline-block mt-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded-full">Due: {invoice.dueDate}</span>
+    </div>
+  );
+}
 
-      if (!isValidTransition(inv.status, newStatus)) {
-        setToast(`Invalid transition from ${inv.status} to ${newStatus}`);
-        setTimeout(() => setToast(null), 4000);
-        return prev;
-      }
+export function KanbanBoard({ invoices, onStatusChange, onToast }: KanbanBoardProps) {
+  const [items, setItems] = useState(invoices);
 
-      return prev.map((i) => (i.id === invoiceId ? { ...i, status: newStatus } : i));
-    });
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const targetStatus = over.id as InvoiceStatus;
+
+    const card = items.find((i) => i.id === activeId);
+    if (!card) return;
+
+    if (!statusTransitionGuard(card.status, targetStatus)) {
+      onToast(`Invalid transition from ${card.status} to ${targetStatus}`);
+      return;
+    }
+
+    const previousStatus = card.status;
+    // Optimistic update
+    setItems((prev) => prev.map((i) => (i.id === activeId ? { ...i, status: targetStatus } : i)));
+
+    try {
+      await onStatusChange(activeId, targetStatus);
+    } catch {
+      // Rollback on failure
+      setItems((prev) => prev.map((i) => (i.id === activeId ? { ...i, status: previousStatus } : i)));
+      onToast('Failed to update status on server. Rolled back.');
+    }
   };
 
   return (
-    <div className="p-6">
-      {toast && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm" role="alert">
-          {toast}
-        </div>
-      )}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 overflow-x-auto pb-4">
+    <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <div className="flex gap-4 overflow-x-auto pb-4 w-full">
         {COLUMNS.map((col) => (
-          <div key={col} className="bg-gray-50 p-4 rounded-lg border border-gray-200 max-h-[70vh] overflow-y-auto">
-            <h3 className="font-semibold text-sm text-gray-700 mb-3">{col}</h3>
-            <div className="space-y-3">
-              {invoices
-                .filter((inv) => inv.status === col)
-                .map((inv) => (
-                  <div key={inv.id} className="p-3 bg-white rounded shadow-sm border border-gray-200">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-medium text-xs text-gray-900">{inv.id}</span>
-                      <span className="text-xs px-2 py-0.5 bg-gray-100 rounded">{inv.amount}</span>
-                    </div>
-                    <p className="text-xs text-gray-500">Recipients: {inv.recipientCount}</p>
-                    <p className="text-xs text-gray-400 mt-1">Due: {inv.dueDate}</p>
-                    <div className="mt-3 flex gap-1 flex-wrap">
-                      {COLUMNS.filter((c) => c !== col).map((targetCol) => (
-                        <button
-                          key={targetCol}
-                          onClick={() => handleStatusChange(inv.id, targetCol)}
-                          className="text-[10px] px-1.5 py-0.5 bg-gray-200 rounded hover:opacity-80"
-                        >
-                          {targetCol}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+          <div key={col} id={col} className="bg-gray-50 rounded-xl p-4 w-80 flex-shrink-0 flex flex-col max-h-[75vh]">
+            <h3 className="font-bold text-gray-700 mb-3 sticky top-0 bg-gray-50 py-1">{col}</h3>
+            <div className="overflow-y-auto flex-1 pr-1">
+              <SortableContext items={items.filter((i) => i.status === col).map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                {items.filter((i) => i.status === col).map((inv) => (
+                  <SortableItem key={inv.id} invoice={inv} />
                 ))}
+              </SortableContext>
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </DndContext>
   );
-};
+}
