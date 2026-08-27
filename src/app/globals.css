@@ -126,6 +126,26 @@ html[data-contrast="high"] .text-indigo-500 {
 }
 
 /* ── Custom animations ─────────────────────────────────────────── */
+@keyframes shimmer {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.skeleton-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
 @keyframes slide-up {
   from {
     opacity: 0;
