@@ -55,6 +55,17 @@ export default function AddressChangeRequestModal({
 
     try {
       await onSubmit(formData);
+      // Notify listeners (e.g. RecipientPayoutTracker) so they can update
+      // without requiring a full page reload once the change is approved.
+      window.dispatchEvent(
+        new CustomEvent('recipient-address-changed', {
+          detail: {
+            invoiceId,
+            oldAddress: formData.oldAddress,
+            newAddress: formData.newAddress,
+          },
+        })
+      );
       setSuccess(true);
       setTimeout(() => {
         onClose();
