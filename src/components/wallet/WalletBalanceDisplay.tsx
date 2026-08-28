@@ -13,7 +13,10 @@ function SkeletonText() {
 }
 
 export default function WalletBalanceDisplay({ address, isOpen = true }: Props) {
-  const { xlmBalance, usdcBalance, isLoading, refetch } = useWalletBalance(address, isOpen && !!address);
+  const { xlmBalance, usdcBalance, isLoading, isRetrying, refetch } = useWalletBalance(
+    address,
+    isOpen && !!address
+  );
 
   if (!address) {
     return null;
@@ -21,6 +24,11 @@ export default function WalletBalanceDisplay({ address, isOpen = true }: Props) 
 
   return (
     <div className="flex flex-col gap-3 py-2">
+      {isRetrying && (
+        <div className="text-xs text-amber-400" role="status">
+          Retrying...
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <div className="text-xs text-gray-400 mb-1">XLM Balance</div>
