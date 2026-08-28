@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 interface RecurringConfig {
   enabled: boolean;
@@ -12,6 +12,176 @@ interface RecurringConfig {
 interface Props {
   onConfirm: (config: RecurringConfig) => void;
 }
+
+// --- #616: mini calendar helpers ---
+
+const DAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+/**
+ * Compute the next `count` payment dates starting from `startDate`, spaced by
+ * `intervalDays` days, stopping at `endDate` if provided.
+ */
+function computeSchedule(
+  intervalDays: number,
+  startDate: Date,
+  endDate: Date | null,
+  count: number
+): Date[] {
+  const dates: Date[] = [];
+  let current = new Date(startDate);
+  while (dates.length < count) {
+    current = new Date(current.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+    if (endDate && current > endDate) break;
+    dates.push(new Date(current));
+  }
+  return dates;
+}
+
+/**
+ * MiniCalendar — renders a single month calendar with highlighted payment dates.
+ */
+interface MiniCalendarProps {
+  year: number;
+  month: number; // 0-indexed
+  highlightedDays: Set<number>;
+}
+
+function MiniCalendar({ year, month, highlightedDays }: MiniCalendarProps) {
+  const monthName = new Date(year, month).toLocaleString("default", {
+    month: "long",
+    year: "numeric",
+  });
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDayOfWeek = new Date(year, month, 1).getDay();
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDayOfWeek; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  return (
+    <div className="bg-gray-900 rounded-lg p-3 border border-gray-800 min-w-[168px]">
+      <p className="text-xs font-semibold text-gray-300 mb-2 text-center">{monthName}</p>
+      <div className="grid grid-cols-7 gap-0.5">
+        {DAY_LABELS.map((label) => (
+          <div
+            key={label}
+            className="text-center text-[9px] text-gray-600 pb-0.5 font-medium"
+          >
+            {label}
+          </div>
+        ))}
+        {cells.map((day, i) => {
+          if (day === null) return <div key={`empty-${i}`} />;
+          const isHighlighted = highlightedDays.has(day);
+          return (
+            <div
+              key={day}
+              className={`text-center text-[11px] py-1 rounded transition-colors ${
+                isHighlighted
+                  ? "bg-indigo-600 text-white font-bold"
+                  : "text-gray-500"
+              }`}
+              aria-label={
+                isHighlighted
+                  ? `Payment scheduled on ${monthName} ${day}`
+                  : undefined
+              }
+            >
+              {day}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ScheduleCalendarPreview — renders a grid of mini calendars for the next 6
+ * scheduled payment dates.
+ *
+ * Re-renders automatically when intervalDays, startDate, or endDate change.
+ */
+interface ScheduleCalendarPreviewProps {
+  intervalDays: 7 | 30;
+  endDate: string; // ISO date string or ""
+  useMaxOccurrences: boolean;
+  maxOccurrences: string;
+}
+
+function ScheduleCalendarPreview({
+  intervalDays,
+  endDate,
+  useMaxOccurrences,
+  maxOccurrences,
+}: ScheduleCalendarPreviewProps) {
+  const scheduleDates = useMemo(() => {
+    const startDate = new Date();
+    const resolvedEndDate =
+      !useMaxOccurrences && endDate ? new Date(endDate) : null;
+    const limit = useMaxOccurrences
+      ? Math.min(parseInt(maxOccurrences) || 6, 6)
+      : 6;
+    return computeSchedule(intervalDays, startDate, resolvedEndDate, limit);
+  }, [intervalDays, endDate, useMaxOccurrences, maxOccurrences]);
+
+  // Group dates by year-month
+  const monthGroups = useMemo(() => {
+    const groups: Map<string, { year: number; month: number; days: Set<number> }> =
+      new Map();
+    for (const date of scheduleDates) {
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          year: date.getFullYear(),
+          month: date.getMonth(),
+          days: new Set(),
+        });
+      }
+      groups.get(key)!.days.add(date.getDate());
+    }
+    return Array.from(groups.values());
+  }, [scheduleDates]);
+
+  return (
+    <div
+      className="mt-4 rounded-lg border border-gray-700 bg-gray-800/50 p-4"
+      aria-label="Upcoming payment dates calendar"
+    >
+      <p className="text-xs font-semibold text-gray-400 mb-3">
+        Next {scheduleDates.length} payment date{scheduleDates.length !== 1 ? "s" : ""}
+      </p>
+
+      {scheduleDates.length === 0 ? (
+        <p className="text-xs text-gray-500">
+          No upcoming dates — adjust your end date or occurrences.
+        </p>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-3">
+            {monthGroups.map((group) => (
+              <MiniCalendar
+                key={`${group.year}-${group.month}`}
+                year={group.year}
+                month={group.month}
+                highlightedDays={group.days}
+              />
+            ))}
+          </div>
+          <div className="mt-3 flex items-center gap-2 text-[10px] text-gray-500">
+            <span className="w-3 h-3 rounded bg-indigo-600 inline-block" />
+            <span>Scheduled payment date</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+// --- end #616 ---
 
 export default function RecurringWizard({ onConfirm }: Props) {
   const [step, setStep] = useState(1);
@@ -80,6 +250,14 @@ export default function RecurringWizard({ onConfirm }: Props) {
               </button>
             ))}
           </div>
+
+          {/* #616: mini calendar preview — visible from step 1 onwards */}
+          <ScheduleCalendarPreview
+            intervalDays={intervalDays}
+            endDate={endDate}
+            useMaxOccurrences={useMaxOccurrences}
+            maxOccurrences={maxOccurrences}
+          />
         </div>
       )}
 
@@ -127,6 +305,14 @@ export default function RecurringWizard({ onConfirm }: Props) {
               />
             )}
           </div>
+
+          {/* #616: mini calendar updates as user changes end date / occurrences */}
+          <ScheduleCalendarPreview
+            intervalDays={intervalDays}
+            endDate={endDate}
+            useMaxOccurrences={useMaxOccurrences}
+            maxOccurrences={maxOccurrences}
+          />
         </div>
       )}
 
@@ -146,6 +332,14 @@ export default function RecurringWizard({ onConfirm }: Props) {
               ))}
             </ul>
           </div>
+
+          {/* #616: mini calendar on confirmation step too */}
+          <ScheduleCalendarPreview
+            intervalDays={intervalDays}
+            endDate={endDate}
+            useMaxOccurrences={useMaxOccurrences}
+            maxOccurrences={maxOccurrences}
+          />
         </div>
       )}
 
