@@ -20,6 +20,7 @@ interface Props {
 }
 
 const STORAGE_PREFIX = "invoice-chat-";
+const SCROLL_THRESHOLD = 100;
 
 function getStorageKey(invoiceId: string) {
   return `${STORAGE_PREFIX}${invoiceId}`;
@@ -65,6 +66,11 @@ function formatDate(timestamp: number) {
   }).format(new Date(timestamp));
 }
 
+/**
+ * InvoiceChat — real-time-style chat for invoice participants.
+ * Auto-scrolls to the latest message when the user is near the bottom;
+ * shows a "new message" indicator when the user has scrolled up.
+ */
 export default function InvoiceChat({
   invoiceId,
   creator,
@@ -74,7 +80,23 @@ export default function InvoiceChat({
   const [messages, setMessages] = useState<InvoiceChatMessage[]>([]);
   const [text, setText] = useState("");
   const [isAllowed, setIsAllowed] = useState(false);
+  const [showNewMessageIndicator, setShowNewMessageIndicator] = useState(false);
+
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  /** Returns true when the scroll container is within SCROLL_THRESHOLD px of the bottom. */
+  const isNearBottom = (): boolean => {
+    const el = listRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= SCROLL_THRESHOLD;
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    bottomRef.current?.scrollIntoView({ behavior, block: "end" });
+    setShowNewMessageIndicator(false);
+  };
 
   useEffect(() => {
     setMessages(loadMessages(invoiceId));
@@ -93,13 +115,34 @@ export default function InvoiceChat({
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key === getStorageKey(invoiceId)) {
-        setMessages(loadMessages(invoiceId));
+        if (isNearBottom()) {
+          setMessages(loadMessages(invoiceId));
+        } else {
+          setMessages(loadMessages(invoiceId));
+          setShowNewMessageIndicator(true);
+        }
       }
     };
 
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, [invoiceId]);
+
+  // Scroll to bottom (instant) on first load.
+  useEffect(() => {
+    scrollToBottom("instant" as ScrollBehavior);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceId]);
+
+  // When messages change, auto-scroll only if near bottom.
+  useEffect(() => {
+    if (isNearBottom()) {
+      scrollToBottom("smooth");
+    } else {
+      setShowNewMessageIndicator(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
 
   const sortedMessages = useMemo(
     () => [...messages].sort((a, b) => a.timestamp - b.timestamp),
@@ -141,24 +184,47 @@ export default function InvoiceChat({
             No messages yet. Start the conversation with the invoice creator or recipients.
           </div>
         ) : (
-          <ul className="space-y-3">
-            {sortedMessages.map((message, index) => (
-              <li
-                key={`${message.timestamp}-${index}`}
-                className="rounded-lg border border-gray-800 bg-gray-900 p-4 text-sm"
+          <div className="relative">
+            <ul
+              ref={listRef}
+              className="space-y-3 max-h-96 overflow-y-auto pr-1"
+              onScroll={() => {
+                if (isNearBottom()) setShowNewMessageIndicator(false);
+              }}
+            >
+              {sortedMessages.map((message, index) => (
+                <li
+                  key={`${message.timestamp}-${index}`}
+                  className="rounded-lg border border-gray-800 bg-gray-900 p-4 text-sm"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <span className="font-mono text-xs text-gray-300">
+                      {truncateAddress(message.sender)}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {formatDate(message.timestamp)}
+                    </span>
+                  </div>
+                  <p className="whitespace-pre-wrap break-words text-gray-200">{message.text}</p>
+                </li>
+              ))}
+              {/* Sentinel element used as scroll target */}
+              <div ref={bottomRef} aria-hidden="true" />
+            </ul>
+
+            {/* New message indicator */}
+            {showNewMessageIndicator && (
+              <button
+                type="button"
+                onClick={() => scrollToBottom("smooth")}
+                className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white shadow-lg hover:bg-indigo-500 transition-colors"
+                aria-live="polite"
+                aria-label="New message received — click to scroll to bottom"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                  <span className="font-mono text-xs text-gray-300">
-                    {truncateAddress(message.sender)}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {formatDate(message.timestamp)}
-                  </span>
-                </div>
-                <p className="whitespace-pre-wrap break-words text-gray-200">{message.text}</p>
-              </li>
-            ))}
-          </ul>
+                ↓ New message
+              </button>
+            )}
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">

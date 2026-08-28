@@ -11,12 +11,59 @@ const DISPUTE_REASONS = [
   "Other",
 ];
 
+const TOTAL_STEPS = 4;
+
 interface Props {
   invoiceId: string;
   onSubmit: (reason: string, description: string, arbitratorAddress?: string) => Promise<void>;
   onClose: () => void;
 }
 
+/**
+ * StepIndicator — displays dot-based progress through the wizard steps.
+ * Completed steps are filled, the current step is highlighted, upcoming steps are muted.
+ */
+function StepIndicator({ current, total }: { current: number; total: number }) {
+  return (
+    <nav
+      aria-label={`Step ${current} of ${total}`}
+      className="flex items-center justify-center gap-2"
+    >
+      {Array.from({ length: total }, (_, i) => {
+        const stepNumber = i + 1;
+        const isCompleted = stepNumber < current;
+        const isCurrent = stepNumber === current;
+
+        return (
+          <div key={stepNumber} className="flex items-center gap-2">
+            <div
+              aria-current={isCurrent ? "step" : undefined}
+              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                isCompleted
+                  ? "bg-indigo-500"
+                  : isCurrent
+                  ? "bg-indigo-400 ring-2 ring-indigo-400/40 scale-125"
+                  : "bg-gray-600"
+              }`}
+            />
+            {stepNumber < total && (
+              <div
+                className={`h-px w-6 transition-colors duration-300 ${
+                  isCompleted ? "bg-indigo-500" : "bg-gray-700"
+                }`}
+              />
+            )}
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+/**
+ * DisputeWizard — multi-step modal form for filing an on-chain dispute.
+ * Guides the user through: reason → description → arbitrator → confirmation.
+ */
 export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
   const [step, setStep] = useState(1);
   const [reason, setReason] = useState("");
@@ -78,10 +125,18 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
           </button>
         </div>
 
+        {/* Step indicator */}
+        <div className="flex flex-col items-center gap-1.5">
+          <StepIndicator current={step} total={TOTAL_STEPS} />
+          <p className="text-xs text-gray-500 tabular-nums">
+            Step {step} of {TOTAL_STEPS}
+          </p>
+        </div>
+
         {/* Step 1: Reason Selection */}
         {step === 1 && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-400">Step 1 of 4: Select reason</p>
+            <p className="text-sm text-gray-400">Select reason</p>
             {DISPUTE_REASONS.map((r) => (
               <button
                 key={r}
@@ -102,7 +157,7 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
         {/* Step 2: Description */}
         {step === 2 && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-400">Step 2 of 4: Describe the issue</p>
+            <p className="text-sm text-gray-400">Describe the issue</p>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -119,7 +174,7 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
         {/* Step 3: Arbitrator Selection */}
         {step === 3 && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-400">Step 3 of 4: Select arbitrator (optional)</p>
+            <p className="text-sm text-gray-400">Select arbitrator (optional)</p>
 
             {registryEmpty ? (
               <div className="space-y-3">
@@ -198,7 +253,7 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
         {/* Step 4: Confirmation */}
         {step === 4 && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-400">Step 4 of 4: Confirm dispute</p>
+            <p className="text-sm text-gray-400">Confirm dispute</p>
             <div className="bg-gray-800 rounded-lg p-4 space-y-2">
               <div>
                 <p className="text-xs text-gray-500">Reason</p>
