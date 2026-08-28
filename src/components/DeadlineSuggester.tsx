@@ -20,16 +20,20 @@ export default function DeadlineSuggester({
   onUseSuggestion,
 }: Props) {
   const [suggestion, setSuggestion] = useState<number | null>(null);
+  const [reason, setReason] = useState<string>("");
+  const [tooltipOpen, setTooltipOpen] = useState(false);
 
   useEffect(() => {
     if (!totalAmount || recipientCount === 0) {
       setSuggestion(null);
+      setReason("");
       return;
     }
 
     const amount = parseFloat(totalAmount);
     if (isNaN(amount) || amount <= 0) {
       setSuggestion(null);
+      setReason("");
       return;
     }
 
@@ -38,6 +42,7 @@ export default function DeadlineSuggester({
     const history: HistoricalInvoice[] = stored ? JSON.parse(stored) : [];
 
     let recommendedDays: number;
+    let recommendationReason: string;
 
     if (history.length > 0) {
       // Filter by similar amount bracket (within 50% to 150%)
@@ -50,16 +55,26 @@ export default function DeadlineSuggester({
         const avgTime =
           similar.reduce((sum, inv) => sum + inv.fundingTime, 0) / similar.length;
         recommendedDays = Math.ceil(avgTime * 1.2); // Add 20% buffer
+        recommendationReason = `Based on your average payment cycle of ${avgTime.toFixed(
+          1
+        )} days for ${similar.length} similar invoice${similar.length === 1 ? "" : "s"}, plus a 20% buffer.`;
       } else {
         // Use static rules as fallback
         recommendedDays = getStaticRecommendation(amount);
+        recommendationReason = `No similar past invoices found, so we used a standard recommendation for invoices around $${amount.toFixed(
+          2
+        )}.`;
       }
     } else {
       // No history, use static rules
       recommendedDays = getStaticRecommendation(amount);
+      recommendationReason = `You have no invoice history yet, so we used a standard recommendation for invoices around $${amount.toFixed(
+        2
+      )}.`;
     }
 
     setSuggestion(Math.max(1, Math.min(365, recommendedDays)));
+    setReason(recommendationReason);
   }, [totalAmount, recipientCount]);
 
   if (suggestion === null) {
@@ -68,8 +83,31 @@ export default function DeadlineSuggester({
 
   return (
     <div className="mt-2 flex items-center justify-between bg-indigo-950 border border-indigo-700 rounded-lg px-3 py-2">
-      <p className="text-sm text-indigo-200">
+      <p className="text-sm text-indigo-200 flex items-center gap-1">
         Recommended: <span className="font-semibold">{suggestion} days</span>
+        <span className="relative inline-flex">
+          <button
+            type="button"
+            aria-label="Why this suggestion?"
+            aria-describedby="deadline-suggestion-reason"
+            onFocus={() => setTooltipOpen(true)}
+            onBlur={() => setTooltipOpen(false)}
+            onMouseEnter={() => setTooltipOpen(true)}
+            onMouseLeave={() => setTooltipOpen(false)}
+            className="ml-1 flex h-4 w-4 items-center justify-center rounded-full border border-indigo-400 text-[10px] leading-none text-indigo-300 hover:bg-indigo-800"
+          >
+            ?
+          </button>
+          {tooltipOpen && (
+            <span
+              id="deadline-suggestion-reason"
+              role="tooltip"
+              className="absolute bottom-full left-1/2 z-10 mb-2 w-56 -translate-x-1/2 rounded-md bg-gray-900 px-2 py-1.5 text-xs text-gray-100 shadow-lg"
+            >
+              {reason}
+            </span>
+          )}
+        </span>
       </p>
       <button
         type="button"
