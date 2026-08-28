@@ -7,6 +7,7 @@ import RelativeTime from "@/components/ui/RelativeTime";
 interface Props {
   deadline: number; // unix seconds
   compact?: boolean; // true → compact human-readable countdown, false → full human-readable countdown
+  expiredLabel?: string; // label shown once the deadline has passed
 }
 
 function calcTimeLeft(deadline: number) {
@@ -29,7 +30,7 @@ function getColorClass(timeLeft: number) {
   return "text-emerald-500";
 }
 
-export default function DeadlineCountdown({ deadline, compact = false }: Props) {
+export default function DeadlineCountdown({ deadline, compact = false, expiredLabel = "Expired" }: Props) {
   const [timeLeft, setTimeLeft] = useState(() => calcTimeLeft(deadline));
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
@@ -65,7 +66,7 @@ export default function DeadlineCountdown({ deadline, compact = false }: Props) 
         className="text-red-500 font-mono text-xs font-semibold"
         title={formatDeadlineTooltip(deadline)}
       >
-        Expired
+        {expiredLabel}
       </time>
     );
   }
