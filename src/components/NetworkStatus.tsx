@@ -63,11 +63,19 @@ export default function NetworkStatus() {
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [secondsAgo, setSecondsAgo] = useState(0);
+  const [justReconnected, setJustReconnected] = useState(false);
+  const [browserOffline, setBrowserOffline] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const poll = useCallback(async () => {
     const s = await checkHealth();
-    setStatus(s);
+    setStatus((prev) => {
+      if (prev === "offline" && s !== "offline") {
+        setJustReconnected(true);
+        setTimeout(() => setJustReconnected(false), 4000);
+      }
+      return s;
+    });
     setCheckedAt(new Date());
     setSecondsAgo(0);
     if (s !== "offline") setDismissed(false);
@@ -88,12 +96,26 @@ export default function NetworkStatus() {
     const onVisibility = () => {
       document.hidden ? stop() : (poll(), start());
     };
+    const onOnline = () => {
+      setBrowserOffline(false);
+      poll();
+    };
+    const onOffline = () => {
+      setBrowserOffline(true);
+      setStatus("offline");
+      setCheckedAt(new Date());
+      setDismissed(false);
+    };
 
     start();
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
     return () => {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
     };
   }, [poll]);
 
@@ -159,7 +181,9 @@ export default function NetworkStatus() {
           className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-between gap-3 bg-red-900/95 border-b border-red-700 px-4 py-2 text-sm text-red-100"
         >
           <span>
-            Network issues detected — transactions may fail
+            {browserOffline
+              ? "You are offline — transactions may fail"
+              : "Network issues detected — transactions may fail"}
             {NETWORK !== "Unknown" && (
               <span className="ml-1 opacity-75">({NETWORK})</span>
             )}
@@ -172,6 +196,16 @@ export default function NetworkStatus() {
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* ── "Back online" banner ── */}
+      {status !== "offline" && justReconnected && (
+        <div
+          role="status"
+          className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-2 bg-green-900/95 border-b border-green-700 px-4 py-2 text-sm text-green-100"
+        >
+          Back online
         </div>
       )}
 
