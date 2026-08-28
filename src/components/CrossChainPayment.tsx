@@ -53,11 +53,38 @@ function ChainSelector({
 function FeeBreakdown({
   amount,
   estimate,
+  loading,
+  error,
 }: {
   amount: string;
   estimate: FeeEstimate | null;
+  loading: boolean;
+  error: boolean;
 }) {
-  if (!amount || parseFloat(amount) <= 0 || !estimate) return null;
+  if (!amount || parseFloat(amount) <= 0) return null;
+
+  if (loading) {
+    return (
+      <div
+        role="status"
+        aria-label="Loading bridge estimate"
+        className="bg-gray-800 rounded-lg p-4 flex flex-col gap-2 animate-pulse"
+      >
+        <div className="h-3 w-2/3 bg-gray-700 rounded" />
+        <div className="h-3 w-1/2 bg-gray-700 rounded" />
+        <div className="h-3 w-3/4 bg-gray-700 rounded" />
+        <div className="h-3 w-1/3 bg-gray-700 rounded" />
+      </div>
+    );
+  }
+
+  if (error || !estimate) {
+    return (
+      <div className="bg-gray-800 rounded-lg p-4 text-sm text-gray-400">
+        Estimate unavailable
+      </div>
+    );
+  }
 
   return (
     <dl className="bg-gray-800 rounded-lg p-4 text-sm flex flex-col gap-2">
@@ -243,6 +270,8 @@ export default function CrossChainPayment({ invoiceId, stellarDestination }: Pro
   const [chain, setChain] = useState<SupportedChain>("ethereum");
   const [amount, setAmount] = useState("");
   const [estimate, setEstimate] = useState<FeeEstimate | null>(null);
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [estimateError, setEstimateError] = useState(false);
 
   // Wallet
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -260,11 +289,39 @@ export default function CrossChainPayment({ invoiceId, stellarDestination }: Pro
 
   // Recalculate fee estimate whenever chain or amount changes
   useEffect(() => {
-    if (amount && parseFloat(amount) > 0) {
-      setEstimate(estimateBridgeFee(chain, amount));
-    } else {
+    if (!amount || parseFloat(amount) <= 0) {
       setEstimate(null);
+      setEstimateLoading(false);
+      setEstimateError(false);
+      return;
     }
+
+    let cancelled = false;
+    setEstimateLoading(true);
+    setEstimateError(false);
+
+    // Debounce briefly and simulate fetching a fresh estimate for the
+    // selected chain/amount.
+    const timer = setTimeout(() => {
+      try {
+        const result = estimateBridgeFee(chain, amount);
+        if (!cancelled) {
+          setEstimate(result);
+          setEstimateLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setEstimate(null);
+          setEstimateError(true);
+          setEstimateLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [chain, amount]);
 
   // Reset wallet when chain changes
@@ -408,7 +465,12 @@ export default function CrossChainPayment({ invoiceId, stellarDestination }: Pro
           </div>
 
           {/* Fee estimate */}
-          <FeeBreakdown amount={amount} estimate={estimate} />
+          <FeeBreakdown
+            amount={amount}
+            estimate={estimate}
+            loading={estimateLoading}
+            error={estimateError}
+          />
         </>
       )}
 
