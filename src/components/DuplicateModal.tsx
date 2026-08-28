@@ -5,7 +5,8 @@ import FocusTrap from "./FocusTrap";
 
 interface Props {
   invoiceId: string;
-  onConfirm: (deadlineIso: string) => void;
+  /** Called with the chosen name and deadline ISO string when the user confirms. */
+  onConfirm: (name: string, deadlineIso: string) => void;
   onClose: () => void;
 }
 
@@ -26,16 +27,27 @@ function defaultDeadline(): string {
 }
 
 export default function DuplicateModal({ invoiceId, onConfirm, onClose }: Props) {
+  const [name, setName] = useState(`Copy of Invoice #${invoiceId}`);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [deadline, setDeadline] = useState(defaultDeadline);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleConfirm = () => {
+    // Validate name
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setNameError("Name cannot be empty.");
+      return;
+    }
+
+    // Validate deadline
     const err = validateDeadline(deadline);
     if (err) {
       setValidationError(err);
       return;
     }
-    onConfirm(deadline);
+
+    onConfirm(trimmedName, deadline);
   };
 
   return (
@@ -65,8 +77,40 @@ export default function DuplicateModal({ invoiceId, onConfirm, onClose }: Props)
           </div>
 
           <p className="text-sm text-gray-400 mb-4">
-            Choose a new deadline for the duplicated invoice. All other fields will be pre-filled from the original.
+            Choose a name and new deadline for the duplicated invoice. All other fields will be pre-filled from the original.
           </p>
+
+          {/* Duplicate name field */}
+          <div className="mb-4">
+            <label
+              htmlFor="dup-name"
+              className="block text-sm font-medium text-gray-300 mb-1"
+            >
+              Duplicate Name
+            </label>
+            <input
+              id="dup-name"
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setNameError(null);
+              }}
+              className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              aria-describedby={nameError ? "dup-name-error" : undefined}
+              aria-invalid={!!nameError}
+              placeholder={`Copy of Invoice #${invoiceId}`}
+            />
+            {nameError && (
+              <p
+                id="dup-name-error"
+                role="alert"
+                className="text-red-400 text-xs mt-1"
+              >
+                {nameError}
+              </p>
+            )}
+          </div>
 
           <div className="mb-4">
             <label
