@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import FocusTrap from "@/components/FocusTrap";
+import { useShortcutRegistry } from "@/context/ShortcutRegistry";
 
 interface RouteEntry {
   label: string;
@@ -91,6 +92,12 @@ export default function CommandPalette({ onNavigate }: CommandPaletteProps = {})
   const [paramInput, setParamInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const { shortcuts } = useShortcutRegistry();
+
+  const getShortcutForPath = (path: string): string[] | null => {
+    const shortcut = shortcuts.find((s) => s.id.includes(path));
+    return shortcut ? shortcut.keys : null;
+  };
 
   const close = useCallback(() => {
     setOpen(false);
@@ -257,8 +264,10 @@ export default function CommandPalette({ onNavigate }: CommandPaletteProps = {})
                 results.map((item, i) => {
                   const label =
                     item.type === "route" ? item.entry.label : item.action.label;
-                  const detail =
+                  const path =
                     item.type === "route" ? item.entry.path : "Enter an ID…";
+                  const shortcutKeys = item.type === "route" ? getShortcutForPath(item.entry.path) : null;
+
                   return (
                     <li
                       key={label}
@@ -273,9 +282,23 @@ export default function CommandPalette({ onNavigate }: CommandPaletteProps = {})
                       onMouseEnter={() => setActiveIndex(i)}
                     >
                       <span>{label}</span>
-                      <span className="text-xs text-gray-500 truncate ml-4">
-                        {detail}
-                      </span>
+                      <div className="flex items-center gap-3 ml-4">
+                        {shortcutKeys && shortcutKeys.length > 0 && (
+                          <div className="flex items-center gap-1">
+                            {shortcutKeys.map((key) => (
+                              <kbd
+                                key={key}
+                                className="px-1.5 py-0.5 text-xs bg-gray-700/50 rounded border border-gray-600 text-gray-400 font-mono"
+                              >
+                                {key}
+                              </kbd>
+                            ))}
+                          </div>
+                        )}
+                        <span className="text-xs text-gray-500 truncate">
+                          {path}
+                        </span>
+                      </div>
                     </li>
                   );
                 })
