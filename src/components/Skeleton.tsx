@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 /** Shared animated shimmer base */
-const shimmer = "animate-pulse bg-gray-200 dark:bg-gray-700 rounded";
+const shimmer = "skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded";
 
 /** Base pulsing rectangle primitive — every skeleton in the app builds on this. */
 export function Skeleton({ className = "" }: { className?: string }) {

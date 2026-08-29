@@ -12,11 +12,12 @@ interface Props {
 interface State {
   error: Error | null;
   sentryEventId: string | null;
+  copied: boolean;
 }
 
 /** Root error boundary — wraps the entire app. Captures exceptions to Sentry when configured. */
 export default class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null, sentryEventId: null };
+  state: State = { error: null, sentryEventId: null, copied: false };
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { error };
@@ -36,8 +37,24 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleRetry = () => {
-    this.setState({ error: null, sentryEventId: null });
+    this.setState({ error: null, sentryEventId: null, copied: false });
     window.location.reload();
+  };
+
+  private handleCopyErrorDetails = async () => {
+    const { error } = this.state;
+    if (!error) return;
+
+    const errorText = `${error.message}\n${error.stack}`;
+    try {
+      await navigator.clipboard.writeText(errorText);
+      this.setState({ copied: true });
+      setTimeout(() => {
+        this.setState({ copied: false });
+      }, 2000);
+    } catch {
+      console.error('Failed to copy error details');
+    }
   };
 
   render() {
@@ -95,6 +112,13 @@ export default class ErrorBoundary extends Component<Props, State> {
                   Error ID: {sentryEventId}
                 </p>
               )}
+              <button
+                type="button"
+                onClick={this.handleCopyErrorDetails}
+                className="min-h-10 px-4 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700 font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                {this.state.copied ? "Copied!" : "Copy error details"}
+              </button>
               <div className="flex gap-3 flex-wrap justify-center">
                 <button
                   type="button"
