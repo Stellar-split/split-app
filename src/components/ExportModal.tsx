@@ -6,6 +6,13 @@ import type { ExportFilterOptions } from '@/lib/invoiceExcelExport';
 import { downloadExcel, generateExportFilename } from '@/lib/invoiceExcelExport';
 import { apiFetch } from '@/lib/apiClient';
 
+/** Return a date string in "YYYY-MM-DD" format for an offset of `daysAgo` from today. */
+function dateString(daysAgo: number = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().slice(0, 10);
+}
+
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,9 +29,12 @@ export default function ExportModal({
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter state
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  // Date-range state — "From" defaults to 30 days ago, "To" defaults to today
+  const [startDate, setStartDate] = useState<string>(() => dateString(30));
+  const [endDate, setEndDate] = useState<string>(() => dateString(0));
+  const [dateRangeError, setDateRangeError] = useState<string | null>(null);
+
+  // Other filter state
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
 
@@ -48,7 +58,19 @@ export default function ExportModal({
     );
   };
 
+  /** Validate date range and return true when valid. */
+  const validateDateRange = (): boolean => {
+    if (startDate && endDate && startDate > endDate) {
+      setDateRangeError('"From" date must not be after "To" date.');
+      return false;
+    }
+    setDateRangeError(null);
+    return true;
+  };
+
   const handleExport = useCallback(async () => {
+    if (!validateDateRange()) return;
+
     setIsExporting(true);
     setError(null);
 
@@ -59,7 +81,10 @@ export default function ExportModal({
         filters.startDate = new Date(startDate).getTime() / 1000;
       }
       if (endDate) {
-        filters.endDate = new Date(endDate).getTime() / 1000;
+        // Include the full end day by advancing to end-of-day
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filters.endDate = end.getTime() / 1000;
       }
       if (selectedStatuses.length > 0) {
         filters.statuses = selectedStatuses;
@@ -68,7 +93,12 @@ export default function ExportModal({
         filters.assets = selectedAssets;
       }
 
-      const response = await apiFetch('/api/invoices/export', {
+      // Build query params so the API route can also filter server-side
+      const params = new URLSearchParams();
+      if (startDate) params.set('from', startDate);
+      if (endDate) params.set('to', endDate);
+
+      const response = await apiFetch(`/api/invoices/export?${params.toString()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,6 +142,7 @@ export default function ExportModal({
     } finally {
       setIsExporting(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoices, startDate, endDate, selectedStatuses, selectedAssets, onExport, onClose]);
 
   if (!isOpen) return null;
@@ -162,21 +193,58 @@ export default function ExportModal({
               Date Range
             </label>
             <div className="grid grid-cols-2 gap-4">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                disabled={isExporting}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
-              />
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                disabled={isExporting}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
-              />
+              <div>
+                <label
+                  htmlFor="export-from"
+                  className="block text-xs text-gray-500 mb-1"
+                >
+                  From
+                </label>
+                <input
+                  id="export-from"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setDateRangeError(null);
+                  }}
+                  disabled={isExporting}
+                  aria-describedby={dateRangeError ? 'export-date-error' : undefined}
+                  aria-invalid={!!dateRangeError}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="export-to"
+                  className="block text-xs text-gray-500 mb-1"
+                >
+                  To
+                </label>
+                <input
+                  id="export-to"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setDateRangeError(null);
+                  }}
+                  disabled={isExporting}
+                  aria-describedby={dateRangeError ? 'export-date-error' : undefined}
+                  aria-invalid={!!dateRangeError}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
+                />
+              </div>
             </div>
+            {dateRangeError && (
+              <p
+                id="export-date-error"
+                role="alert"
+                className="mt-1 text-xs text-red-600"
+              >
+                {dateRangeError}
+              </p>
+            )}
           </div>
 
           {/* Status Filter */}
