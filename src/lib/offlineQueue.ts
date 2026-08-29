@@ -1,3 +1,5 @@
+import { openDB as idbOpenDB, type IDBPDatabase } from "idb";
+
 export interface QueuedPayment {
   id: string;
   invoiceId: string;
@@ -30,57 +32,44 @@ function fromStored(stored: StoredPayment): QueuedPayment {
   return { ...stored, amount: BigInt(stored.amount) };
 }
 
-export function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
+function createId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `payment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export async function openDB(): Promise<IDBPDatabase> {
+  return idbOpenDB(DB_NAME, DB_VERSION, {
+    upgrade(db) {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: "id" });
       }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    },
   });
 }
 
 export async function queuePayment(
   payment: Omit<QueuedPayment, "id" | "status">
-): Promise<string> {
+
   const db = await openDB();
-  const id = crypto.randomUUID();
+  const id = createId();
   const stored = toStored({ ...payment, id, status: "pending" });
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).add(stored);
-    tx.oncomplete = () => resolve(id);
-    tx.onerror = () => reject(tx.error);
-  });
+  await db.add(STORE_NAME, stored);
+  return id;
 }
 
 export async function getQueuedPayments(): Promise<QueuedPayment[]> {
   const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const request = tx.objectStore(STORE_NAME).getAll();
-    request.onsuccess = () => {
-      const stored: StoredPayment[] = request.result;
-      const payments = stored.map(fromStored);
-      payments.sort((a, b) => a.timestamp - b.timestamp);
-      resolve(payments);
-    };
-    request.onerror = () => reject(request.error);
-  });
+  const stored: StoredPayment[] = await db.getAll(STORE_NAME);
+  const payments = stored.map(fromStored);
+  payments.sort((a, b) => a.timestamp - b.timestamp);
+  return payments;
 }
 
 export async function removePayment(id: string): Promise<void> {
   const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  await db.delete(STORE_NAME, id);
 }
 
 export async function updatePaymentStatus(
@@ -89,39 +78,22 @@ export async function updatePaymentStatus(
   error?: string
 ): Promise<void> {
   const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    const getReq = store.get(id);
-    getReq.onsuccess = () => {
-      const existing: StoredPayment | undefined = getReq.result;
-      if (!existing) {
-        reject(new Error(`Payment ${id} not found`));
-        return;
-      }
-      existing.status = status;
-      if (error !== undefined) {
-        existing.error = error;
-      }
-      store.put(existing);
-    };
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  const existing = await db.get(STORE_NAME, id);
+  if (!existing) {
+    throw new Error(`Payment ${id} not found`);
+  }
+  (existing as StoredPayment).status = status;
+  if (error !== undefined) {
+    (existing as StoredPayment).error = error;
+  }
+  await db.put(STORE_NAME, existing);
 }
 
 export async function getQueueCount(): Promise<number> {
   const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const request = tx.objectStore(STORE_NAME).getAll();
-    request.onsuccess = () => {
-      const stored: StoredPayment[] = request.result;
-      const count = stored.filter((p) => p.status === "pending").length;
-      resolve(count);
-    };
-    request.onerror = () => reject(request.error);
-  });
+  const stored: StoredPayment[] = await db.getAll(STORE_NAME);
+  const count = stored.filter((p) => p.status === "pending").length;
+  return count;
 }
 
 export function isNetworkError(error: unknown): boolean {
@@ -153,10 +125,14 @@ export async function processQueue(
       await removePayment(payment.id);
       results.push({ id: payment.id, success: true });
     } catch (err) {
-      const errorMsg =
-        err instanceof Error ? err.message : "Unknown error";
-      await updatePaymentStatus(payment.id, "failed", errorMsg);
-      results.push({ id: payment.id, success: false, error: errorMsg });
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      if (isNetworkError(err)) {
+        await updatePaymentStatus(payment.id, "pending", errorMsg);
+        results.push({ id: payment.id, success: false, error: errorMsg });
+      } else {
+        await updatePaymentStatus(payment.id, "failed", errorMsg);
+        results.push({ id: payment.id, success: false, error: errorMsg });
+      }
     }
   }
 

@@ -1,98 +1,14 @@
 const CACHE_NAME = "stellarsplit-v1";
 const PRECACHE_URLS = ["/", "/dashboard", "/offline.html", "/manifest.json"];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      )
-    )
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("push", (event) => {
-  if (!event.data) return;
-
-  let payload;
-  try {
-    payload = event.data.json();
-  } catch {
-    return;
-  }
-
-  const { title, body, invoiceId, milestone } = payload;
-  event.waitUntil(
-    self.registration.showNotification(title || "StellarSplit", {
-      body,
-      icon: "/icons/icon-192.png",
-      tag: invoiceId ? `funding-milestone-${invoiceId}-${milestone}` : undefined,
-      data: { invoiceId, url: invoiceId ? `/invoice/${invoiceId}` : "/" },
-    })
-  );
-});
-
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  const url = event.notification.data?.url || "/";
-
-  event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.includes(url) && "focus" in client) {
-          return client.focus();
-        }
-      }
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(url);
-      }
-    })
-  );
-});
-
-self.addEventListener("fetch", (event) => {
-  const { request } = event;
-
-  if (request.method !== "GET") return;
-
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match(request);
-          if (cached) return cached;
-          const offline = await caches.match("/offline.html");
-          if (offline) return offline;
-          return new Response("Offline", { status: 503 });
-        })
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(request).then(
-      (cached) =>
-        cached ||
-        fetch(request).then((response) => {
-          if (response.ok && request.url.startsWith(self.location.origin)) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-    )
-  );
-});
+function openDB() { return new Promise((resolve, reject) => { const request = indexedDB.open("stellarsplit", 1); request.onupgradeneeded = () => { const db = request.result; if (!db.objectStoreNames.contains("pending-queue")) { db.createObjectStore("pending-queue", { keyPath: "id", autoIncrement: true }); } }; request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); }
+async function addToQueue(request) { const db = await openDB(); return new Promise((resolve, reject) => { const tx = db.transaction("pending-queue", "readwrite"); const store = tx.objectStore("pending-queue"); const entry = { url: request.url, method: request.method, headers: Object.fromEntries(request.headers.entries()), body: null }; if (request.body) { request.text().then((body) => { entry.body = body; store.add(entry); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }).catch(reject); } else { store.add(entry); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); } }); }
+async function getQueue() { const db = await openDB(); return new Promise((resolve, reject) => { const tx = db.transaction("pending-queue", "readonly"); const store = tx.objectStore("pending-queue"); const getAll = store.getAll(); getAll.onsuccess = () => resolve(getAll.result); getAll.onerror = () => reject(getAll.error); } }); }
+async function deleteFromQueue(id) { const db = await openDB(); return new Promise((resolve, reject) => { const tx = db.transaction("pending-queue", "readwrite"); const store = tx.objectStore("pending-queue"); store.delete(id); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }); }
+async function drainQueue() { const queue = await getQueue(); const results = []; for (const entry of queue) { const init = { method: entry.method, headers: entry.headers }; if (entry.body) init.body = entry.body; try { const response = await fetch(entry.url, init); if (response.ok || response.status < 500) { await deleteFromQueue(entry.id); results.push({ id: entry.id, success: true }); } else { results.push({ id: entry.id, success: false, error: `HTTP ${response.status}` }) } } catch (err) { results.push({ id: entry.id, success: false, error: err.message }); } } return results; }
+self.addEventListener("install", (event) => { event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))); self.skipWaiting(); });
+self.addEventListener("activate", (event) => { event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))); self.clients.claim(); });
+self.addEventListener("push", (event) => { if (!event.data) return; let payload; try { payload = event.data.json(); } catch { return; } const { title, body, invoiceId, milestone } = payload; event.waitUntil(self.registration.showNotification(title || "StellarSplit", { body, icon: "/icons/icon-192.png", tag: invoiceId ? funding-milestone-${invoiceId}-${milestone}` : undefined, data: { invoiceId, url: invoiceId ? `/invoice/${invoiceId}` : "/" } })); });
+self.addEventListener("notificationclick", (event) => { event.notification.close(); const url = event.notification.data?.url || "/"; event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => { for (const client of clientList) { if (client.url.includes(url) && "focus" in client) { return client.focus(); } } if (self.clients.openWindow) { return self.clients.openWindow(url); } })); });
+self.addEventListener("sync", (event) => { if (event.tag === "pending-transactions") { event.waitUntil(drainQueue()); } });
+self.addEventListener("message", (event) => { if (event.data && event.data.type === "drainQueue") { event.waitUntil(drainQueue()); } });
+self.addEventListener("fetch", (event) => { const { request } = event; if (request.method !== "GET") { const requestClone = request.clone(); event.respondWith(fetch(request).catch(async (err) => { await addToQueue(requestClone); return new Response(JSON.stringify({ queued: true }), { status: 202, headers: { "Content-Type": "application/json" } }); })); return; } if (request.mode === "navigate") { event.respondWith(fetch(request).then((response) => { const copy = response.clone(); caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)); return response; }).catch(async () => { const cached = await caches.match(request); if (cached) return cached; const offline = await caches.match("/offline.html"); if (offline) return offline; return new Response("Offline", { status: 503 }); })); return; } event.respondWith(caches.match(request).then((cached) => cached || fetch(request).then((response) => { if (response.ok && request.url.startsWith(self.location.origin)) { const copy = response.clone(); caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)); } return response; }))); });
