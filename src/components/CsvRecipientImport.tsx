@@ -32,10 +32,15 @@ function parseCsv(text: string): CsvRow[] {
   const amtIdx = header.indexOf("amount");
 
   return lines.slice(1).map((line) => {
+    // Trim every column value to remove spreadsheet export artifacts
     const cols = line.split(",").map((c) => c.trim());
-    const address = addrIdx >= 0 ? (cols[addrIdx] ?? "") : (cols[0] ?? "");
-    const percentage = pctIdx >= 0 ? (cols[pctIdx] ?? "") : undefined;
-    const amount = amtIdx >= 0 ? (cols[amtIdx] ?? "") : pctIdx < 0 ? (cols[1] ?? "") : undefined;
+    const address = (addrIdx >= 0 ? (cols[addrIdx] ?? "") : (cols[0] ?? "")).trim();
+    const percentage = pctIdx >= 0 ? (cols[pctIdx] ?? "").trim() : undefined;
+    const amount = amtIdx >= 0
+      ? (cols[amtIdx] ?? "").trim()
+      : pctIdx < 0
+        ? (cols[1] ?? "").trim()
+        : undefined;
     return { address, percentage, amount };
   }).filter((r) => r.address !== "");
 }
@@ -132,7 +137,8 @@ export default function CsvRecipientImport({ onImport, existingCount = 0 }: Prop
     field: "address" | "percentage" | "amount",
     value: string
   ) => {
-    const updated = rows.map((r, i) => (i === idx ? { ...r, [field]: value } : r));
+    // Trim whitespace so inline edits are treated consistently with CSV parse
+    const updated = rows.map((r, i) => (i === idx ? { ...r, [field]: value.trim() } : r));
     setRows(validateRows(updated, existingCount));
   };
 

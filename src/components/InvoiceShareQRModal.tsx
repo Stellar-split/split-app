@@ -14,10 +14,14 @@ const QRCodeCanvas = dynamic(
 interface Props {
   open: boolean;
   invoiceId: string;
+  /** Invoice title; falls back to "Invoice #<id>" when absent */
+  invoiceTitle?: string;
+  /** Formatted total amount string, e.g. "250.00 USDC" */
+  totalAmount?: string;
   onClose: () => void;
 }
 
-export default function InvoiceShareQRModal({ open, invoiceId, onClose }: Props) {
+export default function InvoiceShareQRModal({ open, invoiceId, invoiceTitle, totalAmount, onClose }: Props) {
   const toast = useToast();
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -74,13 +78,24 @@ export default function InvoiceShareQRModal({ open, invoiceId, onClose }: Props)
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-            <h2 className="text-sm font-semibold text-gray-200">
-              Share via QR Code
-            </h2>
+          <div className="flex items-start justify-between px-4 py-3 border-b border-gray-800">
+            <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+              <h2
+                className="text-sm font-semibold text-gray-200 truncate"
+                title={invoiceTitle ?? `Invoice #${invoiceId}`}
+              >
+                {invoiceTitle ?? `Invoice #${invoiceId}`}
+              </h2>
+              {totalAmount && (
+                <p className="text-xs text-gray-400 truncate" aria-label={`Total: ${totalAmount}`}>
+                  {totalAmount}
+                </p>
+              )}
+              <p className="text-xs text-gray-500">Share via QR Code</p>
+            </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-gray-800 text-gray-300 transition-colors"
+              className="p-2 rounded-lg hover:bg-gray-800 text-gray-300 transition-colors shrink-0"
               aria-label="Close share QR modal"
             >
               ✕
