@@ -203,6 +203,80 @@ describe("PaymentSummaryCard", () => {
     expect(listItems[0].textContent).toContain("GBIGSP");
   });
 
+  test("payment reference copy button copies to clipboard and shows confirmation", async () => {
+    const testRef = "inv-12345-ref";
+    mockGetInvoice.mockResolvedValue(
+      makeInvoice([{ payer: "ADDR_A", amount: 50_000_000n }]),
+    );
+
+    // Mock clipboard API
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+
+    render(<PaymentSummaryCard invoiceId={testRef} />);
+    await waitFor(() =>
+      expect(screen.queryByTestId("skeleton-progress")).not.toBeInTheDocument(),
+    );
+
+    const copyButton = screen.getByRole("button", { name: /copy.*reference/i });
+    expect(copyButton).toBeInTheDocument();
+
+    // Click the copy button
+    await act(async () => {
+      copyButton.click();
+    });
+
+    // Verify clipboard was called
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testRef);
+
+    // Verify "Copied!" message appears
+    await waitFor(() => {
+      expect(screen.getByText(/Copied!/i)).toBeInTheDocument();
+    });
+  });
+
+  test("copy confirmation disappears after 2 seconds", async () => {
+    vi.useFakeTimers();
+    const testRef = "inv-12345-ref";
+    mockGetInvoice.mockResolvedValue(
+      makeInvoice([{ payer: "ADDR_A", amount: 50_000_000n }]),
+    );
+
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+
+    render(<PaymentSummaryCard invoiceId={testRef} />);
+    await waitFor(() =>
+      expect(screen.queryByTestId("skeleton-progress")).not.toBeInTheDocument(),
+    );
+
+    const copyButton = screen.getByRole("button", { name: /copy.*reference/i });
+
+    await act(async () => {
+      copyButton.click();
+    });
+
+    // Confirm message appears
+    await waitFor(() => {
+      expect(screen.getByText(/Copied!/i)).toBeInTheDocument();
+    });
+
+    // Advance time by 2 seconds
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    // Message should disappear
+    expect(screen.queryByText(/Copied!/i)).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   test("polling stops when invoice is Released", async () => {
     const releasedInvoice = {
       ...makeInvoice([{ payer: "A", amount: 100_000_000n }]),
