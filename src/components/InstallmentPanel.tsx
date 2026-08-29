@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { splitClient } from "@/lib/stellar";
 import { formatAmount } from "@stellar-split/sdk";
 
@@ -13,24 +13,99 @@ interface Installment {
 interface Props {
   invoiceId: string;
   publicKey: string;
+  /** #614: when total changes, amounts are recalculated proportionally */
+  total?: bigint;
+}
+
+/**
+ * #614 — recalculate installment amounts proportionally when `total` changes.
+ *
+ * The proportion of each installment is derived from the original fetched plan.
+ * Rounding remainders are applied to the last installment.
+ * A brief "Updated" badge flashes after each recalculation.
+ */
+function recalcAmounts(original: Installment[], newTotal: bigint): Installment[] {
+  if (original.length === 0) return original;
+
+  const originalTotal = original.reduce((s, i) => s + i.amount, 0n);
+  if (originalTotal === 0n) return original;
+
+  // Calculate proportional amounts; keep track of distributed sum to fix rounding
+  const recalculated: Installment[] = original.map((inst) => ({
+    ...inst,
+    amount: (inst.amount * newTotal) / originalTotal,
+  }));
+
+  // Assign rounding remainder to the last installment
+  const distributed = recalculated.reduce((s, i) => s + i.amount, 0n);
+  const remainder = newTotal - distributed;
+  if (remainder !== 0n) {
+    const last = recalculated[recalculated.length - 1];
+    recalculated[recalculated.length - 1] = {
+      ...last,
+      amount: last.amount + remainder,
+    };
+  }
+
+  return recalculated;
 }
 
 /**
  * InstallmentPanel — shows the payer's installment schedule for an invoice.
  * Highlights the next due installment; marks past ones as paid if payment exists.
  */
-export default function InstallmentPanel({ invoiceId, publicKey }: Props) {
+export default function InstallmentPanel({ invoiceId, publicKey, total }: Props) {
+  const [baseInstallments, setBaseInstallments] = useState<Installment[] | null>(null);
   const [installments, setInstallments] = useState<Installment[] | null>(null);
   const [loading, setLoading] = useState(true);
+  // #614: flash badge state
+  const [showUpdated, setShowUpdated] = useState(false);
+  const prevTotal = useRef<bigint | undefined>(undefined);
 
+  // Fetch plan once on mount
   useEffect(() => {
     /* eslint-disable-next-line */
     (splitClient as any)
       .getInstallmentPlan(invoiceId, publicKey)
-      .then((plan: Installment[] | null) => setInstallments(plan ?? []))
-      .catch(() => setInstallments([]))
+      .then((plan: Installment[] | null) => {
+        const resolved = plan ?? [];
+        setBaseInstallments(resolved);
+        // Apply total immediately if provided
+        if (total !== undefined && resolved.length > 0) {
+          setInstallments(recalcAmounts(resolved, total));
+        } else {
+          setInstallments(resolved);
+        }
+        prevTotal.current = total;
+      })
+      .catch(() => {
+        setBaseInstallments([]);
+        setInstallments([]);
+      })
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceId, publicKey]);
+
+  // #614: recalculate whenever total prop changes after initial load
+  useEffect(() => {
+    if (
+      baseInstallments === null ||
+      baseInstallments.length === 0 ||
+      total === undefined
+    )
+      return;
+
+    // Skip the very first assignment (handled in the fetch effect)
+    if (prevTotal.current === total) return;
+
+    prevTotal.current = total;
+    setInstallments(recalcAmounts(baseInstallments, total));
+
+    // Flash "Updated" badge for 1.5 s
+    setShowUpdated(true);
+    const t = setTimeout(() => setShowUpdated(false), 1500);
+    return () => clearTimeout(t);
+  }, [total, baseInstallments]);
 
   if (loading) return null;
 
@@ -48,7 +123,15 @@ export default function InstallmentPanel({ invoiceId, publicKey }: Props) {
 
   return (
     <section className="mb-8">
-      <h2 className="text-lg font-semibold mb-3">Installment Schedule</h2>
+      <div className="flex items-center gap-3 mb-3">
+        <h2 className="text-lg font-semibold">Installment Schedule</h2>
+        {/* #614: visual indicator after recalculation */}
+        {showUpdated && (
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-700 text-indigo-100 animate-pulse">
+            Updated
+          </span>
+        )}
+      </div>
       <ol className="flex flex-col gap-2">
         {installments.map((inst, i) => {
           const isNext = i === nextDueIndex;
