@@ -1,11 +1,43 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import type { Subscription } from "@/types/subscription";
 import {
   formatFrequency,
   formatSubscriptionForDisplay,
 } from "@/lib/subscriptions";
+
+/**
+ * Returns a human-readable relative time string for a Unix timestamp.
+ * - Overdue  → "Overdue by X days"  (red)
+ * - < 24 h   → "in X hours"
+ * - Otherwise → "in X days" / "Tomorrow" / "Today"
+ */
+function useRelativeBillingDate(nextRunDate: number): { label: string; overdue: boolean } {
+  return useMemo(() => {
+    const now = Date.now();
+    const target = nextRunDate * 1000;
+    const diffMs = target - now;
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+    if (diffMs < 0) {
+      const overdueDays = Math.abs(Math.ceil(diffDays));
+      return { label: `Overdue by ${overdueDays} day${overdueDays === 1 ? "" : "s"}`, overdue: true };
+    }
+
+    const formatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+
+    if (diffHours < 24) {
+      const hours = Math.ceil(diffHours);
+      return { label: formatter.format(hours, "hour"), overdue: false };
+    }
+
+    const days = Math.ceil(diffDays);
+    return { label: formatter.format(days, "day"), overdue: false };
+  }, [nextRunDate]);
+}
 
 interface Props {
   subscription: Subscription;
@@ -19,6 +51,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function SubscriptionCard({ subscription }: Props) {
   const display = formatSubscriptionForDisplay(subscription);
+  const { label: relativeLabel, overdue } = useRelativeBillingDate(subscription.nextRunDate);
 
   return (
     <Link
@@ -44,11 +77,18 @@ export default function SubscriptionCard({ subscription }: Props) {
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
           <p className="text-gray-500 text-xs">Next Run</p>
-          <p className="text-gray-300">
-            {subscription.status === "active"
-              ? display.nextRunDateFormatted
-              : "—"}
-          </p>
+          {subscription.status === "active" ? (
+            <p className="text-gray-300">
+              {display.nextRunDateFormatted}
+              <span
+                className={`ml-1.5 text-xs ${overdue ? "text-red-400 font-medium" : "text-gray-500"}`}
+              >
+                · {relativeLabel}
+              </span>
+            </p>
+          ) : (
+            <p className="text-gray-300">—</p>
+          )}
         </div>
         <div>
           <p className="text-gray-500 text-xs">Invoices</p>
