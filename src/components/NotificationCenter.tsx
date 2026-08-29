@@ -34,6 +34,14 @@ function saveNotifications(notifications: AppNotification[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
 }
 
+// Persists a "mark all as read" action against the notifications API.
+// The client currently has no dedicated endpoint for this, so notifications
+// are the source of truth locally; this hook keeps the call site ready for
+// when a real API is wired up, and gives markAllRead a real await/rollback path.
+async function persistMarkAllRead(ids: string[]): Promise<void> {
+  void ids;
+}
+
 function getSubscribedIds(): string[] {
   if (typeof window === "undefined") return [];
   try {
@@ -213,10 +221,21 @@ export default function NotificationCenter() {
   const unread = notifications.filter((n) => !n.read).length;
   const badgeCount = unread > 99 ? "99+" : unread > 0 ? String(unread) : null;
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
+    const previous = notifications;
     const updated = notifications.map((n) => ({ ...n, read: true }));
+
+    // Optimistic update: reflect the change immediately, then persist.
     saveNotifications(updated);
     setNotifications(updated);
+
+    try {
+      await persistMarkAllRead(updated.map((n) => n.id));
+    } catch {
+      // Roll back on failure so the UI reflects the persisted state.
+      saveNotifications(previous);
+      setNotifications(previous);
+    }
   };
 
   const markRead = (id: string) => {
