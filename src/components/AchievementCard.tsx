@@ -11,6 +11,7 @@ interface Props {
 export default function AchievementCard({ invoiceId, totalAmount, onDismiss }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const captureCanvas = async () => {
     // TODO: html2canvas not installed - commenting out for now
@@ -25,9 +26,42 @@ export default function AchievementCard({ invoiceId, totalAmount, onDismiss }: P
     console.warn("Download feature disabled");
   };
 
+  const getShareUrl = () =>
+    typeof window !== "undefined"
+      ? `${window.location.origin}/invoices/${invoiceId}`
+      : `/invoices/${invoiceId}`;
+
   const handleShare = async () => {
-    // TODO: html2canvas not installed - share feature disabled
-    console.warn("Share feature disabled");
+    const shareUrl = getShareUrl();
+    const shareText = `I just got paid ${totalAmount} USDC via StellarSplit! ✦`;
+
+    if (typeof navigator !== "undefined" && "share" in navigator) {
+      setBusy(true);
+      try {
+        await navigator.share({
+          title: "StellarSplit Achievement",
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        // AbortError happens when the user cancels the native share sheet — not an error.
+        if (!(err instanceof DOMException && err.name === "AbortError")) {
+          console.warn("Share failed", err);
+        }
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    // Fallback: copy the achievement URL to the clipboard.
+    try {
+      await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.warn("Copy to clipboard failed", err);
+    }
   };
 
   return (
@@ -54,16 +88,15 @@ export default function AchievementCard({ invoiceId, totalAmount, onDismiss }: P
 
         {/* Actions */}
         <div className="flex gap-3">
-          {"share" in navigator ? (
-            <button
-              type="button"
-              onClick={handleShare}
-              disabled={busy}
-              className="flex-1 min-h-11 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm transition-colors disabled:opacity-50"
-            >
-              {busy ? "Preparing…" : "Share"}
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={handleShare}
+            disabled={busy}
+            aria-label="Share achievement"
+            className="flex-1 min-h-11 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm transition-colors disabled:opacity-50"
+          >
+            {busy ? "Preparing…" : copied ? "Link Copied!" : "Share"}
+          </button>
           <button
             type="button"
             onClick={handleDownload}

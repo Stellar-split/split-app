@@ -1,18 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatAmount } from "@stellar-split/sdk";
 import { useI18n } from "@/components/I18nProvider";
 import type { Invoice } from "@stellar-split/sdk";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Skeleton } from "@/components/Skeleton";
 
 interface Props {
   invoices: Invoice[];
 }
 
+type RangePreset = "7d" | "30d" | "3m" | "custom";
+
+interface RangeOption {
+  key: RangePreset;
+  label: string;
+  days: number | null;
+}
+
+const RANGE_OPTIONS: RangeOption[] = [
+  { key: "7d", label: "Last 7 days", days: 7 },
+  { key: "30d", label: "Last 30 days", days: 30 },
+  { key: "3m", label: "Last 3 months", days: 90 },
+  { key: "custom", label: "Custom", days: null },
+];
+
 export default function AnalyticsPanel({ invoices }: Props) {
   const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
+  const [range, setRange] = useState<RangePreset>("30d");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [isRefetching, setIsRefetching] = useState(false);
+
+  const now = Date.now() / 1000;
+
+  // Determine the [from, to] window (in unix seconds) for the active range.
+  const { from, to } = useMemo(() => {
+    if (range === "custom") {
+      const fromTs = customFrom ? new Date(customFrom).getTime() / 1000 : 0;
+      const toTs = customTo ? new Date(customTo).getTime() / 1000 : now;
+      return { from: fromTs, to: toTs };
+    }
+    const option = RANGE_OPTIONS.find((o) => o.key === range);
+    const days = option?.days ?? 30;
+    return { from: now - days * 24 * 60 * 60, to: now };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range, customFrom, customTo]);
+
+  // Simulate a metrics refetch whenever the selected range changes.
+  useEffect(() => {
+    setIsRefetching(true);
+    const id = setTimeout(() => setIsRefetching(false), 400);
+    return () => clearTimeout(id);
+  }, [range, customFrom, customTo]);
+
+  const scopedInvoices = useMemo(
+    () => invoices.filter((inv) => inv.deadline >= from && inv.deadline <= to),
+    [invoices, from, to]
+  );
 
   // Calculate summary stats
   const stats = {
@@ -23,8 +70,7 @@ export default function AnalyticsPanel({ invoices }: Props) {
     refunded: 0,
   };
 
-  invoices.forEach((inv) => {
-    const total = inv.recipients.reduce((sum, r) => sum + r.amount, 0n);
+  scopedInvoices.forEach((inv) => {
     if (inv.status === "Pending") stats.pending++;
     else if (inv.status === "Released") stats.released++;
     else if (inv.status === "Refunded") stats.refunded++;
@@ -34,21 +80,16 @@ export default function AnalyticsPanel({ invoices }: Props) {
     stats.totalReceived += inv.funded;
   });
 
-  // Group invoices by week (last 30 days)
-  const now = Date.now() / 1000;
-  const thirtyDaysAgo = now - 30 * 24 * 60 * 60;
-
+  // Group scoped invoices by week
   const weekData: Record<string, number> = {};
 
-  invoices.forEach((inv) => {
-    if (inv.deadline >= thirtyDaysAgo) {
-      const date = new Date(inv.deadline * 1000);
-      const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - date.getDay());
-      const weekKey = weekStart.toISOString().slice(0, 10);
+  scopedInvoices.forEach((inv) => {
+    const date = new Date(inv.deadline * 1000);
+    const weekStart = new Date(date);
+    weekStart.setDate(date.getDate() - date.getDay());
+    const weekKey = weekStart.toISOString().slice(0, 10);
 
-      weekData[weekKey] = (weekData[weekKey] || 0) + 1;
-    }
+    weekData[weekKey] = (weekData[weekKey] || 0) + 1;
   });
 
   const chartData = Object.entries(weekData)
@@ -71,6 +112,65 @@ export default function AnalyticsPanel({ invoices }: Props) {
 
       {isOpen && (
         <div className="mt-5 space-y-5">
+          {/* Date-range selector */}
+          <div className="flex flex-wrap items-center gap-2">
+            {RANGE_OPTIONS.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => setRange(option.key)}
+                aria-pressed={range === option.key}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  range === option.key
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-800 text-gray-400 hover:text-white"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+            {range === "custom" && (
+              <div className="flex items-center gap-2 ml-1">
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  aria-label="Custom range start date"
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <span className="text-gray-500 text-xs">to</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  aria-label="Custom range end date"
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            )}
+          </div>
+
+          {isRefetching ? (
+            <div
+              role="status"
+              aria-busy="true"
+              aria-label="Loading analytics"
+              className="space-y-5"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-16 rounded-lg" />
+                ))}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-16 rounded-lg" />
+                ))}
+              </div>
+              <Skeleton className="h-[250px] rounded-lg" />
+            </div>
+          ) : (
+            <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-gray-800 rounded-lg p-4">
@@ -83,7 +183,7 @@ export default function AnalyticsPanel({ invoices }: Props) {
             </div>
             <div className="bg-gray-800 rounded-lg p-4">
               <p className="text-xs text-gray-400 mb-1">{t("dashboard.totalInvoices")}</p>
-              <p className="text-lg font-semibold">{invoices.length}</p>
+              <p className="text-lg font-semibold">{scopedInvoices.length}</p>
             </div>
           </div>
 
@@ -132,6 +232,8 @@ export default function AnalyticsPanel({ invoices }: Props) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          )}
+            </>
           )}
         </div>
       )}
