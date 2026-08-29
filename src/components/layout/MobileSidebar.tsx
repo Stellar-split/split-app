@@ -7,6 +7,7 @@ import FocusTrap from "@/components/FocusTrap";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/invoice", label: "Invoices" },
   { href: "/subscriptions", label: "Subscriptions" },
   { href: "/groups", label: "Groups" },
   { href: "/address-book", label: "Contacts" },
@@ -23,7 +24,10 @@ interface MobileSidebarProps {
 export default function MobileSidebar({ isOpen, onClose, triggerRef }: MobileSidebarProps) {
   const pathname = usePathname();
 
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) =>
+    href === "/"
+      ? pathname === href
+      : pathname === href || pathname.startsWith(href + "/");
 
   // Prevent body scroll when open
   useEffect(() => {
