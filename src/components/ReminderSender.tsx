@@ -27,6 +27,26 @@ function buildReminderText(
   return `Reminder: Invoice #${invoiceId} needs your payment of ${formatAmount(amount)} USDC by ${deadlineStr}. Pay here: ${verifyUrl}`;
 }
 
+const SCHEDULED_REMINDERS_KEY = "stellarsplit_scheduled_reminders";
+
+interface ScheduledReminder {
+  invoiceId: string;
+  sendAt: number; // unix ms
+  text: string;
+}
+
+function scheduleReminder(reminder: ScheduledReminder) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(SCHEDULED_REMINDERS_KEY);
+    const existing: ScheduledReminder[] = raw ? JSON.parse(raw) : [];
+    existing.push(reminder);
+    localStorage.setItem(SCHEDULED_REMINDERS_KEY, JSON.stringify(existing));
+  } catch {
+    // best-effort persistence
+  }
+}
+
 export default function ReminderSender({
   invoiceId,
   amount,
@@ -35,14 +55,48 @@ export default function ReminderSender({
 }: ReminderSenderProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sendAt, setSendAt] = useState("");
+  const [sendAtError, setSendAtError] = useState<string | null>(null);
+  const [scheduled, setScheduled] = useState(false);
 
   const reminderText = buildReminderText(invoiceId, amount, deadline, verifyUrl);
   const encodedText = encodeURIComponent(reminderText);
+  const isScheduling = sendAt.trim().length > 0;
 
   const whatsappUrl = `https://wa.me/?text=${encodedText}`;
   const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(verifyUrl)}&text=${encodeURIComponent(
     `Reminder: Invoice #${invoiceId} needs your payment of ${formatAmount(amount)} USDC. Pay here:`
   )}`;
+
+  const handleSendAtChange = (value: string) => {
+    setSendAt(value);
+    setScheduled(false);
+    if (!value) {
+      setSendAtError(null);
+      return;
+    }
+    const selected = new Date(value).getTime();
+    if (Number.isNaN(selected)) {
+      setSendAtError("Invalid date/time");
+      return;
+    }
+    if (selected < Date.now()) {
+      setSendAtError("Send time cannot be in the past");
+      return;
+    }
+    setSendAtError(null);
+  };
+
+  const handleScheduleReminder = () => {
+    if (!isScheduling || sendAtError) return;
+    const selected = new Date(sendAt).getTime();
+    if (Number.isNaN(selected) || selected < Date.now()) {
+      setSendAtError("Send time cannot be in the past");
+      return;
+    }
+    scheduleReminder({ invoiceId, sendAt: selected, text: reminderText });
+    setScheduled(true);
+  };
 
   const handleCopy = async () => {
     try {
@@ -99,22 +153,60 @@ export default function ReminderSender({
         {reminderText}
       </div>
 
+      {/* Schedule for later */}
+      <div className="mb-4">
+        <label htmlFor="reminder-send-at" className="block text-xs text-gray-400 mb-1">
+          Send at (optional)
+        </label>
+        <input
+          id="reminder-send-at"
+          type="datetime-local"
+          value={sendAt}
+          onChange={(e) => handleSendAtChange(e.target.value)}
+          className="w-full sm:w-auto bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          aria-invalid={!!sendAtError}
+          aria-describedby={sendAtError ? "reminder-send-at-error" : undefined}
+        />
+        {sendAtError && (
+          <p id="reminder-send-at-error" className="text-xs text-red-400 mt-1">
+            {sendAtError}
+          </p>
+        )}
+        {isScheduling && !sendAtError && (
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={handleScheduleReminder}
+              className="min-h-11 px-4 py-2 rounded-lg bg-amber-700 hover:bg-amber-600 text-sm font-semibold transition-colors"
+              aria-live="polite"
+            >
+              {scheduled ? "Scheduled!" : "Schedule Reminder"}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Action buttons */}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={handleCopy}
-          className="min-h-11 flex-1 sm:flex-none px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+          disabled={isScheduling}
+          className="min-h-11 flex-1 sm:flex-none px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
           aria-live="polite"
         >
           {copied ? "Copied!" : "Copy Reminder"}
         </button>
 
         <a
-          href={whatsappUrl}
+          href={isScheduling ? undefined : whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="min-h-11 flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-sm font-semibold transition-colors"
+          aria-disabled={isScheduling}
+          onClick={(e) => { if (isScheduling) e.preventDefault(); }}
+          className={`min-h-11 flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-sm font-semibold transition-colors ${
+            isScheduling ? "opacity-40 cursor-not-allowed pointer-events-none" : ""
+          }`}
           aria-label="Share reminder via WhatsApp"
         >
           <svg
@@ -130,10 +222,14 @@ export default function ReminderSender({
         </a>
 
         <a
-          href={telegramUrl}
+          href={isScheduling ? undefined : telegramUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="min-h-11 flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-sm font-semibold transition-colors"
+          aria-disabled={isScheduling}
+          onClick={(e) => { if (isScheduling) e.preventDefault(); }}
+          className={`min-h-11 flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-sm font-semibold transition-colors ${
+            isScheduling ? "opacity-40 cursor-not-allowed pointer-events-none" : ""
+          }`}
           aria-label="Share reminder via Telegram"
         >
           <svg

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+import { splitClient } from "@/lib/stellar";
 import { safeParseSplitMeta, type SplitMetaInput } from "@/lib/splitMetaSchema";
+
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 interface SplitMetaStore {
   [invoiceId: string]: SplitMetaInput;
@@ -11,8 +16,25 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const invoiceId = params.id;
+    const walletPublicKey = request.headers.get("x-wallet-public-key");
+
+    if (!walletPublicKey) {
+      return NextResponse.json({ error: "Missing wallet public key" }, { status: 403 });
+    }
+
+    const invoice = await splitClient.getInvoice(invoiceId);
+    const isCreator = invoice.creator === walletPublicKey;
+    const isRecipient = invoice.recipients.some((recipient) => recipient.address === walletPublicKey);
+
+    if (!isCreator && !isRecipient) {
+      return NextResponse.json({ error: "Not authorized for this invoice" }, { status: 403 });
+    }
+
     const rawBody = await request.json();
 
     const { splitMeta } = rawBody as { splitMeta?: unknown };

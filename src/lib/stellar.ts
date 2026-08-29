@@ -9,14 +9,18 @@ import { NETWORK_PASSPHRASE } from "./freighter";
 
 let _client: StellarSplitClient | null = null;
 
+export const MEMO_MAX_BYTES = 28;
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
-const HORIZON_URL =
+export const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ??
   (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
     ? "https://horizon.stellar.org"
     : "https://horizon-testnet.stellar.org");
+export const NORMAL_FEE_THRESHOLD = 100;
 
 export const USDC_CONTRACT_ID = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "";
+
+export const MAX_RECIPIENTS = 10;
 
 export function getSplitClient(): StellarSplitClient {
   if (!_client) {
@@ -157,20 +161,31 @@ export async function payMilestone(params: {
   milestoneId: string;
 }): Promise<{ txHash: string }> {
   const client = getSplitClient();
-  const { TransactionBuilder, Networks, BASE_FEE, Memo, nativeToScVal, SorobanRpc } = await import("@stellar/stellar-sdk");
+  const { TransactionBuilder, BASE_FEE, Memo, nativeToScVal, rpc } = await import("@stellar/stellar-sdk");
   const { signWithFreighter } = await import("./freighter");
+
+  // The published @stellar-split/sdk keeps `contract`, `server` and `config`
+  // as private fields with no public accessors. Milestone payments need a
+  // custom memo, which the SDK's typed API does not support, so we reach the
+  // underlying internals here (object properties — still accessible at
+  // runtime despite the `private` TypeScript modifier).
+  const internals = client as unknown as {
+    contract: { call: (...args: any[]) => any };
+    server: any;
+    config: { networkPassphrase: string };
+  };
 
   const memoText = `INV:${params.invoiceId}:M:${params.milestoneId}`.slice(0, 28);
 
-  const operation = client.contract.call(
+  const operation = internals.contract.call(
     "pay",
     nativeToScVal(params.payer, { type: "address" }),
     nativeToScVal(BigInt(params.invoiceId), { type: "u64" }),
     nativeToScVal(params.amount, { type: "i128" })
   );
 
-  const sourceAccount = await client.server.getAccount(params.payer);
-  const networkPassphrase = client.config.networkPassphrase;
+  const sourceAccount = await internals.server.getAccount(params.payer);
+  const networkPassphrase = internals.config.networkPassphrase;
 
   const tx = new TransactionBuilder(sourceAccount, {
     fee: BASE_FEE,
@@ -181,29 +196,29 @@ export async function payMilestone(params: {
     .setTimeout(30)
     .build();
 
-  const simResult = await client.server.simulateTransaction(tx);
-  if (SorobanRpc.Api.isSimulationError(simResult)) {
+  const simResult = await internals.server.simulateTransaction(tx);
+  if (rpc.Api.isSimulationError(simResult)) {
     throw new Error(`Simulation failed: ${simResult.error}`);
   }
 
-  const preparedTx = SorobanRpc.assembleTransaction(tx, simResult).build();
-  const signedXdr = await signWithFreighter(preparedTx.toXDR(), networkPassphrase);
+  const preparedTx = rpc.assembleTransaction(tx, simResult).build();
+  const signedXdr = await signWithFreighter(preparedTx.toXDR());
   const signedTx = TransactionBuilder.fromXDR(signedXdr, networkPassphrase);
-  const sendResult = await client.server.sendTransaction(signedTx);
+  const sendResult = await internals.server.sendTransaction(signedTx);
 
   if (sendResult.status === "ERROR") {
     throw new Error(`Transaction failed: ${JSON.stringify(sendResult.errorResult)}`);
   }
 
-  let getResult = await client.server.getTransaction(sendResult.hash);
+  let getResult = await internals.server.getTransaction(sendResult.hash);
   let attempts = 0;
-  while (getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND && attempts < 20) {
+  while (getResult.status === rpc.Api.GetTransactionStatus.NOT_FOUND && attempts < 20) {
     await new Promise((r) => setTimeout(r, 1500));
-    getResult = await client.server.getTransaction(sendResult.hash);
+    getResult = await internals.server.getTransaction(sendResult.hash);
     attempts++;
   }
 
-  if (getResult.status !== SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+  if (getResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
     throw new Error(`Transaction not confirmed: ${getResult.status}`);
   }
 
@@ -272,8 +287,8 @@ export async function fetchUsdcBalance(
  */
 export async function resolveFederationAddress(federationAddress: string): Promise<string | null> {
   try {
-    const { FederationServer } = await import("@stellar/stellar-sdk");
-    const result = await FederationServer.resolveAddress(federationAddress);
+    const { Federation } = await import("@stellar/stellar-sdk");
+    const result = await Federation.Server.resolve(federationAddress);
     return result.account_id;
   } catch {
     return null;
@@ -295,10 +310,23 @@ export async function validateFederationAddress(address: string): Promise<{
     const balances = account.balances;
 
     const isFunded = balances.length > 0;
-    const requiresMemo = account.flags?.require_auth_memoized_flag || false;
+    // Horizon's standard account flags don't expose a memo-required flag in
+    // current SDK typings — some Horizon deployments include a non-standard
+    // `require_auth_memoized_flag`, so read it defensively.
+    const flags = account.flags as
+      | (typeof account.flags & { require_auth_memoized_flag?: boolean })
+      | undefined;
+    const requiresMemo = flags?.require_auth_memoized_flag || false;
 
     return { isFunded, requiresMemo };
   } catch (error) {
     return { isFunded: false, requiresMemo: false };
   }
+}
+
+export function validateRecipientAmountSum(amounts: number[], totalAmount: number): boolean {
+  const STROOP_SCALE = 1e7;
+  const totalStroops = Math.round(totalAmount * STROOP_SCALE);
+  const sumStroops = amounts.reduce((s, a) => s + Math.round(a * STROOP_SCALE), 0);
+  return totalStroops === sumStroops;
 }

@@ -6,6 +6,7 @@ import { truncateAddress } from "@stellar-split/sdk";
 import { useI18n } from "@/components/I18nProvider";
 import FocusTrap from "@/components/FocusTrap";
 import { useAddressLabel } from "@/hooks/useAddressLabel";
+import { apiFetch } from "@/lib/apiClient";
 
 export interface AddressBookContact {
   id: string;
@@ -109,7 +110,7 @@ export default function SettingsAddressBookPage() {
     try {
       if (editingContact) {
         // PUT update
-        const res = await fetch("/api/settings/address-book", {
+        const res = await apiFetch("/api/settings/address-book", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: editingContact.id, address, label }),
@@ -125,7 +126,7 @@ export default function SettingsAddressBookPage() {
         setShowModal(false);
       } else {
         // POST create
-        const res = await fetch("/api/settings/address-book", {
+        const res = await apiFetch("/api/settings/address-book", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ address, label }),
@@ -150,7 +151,7 @@ export default function SettingsAddressBookPage() {
 
   const handleDelete = async (contact: AddressBookContact) => {
     try {
-      const res = await fetch(`/api/settings/address-book?id=${encodeURIComponent(contact.id)}`, {
+      const res = await apiFetch(`/api/settings/address-book?id=${encodeURIComponent(contact.id)}`, {
         method: "DELETE",
       });
       if (res.ok) {
@@ -387,7 +388,7 @@ export default function SettingsAddressBookPage() {
               </h2>
               <p className="text-sm text-gray-300 mb-6">
                 Are you sure you want to delete contact{" "}
-                <span className="font-semibold text-white">"{deleteConfirmContact.label}"</span> (
+                <span className="font-semibold text-white">&quot;{deleteConfirmContact.label}&quot;</span> (
                 <span className="font-mono text-xs text-gray-400">
                   {truncateAddress(deleteConfirmContact.address)}
                 </span>

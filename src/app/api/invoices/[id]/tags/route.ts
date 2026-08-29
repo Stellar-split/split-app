@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import {
   MAX_TAGS_PER_INVOICE,
   TagsPayloadSchema,
   getTags,
   setTags,
 } from "@/lib/invoiceTags";
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
+
 
 /** GET /api/invoices/:id/tags — tags currently applied to one invoice. */
 export async function GET(
@@ -39,6 +43,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const rawBody = await request.json();
     const parsed = TagsPayloadSchema.safeParse(rawBody);

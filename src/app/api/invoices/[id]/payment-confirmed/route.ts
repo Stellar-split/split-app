@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 import {
+
   sendPaymentReceiptEmail,
   batchSendPaymentReceipts,
   formatAmountForEmail,

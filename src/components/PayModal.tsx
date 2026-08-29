@@ -12,6 +12,7 @@ import type { Invoice } from "@stellar-split/sdk";
 import { checkBudget, getBudgetLimit, setBudgetLimit, clearBudgetLimit } from "@/lib/budgetTracker";
 import { fetchUsdcBalance, USDC_CONTRACT_ID } from "@/lib/stellar";
 import { saveReceipt } from "@/lib/receiptStore";
+import { apiFetch } from "@/lib/apiClient";
 
 const STELLAR_EXPERT_BASE =
   process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
@@ -262,7 +263,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
     setPaying(true);
     setError(null);
     try {
-      const consumeResponse = await fetch("/api/settings/mfa/consume", {
+      const consumeResponse = await apiFetch("/api/settings/mfa/consume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),

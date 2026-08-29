@@ -3,7 +3,7 @@ import { splitClient } from "@/lib/stellar";
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function GET(
   _req: NextRequest,

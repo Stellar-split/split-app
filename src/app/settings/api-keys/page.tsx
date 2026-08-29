@@ -11,6 +11,7 @@ import {
   loadKeys,
   saveKeys,
 } from "@/lib/apiKeys"
+import { apiFetch } from "@/lib/apiClient"
 
 function maskKey(key: string) {
   if (!key) return ""
@@ -66,7 +67,7 @@ export default function ApiKeysPage() {
     }
     setIsGenerating(true)
     try {
-      const response = await fetch("/api/api-keys", {
+      const response = await apiFetch("/api/api-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope }),

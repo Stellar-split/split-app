@@ -41,7 +41,7 @@ export default function Stepper({ steps, onStepClick, className = "" }: StepperP
       className={className}
     >
       {/* Mobile: collapsed summary */}
-      <p className="md:hidden text-sm font-medium text-gray-300">
+      <p className="md:hidden text-sm font-medium text-gray-700 dark:text-gray-300">
         Step {activeIndex + 1} of {steps.length} — {activeStep.label}
       </p>
 
@@ -92,11 +92,13 @@ function StepMarker({
     step.status === "complete"
       ? "bg-indigo-600 border-indigo-500 text-white"
       : step.status === "current"
-      ? "border-indigo-400 text-indigo-300"
+      ? "border-indigo-500 text-indigo-600 dark:border-indigo-400 dark:text-indigo-300"
       : "border-gray-700 text-gray-500";
 
   const labelClass =
-    step.status === "upcoming" ? "text-gray-500" : "text-gray-200";
+    step.status === "upcoming"
+      ? "text-gray-500 dark:text-gray-500"
+      : "text-gray-700 dark:text-gray-200";
 
   const content = (
     <>

@@ -92,7 +92,7 @@ export function useInvoiceStream(invoiceId: string): UseInvoiceStreamResult {
       const contractId = process.env.NEXT_PUBLIC_CONTRACT_ID ?? '';
       if (!contractId) return;
 
-      const response = await server.getEvents({
+      const params: any = {
         filters: [
           {
             type: 'contract' as any,
@@ -105,17 +105,23 @@ export function useInvoiceStream(invoiceId: string): UseInvoiceStreamResult {
             ],
           },
         ],
-        cursor: lastEventCursorRef.current ?? undefined,
         limit: 10,
-      });
+      };
+      // GetEventsRequest is a discriminated union: pass `cursor` only when set.
+      if (lastEventCursorRef.current) {
+        params.cursor = lastEventCursorRef.current;
+      }
+      const response = await server.getEvents(params);
 
       if (!mountedRef.current) return;
 
       if (response.events && response.events.length > 0) {
         for (const event of response.events) {
-          // Update cursor to latest event
-          if (event.pagingToken) {
-            lastEventCursorRef.current = event.pagingToken;
+          // Update cursor to latest event (`pagingToken` is present on live
+          // events at runtime but missing from the SDK union type).
+          const pagingToken = (event as unknown as { pagingToken?: string }).pagingToken;
+          if (pagingToken) {
+            lastEventCursorRef.current = pagingToken;
           }
 
           // Parse event topics to determine event type

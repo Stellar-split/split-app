@@ -9,6 +9,7 @@ import {
 } from "@/hooks/useSplitCalculator";
 import { moveItem } from "@/lib/reorder";
 import { getEmailForAddress } from "@/lib/addressBook";
+import { MAX_RECIPIENTS } from "@/lib/stellar";
 import Avatar from "@/components/ui/Avatar";
 import RangeSlider from "@/components/ui/RangeSlider";
 import SplitSumIndicator from "@/components/invoice/SplitSumIndicator";
@@ -63,7 +64,7 @@ export default function SplitCalculator({
   }, [totalAmount]);
 
   const result = useSplitCalculator(parsedTotal, recipients, assetCode);
-  const { derivedLines, totalGross, totalTax, totalFees, totalNet, validation } = result;
+  const { derivedLines, totalGross, totalTax, totalFees, totalNet, validation, canAddRecipient, recipientCount } = result;
 
   useEffect(() => {
     if (!onSplitMetaChange) return;
@@ -230,7 +231,9 @@ export default function SplitCalculator({
             <button
               type="button"
               onClick={addRecipient}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+              disabled={!canAddRecipient}
+              title={!canAddRecipient ? `Maximum ${MAX_RECIPIENTS} recipients reached` : undefined}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"
             >
               + Add Line
             </button>
@@ -325,7 +328,7 @@ export default function SplitCalculator({
       <div className="space-y-3 mb-5">
         {derivedLines.length === 0 && !readOnly && (
           <p className="text-sm text-gray-500 text-center py-6">
-            No recipients yet. Click "Add Line" to begin.
+            No recipients yet. Click &quot;Add Line&quot; to begin.
           </p>
         )}
 
@@ -518,6 +521,11 @@ export default function SplitCalculator({
             </div>
           </div>
         ))}
+        {recipientCount > 0 && (
+          <div className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-700/40">
+            {recipientCount} / {MAX_RECIPIENTS} recipients
+          </div>
+        )}
       </div>
 
       {parsedTotal > 0 && derivedLines.length > 0 && (

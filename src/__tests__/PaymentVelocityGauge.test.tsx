@@ -71,7 +71,7 @@ describe("Payment Velocity Gauge (#408)", () => {
       expect(svg?.tagName).toBe("svg");
     });
 
-    it("displays correct gauge fill for accounts with zero payment history", () => {
+    it("displays correct gauge fill for accounts with zero payment history", async () => {
       const { usePaymentVelocity } = await import("@/hooks/usePaymentVelocity");
       vi.mocked(usePaymentVelocity).mockReturnValue({
         velocities: {
@@ -374,7 +374,7 @@ describe("Payment Velocity Gauge (#408)", () => {
       ).toBeInTheDocument();
     });
 
-    it("displays loading state while fetching initial data", () => {
+    it("displays loading state while fetching initial data", async () => {
       const { usePaymentVelocity } = await import("@/hooks/usePaymentVelocity");
       vi.mocked(usePaymentVelocity).mockReturnValue({
         velocities: undefined,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface Props {
   invoiceId: string;
@@ -37,6 +37,46 @@ export default function PayoutScheduler({ invoiceId, vestingCliff, publicKey }: 
   const [saved, setSaved] = useState(false);
 
   const cliffPassed = Math.floor(Date.now() / 1000) >= vestingCliff;
+
+  // Resolve the browser timezone abbreviation once (e.g. "WAT", "EST")
+  const tzAbbr = useMemo(() => {
+    try {
+      const ianaZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      // Extract the abbreviation from a formatted date string
+      const sample = new Intl.DateTimeFormat(undefined, {
+        timeZoneName: "short",
+        hour: "numeric",
+        timeZone: ianaZone,
+      }).formatToParts(new Date());
+      return sample.find((p) => p.type === "timeZoneName")?.value ?? ianaZone;
+    } catch {
+      return "local";
+    }
+  }, []);
+
+  /**
+   * Formats a datetime-local string (YYYY-MM-DDTHH:MM) to show:
+   * - Local time with timezone abbreviation:  "3:00 PM WAT"
+   * - UTC equivalent below:                  "2:00 PM UTC"
+   */
+  const formatWithTz = (datetimeLocal: string) => {
+    if (!datetimeLocal) return { local: "", utc: "" };
+    const d = new Date(datetimeLocal);
+    if (Number.isNaN(d.getTime())) return { local: datetimeLocal, utc: "" };
+
+    const localStr = new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(d);
+
+    const utcStr = new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "UTC",
+    }).format(d);
+
+    return { local: `${localStr} ${tzAbbr}`, utc: `${utcStr} UTC` };
+  };
 
   useEffect(() => {
     const existing = loadSchedules().find((s) => s.invoiceId === invoiceId);
@@ -77,9 +117,23 @@ export default function PayoutScheduler({ invoiceId, vestingCliff, publicKey }: 
       {cliffPassed ? (
         <p className="text-green-400 text-sm mb-3">Vesting cliff passed — you can claim now.</p>
       ) : (
-        <p className="text-sm text-gray-400 mb-3">
-          Cliff on {new Date(vestingCliff * 1000).toLocaleDateString()}. Schedule a reminder.
-        </p>
+        <div className="mb-3">
+          <p className="text-sm text-gray-400">
+            Cliff on{" "}
+            {new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
+              new Date(vestingCliff * 1000)
+            )}{" "}
+            {tzAbbr}. Schedule a reminder.
+          </p>
+          <p className="text-xs text-gray-500">
+            {new Intl.DateTimeFormat("en-US", {
+              dateStyle: "medium",
+              timeStyle: "short",
+              timeZone: "UTC",
+            }).format(new Date(vestingCliff * 1000))}{" "}
+            UTC
+          </p>
+        </div>
       )}
 
       {!saved ? (
@@ -101,9 +155,17 @@ export default function PayoutScheduler({ invoiceId, vestingCliff, publicKey }: 
         </form>
       ) : (
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-sm text-gray-300">
-            Scheduled: <span className="text-indigo-300">{new Date(date).toLocaleString()}</span>
-          </p>
+          <div>
+            <p className="text-sm text-gray-300">
+              Scheduled:{" "}
+              <span className="text-indigo-300">{formatWithTz(date).local}</span>
+            </p>
+            {formatWithTz(date).utc && (
+              <p className="text-xs text-gray-500 mt-0.5">
+                {formatWithTz(date).utc}
+              </p>
+            )}
+          </div>
           <button
             onClick={handleCancel}
             className="min-h-11 px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm text-gray-400 transition-colors"

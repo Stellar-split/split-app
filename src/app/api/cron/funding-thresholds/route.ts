@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { getSplitClient } from "@/lib/stellar";
 import { formatAmount } from "@stellar-split/sdk";
+
 import { crossedMilestones, fundedPercent } from "@/lib/fundingThresholds";
 import {
+
   getNotifiedMilestones,
   getSubscriptions,
   listTrackedInvoiceIds,
   markMilestoneNotified,
 } from "@/lib/pushSubscriptionStore";
 import { sendFundingMilestoneNotification } from "@/lib/webPush";
+
 
 interface CheckResult {
   invoiceId: string;

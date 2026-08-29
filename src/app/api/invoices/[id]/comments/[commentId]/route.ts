@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { deleteComment, getComment } from "@/lib/commentStore";
 import { getSplitClient } from "@/lib/stellar";
+
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string; commentId: string } }
 ) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   const body = await request.json().catch(() => null);
   const requesterAddress = body?.requesterAddress;
   const coCreatorWritePermission = body?.coCreatorWritePermission === true;

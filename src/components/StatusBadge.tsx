@@ -1,10 +1,10 @@
-import type { Invoice } from "@stellar-split/sdk";
-
-type InvoiceStatus = Invoice["status"] | "Archived" | "Expired";
+import { useState } from "react";
+import { STATUS_CONFIG, type InvoiceStatus } from "@/lib/invoiceStatus";
 
 interface Props {
   status: InvoiceStatus;
   size?: "sm" | "md" | "lg";
+  description?: string;
 }
 
 const SIZE: Record<string, string> = {
@@ -13,39 +13,42 @@ const SIZE: Record<string, string> = {
   lg: "text-base px-4 py-1.5",
 };
 
-const STYLES: Record<string, string> = {
-  Pending:  "bg-yellow-500/20  text-yellow-400",
-  Active:   "bg-blue-500/20    text-blue-400",
-  Funded:   "bg-cyan-500/20    text-cyan-400",
-  Released: "bg-green-500/20   text-green-400",
-  Refunded: "bg-gray-500/20    text-gray-400",
-  Disputed: "bg-red-500/20     text-red-400",
-  Frozen:   "bg-indigo-500/20  text-indigo-400",
-  Archived: "bg-stone-500/20   text-stone-400",
-  Expired:  "bg-orange-500/20  text-orange-400",
-};
-
-const ICON: Record<string, string> = {
-  Released: "✓",
-  Disputed: "⚠",
-  Frozen:   "🔒",
-};
-
 /**
  * StatusBadge — colour-coded chip for every invoice state.
+ * Consumes centralized STATUS_CONFIG from src/lib/invoiceStatus.ts
  */
-export default function StatusBadge({ status, size = "md" }: Props) {
-  const icon = ICON[status];
-  const style = STYLES[status] ?? "bg-gray-500/20 text-gray-400";
+export default function StatusBadge({ status, size = "md", description }: Props) {
+  const config = STATUS_CONFIG[status];
+  if (!config) return null;
+
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipText = description || config.description;
 
   return (
-    <span
-      role="status"
-      aria-label={`Status: ${status}`}
-      className={`inline-flex items-center gap-1 rounded-full font-semibold ${SIZE[size]} ${style}`}
-    >
-      {icon && <span aria-hidden="true">{icon}</span>}
-      {status}
-    </span>
+    <div className="relative inline-block">
+      <span
+        role="status"
+        aria-label={`Status: ${status} — ${tooltipText}`}
+        className={`inline-flex items-center gap-1 rounded-full font-semibold cursor-help ${SIZE[size]} ${config.colorClass}`}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        onFocus={() => setShowTooltip(true)}
+        onBlur={() => setShowTooltip(false)}
+        tabIndex={0}
+      >
+        {config.icon && <span aria-hidden="true">{config.icon}</span>}
+        {config.label}
+      </span>
+
+      {showTooltip && (
+        <div
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap pointer-events-none z-10 shadow-lg"
+          role="tooltip"
+        >
+          {tooltipText}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
+        </div>
+      )}
+    </div>
   );
 }

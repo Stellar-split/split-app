@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/apiClient';
 
 interface SecuritySettingsResponse {
   mfaEnabled: boolean;
@@ -57,7 +58,7 @@ export default function SecuritySettingsPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const response = await fetch('/api/settings/mfa', {
+      const response = await apiFetch('/api/settings/mfa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action: 'save-settings', highValueThreshold: Number(threshold) }),
@@ -79,7 +80,7 @@ export default function SecuritySettingsPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const response = await fetch('/api/settings/mfa', {
+      const response = await apiFetch('/api/settings/mfa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action: 'enroll' }),
@@ -101,7 +102,7 @@ export default function SecuritySettingsPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const response = await fetch('/api/settings/mfa', {
+      const response = await apiFetch('/api/settings/mfa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action: 'confirm', code }),
@@ -125,7 +126,7 @@ export default function SecuritySettingsPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const response = await fetch('/api/settings/mfa', {
+      const response = await apiFetch('/api/settings/mfa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action: 'disable', code }),

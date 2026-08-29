@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { consumeMfaToken } from "@/lib/securitySettings";
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
+
 
 export async function POST(request: Request) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const body = await request.json();
     const result = consumeMfaToken(String(body.token || ""));

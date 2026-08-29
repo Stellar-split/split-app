@@ -3,34 +3,81 @@
 import { useCallback, useState } from 'react';
 import type { Invoice } from '@stellar-split/sdk';
 import { formatAmount } from '@stellar-split/sdk';
+import { DEFAULT_ACCENT_COLOR, type BrandSettings } from '@/lib/brandSettings';
 
 interface Props {
   invoice: Invoice;
   total: bigint;
+  /** Creator branding from /settings/branding; null/undefined = platform default. */
+  branding?: BrandSettings | null;
 }
 
-export default function InvoiceExportButton({ invoice, total }: Props) {
+/** MIME types react-pdf can rasterize reliably (WebP is not supported). */
+const PDF_SAFE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg']);
+
+/**
+ * Fetches an image URL and returns it as a data URL that @react-pdf/renderer
+ * can embed, or null when the image cannot be inlined (network failure or a
+ * format react-pdf cannot decode, e.g. WebP — branding colors/tagline still
+ * apply; the export never fails because of the logo).
+ */
+async function fetchLogoDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    if (!PDF_SAFE_IMAGE_TYPES.has(blob.type)) return null;
+    return await new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export default function InvoiceExportButton({ invoice, total, branding }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleExport = useCallback(async () => {
     setLoading(true);
     try {
       // Lazy-load @react-pdf/renderer so it doesn't bloat the initial bundle
-      const { pdf, Document, Page, Text, View, StyleSheet } = await import('@react-pdf/renderer');
+      const { pdf, Document, Page, Text, View, StyleSheet, Image } = await import('@react-pdf/renderer');
+
+      // Resolve branding: prefer the prop handed down from the invoice page,
+      // but fall back to fetching the creator's settings so exports triggered
+      // elsewhere stay branded.
+      let brand = branding ?? null;
+      if (!brand) {
+        try {
+          const res = await fetch(`/api/settings/branding?address=${encodeURIComponent(invoice.creator)}`);
+          if (res.ok) brand = (await res.json()) as BrandSettings;
+        } catch {
+          // default styling
+        }
+      }
+
+      const accent = brand?.accentColor ?? DEFAULT_ACCENT_COLOR;
+      const logoDataUrl = brand?.logoUrl ? await fetchLogoDataUrl(brand.logoUrl) : null;
 
       const exportedAt = new Date().toLocaleString();
 
       const styles = StyleSheet.create({
         page: { padding: 40, fontSize: 11, fontFamily: 'Helvetica', color: '#111' },
         header: { marginBottom: 24 },
-        title: { fontSize: 22, fontWeight: 'bold', marginBottom: 4 },
+        logo: { height: 40, width: 'auto', marginBottom: 8, objectFit: 'contain' },
+        title: { fontSize: 22, fontWeight: 'bold', marginBottom: 4, color: accent },
         subtitle: { fontSize: 11, color: '#666' },
+        tagline: { fontSize: 11, color: '#444', marginTop: 2, fontStyle: 'italic' },
         section: { marginBottom: 16 },
         sectionTitle: { fontSize: 13, fontWeight: 'bold', marginBottom: 8, color: '#1a1a1a' },
         table: { width: '100%', borderWidth: 1, borderColor: '#ddd' },
         tableHeader: {
           flexDirection: 'row',
-          backgroundColor: '#4f46e5',
+          backgroundColor: accent,
           color: '#fff',
           padding: '6 8',
           fontWeight: 'bold',
@@ -49,8 +96,11 @@ export default function InvoiceExportButton({ invoice, total }: Props) {
           <Page size="A4" style={styles.page}>
             {/* Header */}
             <View style={styles.header}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image node, not an HTML img */}
+              {logoDataUrl && <Image src={logoDataUrl} style={styles.logo} />}
               <Text style={styles.title}>✦ StellarSplit</Text>
               <Text style={styles.subtitle}>Invoice Export</Text>
+              {brand?.tagline && <Text style={styles.tagline}>{brand.tagline}</Text>}
             </View>
 
             {/* Invoice meta */}
@@ -138,16 +188,43 @@ export default function InvoiceExportButton({ invoice, total }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [invoice, total]);
+  }, [invoice, total, branding]);
 
   return (
     <button
       type="button"
       onClick={handleExport}
       disabled={loading}
-      className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 inline-flex items-center gap-2"
     >
-      {loading ? 'Generating…' : '↓ Export PDF'}
+      {loading ? (
+        <>
+          <svg
+            className="animate-spin h-4 w-4 text-gray-200"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          Generating…
+        </>
+      ) : (
+        <>↓ Export PDF</>
+      )}
     </button>
   );
 }

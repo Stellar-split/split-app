@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = "force-dynamic";
 import {
   createShareLink,
   getShareLinksForInvoice,
   revokeShareLink,
   type ShareLinkPermission,
 } from '@/lib/shareLink';
+import { assertCsrf } from '@/lib/middleware/csrfMiddleware';
+
 
 interface CreateShareLinkRequest {
   invoiceId: string;
@@ -22,6 +26,9 @@ interface RevokeShareLinkRequest {
  * Body: { invoiceId, permissions, durationMs, maxUses }
  */
 export async function POST(request: NextRequest) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const body = (await request.json().catch(() => null)) as CreateShareLinkRequest | null;
 
@@ -100,6 +107,9 @@ export async function GET(request: NextRequest) {
  * Body: { tokenHash }
  */
 export async function DELETE(request: NextRequest) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const body = (await request.json().catch(() => null)) as RevokeShareLinkRequest | null;
 

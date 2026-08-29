@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import {
   getServerAddressBook,
   addServerAddressBookEntry,
   updateServerAddressBookEntry,
   deleteServerAddressBookEntry,
 } from "@/lib/serverAddressBook";
+import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
+
 
 /**
  * GET /api/settings/address-book
@@ -20,6 +24,9 @@ export async function GET() {
  * Creates a new address book entry. Returns 409 status on duplicate address.
  */
 export async function POST(request: NextRequest) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const body = await request.json();
     const { address, label } = body || {};
@@ -52,6 +59,9 @@ export async function POST(request: NextRequest) {
  * Updates an existing address book entry's label or address.
  */
 export async function PUT(request: NextRequest) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const body = await request.json();
     const { id, address, label } = body || {};
@@ -80,6 +90,9 @@ export async function PUT(request: NextRequest) {
  * Removes an entry by id or address.
  */
 export async function DELETE(request: NextRequest) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   const { searchParams } = new URL(request.url);
   let idOrAddress = searchParams.get("id") || searchParams.get("address");
 

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = "force-dynamic";
 import type { Invoice } from '@stellar-split/sdk';
 import {
+
   filterInvoices,
   invoicesToExportRows,
   lineItemsToExportRows,
@@ -9,6 +12,8 @@ import {
   generateExportFilename,
   type ExportFilterOptions,
 } from '@/lib/invoiceExcelExport';
+import { assertCsrf } from '@/lib/middleware/csrfMiddleware';
+
 
 interface ExportRequest {
   invoices: Invoice[];
@@ -19,10 +24,17 @@ interface ExportRequest {
  * POST /api/invoices/export
  * Generate and return Excel export of invoices with multiple worksheets
  *
+ * Query params (optional, merged with body filters):
+ *   from  – ISO date string (YYYY-MM-DD), maps to filters.startDate
+ *   to    – ISO date string (YYYY-MM-DD), maps to filters.endDate (end of day)
+ *
  * For exports < 500 invoices: returns file directly with 200 OK
  * For exports >= 500 invoices: returns job ID with 202 Accepted for async processing
  */
 export async function POST(request: NextRequest) {
+  const csrfError = await assertCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const body: ExportRequest = await request.json();
     const { invoices, filters = {} } = body;
@@ -34,8 +46,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Filter invoices based on provided filters
-    const filteredInvoices = filterInvoices(invoices, filters);
+    // Merge query-param date range into filters (query params take precedence)
+    const { searchParams } = request.nextUrl;
+    const fromParam = searchParams.get('from');
+    const toParam = searchParams.get('to');
+
+    const mergedFilters: ExportFilterOptions = { ...filters };
+
+    if (fromParam) {
+      const fromTs = new Date(fromParam).getTime();
+      if (!isNaN(fromTs)) {
+        mergedFilters.startDate = fromTs / 1000;
+      }
+    }
+
+    if (toParam) {
+      // Include the full end day
+      const toDate = new Date(toParam);
+      toDate.setHours(23, 59, 59, 999);
+      const toTs = toDate.getTime();
+      if (!isNaN(toTs)) {
+        mergedFilters.endDate = toTs / 1000;
+      }
+    }
+
+    // Validate date range when both are provided
+    if (mergedFilters.startDate !== undefined && mergedFilters.endDate !== undefined) {
+      if (mergedFilters.startDate > mergedFilters.endDate) {
+        return NextResponse.json(
+          { error: '"from" date must not be after "to" date.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Filter invoices based on merged filters
+    const filteredInvoices = filterInvoices(invoices, mergedFilters);
 
     // Check if we need async processing
     const ASYNC_THRESHOLD = 500;
@@ -119,7 +165,7 @@ export async function POST(request: NextRequest) {
 
     // Return file
     const filename = generateExportFilename('invoices');
-    return new NextResponse(excelData, {
+    return new NextResponse(excelData as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type':

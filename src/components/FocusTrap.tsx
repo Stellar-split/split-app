@@ -5,12 +5,16 @@ import { useEffect, useRef, type ReactNode } from "react";
 type Props = {
   children: ReactNode;
   onClose?: () => void;
+  /** When false, children are rendered but focus is not trapped. Default: true. */
+  active?: boolean;
+  className?: string;
 };
 
-export default function FocusTrap({ children, onClose }: Props) {
+export default function FocusTrap({ children, onClose, active = true, className = "outline-none" }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    if (!active) return;
     const container = ref.current;
     if (!container) return;
 
@@ -51,15 +55,15 @@ export default function FocusTrap({ children, onClose }: Props) {
 
       const first = nodes[0];
       const last = nodes[nodes.length - 1];
-      const active = document.activeElement as HTMLElement | null;
+      const focused = document.activeElement as HTMLElement | null;
 
       if (e.shiftKey) {
-        if (active === first || active === container) {
+        if (focused === first || focused === container) {
           e.preventDefault();
           last.focus();
         }
       } else {
-        if (active === last) {
+        if (focused === last) {
           e.preventDefault();
           first.focus();
         }
@@ -74,10 +78,10 @@ export default function FocusTrap({ children, onClose }: Props) {
         prev?.focus();
       } catch {}
     };
-  }, [onClose]);
+  }, [onClose, active]);
 
   return (
-    <div ref={ref} className="outline-none">
+    <div ref={ref} className={className}>
       {children}
     </div>
   );

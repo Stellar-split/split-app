@@ -1,6 +1,11 @@
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/invoices/drafts/route";
 
+vi.mock("@/lib/middleware/csrfMiddleware", () => ({
+  assertCsrf: vi.fn().mockResolvedValue(null),
+  CSRF_HEADER: "x-csrf-token",
+}));
+
 function postRequest(body: unknown) {
   return new NextRequest("http://localhost/api/invoices/drafts", {
     method: "POST",

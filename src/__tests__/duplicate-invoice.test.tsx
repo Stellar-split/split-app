@@ -143,6 +143,33 @@ vi.mock("@/lib/templateSharing", () => ({
   decodeTemplate: vi.fn(),
 }));
 
+vi.mock("@/hooks/useInvoiceCollaboration", () => ({
+  useInvoiceCollaboration: () => ({
+    remoteCursors: [],
+    remotePresence: [],
+    isConnected: false,
+    connectionError: null,
+    focusedField: null,
+    setFocusedField: vi.fn(),
+    emitFieldBlur: vi.fn(),
+  }),
+}));
+
+vi.mock("@/components/CursorOverlay", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/components/PresencePill", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/components/ReconnectionBanner", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 describe("NewInvoicePage — URL pre-fill (clone mode)", () => {
   beforeEach(() => {
     mockSearchParams.clear();

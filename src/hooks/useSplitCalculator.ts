@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { MAX_RECIPIENTS } from '@/lib/stellar';
 
 export interface RecipientLine {
   address: string;
@@ -41,6 +42,14 @@ export interface SplitCalculatorResult {
   totalFees: number;
   totalNet: number;
   validation: SplitValidation;
+  canAddRecipient: boolean;
+  recipientCount: number;
+}
+
+export interface RoundingResolution {
+  amounts: number[];
+  roundingAdjustment: number;
+  recipientIndex: number;
 }
 
 const STROOP_SCALE = 1e7;
@@ -136,6 +145,8 @@ export function calculateSplit(
     totalFees,
     totalNet,
     validation,
+    canAddRecipient: recipients.length < MAX_RECIPIENTS,
+    recipientCount: recipients.length,
   };
 }
 
@@ -156,5 +167,27 @@ export function defaultRecipientLine(address = ''): RecipientLine {
     sharePercent: 0,
     taxRatePercent: 0,
     fixedFeeXLM: 0,
+  };
+}
+
+export function calculateEqualSplit(recipientCount: number): { perRecipient: number; remainder: number } {
+  if (recipientCount <= 0) {
+    return { perRecipient: 0, remainder: 0 };
+  }
+  const perRecipient = Math.floor(100 / recipientCount);
+  const remainder = 100 - (perRecipient * recipientCount);
+  return { perRecipient, remainder };
+}
+
+export function resolveRounding(percentages: number[], totalAmount: number): RoundingResolution {
+  const totalStroops = Math.round(totalAmount * STROOP_SCALE);
+  const flooredStroops = percentages.map((p) => Math.floor((totalAmount * p) / 100 * STROOP_SCALE));
+  const sumFloored = flooredStroops.reduce((s, v) => s + v, 0);
+  const remainder = totalStroops - sumFloored;
+  flooredStroops[0] += remainder;
+  return {
+    amounts: flooredStroops.map((s) => s / STROOP_SCALE),
+    roundingAdjustment: remainder / STROOP_SCALE,
+    recipientIndex: 0,
   };
 }

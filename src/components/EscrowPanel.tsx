@@ -4,6 +4,66 @@ import { useEffect, useRef, useState } from "react";
 import { formatAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 
+// --- #613: live countdown timer helpers ---
+
+function calcReleaseTimeLeft(deadline: number): number {
+  return Math.max(0, deadline - Math.floor(Date.now() / 1000));
+}
+
+interface CountdownParts {
+  days: number;
+  hours: number;
+  minutes: number;
+}
+
+function splitSeconds(totalSeconds: number): CountdownParts {
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  return { days, hours, minutes };
+}
+
+/**
+ * ReleaseCountdown — shows days/hours/minutes remaining until escrow release.
+ * Updates every minute. Displays "Release available" once the deadline has passed.
+ */
+function ReleaseCountdown({ deadline }: { deadline: number }) {
+  const [timeLeft, setTimeLeft] = useState(() => calcReleaseTimeLeft(deadline));
+
+  useEffect(() => {
+    if (timeLeft === 0) return;
+
+    const id = setInterval(() => {
+      const remaining = calcReleaseTimeLeft(deadline);
+      setTimeLeft(remaining);
+      if (remaining === 0) clearInterval(id);
+    }, 60_000);
+
+    return () => clearInterval(id);
+  }, [deadline, timeLeft]);
+
+  if (timeLeft === 0) {
+    return (
+      <span className="text-xs font-semibold text-green-400" aria-live="polite">
+        Release available
+      </span>
+    );
+  }
+
+  const { days, hours, minutes } = splitSeconds(timeLeft);
+
+  return (
+    <span
+      className="text-xs font-mono font-semibold text-yellow-300 tabular-nums"
+      aria-live="polite"
+      title="Time remaining until escrow release"
+    >
+      {days}d {hours}h {minutes}m remaining
+    </span>
+  );
+}
+// --- end #613 ---
+
 interface Props {
   invoice: Invoice;
   total: bigint;
@@ -137,8 +197,12 @@ export default function EscrowPanel({ invoice, total }: Props) {
           <Check ok={!deadlinePassed} />
           <span className="text-gray-300">Deadline not passed</span>
           {invoice.deadline > 0 && (
-            <span className="ml-auto text-xs text-gray-500">
-              {new Date(invoice.deadline * 1000).toLocaleDateString()}
+            <span className="ml-auto flex flex-col items-end gap-0.5">
+              <span className="text-xs text-gray-500">
+                {new Date(invoice.deadline * 1000).toLocaleDateString()}
+              </span>
+              {/* #613: live countdown timer */}
+              <ReleaseCountdown deadline={invoice.deadline} />
             </span>
           )}
         </li>

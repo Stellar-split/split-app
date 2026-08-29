@@ -4,6 +4,11 @@ import { POST as reactPOST } from "@/app/api/invoices/[id]/comments/[commentId]/
 import { DELETE as deleteRoute } from "@/app/api/invoices/[id]/comments/[commentId]/route";
 import { __resetCommentStoreForTests } from "@/lib/commentStore";
 
+vi.mock("@/lib/middleware/csrfMiddleware", () => ({
+  assertCsrf: vi.fn().mockResolvedValue(null),
+  CSRF_HEADER: "x-csrf-token",
+}));
+
 vi.mock("@/lib/stellar", () => ({
   getSplitClient: () => ({
     getInvoice: vi.fn().mockResolvedValue({ creator: "GCREATOR" }),

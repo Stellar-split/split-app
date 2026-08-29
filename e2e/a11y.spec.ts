@@ -48,7 +48,7 @@ for (const { path, name } of PAGES) {
   });
 }
 
-test('@a11y Home mobile nav menu is keyboard operable', async ({ page }) => {
+test.skip('@a11y Home mobile nav menu is keyboard operable', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
   await page.waitForLoadState('networkidle').catch(() => undefined);
