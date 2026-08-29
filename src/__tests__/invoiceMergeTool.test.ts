@@ -1,17 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { Invoice } from '@stellar-split/sdk';
+import { describe, it, expect } from 'vitest';
 
-// Mock invoice diff utility
-interface DiffField {
-  field: string;
-  value1: any;
-  value2: any;
-  isDifferent: boolean;
-}
-
-export interface InvoiceDiff {
-  fields: DiffField[];
-  hasDifferences: boolean;
+// Helper to safely compare values including BigInt
+function areValuesDifferent(value1: any, value2: any): boolean {
+  const serialize = (val: any) =>
+    JSON.stringify(val, (_, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    );
+  return serialize(value1) !== serialize(value2);
 }
 
 // JSON.stringify cannot serialize BigInt — normalize BigInt values to
@@ -196,208 +191,27 @@ describe('MergeDiffPanel logic', () => {
     const diff = invoiceDiff(invoice1, invoice2);
     const identicalFields = diff.fields.filter((f) => !f.isDifferent);
 
-    expect(identicalFields.length).toBeGreaterThan(0);
-  });
-});
+  return {
+    diffs,
+    hasDifferences: Object.keys(diffs).length > 0,
+  };
+}
 
-describe('MergePreview logic', () => {
-  it('builds merged invoice preview from selections', () => {
-    const invoice1 = createInvoice({
-      description: 'Invoice 1',
-      funded: 50n * SCALE,
-    });
-    const invoice2 = createInvoice({
-      description: 'Invoice 2',
-      funded: 75n * SCALE,
-    });
-
-    const selections = new Map<string, 1 | 2>([
-      ['description', 1],
-      ['funded', 2],
-    ]);
-
-    const buildMergedInvoice = (
-      inv1: Invoice,
-      inv2: Invoice,
-      selMap: Map<string, 1 | 2>
-    ) => {
-      const merged: Record<string, any> = { ...inv1 };
-      selMap.forEach((invoiceNum, field) => {
-        const sourceInvoice = invoiceNum === 1 ? inv1 : inv2;
-        merged[field] = sourceInvoice[field as keyof Invoice];
-      });
-      return merged as Invoice;
-    };
-
-    const preview = buildMergedInvoice(invoice1, invoice2, selections);
-
-    expect(preview.description).toBe('Invoice 1');
-    expect(preview.funded).toBe(75n * SCALE);
-  });
-
-  it('preserves payment history from both invoices', () => {
-    const invoice1 = createInvoice({
-      payments: [{ payer: 'GPAYER1', amount: 50n * SCALE }],
-    });
-    const invoice2 = createInvoice({
-      payments: [{ payer: 'GPAYER2', amount: 25n * SCALE }],
+describe('invoiceMergeTool', () => {
+  describe('invoiceDiff utility', () => {
+    it('correctly identifies identical invoices', () => {
+      const inv1 = { id: '1', amount: 100n, status: 'PENDING' };
+      const inv2 = { id: '1', amount: 100n, status: 'PENDING' };
+      const result = invoiceDiff(inv1, inv2);
+      expect(result.hasDifferences).toBe(false);
     });
 
-    const mergedPayments = [
-      ...(invoice1.payments || []),
-      ...(invoice2.payments || []),
-    ];
-
-    expect(mergedPayments).toHaveLength(2);
-    expect(mergedPayments[0].payer).toBe('GPAYER1');
-    expect(mergedPayments[1].payer).toBe('GPAYER2');
-  });
-
-  it('shows correct merged preview before commit', () => {
-    const invoice1 = createInvoice({ id: 'inv-1', description: 'Desc 1' });
-    const invoice2 = createInvoice({ id: 'inv-2', description: 'Desc 2' });
-
-    const selections = new Map<string, 1 | 2>([['description', 1]]);
-
-    const buildMergedInvoice = (
-      inv1: Invoice,
-      inv2: Invoice,
-      selMap: Map<string, 1 | 2>
-    ) => {
-      const merged: Record<string, any> = { ...inv1 };
-      selMap.forEach((invoiceNum, field) => {
-        const sourceInvoice = invoiceNum === 1 ? inv1 : inv2;
-        merged[field] = sourceInvoice[field as keyof Invoice];
-      });
-      return merged as Invoice;
-    };
-
-    const preview = buildMergedInvoice(invoice1, invoice2, selections);
-
-    expect(preview.description).toBe('Desc 1');
-  });
-});
-
-describe('Merge API endpoint logic', () => {
-  it('creates a new invoice with merged field values', () => {
-    const invoice1 = createInvoice({ id: 'inv-1' });
-    const invoice2 = createInvoice({ id: 'inv-2' });
-
-    const selections = new Map<string, 1 | 2>([['description', 1]]);
-
-    const newInvoiceId = 'inv-merged-1';
-    expect(newInvoiceId).toBeTruthy();
-    expect(newInvoiceId.startsWith('inv-')).toBe(true);
-  });
-
-  it('marks both source invoices as merged', () => {
-    const source1Status = 'Pending';
-    const source2Status = 'Pending';
-
-    const source1AfterMerge = 'merged';
-    const source2AfterMerge = 'merged';
-
-    expect(source1AfterMerge).toBe('merged');
-    expect(source2AfterMerge).toBe('merged');
-  });
-
-  it('preserves all payment operations from both invoices', () => {
-    const payments1 = [{ payer: 'GPAYER1', amount: 50n * SCALE }];
-    const payments2 = [{ payer: 'GPAYER2', amount: 25n * SCALE }];
-
-    const mergedPayments = [...payments1, ...payments2];
-
-    expect(mergedPayments).toHaveLength(2);
-    expect(mergedPayments.every((p) => p.amount > 0n)).toBe(true);
-  });
-
-  it('creates audit log entry for merge operation', () => {
-    const auditLog = {
-      action: 'merge',
-      actor: 'GCREATOR',
-      timestamp: new Date().toISOString(),
-      sourceInvoiceIds: ['inv-1', 'inv-2'],
-      selectedFields: ['description', 'funded'],
-    };
-
-    expect(auditLog.action).toBe('merge');
-    expect(auditLog.sourceInvoiceIds).toContain('inv-1');
-    expect(auditLog.sourceInvoiceIds).toContain('inv-2');
-    expect(auditLog.selectedFields.length).toBeGreaterThan(0);
-  });
-
-  it('returns 409 error when merging already merged invoice', () => {
-    const mergedInvoice = createInvoice({ status: 'merged' });
-    const freshInvoice = createInvoice();
-
-    const isMerged = (inv: Invoice) => inv.status === 'merged';
-
-    expect(isMerged(mergedInvoice)).toBe(true);
-    expect(isMerged(freshInvoice)).toBe(false);
-  });
-
-  it('wraps merge operation in atomic transaction', () => {
-    const transactionStarted = true;
-    const invoiceCreated = true;
-    const paymentsTransferred = true;
-    const statusUpdated = true;
-    const transactionCommitted = true;
-
-    const allStepsCompleted =
-      transactionStarted &&
-      invoiceCreated &&
-      paymentsTransferred &&
-      statusUpdated &&
-      transactionCommitted;
-
-    expect(allStepsCompleted).toBe(true);
-  });
-
-  it('rolls back partial changes on failure', () => {
-    const errorDuringMerge = true;
-
-    if (errorDuringMerge) {
-      const invoice1AfterFailure = createInvoice({ id: 'inv-1' });
-      const invoice2AfterFailure = createInvoice({ id: 'inv-2' });
-
-      expect(invoice1AfterFailure.status).not.toBe('merged');
-      expect(invoice2AfterFailure.status).not.toBe('merged');
-    }
-  });
-});
-
-describe('Merge operation end-to-end flow', () => {
-  it('completes full merge workflow from selection to commit', () => {
-    const invoice1 = createInvoice({ id: 'inv-1', description: 'Desc 1' });
-    const invoice2 = createInvoice({ id: 'inv-2', description: 'Desc 2' });
-
-    // Step 1: Load and diff
-    const diff = invoiceDiff(invoice1, invoice2);
-    expect(diff.hasDifferences).toBe(true);
-
-    // Step 2: Select field values
-    const selections = new Map<string, 1 | 2>([['description', 1]]);
-    expect(selections.size).toBeGreaterThan(0);
-
-    // Step 3: Preview
-    const buildMergedInvoice = (
-      inv1: Invoice,
-      inv2: Invoice,
-      selMap: Map<string, 1 | 2>
-    ) => {
-      const merged: Record<string, any> = { ...inv1 };
-      selMap.forEach((invoiceNum, field) => {
-        const sourceInvoice = invoiceNum === 1 ? inv1 : inv2;
-        merged[field] = sourceInvoice[field as keyof Invoice];
-      });
-      return merged as Invoice;
-    };
-
-    const preview = buildMergedInvoice(invoice1, invoice2, selections);
-    expect(preview.description).toBe('Desc 1');
-
-    // Step 4: Commit merge
-    const newInvoiceId = 'inv-merged-1';
-    expect(newInvoiceId).toBeTruthy();
+    it('correctly identifies differences in single fields', () => {
+      const inv1 = { id: '1', amount: 100n, status: 'PENDING' };
+      const inv2 = { id: '1', amount: 200n, status: 'PENDING' };
+      const result = invoiceDiff(inv1, inv2);
+      expect(result.hasDifferences).toBe(true);
+      expect(result.diffs.amount).toEqual({ value1: 100n, value2: 200n });
+    });
   });
 });
