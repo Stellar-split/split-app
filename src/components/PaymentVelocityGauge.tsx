@@ -8,10 +8,21 @@ import {
   type PaymentVelocityAlert,
 } from "@/hooks/usePaymentVelocity";
 
+interface ZoneBoundaries {
+  /** Upper bound (percent, 0-100) of the red zone. */
+  redMax: number;
+  /** Upper bound (percent, 0-100) of the yellow zone. */
+  yellowMax: number;
+}
+
 interface Props {
   /** Connected account to track; omit to show zeroed gauges. */
   account?: string | null;
+  /** Optional zone boundary overrides; defaults to red 0-33%, yellow 34-66%, green 67-100%. */
+  zoneBoundaries?: ZoneBoundaries;
 }
+
+const DEFAULT_ZONE_BOUNDARIES: ZoneBoundaries = { redMax: 33, yellowMax: 66 };
 
 const WINDOW_LABELS: Record<VelocityWindow, string> = {
   "1h": "1h",
@@ -31,12 +42,26 @@ function formatMoney(value: number): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
+/** Point on the half-circle arc (180deg at pct=0, 0deg at pct=100) centered at (cx, 80). */
+function pointOnArc(cx: number, r: number, pct: number): { x: number; y: number } {
+  const theta = (Math.PI * (100 - pct)) / 100; // radians, PI at pct=0, 0 at pct=100
+  return { x: cx + r * Math.cos(theta), y: 80 - r * Math.sin(theta) };
+}
+
+/** SVG path for the arc segment spanning [pctStart, pctEnd] along the gauge's half circle. */
+function arcSegmentPath(cx: number, r: number, pctStart: number, pctEnd: number): string {
+  const start = pointOnArc(cx, r, pctStart);
+  const end = pointOnArc(cx, r, pctEnd);
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 0 1 ${end.x} ${end.y}`;
+}
+
 /**
  * PaymentVelocityGauge (#408) — SVG gauges for the rolling 1h / 24h / 7d
  * outgoing payment volume of the connected account, with inline threshold
  * configuration and an alert banner when a threshold is breached.
  */
-export default function PaymentVelocityGauge({ account }: Props) {
+export default function PaymentVelocityGauge({ account, zoneBoundaries }: Props) {
+  const { redMax, yellowMax } = zoneBoundaries ?? DEFAULT_ZONE_BOUNDARIES;
   const { velocities, lastUpdated, loading, error, thresholds, setThreshold } =
     usePaymentVelocity(account);
   const [alerts, setAlerts] = useState<PaymentVelocityAlert[]>([]);
@@ -146,11 +171,31 @@ export default function PaymentVelocityGauge({ account }: Props) {
           return (
             <g key={window}>
               <path
-                d={`M ${cx - r} 80 A ${r} ${r} 0 0 1 ${cx + r} 80`}
-                stroke="#374151"
-                strokeWidth="10"
+                data-testid={`gauge-zone-red-${window}`}
+                d={arcSegmentPath(cx, r, 0, redMax)}
+                stroke="#ef4444"
+                strokeWidth="6"
                 fill="none"
                 strokeLinecap="round"
+                opacity={0.35}
+              />
+              <path
+                data-testid={`gauge-zone-yellow-${window}`}
+                d={arcSegmentPath(cx, r, redMax, yellowMax)}
+                stroke="#f59e0b"
+                strokeWidth="6"
+                fill="none"
+                strokeLinecap="round"
+                opacity={0.35}
+              />
+              <path
+                data-testid={`gauge-zone-green-${window}`}
+                d={arcSegmentPath(cx, r, yellowMax, 100)}
+                stroke="#10b981"
+                strokeWidth="6"
+                fill="none"
+                strokeLinecap="round"
+                opacity={0.35}
               />
               <path
                 data-testid={`gauge-${window}`}
