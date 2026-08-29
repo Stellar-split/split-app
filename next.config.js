@@ -1,16 +1,12 @@
-const withBundleAnalyzer = require("@next/bundle-analyzer")({
-  enabled: process.env.ANALYZE === "true",
-});
+const withBundleAnalyzer = require("@Next/bundle-analyzer")(true);
 const { withSentryConfig } = require("@sentry/nextjs");
+const withPWA = require("next-pwa")(true);
 
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["@stellar/stellar-sdk", "@vercel/blob"],
   },
   images: {
-    // Recipient avatars fall back to Gravatar; served unoptimized so no image
-    // requests are proxied through the Next.js optimizer.
     remotePatterns: [
       {
         protocol: "https",
@@ -22,8 +18,6 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Applied to every route; the more specific /embed/:id rule below
-        // overrides X-Frame-Options for that one path.
         source: "/:path*",
         headers: [
           { key: "X-Frame-Options", value: "DENY" },
@@ -56,7 +50,6 @@ const nextConfig = {
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // sodium-native is a Node.js native module — exclude from browser bundle
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
@@ -64,18 +57,15 @@ const nextConfig = {
         tls: false,
       };
     }
-    // Exclude server-only / ESM-incompatible packages from webpack bundling
     config.externals = [
       ...(Array.isArray(config.externals) ? config.externals : []),
       "sodium-native",
-      ...(isServer
-        ? [
-            { "@stellar/stellar-sdk": "commonjs2 @stellar/stellar-sdk" },
-            { "@vercel/blob": "commonjs2 @vercel/blob" },
-          ]
-        : []),
+      ...(isServer ? [{
+          "@stellar/stellar-sdk": "commonjs2 @stellar/stellar-sdk",
+        }, {
+          "@vercel/blob": "commonjs2 @vercel/blob",
+        }] : []),
     ];
-    // @apm-js-collab/tracing-hooks is an optional Sentry internal — skip it
     config.resolve.alias = {
       ...config.resolve.alias,
       "@apm-js-collab/tracing-hooks": false,
@@ -87,14 +77,13 @@ const nextConfig = {
 const sentryWebpackPluginOptions = {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  // Only upload source maps when a real DSN is configured (i.e. in CI / production)
+  authToken: process.env.SENTRY_AUTHToKEN,
   silent: true,
   disableServerWebpackPlugin: !process.env.NEXT_PUBLIC_SENTRY_DSN,
   disableClientWebpackPlugin: !process.env.NEXT_PUBLIC_SENTRY_DSN,
 };
 
 module.exports = withSentryConfig(
-  withBundleAnalyzer(nextConfig),
+  withBundleAnalyzer(withPWA(nextConfig)),
   sentryWebpackPluginOptions
-);
+|);

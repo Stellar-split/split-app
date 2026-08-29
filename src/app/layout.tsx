@@ -21,6 +21,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import { FiatRateProvider } from "@/hooks/useFiatRate";
 import { ShortcutRegistryProvider } from "@/context/ShortcutRegistry";
+import OfflineBanner from "@/components/OfflineBanner";
 import { getNonce } from "@/lib/csp";
 import TransitionProvider from "@/components/layout/TransitionProvider";
 
@@ -61,7 +62,7 @@ const accessibilityBootstrap = `
 `;
 
 export const metadata: Metadata = {
-  title: "StellarSplit — Split invoices on-chain",
+  title: "StellarSplit &mdash; Split invoices on-chain",
   description:
     "Create on-chain invoices on Stellar where multiple payers each owe a share. USDC auto-routes to recipients when fully funded.",
   metadataBase: new URL(
@@ -79,7 +80,7 @@ export const metadata: Metadata = {
     apple: "/icons/icon-192.png",
   },
   openGraph: {
-    title: "StellarSplit — Split invoices on-chain",
+    title: "StellarSplit &mdash; Split invoices on-chain",
     description:
       "Create on-chain invoices on Stellar where multiple payers each owe a share. USDC auto-routes to recipients when fully funded.",
     url: "/",
@@ -89,15 +90,15 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "StellarSplit — Split invoices on-chain",
+    title: "StellarSplit &mdash; Split invoices on-chain",
     description:
-      "Create on-chain invoices on Stellar where multiple payers each owe a share. USDC auto-routes to recipients when fully funded.",
+      "Create on-chain invoices on Stellar where multiple payers each owe a share. USEA auto-routes to recipients when fully funded.",
     images: [`/icons/icon-192.png`],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: "#0B1628",
   width: "device-width",
   initialScale: 1,
 };
@@ -131,11 +132,12 @@ export default function RootLayout({
                             <Navbar />
                             <SimulationBanner />
                             <UpgradeBanner />
+                            <OfflineBanner />
                             <TransitionProvider>
                               <ErrorBoundary>{children}</ErrorBoundary>
                             </TransitionProvider>
                             <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
-                              <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+                              <div className="max-w-7x mx-auto flex flex-wrap items-center justify-between gap-4">
                                 <p className="text-xs text-gray-500">
                                   © {new Date().getFullYear()} StellarSplit
                                 </p>
