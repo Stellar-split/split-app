@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
-import AddressBookPicker from "@/components/settings/AddressBookPicker";
 import { searchEntries, addEntry, getEmailForAddress, type AddressEntry } from "@/lib/addressBook";
-import Avatar from "@/components/ui/Avatar";
 import { searchAddressHistory, searchAmountHistory } from "@/lib/invoiceHistory";
 import { searchRecipients, touchRecipient, type RecipientEntry } from "@/lib/recipients";
 import { truncateAddress } from "@stellar-split/sdk";
 import CsvRecipientImport from "@/components/CsvRecipientImport";
 import { useEmailValidation } from "@/hooks/useEmailValidation";
-import EmailField from "@/components/EmailField";
+import LineItemRow from "@/components/LineItemRow";
 
 export interface RecipientRow {
   address: string;
@@ -171,85 +169,27 @@ export default function RecipientForm({
   return (
     <div className="flex flex-col gap-3">
       {recipients.map((row, i) => (
-        <div key={i} className="flex flex-col gap-2">
-          <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-start min-w-0">
-            <Avatar
-              address={row.address}
-              email={emailByAddress[row.address]}
-              size={32}
-              className="mt-1.5 hidden sm:inline-flex"
-            />
-
-            <div className="relative flex-1 min-w-0 w-full">
-              <AddressBookPicker
-                value={row.address}
-                label={row.label}
-                onChange={(address, label) => updateRow(i, address, label, row.email)}
-                placeholder="G... or name*domain.com address"
-                ariaLabel={`Recipient ${i + 1} address`}
-              />
-            </div>
-
-            <div className="relative w-full sm:w-28">
-              <input
-                type="number"
-                placeholder="USDC"
-                step="0.0000001"
-                min="0.0000001"
-                value={equalSplit ? (amountOverride ?? "") : row.amount}
-                onChange={
-                  equalSplit ? undefined : (e) => handleAmountChange(i, e.target.value)
-                }
-                onFocus={() => !equalSplit && handleAmountFocus(i)}
-                readOnly={equalSplit}
-                required
-                aria-label={`Recipient ${i + 1} amount`}
-                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 min-h-11 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  equalSplit
-                    ? "border-gray-600 text-gray-400 cursor-not-allowed"
-                    : "border-gray-700"
-                }`}
-              />
-              {activeField === "amount" && activeIndex === i && amountSuggestions.length > 0 && !equalSplit && (
-                <ul className="absolute z-10 right-0 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
-                  {amountSuggestions.map((amount) => (
-                    <li key={amount}>
-                      <button
-                        type="button"
-                        onMouseDown={() => selectAmountSuggestion(i, amount)}
-                        className="w-full min-h-11 text-left px-3 py-2 text-sm hover:bg-gray-700 font-mono text-gray-200"
-                      >
-                        {amount} USDC
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {recipients.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeRow(i)}
-                aria-label={`Remove recipient ${i + 1}`}
-                className="min-h-11 px-3 py-2 rounded-lg bg-gray-700 hover:bg-red-700 text-sm transition-colors sm:self-start focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 min-w-0 w-full">
-            <div className="hidden sm:block w-8" />
-            <div className="flex-1">
-              <EmailField
-                email={row.email || ""}
-                onEmailChange={(email) => updateRow(i, row.address, row.label, email)}
-                onBlur={() => {}}
-              />
-            </div>
-          </div>
-        </div>
+        <LineItemRow
+          key={i}
+          index={i}
+          address={row.address}
+          amount={row.amount}
+          label={row.label}
+          email={row.email}
+          equalSplit={equalSplit}
+          amountOverride={amountOverride}
+          amountSuggestions={amountSuggestions}
+          activeField={activeField}
+          activeIndex={activeIndex}
+          canRemove={recipients.length > 1}
+          emailByAddress={emailByAddress}
+          onAddressChange={(address, label, email) => updateRow(i, address, label, email)}
+          onAmountChange={(amount) => handleAmountChange(i, amount)}
+          onAmountFocus={() => handleAmountFocus(i)}
+          onAmountSuggestionSelect={(amount) => selectAmountSuggestion(i, amount)}
+          onRemove={() => removeRow(i)}
+          onEmailChange={(email) => updateRow(i, row.address, row.label, email)}
+        />
       ))}
 
       <button

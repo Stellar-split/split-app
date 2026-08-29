@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import WalletAddress from './WalletAddress';
 import RelativeTime from '@/components/ui/RelativeTime';
 
@@ -63,6 +63,8 @@ export default function InvoiceTimeline({ invoiceId }: Props) {
   const [loading, setLoading] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [loadingMore, setLoadingMore] = useState(false);
+  const [expandedIndices, setExpandedIndices] = useState<Set<number>>(new Set());
+  const detailsRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,6 +83,18 @@ export default function InvoiceTimeline({ invoiceId }: Props) {
     setEvents((prev) => [...prev, ...older]);
     setNextCursor(nc);
     setLoadingMore(false);
+  };
+
+  const toggleExpand = (index: number) => {
+    setExpandedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
   };
 
   if (loading) {
@@ -109,9 +123,35 @@ export default function InvoiceTimeline({ invoiceId }: Props) {
 
   return (
     <div>
+      <style>{`
+        @media (prefers-reduced-motion: no-preference) {
+          .timeline-details {
+            transition: max-height 300ms ease-in-out, opacity 300ms ease-in-out;
+          }
+          .timeline-details.collapsed {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+          }
+          .timeline-details.expanded {
+            max-height: 500px;
+            opacity: 1;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .timeline-details {
+            transition: none;
+          }
+          .timeline-details.collapsed {
+            display: none;
+          }
+        }
+      `}</style>
       <ol className="relative border-l border-gray-700 ml-2 space-y-6">
         {events.map((evt, i) => {
           const meta = EVENT_META[evt.type] ?? EVENT_META.Created;
+          const isExpanded = expandedIndices.has(i);
+          const hasDetails = evt.actor || evt.txHash;
           return (
             <li key={i} className="pl-6 relative">
               {/* dot */}
@@ -126,21 +166,41 @@ export default function InvoiceTimeline({ invoiceId }: Props) {
                 <RelativeTime iso={new Date(evt.timestamp * 1000).toISOString()} className="text-xs text-gray-500 cursor-default" />
               </div>
               <p className="text-xs text-gray-400 mt-0.5">{evt.description}</p>
-              {evt.actor && (
-                <div className="mt-0.5">
-                  <WalletAddress address={evt.actor} truncate showCopy />
-                </div>
-              )}
-              {evt.txHash && (
-                <a
-                  href={`${STELLAR_EXPERT_BASE}/${evt.txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-indigo-400 hover:underline mt-0.5 inline-block font-mono"
+
+              {hasDetails && (
+                <button
+                  type="button"
+                  onClick={() => toggleExpand(i)}
+                  className="mt-1.5 inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+                  aria-expanded={isExpanded}
                 >
-                  {evt.txHash.slice(0, 8)}…{evt.txHash.slice(-6)} ↗
-                </a>
+                  <span>{isExpanded ? '▼' : '▶'}</span>
+                  {isExpanded ? 'Hide details' : 'Show details'}
+                </button>
               )}
+
+              <div
+                ref={(el) => {
+                  detailsRefs.current[i] = el;
+                }}
+                className={`timeline-details ${isExpanded ? 'expanded' : 'collapsed'}`}
+              >
+                {evt.actor && (
+                  <div className="mt-2">
+                    <WalletAddress address={evt.actor} truncate showCopy />
+                  </div>
+                )}
+                {evt.txHash && (
+                  <a
+                    href={`${STELLAR_EXPERT_BASE}/${evt.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-indigo-400 hover:underline mt-2 inline-block font-mono"
+                  >
+                    {evt.txHash.slice(0, 8)}…{evt.txHash.slice(-6)} ↗
+                  </a>
+                )}
+              </div>
             </li>
           );
         })}
