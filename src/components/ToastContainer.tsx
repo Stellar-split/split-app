@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Toast from './Toast';
 
 export interface ToastMessage {
@@ -18,16 +18,40 @@ export interface ToastMessage {
  */
 export default function ToastContainer() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const dedupeTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const dismissTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const dedupeKey = `${message}|${type}`;
+    const existingToast = toasts.find((t) => t.message === message && t.type === type);
+
+    if (existingToast) {
+      // Reset auto-dismiss timer for the existing toast
+      const oldTimer = dismissTimersRef.current.get(existingToast.id);
+      if (oldTimer) clearTimeout(oldTimer);
+
+      const newTimer = setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== existingToast.id));
+        dismissTimersRef.current.delete(existingToast.id);
+      }, 5_000);
+      dismissTimersRef.current.set(existingToast.id, newTimer);
+      return;
+    }
+
     const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     setToasts((prev) => [...prev, { id, message, type }]);
 
+    // Cancel any pending dedupe timer for this key
+    const pendingDedupeTimer = dedupeTimersRef.current.get(dedupeKey);
+    if (pendingDedupeTimer) clearTimeout(pendingDedupeTimer);
+
     // Auto-dismiss after 5 seconds
-    setTimeout(() => {
+    const dismissTimer = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
+      dismissTimersRef.current.delete(id);
     }, 5_000);
-  }, []);
+    dismissTimersRef.current.set(id, dismissTimer);
+  }, [toasts]);
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -38,6 +62,8 @@ export default function ToastContainer() {
     (window as any).__toastContainer = { addToast };
     return () => {
       delete (window as any).__toastContainer;
+      dedupeTimersRef.current.forEach((timer) => clearTimeout(timer));
+      dismissTimersRef.current.forEach((timer) => clearTimeout(timer));
     };
   }, [addToast]);
 
