@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 import type { Invoice, Recipient } from "@stellar-split/sdk";
 import { RecipientDetailRow } from "@/components/invoice/RecipientRow";
@@ -21,8 +21,44 @@ export default function RecipientPayoutTracker({ invoice, publicKey, network = "
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimTx, setClaimTx] = useState<string | null>(null);
+  // Maps an old recipient address to its updated address after an approved
+  // AddressChangeRequestModal submission, so the tracker never shows stale data.
+  const [addressOverrides, setAddressOverrides] = useState<Record<string, string>>({});
 
-  const { recipients } = invoice;
+  useEffect(() => {
+    const handleAddressChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        invoiceId: string;
+        oldAddress: string;
+        newAddress: string;
+      }>).detail;
+      if (!detail || detail.invoiceId !== invoice.id) return;
+      setAddressOverrides((prev) => ({
+        ...prev,
+        [detail.oldAddress]: detail.newAddress,
+      }));
+    };
+
+    window.addEventListener(
+      "recipient-address-changed",
+      handleAddressChanged as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "recipient-address-changed",
+        handleAddressChanged as EventListener
+      );
+  }, [invoice.id]);
+
+  const recipients = useMemo(
+    () =>
+      invoice.recipients.map((r) =>
+        addressOverrides[r.address]
+          ? { ...r, address: addressOverrides[r.address] }
+          : r
+      ),
+    [invoice.recipients, addressOverrides]
+  );
   const total = recipients.reduce((s, r) => s + r.amount, 0n);
 
   const getStatus = (recipient: Recipient): PayoutStatus => {
