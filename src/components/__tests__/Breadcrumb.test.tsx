@@ -48,4 +48,25 @@ describe("Breadcrumb", () => {
     const list = container.querySelector("ol");
     expect(list).toBeInTheDocument();
   });
+
+  it("should mark the last item with aria-current='page'", () => {
+    const items: BreadcrumbItem[] = [
+      { label: "Invoices", href: "/dashboard" },
+      { label: "Invoice #123" },
+    ];
+    const { container } = render(<Breadcrumb items={items} />);
+    const lastItem = container.querySelector("span[aria-current='page']");
+    expect(lastItem).toBeInTheDocument();
+    expect(lastItem).toHaveTextContent("Invoice #123");
+  });
+
+  it("should not mark non-last items with aria-current", () => {
+    const items: BreadcrumbItem[] = [
+      { label: "Invoices", href: "/dashboard" },
+      { label: "Invoice #123" },
+    ];
+    const { container } = render(<Breadcrumb items={items} />);
+    const invoicesLink = screen.getByText("Invoices").closest("a");
+    expect(invoicesLink).not.toHaveAttribute("aria-current");
+  });
 });

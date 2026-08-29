@@ -51,7 +51,7 @@ export default function Breadcrumb({ items }: Props) {
                 </span>
               )}
               {isLast ? (
-                <span className="text-gray-300 font-medium">{item.label}</span>
+                <span className="text-gray-300 font-medium" aria-current="page">{item.label}</span>
               ) : (
                 <>
                   {i === 0 && !showEllipsis && (
