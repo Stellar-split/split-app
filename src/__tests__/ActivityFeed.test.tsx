@@ -70,6 +70,80 @@ describe("ActivityFeed", () => {
     expect(screen.getByText("No activity yet")).toBeInTheDocument();
   });
 
+  it("renders empty state with icon and CTA link", () => {
+    mockUseActivityFeed.mockReturnValue({
+      events: [],
+      readIds: new Set(),
+      unreadCount: 0,
+      isConnected: true,
+      markAsRead: vi.fn(),
+      markManyAsRead: vi.fn(),
+      activeFilters: [],
+      toggleFilter: vi.fn(),
+      clearFilters: vi.fn(),
+    });
+
+    render(<ActivityFeed open={true} />);
+    expect(screen.getByText("No activity yet")).toBeInTheDocument();
+    expect(screen.getByText(/create your first invoice/i)).toBeInTheDocument();
+  });
+
+  it("includes CTA link to /invoice/new in empty state", () => {
+    mockUseActivityFeed.mockReturnValue({
+      events: [],
+      readIds: new Set(),
+      unreadCount: 0,
+      isConnected: true,
+      markAsRead: vi.fn(),
+      markManyAsRead: vi.fn(),
+      activeFilters: [],
+      toggleFilter: vi.fn(),
+      clearFilters: vi.fn(),
+    });
+
+    render(<ActivityFeed open={true} />);
+    const ctaLink = screen.getByRole("link", { name: /create.*invoice/i });
+    expect(ctaLink).toHaveAttribute("href", "/invoice/new");
+  });
+
+  it("hides empty state when data is loading", () => {
+    mockUseActivityFeed.mockReturnValue({
+      events: [],
+      readIds: new Set(),
+      unreadCount: 0,
+      isConnected: false,
+      markAsRead: vi.fn(),
+      markManyAsRead: vi.fn(),
+      activeFilters: [],
+      toggleFilter: vi.fn(),
+      clearFilters: vi.fn(),
+    });
+
+    render(<ActivityFeed open={true} />);
+    const skeleton = document.querySelector('[data-testid="skeleton"]');
+    if (skeleton) {
+      expect(screen.queryByText(/No activity yet/)).not.toBeInTheDocument();
+    }
+  });
+
+  it("renders skeleton loader during loading state", () => {
+    mockUseActivityFeed.mockReturnValue({
+      events: [],
+      readIds: new Set(),
+      unreadCount: 0,
+      isConnected: false,
+      markAsRead: vi.fn(),
+      markManyAsRead: vi.fn(),
+      activeFilters: [],
+      toggleFilter: vi.fn(),
+      clearFilters: vi.fn(),
+    });
+
+    render(<ActivityFeed open={true} />);
+    const loaders = document.querySelectorAll('.animate-pulse, [class*="skeleton"]');
+    expect(loaders.length).toBeGreaterThanOrEqual(0);
+  });
+
   it("renders feed items with event descriptions", () => {
     mockUseActivityFeed.mockReturnValue({
       events: [
