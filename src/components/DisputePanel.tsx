@@ -5,6 +5,7 @@ import type { Invoice } from "@stellar-split/sdk";
 import { truncateAddress } from "@stellar-split/sdk";
 import { uploadToIpfs } from "@/lib/ipfs";
 import { getSplitClient } from "@/lib/stellar";
+import ArbitratorPicker from "@/components/ArbitratorPicker";
 
 interface DisputeMetadata {
   reason: string;
@@ -281,31 +282,18 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
         </div>
 
         {/* Arbitrators List */}
-        <div>
-          <h3 className="text-sm font-semibold text-white mb-3">Assigned Arbitrators</h3>
-          <div className="space-y-2">
-            {dispute.arbitrators.map((arb, idx) => {
-              const voted = dispute.votedArbitrators.includes(arb);
-              return (
-                <div
-                  key={idx}
-                  className="bg-gray-900/60 border border-gray-700 rounded-lg p-3 flex items-center justify-between"
-                >
-                  <span className="text-sm font-mono text-gray-200">{truncateAddress(arb)}</span>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      voted
-                        ? "bg-green-500/20 text-green-400"
-                        : "bg-gray-700/50 text-gray-500"
-                    }`}
-                  >
-                    {voted ? "✓ Voted" : "Pending"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <ArbitratorPicker
+          arbitrators={dispute.arbitrators.map((address) => ({
+            address,
+            name: truncateAddress(address),
+            resolvedDisputeCount: null,
+          }))}
+          selectedAddress=""
+          onSelect={() => {}}
+          disabled={true}
+          showVoteStatus={true}
+          votedArbitrators={dispute.votedArbitrators}
+        />
       </section>
 
       {/* Evidence Upload Modal */}
