@@ -10,10 +10,18 @@ interface FeeEstimate {
   congestion: "Low" | "Medium" | "High";
 }
 
-export default function FeeOptimizer() {
+interface FeeOptimizerProps {
+  /** Current fee set on the transaction form, in stroops. */
+  currentFee?: bigint;
+  /** Called with the suggested fee (in stroops) when the user accepts it. */
+  onAcceptFee?: (stroops: bigint) => void;
+}
+
+export default function FeeOptimizer({ currentFee, onAcceptFee }: FeeOptimizerProps = {}) {
   const [fee, setFee] = useState<FeeEstimate | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [appliedFee, setAppliedFee] = useState<bigint | null>(null);
 
   const fetchFee = async () => {
     try {
@@ -65,6 +73,14 @@ export default function FeeOptimizer() {
     High: "🔴",
   };
 
+  const effectiveCurrentFee = currentFee ?? appliedFee;
+  const suggestionAccepted = effectiveCurrentFee === fee.stroops;
+
+  const handleAcceptSuggestion = () => {
+    setAppliedFee(fee.stroops);
+    onAcceptFee?.(fee.stroops);
+  };
+
   return (
     <div className="bg-gray-900 rounded-lg px-4 py-3 space-y-2">
       <div className="flex items-center justify-between">
@@ -83,13 +99,24 @@ export default function FeeOptimizer() {
           {fee.congestion === "Medium" && "⏳ Consider waiting"}
           {fee.congestion === "High" && "⚠ High fees — wait if possible"}
         </span>
-        <button
-          type="button"
-          onClick={fetchFee}
-          className="text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          {!suggestionAccepted && (
+            <button
+              type="button"
+              onClick={handleAcceptSuggestion}
+              className="text-xs px-2 py-1 rounded bg-indigo-700 hover:bg-indigo-600 transition-colors"
+            >
+              Accept Suggestion
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={fetchFee}
+            className="text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
       {lastUpdate && (
         <p className="text-xs text-gray-600 text-right">
