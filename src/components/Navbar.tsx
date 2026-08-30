@@ -13,6 +13,7 @@ import MobileSidebar from "@/components/layout/MobileSidebar";
 
 const NAV_LINKS = [
   { href: "/dashboard",      label: "Dashboard" },
+  { href: "/invoice",        label: "Invoices" },
   { href: "/subscriptions",  label: "Subscriptions" },
   { href: "/groups",         label: "Groups" },
   { href: "/address-book",   label: "Contacts" },
@@ -25,7 +26,10 @@ export default function Navbar() {
   const pathname = usePathname();
   const hamburgerRef = useRef<HTMLButtonElement>(null);
 
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) =>
+    href === "/"
+      ? pathname === href
+      : pathname === href || pathname.startsWith(href + "/");
 
   return (
     <>

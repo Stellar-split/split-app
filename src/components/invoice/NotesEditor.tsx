@@ -6,7 +6,7 @@ import Link from '@tiptap/extension-link';
 import DOMPurify from 'dompurify';
 import { useEffect, useCallback } from 'react';
 
-interface NotesEditorProps {
+export interface NotesEditorProps {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
