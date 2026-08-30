@@ -1,49 +1,54 @@
-const withBundleAnalyzer = require("@Next/bundle-analyzer")(true);
-const { withSentryConfig } = require("@sentry/nextjs");
-const withPWA = require("next-pwa")(true);
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+const { withSentryConfig } = require('@sentry/nextjs');
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
+});
 
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ["@stellar/stellar-sdk", "@vercel/blob"],
+    serverComponentsExternalPackages: ['@stellar/stellar-sdk', '@vercel/blob'],
   },
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "www.gravatar.com",
-        pathname: "/avatar/**",
+        protocol: 'https',
+        hostname: 'www.gravatar.com',
+        pathname: '/avatar/**',
       },
     ],
   },
   async headers() {
     return [
       {
-        source: "/:path*",
+        source: '/:path*',
         headers: [
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           {
-            key: "Strict-Transport-Security",
-            value: "max-age=63072000; includeSubDomains; preload",
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
           },
           {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), payment=(self)",
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=(self)',
           },
         ],
       },
       {
-        source: "/sw.js",
+        source: '/sw.js',
         headers: [
-          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
-          { key: "Service-Worker-Allowed", value: "/" },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Service-Worker-Allowed', value: '/' },
         ],
       },
       {
-        source: "/embed/:id",
+        source: '/embed/:id',
         headers: [
-          { key: "X-Frame-Options", value: "ALLOWALL" },
+          { key: 'X-Frame-Options', value: 'ALLOWALL' },
         ],
       },
     ];
@@ -59,16 +64,17 @@ const nextConfig = {
     }
     config.externals = [
       ...(Array.isArray(config.externals) ? config.externals : []),
-      "sodium-native",
-      ...(isServer ? [{
-          "@stellar/stellar-sdk": "commonjs2 @stellar/stellar-sdk",
-        }, {
-          "@vercel/blob": "commonjs2 @vercel/blob",
-        }] : []),
+      'sodium-native',
+      ...(isServer
+        ? [
+            { '@stellar/stellar-sdk': 'commonjs2 @stellar/stellar-sdk' },
+            { '@vercel/blob': 'commonjs2 @vercel/blob' },
+          ]
+        : []),
     ];
     config.resolve.alias = {
       ...config.resolve.alias,
-      "@apm-js-collab/tracing-hooks": false,
+      '@apm-js-collab/tracing-hooks': false,
     };
     return config;
   },
@@ -77,7 +83,7 @@ const nextConfig = {
 const sentryWebpackPluginOptions = {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTHToKEN,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: true,
   disableServerWebpackPlugin: !process.env.NEXT_PUBLIC_SENTRY_DSN,
   disableClientWebpackPlugin: !process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -86,4 +92,4 @@ const sentryWebpackPluginOptions = {
 module.exports = withSentryConfig(
   withBundleAnalyzer(withPWA(nextConfig)),
   sentryWebpackPluginOptions
-|);
+);
