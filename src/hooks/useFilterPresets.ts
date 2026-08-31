@@ -36,6 +36,20 @@ export interface UseFilterPresetsResult {
   savePreset: (name: string, filters: Record<string, string>) => string | null;
   renamePreset: (id: string, name: string) => string | null;
   deletePreset: (id: string) => void;
+  exportPresets: () => string;
+  importPresets: (json: string) => void;
+}
+
+function isFilterPreset(value: unknown): value is FilterPreset {
+  if (typeof value !== "object" || value === null) return false;
+  const p = value as Record<string, unknown>;
+  return (
+    typeof p.id === "string" &&
+    typeof p.name === "string" &&
+    typeof p.createdAt === "string" &&
+    typeof p.filters === "object" &&
+    p.filters !== null
+  );
 }
 
 export function useFilterPresets(): UseFilterPresetsResult {
@@ -102,5 +116,32 @@ export function useFilterPresets(): UseFilterPresetsResult {
     [presets]
   );
 
-  return { presets, savePreset, renamePreset, deletePreset };
+  const exportPresets = useCallback((): string => {
+    return JSON.stringify(presets);
+  }, [presets]);
+
+  const importPresets = useCallback(
+    (json: string) => {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(json);
+      } catch {
+        throw new Error("Invalid JSON");
+      }
+      if (!Array.isArray(parsed) || !parsed.every(isFilterPreset)) {
+        throw new Error("Invalid preset data");
+      }
+
+      const existingNames = new Set(presets.map((p) => normalizeName(p.name)));
+      const toAdd = parsed.filter((p) => !existingNames.has(normalizeName(p.name)));
+      if (toAdd.length === 0) return;
+
+      const next = [...presets, ...toAdd];
+      setPresets(next);
+      writePresets(next);
+    },
+    [presets]
+  );
+
+  return { presets, savePreset, renamePreset, deletePreset, exportPresets, importPresets };
 }

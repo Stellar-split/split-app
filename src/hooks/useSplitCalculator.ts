@@ -54,8 +54,12 @@ export interface RoundingResolution {
 
 const STROOP_SCALE = 1e7;
 
-function roundToStroops(value: number): number {
-  return Math.round(value * STROOP_SCALE) / STROOP_SCALE;
+export type RoundingMode = 'floor' | 'ceil' | 'nearest';
+
+function roundToStroops(value: number, mode: RoundingMode = 'nearest'): number {
+  const scaled = value * STROOP_SCALE;
+  const rounded = mode === 'floor' ? Math.floor(scaled) : mode === 'ceil' ? Math.ceil(scaled) : Math.round(scaled);
+  return rounded / STROOP_SCALE;
 }
 
 export function validateShares(recipients: RecipientLine[]): SplitValidation {
@@ -103,13 +107,27 @@ export function validateShares(recipients: RecipientLine[]): SplitValidation {
 export function calculateSplit(
   totalAmount: number,
   recipients: RecipientLine[],
-  _assetCode: 'XLM' | 'USDC' = 'USDC'
+  _assetCode: 'XLM' | 'USDC' = 'USDC',
+  roundingMode: RoundingMode = 'nearest'
 ): SplitCalculatorResult {
   const totalNum = totalAmount || 0;
   const validation = validateShares(recipients);
 
-  const derivedLines: DerivedRecipientLine[] = recipients.map((r) => {
-    const grossAmount = roundToStroops((totalNum * (r.sharePercent || 0)) / 100);
+  const grossAmounts = recipients.map((r) =>
+    roundToStroops((totalNum * (r.sharePercent || 0)) / 100, roundingMode)
+  );
+
+  if (recipients.length > 0) {
+    const totalStroops = Math.round(totalNum * STROOP_SCALE);
+    const sumStroops = grossAmounts.reduce((s, v) => s + Math.round(v * STROOP_SCALE), 0);
+    const remainderStroops = totalStroops - sumStroops;
+    if (remainderStroops !== 0) {
+      grossAmounts[0] = (Math.round(grossAmounts[0] * STROOP_SCALE) + remainderStroops) / STROOP_SCALE;
+    }
+  }
+
+  const derivedLines: DerivedRecipientLine[] = recipients.map((r, i) => {
+    const grossAmount = grossAmounts[i];
     const preFeeAmount = grossAmount;
     const effectiveTaxAmount = roundToStroops(
       (preFeeAmount * (r.taxRatePercent || 0)) / 100
@@ -153,11 +171,12 @@ export function calculateSplit(
 export function useSplitCalculator(
   totalAmount: number,
   recipients: RecipientLine[],
-  assetCode: 'XLM' | 'USDC' = 'USDC'
+  assetCode: 'XLM' | 'USDC' = 'USDC',
+  roundingMode: RoundingMode = 'nearest'
 ): SplitCalculatorResult {
   return useMemo(
-    () => calculateSplit(totalAmount, recipients, assetCode),
-    [totalAmount, recipients, assetCode]
+    () => calculateSplit(totalAmount, recipients, assetCode, roundingMode),
+    [totalAmount, recipients, assetCode, roundingMode]
   );
 }
 
