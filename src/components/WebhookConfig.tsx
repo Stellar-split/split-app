@@ -31,6 +31,8 @@ export default function WebhookConfig({ invoiceId }: Props) {
   const [testing, setTesting] = useState(false);
   const [testStatus, setTestStatus] = useState<string | null>(null);
   const [logs, setLogs] = useState<DeliveryLog[]>([]);
+  const [pinging, setPinging] = useState(false);
+  const [pingResult, setPingResult] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem(storageKey(invoiceId));
@@ -114,6 +116,25 @@ export default function WebhookConfig({ invoiceId }: Props) {
     }
   };
 
+  const handleSendTestPing = async () => {
+    if (!url) return;
+    setPinging(true);
+    setPingResult(null);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event: "test" }),
+      });
+      const text = await res.text();
+      setPingResult(`Status: ${res.status}\n${text.slice(0, 200)}`);
+    } catch (e) {
+      setPingResult(`Error: ${String(e)}`);
+    } finally {
+      setPinging(false);
+    }
+  };
+
   return (
     <section aria-labelledby="webhook-heading" className="mt-8 border-t border-gray-800 pt-6">
       <h2 id="webhook-heading" className="text-lg font-semibold mb-3">
@@ -178,6 +199,13 @@ export default function WebhookConfig({ invoiceId }: Props) {
                 {testing ? "Testing..." : "Test Webhook"}
               </button>
               <button
+                onClick={handleSendTestPing}
+                disabled={pinging}
+                className="min-h-11 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 text-sm font-semibold transition-colors"
+              >
+                {pinging ? "Pinging..." : "Send Test Ping"}
+              </button>
+              <button
                 onClick={handleRemove}
                 className="min-h-11 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors"
               >
@@ -195,6 +223,11 @@ export default function WebhookConfig({ invoiceId }: Props) {
         {testStatus && (
           <p role="status" className="text-sm text-gray-300">
             Test result: {testStatus}
+          </p>
+        )}
+        {pingResult && (
+          <p role="status" className="text-sm text-gray-300 whitespace-pre-wrap font-mono">
+            {pingResult}
           </p>
         )}
       </div>
