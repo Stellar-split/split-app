@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useToast } from '@/contexts/ToastContext';
 
 interface RetryOptions {
@@ -7,15 +7,18 @@ interface RetryOptions {
   retryableStatusCodes?: number[];
 }
 
+const MAX_DELAY_MS = 30000;
+
 const DEFAULT_OPTIONS = {
-  maxRetries: 3,
-  initialDelayMs: 3000,
+  maxRetries: 5,
+  initialDelayMs: 1000,
   retryableStatusCodes: [429],
 };
 
 export function useTransactionWithRetry(options?: RetryOptions) {
   const toast = useToast();
   const abortControllers = useRef<Map<string, AbortController>>(new Map());
+  const [attemptCount, setAttemptCount] = useState(0);
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
   const getStatusCode = (error: any): number | undefined => {
@@ -48,6 +51,7 @@ export function useTransactionWithRetry(options?: RetryOptions) {
       let toastId: string | null = null;
 
       for (let attempt = 1; attempt <= opts.maxRetries; attempt++) {
+        setAttemptCount(attempt);
         try {
           // Check if user cancelled
           if (abortControllers.current.get(operationId)?.signal.aborted) {
@@ -65,7 +69,10 @@ export function useTransactionWithRetry(options?: RetryOptions) {
             attempt < opts.maxRetries;
 
           if (isRetryable) {
-            const delayMs = opts.initialDelayMs * Math.pow(2, attempt - 1);
+            const delayMs = Math.min(
+              opts.initialDelayMs * Math.pow(2, attempt - 1),
+              MAX_DELAY_MS
+            );
             const countdownSeconds = Math.ceil(delayMs / 1000);
 
             // Show countdown toast
@@ -114,5 +121,5 @@ export function useTransactionWithRetry(options?: RetryOptions) {
     }
   }, []);
 
-  return { executeWithRetry, cancel };
+  return { executeWithRetry, cancel, attemptCount };
 }

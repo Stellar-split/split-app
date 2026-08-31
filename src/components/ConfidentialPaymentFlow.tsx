@@ -62,6 +62,7 @@ export default function ConfidentialPaymentFlow({
   const [step, setStep] = useState<Step>("commit");
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [amountsVisible, setAmountsVisible] = useState(false);
 
   useEffect(() => {
     if (!publicKey) return;
@@ -178,15 +179,24 @@ export default function ConfidentialPaymentFlow({
       )}
 
       <div>
-        <label
-          htmlFor="confidential-amount"
-          className="block text-sm font-medium text-gray-300 mb-1"
-        >
-          Amount (USDC)
-        </label>
+        <div className="flex items-center justify-between mb-1">
+          <label
+            htmlFor="confidential-amount"
+            className="block text-sm font-medium text-gray-300"
+          >
+            Amount (USDC)
+          </label>
+          <button
+            type="button"
+            onClick={() => setAmountsVisible((v) => !v)}
+            className="text-xs font-medium text-indigo-400 hover:text-indigo-300"
+          >
+            {amountsVisible ? "Hide amounts" : "Show amounts"}
+          </button>
+        </div>
         <input
           id="confidential-amount"
-          type="number"
+          type={amountsVisible ? "number" : "password"}
           step="0.0000001"
           min="0.0000001"
           placeholder="0.00"
