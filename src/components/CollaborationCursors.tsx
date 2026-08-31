@@ -87,72 +87,81 @@ export default function CollaborationCursors({ invoiceId, currentAddress }: Prop
   if (others.length === 0) return null;
 
   return (
-    <div
-      className="fixed right-2 sm:right-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1.5"
-      aria-label="Other viewers' scroll positions"
-    >
-      <button
-        type="button"
-        onClick={() => setCollapsed((c) => !c)}
-        className="w-5 h-5 flex items-center justify-center rounded bg-gray-800 border border-gray-700 text-gray-400 hover:text-gray-200 text-xs transition-colors"
-        aria-expanded={!collapsed}
-        aria-label={collapsed ? "Show viewer positions" : "Hide viewer positions"}
+    <>
+      <div
+        className="fixed right-2 sm:right-3 top-2 z-40 flex items-center gap-1 rounded-full bg-gray-800 border border-gray-700 px-2 py-0.5 text-xs text-gray-300"
+        aria-label={`${others.length} collaborator${others.length === 1 ? "" : "s"} online`}
       >
-        {collapsed ? "▸" : "◂"}
-      </button>
-
-      {!collapsed && (
-        <div
-          role="img"
-          aria-label="Minimap of viewer positions"
-          className="relative bg-gray-900 border border-gray-700 rounded"
-          style={{ width: 20, height: MINIMAP_HEIGHT }}
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+        {others.length} online
+      </div>
+      <div
+        className="fixed right-2 sm:right-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1.5"
+        aria-label="Other viewers' scroll positions"
+      >
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          className="w-5 h-5 flex items-center justify-center rounded bg-gray-800 border border-gray-700 text-gray-400 hover:text-gray-200 text-xs transition-colors"
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Show viewer positions" : "Hide viewer positions"}
         >
-          {/* Track line */}
-          <div className="absolute inset-x-0 top-0 bottom-0 mx-auto w-px bg-gray-700" />
+          {collapsed ? "▸" : "◂"}
+        </button>
 
-          {others.map((cursor) => {
-            const topPct = Math.min((cursor.scrollY / pageHeight) * 100, 94);
-            const color = colorForAddress(cursor.address);
-            return (
+        {!collapsed && (
+          <div
+            role="img"
+            aria-label="Minimap of viewer positions"
+            className="relative bg-gray-900 border border-gray-700 rounded"
+            style={{ width: 20, height: MINIMAP_HEIGHT }}
+          >
+            {/* Track line */}
+            <div className="absolute inset-x-0 top-0 bottom-0 mx-auto w-px bg-gray-700" />
+
+            {others.map((cursor) => {
+              const topPct = Math.min((cursor.scrollY / pageHeight) * 100, 94);
+              const color = colorForAddress(cursor.address);
+              return (
+                <div
+                  key={cursor.address}
+                  title={truncateAddress(cursor.address)}
+                  style={{
+                    position: "absolute",
+                    top: `${topPct}%`,
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    backgroundColor: color,
+                    boxShadow: `0 0 5px ${color}80`,
+                    flexShrink: 0,
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {!collapsed && (
+          <div className="flex flex-col gap-1 items-center" aria-label="Viewer legend">
+            {others.slice(0, 4).map((cursor) => (
               <div
                 key={cursor.address}
-                title={truncateAddress(cursor.address)}
-                style={{
-                  position: "absolute",
-                  top: `${topPct}%`,
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  width: 10,
-                  height: 10,
-                  borderRadius: "50%",
-                  backgroundColor: color,
-                  boxShadow: `0 0 5px ${color}80`,
-                  flexShrink: 0,
-                }}
+                className="w-3 h-3 rounded-full"
+                title={cursor.address}
+                style={{ backgroundColor: colorForAddress(cursor.address) }}
               />
-            );
-          })}
-        </div>
-      )}
-
-      {!collapsed && (
-        <div className="flex flex-col gap-1 items-center" aria-label="Viewer legend">
-          {others.slice(0, 4).map((cursor) => (
-            <div
-              key={cursor.address}
-              className="w-3 h-3 rounded-full"
-              title={cursor.address}
-              style={{ backgroundColor: colorForAddress(cursor.address) }}
-            />
-          ))}
-          {others.length > 4 && (
-            <span className="text-gray-500" style={{ fontSize: 9 }}>
-              +{others.length - 4}
-            </span>
-          )}
-        </div>
-      )}
-    </div>
+            ))}
+            {others.length > 4 && (
+              <span className="text-gray-500" style={{ fontSize: 9 }}>
+                +{others.length - 4}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

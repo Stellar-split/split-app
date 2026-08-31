@@ -21,6 +21,8 @@ interface RateState {
   loading: boolean;
   /** Set when the last fetch failed and no usable rate is available. */
   error: string | null;
+  /** Timestamp (ms) of the last successful fetch, used to derive `isStale`. */
+  lastFetchedAt: number | null;
 }
 
 interface FiatRateContextValue extends RateState {
@@ -28,6 +30,8 @@ interface FiatRateContextValue extends RateState {
   rate: number | null;
   currency: FiatCurrency;
 }
+
+const DEFAULT_TTL_SECONDS = 60;
 
 const FiatRateContext = createContext<FiatRateContextValue | null>(null);
 
@@ -43,6 +47,7 @@ export function FiatRateProvider({ children }: { children: React.ReactNode }) {
     rates: null,
     loading: true,
     error: null,
+    lastFetchedAt: null,
   });
   const mounted = useRef(true);
 
@@ -59,12 +64,12 @@ export function FiatRateProvider({ children }: { children: React.ReactNode }) {
         if (!body.rates) throw new Error("Malformed rate response");
 
         if (mounted.current) {
-          setState({ rates: body.rates, loading: false, error: null });
+          setState({ rates: body.rates, loading: false, error: null, lastFetchedAt: Date.now() });
         }
       } catch (error) {
         if (controller.signal.aborted || !mounted.current) return;
         const message = error instanceof Error ? error.message : String(error);
-        setState({ rates: null, loading: false, error: message });
+        setState((prev) => ({ rates: null, loading: false, error: message, lastFetchedAt: prev.lastFetchedAt }));
       }
     };
 
@@ -96,15 +101,26 @@ export function FiatRateProvider({ children }: { children: React.ReactNode }) {
 /**
  * Read the current fiat rate for the user's preferred currency.
  *
- * Returns a neutral loading state outside a provider so a component tree that
- * has not mounted the provider degrades instead of throwing.
+ * `ttl` (seconds, default 60) controls how long the cached rate is considered
+ * fresh; once exceeded, `isStale` is true while the last-known rate is still
+ * returned. Returns a neutral loading state outside a provider so a component
+ * tree that has not mounted the provider degrades instead of throwing.
  */
-export function useFiatRate(): FiatRateContextValue {
+export function useFiatRate(ttl: number = DEFAULT_TTL_SECONDS): FiatRateContextValue & { isStale: boolean } {
   const ctx = useContext(FiatRateContext);
   if (!ctx) {
-    return { rates: null, rate: null, loading: false, error: "Rate unavailable", currency: "USD" };
+    return {
+      rates: null,
+      rate: null,
+      loading: false,
+      error: "Rate unavailable",
+      currency: "USD",
+      lastFetchedAt: null,
+      isStale: false,
+    };
   }
-  return ctx;
+  const isStale = ctx.lastFetchedAt !== null && Date.now() - ctx.lastFetchedAt > ttl * 1000;
+  return { ...ctx, isStale };
 }
 
 export default useFiatRate;
