@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { splitClient } from "@/lib/stellar";
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 
@@ -8,17 +8,46 @@ interface VerifiedProof {
   payer: string;
   amount: bigint;
   ledger: number;
+  imageUrl?: string;
 }
 
 interface Props {
   invoiceId: string;
 }
 
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 4;
+const ZOOM_STEP = 0.25;
+
 export default function ProofViewer({ invoiceId }: Props) {
   const [proofHash, setProofHash] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState<VerifiedProof | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+
+  const zoomIn = () => setZoom((z) => Math.min(MAX_ZOOM, +(z + ZOOM_STEP).toFixed(2)));
+  const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)));
+  const resetZoom = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (zoom <= 1) return;
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    setPan({ x: e.clientX - dragStartRef.current.x, y: e.clientY - dragStartRef.current.y });
+  };
+
+  const handlePointerUp = () => setIsDragging(false);
 
   const handleVerify = async () => {
     if (!proofHash.trim()) return;
@@ -103,11 +132,63 @@ export default function ProofViewer({ invoiceId }: Props) {
             </div>
           </div>
 
+          {verified.imageUrl && (
+            <div className="space-y-2">
+              <div
+                className="relative h-64 overflow-hidden rounded-lg border border-gray-700 bg-gray-900"
+                style={{ cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default" }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
+              >
+                <img
+                  src={verified.imageUrl}
+                  alt="Payment proof"
+                  draggable={false}
+                  className="h-full w-full object-contain select-none"
+                  style={{
+                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                    transformOrigin: "center center",
+                  }}
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={zoomOut}
+                  disabled={zoom <= MIN_ZOOM}
+                  aria-label="Zoom out"
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-700 text-sm font-medium hover:bg-gray-700 disabled:opacity-50"
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  onClick={zoomIn}
+                  disabled={zoom >= MAX_ZOOM}
+                  aria-label="Zoom in"
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-700 text-sm font-medium hover:bg-gray-700 disabled:opacity-50"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={resetZoom}
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-700 text-sm font-medium hover:bg-gray-700"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => {
               setVerified(null);
               setProofHash("");
+              resetZoom();
             }}
             className="w-full px-4 py-2 rounded-lg border border-gray-700 text-sm font-medium hover:bg-gray-700"
           >

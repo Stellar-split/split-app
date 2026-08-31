@@ -9,14 +9,27 @@ export interface ToastMessage {
   type: 'success' | 'error' | 'info';
 }
 
+export type ToastContainerPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+
+export interface ToastContainerProps {
+  position?: ToastContainerPosition;
+}
+
+const POSITION_CLASSES: Record<ToastContainerPosition, string> = {
+  'top-right': 'top-4 right-4',
+  'top-left': 'top-4 left-4',
+  'bottom-right': 'bottom-4 right-4',
+  'bottom-left': 'bottom-4 left-4',
+};
+
 /**
  * ToastContainer — manages a stack of toast notifications.
- * Renders toasts in the bottom-right corner with auto-dismiss.
- * 
+ * Renders toasts at a configurable corner (default top-right) with auto-dismiss.
+ *
  * Note: The project also has a ToastContext-based toast system.
  * This component provides a lightweight alternative for direct use.
  */
-export default function ToastContainer() {
+export default function ToastContainer({ position = 'top-right' }: ToastContainerProps) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const dedupeTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const dismissTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -71,7 +84,7 @@ export default function ToastContainer() {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm"
+      className={`fixed ${POSITION_CLASSES[position]} z-50 flex flex-col gap-2 max-w-sm`}
       aria-live="polite"
       aria-label="Notifications"
     >
