@@ -7,6 +7,9 @@ import {
   downloadCSV,
   generatePaymentExportFilename,
   filterPaymentsByDateRange,
+  PAYMENT_EXPORT_COLUMNS,
+  PAYMENT_EXPORT_COLUMN_LABELS,
+  type PaymentExportColumn,
 } from '@/lib/csvExport';
 
 interface Props {
@@ -19,10 +22,23 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [exporting, setExporting] = useState(false);
+  const [selectedColumns, setSelectedColumns] = useState<PaymentExportColumn[]>([
+    ...PAYMENT_EXPORT_COLUMNS,
+  ]);
+
+  const toggleColumn = (column: PaymentExportColumn) => {
+    setSelectedColumns((current) => {
+      if (current.includes(column)) {
+        if (current.length <= 1) return current;
+        return current.filter((c) => c !== column);
+      }
+      return [...current, column];
+    });
+  };
 
   const handleExport = () => {
     setExporting(true);
-    
+
     try {
       // Filter payments by date range if specified
       const filteredPayments = filterPaymentsByDateRange(
@@ -32,7 +48,7 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
       );
 
       // Convert to CSV
-      const csv = paymentsToCSV(filteredPayments);
+      const csv = paymentsToCSV(filteredPayments, selectedColumns);
 
       // Download
       const filename = generatePaymentExportFilename(invoiceId);
@@ -130,6 +146,29 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
                 Clear Filters
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Column Selection */}
+      {payments.length > 0 && (
+        <div className="border-t border-gray-800 pt-4 mt-4">
+          <p className="text-xs text-gray-400 mb-2">Columns to include</p>
+          <div className="flex flex-wrap gap-3">
+            {PAYMENT_EXPORT_COLUMNS.map((column) => (
+              <label
+                key={column}
+                className="flex items-center gap-1.5 text-xs text-gray-300"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedColumns.includes(column)}
+                  onChange={() => toggleColumn(column)}
+                  className="rounded border-gray-700 bg-gray-800 text-indigo-500 focus:ring-indigo-500"
+                />
+                {PAYMENT_EXPORT_COLUMN_LABELS[column]}
+              </label>
+            ))}
           </div>
         </div>
       )}

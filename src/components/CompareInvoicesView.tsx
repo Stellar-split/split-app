@@ -63,6 +63,10 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
         <p className="text-gray-600 dark:text-gray-400">
           Invoice #{invoiceA.id} vs Invoice #{invoiceB.id}
         </p>
+        <div className="flex items-center gap-2 mt-3 text-xs text-gray-600 dark:text-gray-400">
+          <span className="inline-block w-3 h-3 rounded bg-yellow-100 dark:bg-yellow-900" />
+          Highlighted fields differ between the two invoices
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -89,7 +93,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <div
                 className={
                   isDifferent(statusA, statusB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 px-3 py-2 rounded-lg inline-block"
+                    ? "bg-yellow-100 dark:bg-yellow-900 px-3 py-2 rounded-lg inline-block"
                     : ""
                 }
               >
@@ -105,7 +109,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <p
                 className={`text-lg font-semibold ${
                   isDifferent(totalFormatA, totalFormatB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 px-3 py-2 rounded-lg inline-block"
+                    ? "bg-yellow-100 dark:bg-yellow-900 px-3 py-2 rounded-lg inline-block"
                     : ""
                 }`}
               >
@@ -121,7 +125,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <p
                 className={
                   isDifferent(fundedA, fundedB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 px-3 py-2 rounded-lg inline-block"
+                    ? "bg-yellow-100 dark:bg-yellow-900 px-3 py-2 rounded-lg inline-block"
                     : ""
                 }
               >
@@ -149,7 +153,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <p
                 className={
                   isDifferent(deadlineA, deadlineB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 px-3 py-2 rounded-lg inline-block"
+                    ? "bg-yellow-100 dark:bg-yellow-900 px-3 py-2 rounded-lg inline-block"
                     : ""
                 }
               >
@@ -165,7 +169,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <div
                 className={
                   isDifferent(recipientsA, recipientsB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 p-3 rounded-lg"
+                    ? "bg-yellow-100 dark:bg-yellow-900 p-3 rounded-lg"
                     : ""
                 }
               >
@@ -190,7 +194,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <p
                 className={
                   isDifferent(paymentCountA, paymentCountB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 px-3 py-2 rounded-lg inline-block"
+                    ? "bg-yellow-100 dark:bg-yellow-900 px-3 py-2 rounded-lg inline-block"
                     : ""
                 }
               >
@@ -223,7 +227,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <div
                 className={
                   isDifferent(statusA, statusB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 px-3 py-2 rounded-lg inline-block"
+                    ? "bg-yellow-100 dark:bg-yellow-900 px-3 py-2 rounded-lg inline-block"
                     : ""
                 }
               >
@@ -239,7 +243,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <p
                 className={`text-lg font-semibold ${
                   isDifferent(totalFormatA, totalFormatB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 px-3 py-2 rounded-lg inline-block"
+                    ? "bg-yellow-100 dark:bg-yellow-900 px-3 py-2 rounded-lg inline-block"
                     : ""
                 }`}
               >
@@ -255,7 +259,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <p
                 className={
                   isDifferent(fundedA, fundedB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 px-3 py-2 rounded-lg inline-block"
+                    ? "bg-yellow-100 dark:bg-yellow-900 px-3 py-2 rounded-lg inline-block"
                     : ""
                 }
               >
@@ -283,7 +287,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <p
                 className={
                   isDifferent(deadlineA, deadlineB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 px-3 py-2 rounded-lg inline-block"
+                    ? "bg-yellow-100 dark:bg-yellow-900 px-3 py-2 rounded-lg inline-block"
                     : ""
                 }
               >
@@ -299,7 +303,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <div
                 className={
                   isDifferent(recipientsA, recipientsB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 p-3 rounded-lg"
+                    ? "bg-yellow-100 dark:bg-yellow-900 p-3 rounded-lg"
                     : ""
                 }
               >
@@ -324,7 +328,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
               <p
                 className={
                   isDifferent(paymentCountA, paymentCountB)
-                    ? "bg-yellow-200 dark:bg-yellow-900/30 px-3 py-2 rounded-lg inline-block"
+                    ? "bg-yellow-100 dark:bg-yellow-900 px-3 py-2 rounded-lg inline-block"
                     : ""
                 }
               >
