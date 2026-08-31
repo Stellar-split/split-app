@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useRef } from "react";
 import type { Payment, Invoice } from "@stellar-split/sdk";
 
 type FlowDiagramProps = {
@@ -18,8 +18,29 @@ function formatAmount(a: bigint) {
 }
 
 export default function FlowDiagram({ invoice }: FlowDiagramProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
   const payers = invoice.payments.map((p: Payment) => ({ address: p.payer, amount: p.amount }));
   const recipients = invoice.recipients.map((r) => ({ address: r.address, amount: r.amount }));
+
+  const handleDownloadSvg = () => {
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+
+    const serialized = new XMLSerializer().serializeToString(svgEl);
+    const svgString = serialized.startsWith("<?xml")
+      ? serialized
+      : `<?xml version="1.0" encoding="UTF-8"?>\n${serialized}`;
+
+    const blob = new Blob([svgString], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "flow-diagram.svg";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const width = 800;
   const height = 240;
@@ -36,7 +57,14 @@ export default function FlowDiagram({ invoice }: FlowDiagramProps) {
 
   return (
     <div className="w-full overflow-auto">
-      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="240" preserveAspectRatio="xMidYMid meet" className="mx-auto">
+      <button
+        type="button"
+        onClick={handleDownloadSvg}
+        className="mb-2 px-3 py-1.5 rounded-md text-xs font-medium border border-slate-500 text-slate-200 hover:bg-slate-700"
+      >
+        Download SVG
+      </button>
+      <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} width="100%" height="240" preserveAspectRatio="xMidYMid meet" className="mx-auto">
         <defs>
           <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8" />
