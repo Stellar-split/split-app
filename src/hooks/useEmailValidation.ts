@@ -16,7 +16,15 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const domainCache = new Map<string, CacheEntry>();
 
-export function useEmailValidation(email: string, debounceMs = 500) {
+export interface UseEmailValidationOptions {
+  debounceMs?: number;
+  checkMx?: boolean;
+}
+
+export function useEmailValidation(
+  email: string,
+  { debounceMs = 500, checkMx = true }: UseEmailValidationOptions = {}
+) {
   const [isValidFormat, setIsValidFormat] = useState(false);
   const [isCheckingMX, setIsCheckingMX] = useState(false);
   const [mxValid, setMxValid] = useState<boolean | null>(null);
@@ -32,7 +40,7 @@ export function useEmailValidation(email: string, debounceMs = 500) {
     const formatValid = EMAIL_PATTERN.test(email);
     setIsValidFormat(formatValid);
 
-    if (!formatValid) {
+    if (!formatValid || !checkMx) {
       setMxValid(null);
       return;
     }
@@ -81,7 +89,7 @@ export function useEmailValidation(email: string, debounceMs = 500) {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [email, debounceMs, checkEmail]);
+  }, [email, debounceMs, checkEmail, checkMx]);
 
   return {
     isValidFormat,

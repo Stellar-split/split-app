@@ -34,16 +34,23 @@ export async function GET(
     const invoices = await getGroupInvoices(groupId);
 
     // Calculate member stats
-    const memberStats = new Map<string, { owed: bigint; received: bigint }>();
+    const memberStats = new Map<
+      string,
+      { owed: bigint; received: bigint; invoiceCount: number; streak: number }
+    >();
 
     for (const invoice of invoices) {
       for (const recipient of invoice.recipients) {
         if (!memberStats.has(recipient.address)) {
-          memberStats.set(recipient.address, { owed: 0n, received: 0n });
+          memberStats.set(recipient.address, { owed: 0n, received: 0n, invoiceCount: 0, streak: 0 });
         }
 
         const stats = memberStats.get(recipient.address)!;
         stats.owed += recipient.amount;
+        stats.invoiceCount += 1;
+        if (invoice.status === 'paid') {
+          stats.streak += 1;
+        }
 
         // Calculate received amount based on payment ratio
         if (invoice.funded > 0n) {
@@ -71,6 +78,9 @@ export async function GET(
           percentComplete,
           rank: index + 1,
           optedOut,
+          totalPaid: stats.received,
+          invoiceCount: stats.invoiceCount,
+          streak: stats.streak,
         };
       }
     );
