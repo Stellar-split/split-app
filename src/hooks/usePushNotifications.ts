@@ -4,8 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 
 export type PushNotificationStatus = "unsupported" | "off" | "denied" | "active";
 
+export type PushNotificationPermissionStatus = "granted" | "denied" | "default";
+
 export interface UsePushNotificationsResult {
   status: PushNotificationStatus;
+  permissionStatus: PushNotificationPermissionStatus;
   subscribe: () => Promise<boolean>;
   unsubscribe: () => Promise<void>;
 }
@@ -32,12 +35,16 @@ function isSupported(): boolean {
  */
 export function usePushNotifications(invoiceId: string): UsePushNotificationsResult {
   const [status, setStatus] = useState<PushNotificationStatus>("off");
+  const [permissionStatus, setPermissionStatus] = useState<PushNotificationPermissionStatus>(
+    isSupported() ? Notification.permission : "default"
+  );
 
   const refreshStatus = useCallback(async () => {
     if (!isSupported()) {
       setStatus("unsupported");
       return;
     }
+    setPermissionStatus(Notification.permission);
     if (Notification.permission === "denied") {
       setStatus("denied");
       return;
@@ -59,6 +66,7 @@ export function usePushNotifications(invoiceId: string): UsePushNotificationsRes
     if (!isSupported()) return false;
 
     const permission = await Notification.requestPermission();
+    setPermissionStatus(permission);
     if (permission !== "granted") {
       setStatus(permission === "denied" ? "denied" : "off");
       return false;
@@ -100,5 +108,5 @@ export function usePushNotifications(invoiceId: string): UsePushNotificationsRes
     setStatus("off");
   }, [invoiceId]);
 
-  return { status, subscribe, unsubscribe };
+  return { status, permissionStatus, subscribe, unsubscribe };
 }

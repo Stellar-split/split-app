@@ -8,6 +8,7 @@ interface UseInvoiceSelectionResult {
   toggleSelecting: () => void;
   toggleInvoice: (id: string) => void;
   selectAll: (ids: string[]) => void;
+  selectAllVisible: (visibleIds: string[]) => void;
   deselectAll: () => void;
   isSelected: (id: string) => boolean;
   selectedCount: number;
@@ -40,6 +41,10 @@ export function useInvoiceSelection(): UseInvoiceSelectionResult {
     setSelectedIds(new Set(ids));
   }, []);
 
+  const selectAllVisible = useCallback((visibleIds: string[]) => {
+    setSelectedIds(new Set(visibleIds));
+  }, []);
+
   const deselectAll = useCallback(() => {
     setSelectedIds(new Set());
   }, []);
@@ -55,6 +60,7 @@ export function useInvoiceSelection(): UseInvoiceSelectionResult {
     toggleSelecting,
     toggleInvoice,
     selectAll,
+    selectAllVisible,
     deselectAll,
     isSelected,
     selectedCount: selectedIds.size,
