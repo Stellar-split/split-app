@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { splitClient } from "@/lib/stellar";
 
-const STORAGE_KEY_PREFIX = "stellarsplit-upgrade-dismissed-";
+const DISMISSED_KEY = "split_upgrade_dismissed";
 
 interface UpgradeInfo {
   version: string;
@@ -13,19 +13,17 @@ interface UpgradeInfo {
 export default function UpgradeBanner() {
   const [upgrade, setUpgrade] = useState<UpgradeInfo | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    setDismissed(sessionStorage.getItem(DISMISSED_KEY) === "true");
 
     let cleanup: (() => void) | undefined;
 
     try {
       cleanup = (splitClient as any).watchContractUpgrade((info: UpgradeInfo) => {
-        const key = `${STORAGE_KEY_PREFIX}${info.version}`;
-        const dismissed = localStorage.getItem(key) === "true";
-        if (!dismissed) {
-          setUpgrade(info);
-        }
+        setUpgrade(info);
       });
     } catch {
       // watchContractUpgrade not available in this environment — silently skip
@@ -37,12 +35,11 @@ export default function UpgradeBanner() {
   }, []);
 
   const dismiss = () => {
-    if (!upgrade) return;
-    localStorage.setItem(`${STORAGE_KEY_PREFIX}${upgrade.version}`, "true");
-    setUpgrade(null);
+    sessionStorage.setItem(DISMISSED_KEY, "true");
+    setDismissed(true);
   };
 
-  if (!mounted || !upgrade) return null;
+  if (!mounted || !upgrade || dismissed) return null;
 
   const changelogHref = upgrade.changelogUrl ?? "/changelog";
 
