@@ -53,9 +53,9 @@ export default function AmountDenominationInput({
     if (!xlmToUsdcRate || !value || isNaN(parseFloat(value))) return null;
     const n = parseFloat(value);
     if (denomination === "XLM") {
-      return (n * xlmToUsdcRate).toFixed(4);
+      return (n * xlmToUsdcRate).toFixed(2);
     } else {
-      return (n / xlmToUsdcRate).toFixed(4);
+      return (n / xlmToUsdcRate).toFixed(7);
     }
   })();
 
@@ -77,8 +77,11 @@ export default function AmountDenominationInput({
       converted = n / xlmToUsdcRate;
     }
 
+    // next === "USDC" means we just converted XLM -> USDC (2 decimals);
+    // next === "XLM" means we just converted USDC -> XLM (7 decimals).
+    const decimals = next === "USDC" ? 2 : 7;
     onDenominationChange(next);
-    onChange(converted.toFixed(7).replace(/\.?0+$/, ""));
+    onChange(converted.toFixed(decimals));
   }, [denomination, value, xlmToUsdcRate, onDenominationChange, onChange]);
 
   const borderCls = error
