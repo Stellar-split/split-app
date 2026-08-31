@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 
 export interface PathPaymentResult {
   path: string[];
@@ -10,6 +10,12 @@ export interface PathPaymentResult {
   destinationAmount: string;
   exchangeRate: number;
   slippage: number; // percentage
+}
+
+export interface SelectedPath {
+  hops: string[];
+  effectiveRate: number;
+  slippageEstimate: number;
 }
 
 interface UsePathPaymentOptions {
@@ -32,6 +38,7 @@ const MOCK_EXCHANGE_RATES: Record<string, Record<string, number>> = {
 
 export function usePathPayment(options: UsePathPaymentOptions): {
   paths: PathPaymentResult[];
+  selectedPath: SelectedPath | null;
   loading: boolean;
   error: string | null;
 } {
@@ -99,5 +106,19 @@ export function usePathPayment(options: UsePathPaymentOptions): {
     fetchPaths();
   }, [fetchPaths]);
 
-  return { paths, loading, error };
+  const selectedPath = useMemo((): SelectedPath | null => {
+    if (loading || paths.length === 0) return null;
+
+    const lowestSlippagePath = paths.reduce((lowest, current) =>
+      current.slippage < lowest.slippage ? current : lowest
+    );
+
+    return {
+      hops: lowestSlippagePath.path,
+      effectiveRate: lowestSlippagePath.exchangeRate,
+      slippageEstimate: lowestSlippagePath.slippage,
+    };
+  }, [paths, loading]);
+
+  return { paths, selectedPath, loading, error };
 }

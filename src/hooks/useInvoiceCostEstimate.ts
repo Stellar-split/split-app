@@ -13,6 +13,7 @@ export interface CostBreakdown {
   reserveTopUpXlm: number;
   platformFeeXlm: number;
   addOnCostsXlm: number;
+  pathSpreadXlm: number;
   totalXlm: number;
 }
 
@@ -22,6 +23,7 @@ interface UseInvoiceCostEstimateParams {
   creatorAddress: string;
   enabledAddOns?: FeatureAddOn[];
   feeTierMultiplier?: number;
+  pathPaymentSpreadXlm?: number;
 }
 
 const BASE_NETWORK_FEE_XLM = 0.00001; // 100 stroops
@@ -32,6 +34,7 @@ export function useInvoiceCostEstimate({
   creatorAddress,
   enabledAddOns = [],
   feeTierMultiplier = 1,
+  pathPaymentSpreadXlm = 0,
 }: UseInvoiceCostEstimateParams) {
   const [existingTrustlines, setExistingTrustlines] = useState<Set<string>>(new Set());
   const [creatorBalance, setCreatorBalance] = useState<number | null>(null);
@@ -84,17 +87,26 @@ export function useInvoiceCostEstimate({
     const reserveTopUpXlm = calculateReserveTopUp(estimatedNewTrustlines);
 
     const addOnCostsXlm = getAddOnCosts(enabledAddOns);
+    const pathSpreadXlm = pathPaymentSpreadXlm;
 
-    const totalXlm = networkFeeXlm + platformFeeXlm + reserveTopUpXlm + addOnCostsXlm;
+    const totalXlm =
+      networkFeeXlm + platformFeeXlm + reserveTopUpXlm + addOnCostsXlm + pathSpreadXlm;
 
     return {
       networkFeeXlm,
       reserveTopUpXlm,
       platformFeeXlm,
       addOnCostsXlm,
+      pathSpreadXlm,
       totalXlm,
     };
-  }, [invoiceAmountXlm, recipientAddresses.length, feeTierMultiplier, enabledAddOns]);
+  }, [
+    invoiceAmountXlm,
+    recipientAddresses.length,
+    feeTierMultiplier,
+    enabledAddOns,
+    pathPaymentSpreadXlm,
+  ]);
 
   const isBalanceSufficient = useMemo(() => {
     if (creatorBalance === null) return null;
