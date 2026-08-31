@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { truncateAddress } from "@stellar-split/sdk";
 
 interface RemoteCursor {
@@ -7,11 +8,33 @@ interface RemoteCursor {
   field: string;
   color: string;
   timestamp: number;
+  displayName?: string;
 }
 
 interface Props {
   cursors: RemoteCursor[];
   fieldName: string;
+}
+
+const LABEL_FADE_MS = 3000;
+
+function CursorLabel({ cursor }: { cursor: RemoteCursor }) {
+  const [faded, setFaded] = useState(false);
+
+  useEffect(() => {
+    setFaded(false);
+    const timer = setTimeout(() => setFaded(true), LABEL_FADE_MS);
+    return () => clearTimeout(timer);
+  }, [cursor.timestamp]);
+
+  return (
+    <span
+      className="transition-opacity duration-500 ease-out"
+      style={{ opacity: faded ? 0 : 1 }}
+    >
+      {cursor.displayName ?? truncateAddress(cursor.address)}
+    </span>
+  );
 }
 
 export default function CursorOverlay({ cursors, fieldName }: Props) {
@@ -35,7 +58,7 @@ export default function CursorOverlay({ cursors, fieldName }: Props) {
             className="w-1.5 h-1.5 rounded-full inline-block"
             style={{ backgroundColor: cursor.color }}
           />
-          {truncateAddress(cursor.address)}
+          <CursorLabel cursor={cursor} />
         </div>
       ))}
     </div>
