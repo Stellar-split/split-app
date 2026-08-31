@@ -7,7 +7,7 @@
 
 const SNOOZE_STORAGE_KEY = "invoice_snooze";
 
-export type SnoozeOption = "1h" | "4h" | "until-tomorrow";
+export type SnoozeOption = "1h" | "4h" | "24h" | "3d" | "until-tomorrow";
 
 export interface SnoozeState {
   invoiceId: string;
@@ -61,6 +61,12 @@ export function snoozeInvoice(
       break;
     case "4h":
       snoozedUntil = now + 4 * 60 * 60 * 1000;
+      break;
+    case "24h":
+      snoozedUntil = now + 24 * 60 * 60 * 1000;
+      break;
+    case "3d":
+      snoozedUntil = now + 3 * 24 * 60 * 60 * 1000;
       break;
     case "until-tomorrow":
       const tomorrow = new Date();
