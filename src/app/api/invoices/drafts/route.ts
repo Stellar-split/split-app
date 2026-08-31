@@ -30,3 +30,20 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ received: true, draftId });
 }
+
+/**
+ * Reports the server's last-known `updatedAt` for a draft, so the client can
+ * detect a conflict before overwriting it. There's no database in this
+ * project, so there's never a stored server version — the client treats a
+ * missing `updatedAt` as "no conflict" and syncs normally.
+ */
+export async function GET(request: NextRequest) {
+  const draftId = request.nextUrl.searchParams.get("draftId");
+  const userId = request.nextUrl.searchParams.get("userId");
+
+  if (!draftId || !userId) {
+    return NextResponse.json({ error: "draftId and userId are required" }, { status: 400 });
+  }
+
+  return NextResponse.json({ updatedAt: null });
+}
