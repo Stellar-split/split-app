@@ -1,20 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { NORMAL_FEE_THRESHOLD } from "@/lib/stellar";
+import { useEffect, useRef, useState } from "react";
 
 export interface FeeSpikeState {
   p95AcceptedFee: number | null;
   isSpike: boolean;
   loading: boolean;
+  sensitivityPercent: number;
 }
 
-export function useFeeSpikeDetection(): FeeSpikeState {
+export function useFeeSpikeDetection(sensitivityPercent = 50): FeeSpikeState {
   const [state, setState] = useState<FeeSpikeState>({
     p95AcceptedFee: null,
     isSpike: false,
     loading: true,
+    sensitivityPercent,
   });
+  const historyRef = useRef<number[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,10 +29,21 @@ export function useFeeSpikeDetection(): FeeSpikeState {
         const json = await response.json();
         const p95AcceptedFee = Number(json.p95_accepted_fee);
         if (!cancelled) {
+          const history = historyRef.current;
+          const rollingAverage =
+            history.length > 0
+              ? history.reduce((sum, fee) => sum + fee, 0) / history.length
+              : p95AcceptedFee;
+          const isSpike =
+            rollingAverage > 0 &&
+            p95AcceptedFee > rollingAverage * (1 + sensitivityPercent / 100);
+          history.push(p95AcceptedFee);
+          if (history.length > 10) history.shift();
           setState({
             p95AcceptedFee,
-            isSpike: p95AcceptedFee > NORMAL_FEE_THRESHOLD * 2,
+            isSpike,
             loading: false,
+            sensitivityPercent,
           });
         }
       } catch {
@@ -51,7 +64,7 @@ export function useFeeSpikeDetection(): FeeSpikeState {
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [sensitivityPercent]);
 
   return state;
 }
