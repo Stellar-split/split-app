@@ -7,7 +7,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { SubscriptionListSkeleton } from "@/components/Skeleton";
 import SubscriptionCard from "@/components/SubscriptionCard";
-import type { Subscription } from "@/types/subscription";
+import type { Subscription, SubscriptionStatus } from "@/types/subscription";
 import {
   loadSubscriptions,
   saveSubscriptions,
@@ -18,12 +18,22 @@ import {
 
 const POLL_INTERVAL_MS = 30_000;
 
+type StatusFilter = "all" | SubscriptionStatus;
+
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "paused", label: "Paused" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
 export default function SubscriptionsClient() {
   const router = useRouter();
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   useEffect(() => {
     getFreighterPublicKey()
@@ -154,6 +164,25 @@ export default function SubscriptionsClient() {
         </div>
       )}
 
+      {/* Status Filter */}
+      {!loading && subscriptions.length > 0 && (
+        <div className="flex gap-2 flex-wrap mb-6">
+          {STATUS_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              onClick={() => setStatusFilter(filter.value)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                statusFilter === filter.value
+                  ? "bg-indigo-600 border-indigo-600 text-white"
+                  : "border-gray-700 text-gray-300 hover:bg-gray-800"
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Subscription List */}
       {loading ? (
         <SubscriptionListSkeleton />
@@ -171,7 +200,9 @@ export default function SubscriptionsClient() {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {subscriptions.map((sub) => (
+          {subscriptions
+            .filter((sub) => statusFilter === "all" || sub.status === statusFilter)
+            .map((sub) => (
             <div key={sub.id} className="flex flex-col gap-2">
               <SubscriptionCard subscription={sub} />
               <div className="flex gap-2 px-1">

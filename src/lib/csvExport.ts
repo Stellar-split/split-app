@@ -14,22 +14,47 @@ export interface PaymentExportRow {
   tx_hash: string;
 }
 
+export const PAYMENT_EXPORT_COLUMNS = [
+  "payer_address",
+  "amount_usdc",
+  "timestamp",
+  "tx_hash",
+] as const;
+
+export type PaymentExportColumn = (typeof PAYMENT_EXPORT_COLUMNS)[number];
+
+export const PAYMENT_EXPORT_COLUMN_LABELS: Record<PaymentExportColumn, string> = {
+  payer_address: "Payer Address",
+  amount_usdc: "Amount (USDC)",
+  timestamp: "Timestamp",
+  tx_hash: "Transaction Hash",
+};
+
+const PAYMENT_FIELD_GETTERS: Record<
+  PaymentExportColumn,
+  (payment: PaymentWithMeta) => string
+> = {
+  payer_address: (payment) => escapeCSVField(payment.payer),
+  amount_usdc: (payment) => formatAmount(payment.amount),
+  timestamp: (payment) => formatTimestamp(payment.timestamp),
+  tx_hash: (payment) => escapeCSVField(payment.txHash || ""),
+};
+
 /**
  * Convert payments array to CSV string
  */
-export function paymentsToCSV(payments: PaymentWithMeta[]): string {
-  // CSV header
-  const headers = ["payer_address", "amount_usdc", "timestamp", "tx_hash"];
-  const rows = [headers.join(",")];
+export function paymentsToCSV(
+  payments: PaymentWithMeta[],
+  columns: readonly PaymentExportColumn[] = PAYMENT_EXPORT_COLUMNS
+): string {
+  const activeColumns = columns.length > 0 ? columns : PAYMENT_EXPORT_COLUMNS;
+  const rows = [activeColumns.join(",")];
 
   // Add data rows
   for (const payment of payments) {
-    const row = [
-      escapeCSVField(payment.payer),
-      formatAmount(payment.amount),
-      formatTimestamp(payment.timestamp),
-      escapeCSVField(payment.txHash || ""),
-    ];
+    const row = activeColumns.map((column) =>
+      PAYMENT_FIELD_GETTERS[column](payment)
+    );
     rows.push(row.join(","));
   }
 

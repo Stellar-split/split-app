@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import type { PaymentPlan } from '@/lib/planCalculator';
-import { generateSuggestedPlans } from '@/lib/planCalculator';
+import { generateSuggestedPlans, formatPlanForDisplay } from '@/lib/planCalculator';
 import PaymentPlanComparison from './PaymentPlanComparison';
 
 interface PlanGeneratorModalProps {
@@ -83,6 +83,49 @@ export default function PlanGeneratorModal({
               setSelectedPlanIndex(index);
             }}
           />
+
+          {/* Live Preview Table */}
+          <div className="mt-8">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              Installment Schedule Preview
+            </h3>
+            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500">#</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500">Due Date</th>
+                    <th className="px-4 py-2 text-right font-medium text-gray-500">Amount</th>
+                    <th className="px-4 py-2 text-right font-medium text-gray-500">
+                      Running Total
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {(() => {
+                    const display = formatPlanForDisplay(selectedPlan);
+                    let runningTotal = 0;
+                    return selectedPlan.milestones.map((milestone, i) => {
+                      const amount = Number(display.amounts[i]);
+                      runningTotal += amount;
+                      return (
+                        <tr key={milestone.dueDate}>
+                          <td className="px-4 py-2 text-gray-700">{i + 1}</td>
+                          <td className="px-4 py-2 text-gray-700">{display.dueDates[i]}</td>
+                          <td className="px-4 py-2 text-right text-gray-700">
+                            {display.amounts[i]}
+                          </td>
+                          <td className="px-4 py-2 text-right text-gray-700">
+                            {runningTotal.toFixed(2)}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
