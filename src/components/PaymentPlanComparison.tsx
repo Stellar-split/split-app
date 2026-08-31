@@ -18,6 +18,12 @@ export default function PaymentPlanComparison({
 }: PaymentPlanComparisonProps) {
   const [hoveredPlanIndex, setHoveredPlanIndex] = useState<number | null>(null);
 
+  const cheapestPlanIndex = plans.reduce(
+    (cheapestIndex, plan, index) =>
+      plan.effectiveCost < plans[cheapestIndex].effectiveCost ? index : cheapestIndex,
+    0
+  );
+
   return (
     <div className="w-full overflow-x-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-w-max md:min-w-full">
@@ -92,10 +98,20 @@ export default function PaymentPlanComparison({
               </div>
 
               {/* Total Cost */}
-              <div className="border-t border-gray-200 pt-4">
+              <div
+                className={`border-t pt-4 ${
+                  index === cheapestPlanIndex
+                    ? 'border-green-500 bg-green-50 -mx-6 px-6 pb-2 rounded-b-lg'
+                    : 'border-gray-200'
+                }`}
+              >
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-semibold text-gray-700">Total Cost:</span>
-                  <span className="text-xl font-bold text-gray-900">
+                  <span
+                    className={`text-xl font-bold ${
+                      index === cheapestPlanIndex ? 'text-green-700' : 'text-gray-900'
+                    }`}
+                  >
                     {formatted.total} USDC
                   </span>
                 </div>
