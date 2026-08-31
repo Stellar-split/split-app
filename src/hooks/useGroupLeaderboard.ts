@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import type { GroupLeaderboardData } from '@/types/groupLeaderboard';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import type { GroupLeaderboardData, LeaderboardSortBy } from '@/types/groupLeaderboard';
 
-export function useGroupLeaderboard(groupId: string) {
+export function useGroupLeaderboard(groupId: string, sortBy: LeaderboardSortBy = 'totalPaid') {
   const [leaderboard, setLeaderboard] = useState<GroupLeaderboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -49,6 +49,15 @@ export function useGroupLeaderboard(groupId: string) {
 
   const mutate = fetchLeaderboard;
 
+  const sortedLeaderboard = useMemo(() => {
+    if (!leaderboard) return leaderboard;
+    const members = [...leaderboard.members].sort((a, b) => {
+      const diff = Number(b[sortBy]) - Number(a[sortBy]);
+      return diff !== 0 ? diff : a.rank - b.rank;
+    });
+    return { ...leaderboard, members };
+  }, [leaderboard, sortBy]);
+
   useEffect(() => {
     mountedRef.current = true;
 
@@ -71,7 +80,7 @@ export function useGroupLeaderboard(groupId: string) {
   }, [groupId]);
 
   return {
-    leaderboard,
+    leaderboard: sortedLeaderboard,
     isLoading,
     error,
     updateOptOut,
