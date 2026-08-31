@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { deleteDraft, getDraft, putDraft, type DraftFormData } from "@/lib/offlineDraftDB";
+import { deleteDraft, getDraft, putDraft, type DraftFormData, type StoredDraft } from "@/lib/offlineDraftDB";
 import { apiFetch } from "@/lib/apiClient";
 
 const AUTOSAVE_INTERVAL_MS = 5_000;
@@ -21,7 +21,8 @@ export interface UseOfflineDraftAutosaveResult {
 export function useOfflineDraftAutosave(
   userId: string,
   draftId: string,
-  data: DraftFormData
+  data: DraftFormData,
+  onConflict?: (local: StoredDraft, server: { updatedAt: number }) => void
 ): UseOfflineDraftAutosaveResult {
   const [isOffline, setIsOffline] = useState(
     () => typeof navigator !== "undefined" && !navigator.onLine
@@ -29,12 +30,30 @@ export function useOfflineDraftAutosave(
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const dataRef = useRef(data);
   dataRef.current = data;
+  const onConflictRef = useRef(onConflict);
+  onConflictRef.current = onConflict;
 
   const flush = useCallback(async () => {
     if (!userId || !draftId) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
     const draft = await getDraft(userId, draftId);
     if (!draft) return;
+
+    try {
+      const serverRes = await apiFetch(
+        `/api/invoices/drafts?${new URLSearchParams({ userId, draftId })}`
+      );
+      if (serverRes.ok) {
+        const serverBody = await serverRes.json().catch(() => null);
+        const serverUpdatedAt = serverBody?.updatedAt;
+        if (typeof serverUpdatedAt === "number" && serverUpdatedAt > draft.updatedAt) {
+          onConflictRef.current?.(draft, { updatedAt: serverUpdatedAt });
+          return;
+        }
+      }
+    } catch {
+      // Can't reach the server to check for a conflict — fall through and sync as before.
+    }
 
     try {
       const res = await apiFetch("/api/invoices/drafts", {

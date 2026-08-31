@@ -4,6 +4,13 @@ import { useState, useEffect, useRef } from "react";
 
 const REFRESH_MS = 60_000;
 
+export interface UseXlmUsdcRateOptions {
+  /** Percentage move (e.g. 5 for 5%) from the rate at hook initialisation that triggers onAlert. */
+  alertThreshold?: number;
+  /** Called at most once per polling interval when the rate crosses alertThreshold. */
+  onAlert?: (direction: "up" | "down", changePercent: number) => void;
+}
+
 /**
  * useXlmUsdcRate
  *
@@ -13,12 +20,16 @@ const REFRESH_MS = 60_000;
  *
  * Returns null while loading or when the rate is unavailable.
  */
-export function useXlmUsdcRate(): number | null {
+export function useXlmUsdcRate(options?: UseXlmUsdcRateOptions): number | null {
   const [rate, setRate] = useState<number | null>(null);
   const mounted = useRef(true);
+  const baseRateRef = useRef<number | null>(null);
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   useEffect(() => {
     mounted.current = true;
+    baseRateRef.current = null;
 
     const load = async () => {
       try {
@@ -32,6 +43,17 @@ export function useXlmUsdcRate(): number | null {
         const data = await res.json();
         const xlmUsd: number | undefined = data?.stellar?.usd;
         if (typeof xlmUsd === "number" && xlmUsd > 0 && mounted.current) {
+          if (baseRateRef.current === null) {
+            baseRateRef.current = xlmUsd;
+          } else {
+            const { alertThreshold, onAlert } = optionsRef.current ?? {};
+            if (alertThreshold && onAlert) {
+              const changePercent = ((xlmUsd - baseRateRef.current) / baseRateRef.current) * 100;
+              if (Math.abs(changePercent) >= alertThreshold) {
+                onAlert(changePercent > 0 ? "up" : "down", Math.abs(changePercent));
+              }
+            }
+          }
           setRate(xlmUsd);
         }
       } catch {
