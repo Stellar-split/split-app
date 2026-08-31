@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { AddressChangeRequestInput } from '@/types/addressChangeRequest';
+import { useAddressValidation } from '@/hooks/useAddressValidation';
 
 interface AddressChangeRequestModalProps {
   invoiceId: string;
@@ -25,15 +26,30 @@ export default function AddressChangeRequestModal({
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  const {
+    validateAddress,
+    isValid: isAddressValid,
+    isLoading: isAddressValidating,
+    error: addressError,
+  } = useAddressValidation();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'newAddress' && hasAttemptedSubmit) {
+      validateAddress(value);
+    }
+  };
+
+  const handleAddressBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    validateAddress(e.target.value);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setHasAttemptedSubmit(true);
 
     // Validate new address is different from old address
     if (formData.newAddress === formData.oldAddress) {
@@ -41,9 +57,9 @@ export default function AddressChangeRequestModal({
       return;
     }
 
-    // Validate new address format (basic check for Stellar address)
-    if (!formData.newAddress.startsWith('G') || formData.newAddress.length !== 56) {
-      setError('Invalid Stellar address format');
+    // Validate new address using Stellar address validation (state populated via blur/change)
+    if (!formData.newAddress.trim() || !isAddressValid) {
+      setError(addressError || 'Invalid Stellar address format');
       return;
     }
 
@@ -119,11 +135,16 @@ export default function AddressChangeRequestModal({
               name="newAddress"
               value={formData.newAddress}
               onChange={handleChange}
+              onBlur={handleAddressBlur}
               placeholder="G..."
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">Must be a valid Stellar address starting with G</p>
+            {addressError ? (
+              <p className="text-xs text-red-400 mt-1">{addressError}</p>
+            ) : (
+              <p className="text-xs text-gray-500 mt-1">Must be a valid Stellar address starting with G</p>
+            )}
           </div>
 
           {/* Justification */}
@@ -158,7 +179,11 @@ export default function AddressChangeRequestModal({
             </button>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={
+                isLoading ||
+                !formData.newAddress.trim() ||
+                (hasAttemptedSubmit && (!isAddressValid || isAddressValidating))
+              }
               className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
             >
               {isLoading ? 'Submitting...' : 'Submit Request'}
