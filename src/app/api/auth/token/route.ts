@@ -170,5 +170,3 @@ export async function POST(req: NextRequest) {
   return res;
 }
 
-// Also export the verifyJwt helper for use by withAuth
-export { verifyJwt, JWT_SECRET };
