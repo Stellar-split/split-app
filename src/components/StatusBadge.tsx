@@ -18,10 +18,10 @@ const SIZE: Record<string, string> = {
  * Consumes centralized STATUS_CONFIG from src/lib/invoiceStatus.ts
  */
 export default function StatusBadge({ status, size = "md", description }: Props) {
+  const [showTooltip, setShowTooltip] = useState(false);
   const config = STATUS_CONFIG[status];
   if (!config) return null;
 
-  const [showTooltip, setShowTooltip] = useState(false);
   const tooltipText = description || config.description;
 
   return (
