@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { STATUS_CONFIG, type InvoiceStatus } from "@/lib/invoiceStatus";
 
