@@ -65,8 +65,8 @@ describe("Breadcrumb", () => {
       { label: "Invoices", href: "/dashboard" },
       { label: "Invoice #123" },
     ];
-    const { container } = render(<Breadcrumb items={items} />);
-    const invoicesLink = screen.getByText("Invoices").closest("a");
-    expect(invoicesLink).not.toHaveAttribute("aria-current");
+    render(<Breadcrumb items={items} />);
+    const invoicesEl = screen.getByText("Invoices");
+    expect(invoicesEl).not.toHaveAttribute("aria-current");
   });
 });

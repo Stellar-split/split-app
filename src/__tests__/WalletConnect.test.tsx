@@ -1,23 +1,28 @@
 import { render, screen } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import WalletConnect from '@/components/WalletConnect';
 import { useWalletContext } from '@/contexts/WalletContext';
 
-jest.mock('@/contexts/WalletContext');
+vi.mock('@/contexts/WalletContext');
+vi.mock('@/contexts/ToastContext', () => ({ useToast: () => vi.fn() }));
+vi.mock('@/lib/stellar', () => ({ fetchUsdcBalance: vi.fn() }));
+vi.mock('@/components/QRModal', () => ({ default: () => null }));
+vi.mock('@/components/WalletErrorModal', () => ({ default: () => null }));
 
 describe('WalletConnect', () => {
-  const mockUseWalletContext = useWalletContext as jest.MockedFunction<typeof useWalletContext>;
+  const mockUseWalletContext = useWalletContext as ReturnType<typeof vi.fn>;
   const defaultMockReturn = {
     address: null,
     walletType: null,
     connecting: false,
     error: null,
     freighterInstalled: null,
-    connect: jest.fn(),
-    disconnect: jest.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockUseWalletContext.mockReturnValue(defaultMockReturn);
   });
 
@@ -86,7 +91,7 @@ describe('WalletConnect', () => {
 
     it('does not show connect buttons', () => {
       render(<WalletConnect />);
-      expect(screen.queryByRole('button', { name: /Connect/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Connect/i })).not.toBeInTheDocument();
     });
 
     it('shows address badge and disconnect button', () => {

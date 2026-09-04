@@ -1,39 +1,40 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import LineItemRow from '@/components/LineItemRow';
 
 // Mock dependencies
-jest.mock('@/components/settings/AddressBookPicker', () => {
-  return function MockAddressBookPicker({ value, onChange, placeholder, ariaLabel }: any) {
+vi.mock('@/components/settings/AddressBookPicker', () => ({
+  default: function MockAddressBookPicker({ value, onChange, placeholder, ariaLabel }: any) {
     return (
       <input
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: any) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={ariaLabel}
       />
     );
-  };
-});
+  },
+}));
 
-jest.mock('@/components/ui/Avatar', () => {
-  return function MockAvatar({ address }: any) {
+vi.mock('@/components/ui/Avatar', () => ({
+  default: function MockAvatar({ address }: any) {
     return <div data-testid="avatar">{address}</div>;
-  };
-});
+  },
+}));
 
-jest.mock('@/components/EmailField', () => {
-  return function MockEmailField({ email, onEmailChange }: any) {
+vi.mock('@/components/EmailField', () => ({
+  default: function MockEmailField({ email, onEmailChange }: any) {
     return (
       <input
         type="email"
         value={email}
-        onChange={(e) => onEmailChange(e.target.value)}
+        onChange={(e: any) => onEmailChange(e.target.value)}
         placeholder="email@example.com"
       />
     );
-  };
-});
+  },
+}));
 
 describe('LineItemRow', () => {
   const mockProps = {
@@ -49,13 +50,17 @@ describe('LineItemRow', () => {
     activeIndex: null,
     canRemove: true,
     emailByAddress: { GTEST123: 'test@example.com' },
-    onAddressChange: jest.fn(),
-    onAmountChange: jest.fn(),
-    onAmountFocus: jest.fn(),
-    onAmountSuggestionSelect: jest.fn(),
-    onRemove: jest.fn(),
-    onEmailChange: jest.fn(),
+    onAddressChange: vi.fn(),
+    onAmountChange: vi.fn(),
+    onAmountFocus: vi.fn(),
+    onAmountSuggestionSelect: vi.fn(),
+    onRemove: vi.fn(),
+    onEmailChange: vi.fn(),
   };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should render address input', () => {
     render(<LineItemRow {...mockProps} />);

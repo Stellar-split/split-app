@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { Skeleton } from '@/components/Skeleton';
+import { Skeleton, InvoiceCardSkeleton } from '@/components/Skeleton';
 
 describe('Skeleton', () => {
   it('renders with skeleton-shimmer class', () => {
@@ -26,9 +26,7 @@ describe('Skeleton', () => {
   });
 
   it('renders InvoiceCardSkeleton with proper ARIA attributes', () => {
-    const { render: customRender } = require('@testing-library/react');
-    const { InvoiceCardSkeleton } = require('@/components/Skeleton');
-    const { container } = customRender(<InvoiceCardSkeleton />);
+    const { container } = render(<InvoiceCardSkeleton />);
     const skeleton = container.querySelector('[role="status"]');
     expect(skeleton).toHaveAttribute('aria-busy', 'true');
     expect(skeleton).toHaveAttribute('aria-label', 'Loading invoice data');

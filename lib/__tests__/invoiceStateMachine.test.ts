@@ -11,6 +11,6 @@ describe('invoiceStateMachine', () => {
 
   test('rejects invalid transitions', () => {
     expect(statusTransitionGuard('Draft', 'Fully Paid')).toBe(false);
-    expect(statusIntsGuard => statusTransitionGuard('Fully Paid', 'Pending')).toBe(false);
+    expect(statusTransitionGuard('Fully Paid', 'Pending')).toBe(false);
   });
 });

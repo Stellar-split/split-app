@@ -191,11 +191,10 @@ describe('MergeDiffPanel logic', () => {
     const diff = invoiceDiff(invoice1, invoice2);
     const identicalFields = diff.fields.filter((f) => !f.isDifferent);
 
-  return {
-    diffs,
-    hasDifferences: Object.keys(diffs).length > 0,
-  };
-}
+    expect(identicalFields.length).toBeGreaterThan(0);
+    identicalFields.forEach((f) => expect(f.isDifferent).toBe(false));
+  });
+});
 
 describe('invoiceMergeTool', () => {
   describe('invoiceDiff utility', () => {
@@ -209,9 +208,12 @@ describe('invoiceMergeTool', () => {
     it('correctly identifies differences in single fields', () => {
       const inv1 = { id: '1', amount: 100n, status: 'PENDING' };
       const inv2 = { id: '1', amount: 200n, status: 'PENDING' };
-      const result = invoiceDiff(inv1, inv2);
+      const result = invoiceDiff(inv1 as any, inv2 as any);
       expect(result.hasDifferences).toBe(true);
-      expect(result.diffs.amount).toEqual({ value1: 100n, value2: 200n });
+      const amountField = result.fields.find((f) => f.field === 'amount');
+      expect(amountField?.isDifferent).toBe(true);
+      expect(amountField?.value1).toBe(100n);
+      expect(amountField?.value2).toBe(200n);
     });
   });
 });

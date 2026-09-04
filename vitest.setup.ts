@@ -3,6 +3,21 @@ import { vi } from 'vitest';
 
 (globalThis as any).jest = vi as any;
 
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() })),
+  usePathname: vi.fn(() => '/'),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+  useParams: vi.fn(() => ({})),
+  redirect: vi.fn(),
+}));
+
+vi.mock('next/link', () => ({
+  default: ({ children, href, className, ...rest }: any) => {
+    const React = require('react');
+    return React.createElement('a', { href, className, ...rest }, children);
+  },
+}));
+
 vi.mock('@stellar/freighter-api', () => ({
   getPublicKey: vi.fn().mockResolvedValue('GTEST_PUBLIC_KEY'),
   signTransaction: vi.fn().mockResolvedValue('signed_xdr'),

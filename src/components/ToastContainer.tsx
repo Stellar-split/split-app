@@ -31,12 +31,15 @@ const POSITION_CLASSES: Record<ToastContainerPosition, string> = {
  */
 export default function ToastContainer({ position = 'top-right' }: ToastContainerProps) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const toastsRef = useRef<ToastMessage[]>([]);
   const dedupeTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const dismissTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
+  // Keep ref in sync so addToast can see current toasts without stale closure
+  toastsRef.current = toasts;
+
   const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const dedupeKey = `${message}|${type}`;
-    const existingToast = toasts.find((t) => t.message === message && t.type === type);
+    const existingToast = toastsRef.current.find((t) => t.message === message && t.type === type);
 
     if (existingToast) {
       // Reset auto-dismiss timer for the existing toast
@@ -52,19 +55,18 @@ export default function ToastContainer({ position = 'top-right' }: ToastContaine
     }
 
     const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    setToasts((prev) => [...prev, { id, message, type }]);
-
-    // Cancel any pending dedupe timer for this key
-    const pendingDedupeTimer = dedupeTimersRef.current.get(dedupeKey);
-    if (pendingDedupeTimer) clearTimeout(pendingDedupeTimer);
+    const newToast = { id, message, type };
+    toastsRef.current = [...toastsRef.current, newToast];
+    setToasts((prev) => [...prev, newToast]);
 
     // Auto-dismiss after 5 seconds
     const dismissTimer = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
+      toastsRef.current = toastsRef.current.filter((t) => t.id !== id);
       dismissTimersRef.current.delete(id);
     }, 5_000);
     dismissTimersRef.current.set(id, dismissTimer);
-  }, [toasts]);
+  }, []);
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));

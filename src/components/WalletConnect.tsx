@@ -190,7 +190,7 @@ export default function WalletConnect({ compact = false }: Props) {
           onClick={handleConnect}
           disabled={connecting}
           className="min-h-11 px-6 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          aria-label="Connect Freighter wallet"
+          aria-label="Connect with Freighter"
         >
           {connecting ? "Connecting…" : "Connect with Freighter"}
         </button>
@@ -199,7 +199,7 @@ export default function WalletConnect({ compact = false }: Props) {
           onClick={handleConnectWalletConnect}
           disabled={connecting}
           className="min-h-11 px-6 py-3 rounded-lg bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 font-semibold transition-colors disabled:opacity-50 border border-gray-200 dark:border-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          aria-label="Connect Wallet via QR"
+          aria-label="Connect with WalletConnect"
         >
           {connecting ? "Connecting…" : "Connect with WalletConnect"}
         </button>

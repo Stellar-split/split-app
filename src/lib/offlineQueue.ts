@@ -51,7 +51,7 @@ export async function openDB(): Promise<IDBPDatabase> {
 
 export async function queuePayment(
   payment: Omit<QueuedPayment, "id" | "status">
-
+) {
   const db = await openDB();
   const id = createId();
   const stored = toStored({ ...payment, id, status: "pending" });

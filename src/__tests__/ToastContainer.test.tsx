@@ -1,14 +1,15 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import ToastContainer from '@/components/ToastContainer';
 
 describe('ToastContainer', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   it('renders no toasts when none are added', () => {
@@ -22,9 +23,11 @@ describe('ToastContainer', () => {
     const addToast = (window as any).__toastContainer?.addToast;
     if (!addToast) throw new Error('addToast not exposed');
 
-    addToast('Saved!', 'success');
-    addToast('Saved!', 'success');
-    addToast('Saved!', 'success');
+    act(() => {
+      addToast('Saved!', 'success');
+      addToast('Saved!', 'success');
+      addToast('Saved!', 'success');
+    });
 
     const toastMessages = screen.getAllByText('Saved!');
     expect(toastMessages).toHaveLength(1);
@@ -36,8 +39,10 @@ describe('ToastContainer', () => {
     const addToast = (window as any).__toastContainer?.addToast;
     if (!addToast) throw new Error('addToast not exposed');
 
-    addToast('Saved!', 'success');
-    addToast('Error!', 'error');
+    act(() => {
+      addToast('Saved!', 'success');
+      addToast('Error!', 'error');
+    });
 
     expect(screen.getByText('Saved!')).toBeInTheDocument();
     expect(screen.getByText('Error!')).toBeInTheDocument();
@@ -49,8 +54,10 @@ describe('ToastContainer', () => {
     const addToast = (window as any).__toastContainer?.addToast;
     if (!addToast) throw new Error('addToast not exposed');
 
-    addToast('Updated', 'success');
-    addToast('Updated', 'error');
+    act(() => {
+      addToast('Updated', 'success');
+      addToast('Updated', 'error');
+    });
 
     const toastMessages = screen.getAllByText('Updated');
     expect(toastMessages).toHaveLength(2);
@@ -62,16 +69,17 @@ describe('ToastContainer', () => {
     const addToast = (window as any).__toastContainer?.addToast;
     if (!addToast) throw new Error('addToast not exposed');
 
-    addToast('Saving...', 'info');
-
-    jest.advanceTimersByTime(4000);
+    act(() => { addToast('Saving...', 'info'); });
     expect(screen.getByText('Saving...')).toBeInTheDocument();
 
-    addToast('Saving...', 'info');
-    jest.advanceTimersByTime(4000);
+    act(() => { vi.advanceTimersByTime(4000); });
     expect(screen.getByText('Saving...')).toBeInTheDocument();
 
-    jest.advanceTimersByTime(1000);
+    act(() => { addToast('Saving...', 'info'); });
+    act(() => { vi.advanceTimersByTime(4000); });
+    expect(screen.getByText('Saving...')).toBeInTheDocument();
+
+    act(() => { vi.advanceTimersByTime(1001); });
     expect(screen.queryByText('Saving...')).not.toBeInTheDocument();
   });
 
@@ -81,10 +89,10 @@ describe('ToastContainer', () => {
     const addToast = (window as any).__toastContainer?.addToast;
     if (!addToast) throw new Error('addToast not exposed');
 
-    addToast('Processed', 'success');
+    act(() => { addToast('Processed', 'success'); });
     expect(screen.getByText('Processed')).toBeInTheDocument();
 
-    jest.advanceTimersByTime(5000);
+    act(() => { vi.advanceTimersByTime(5001); });
     expect(screen.queryByText('Processed')).not.toBeInTheDocument();
   });
 });

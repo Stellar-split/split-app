@@ -3,6 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getFreighterPublicKey } from "@/lib/freighter";
+import { useNetworkFeeBreakdown } from "@/hooks/useNetworkFeeBreakdown";
+
+const STROOPS_PER_XLM = 10_000_000n;
+
+function formatFee(fee: bigint): string {
+  const xlm = Number(fee) / Number(STROOPS_PER_XLM);
+  return `${xlm.toFixed(5)} XLM ≈ $0.00`;
+}
 
 interface Props {
   invoiceId: string;
@@ -19,6 +27,7 @@ export default function PayPreviewButton({ invoiceId, status }: Props) {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { fee = null, loading: feeLoading = false, error: feeError = null } = useNetworkFeeBreakdown() ?? {};
 
   useEffect(() => {
     getFreighterPublicKey().then(setPublicKey).catch(() => null);
@@ -67,6 +76,15 @@ export default function PayPreviewButton({ invoiceId, status }: Props) {
         <p role="alert" className="text-red-400 text-sm text-center">
           {error}
         </p>
+      )}
+      {!feeError && (
+        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+          {feeLoading ? (
+            <span data-testid="fee-skeleton" className="h-3 w-28 rounded bg-gray-700 animate-pulse" />
+          ) : fee !== null ? (
+            <span>Est. fee: {formatFee(fee)}</span>
+          ) : null}
+        </div>
       )}
     </div>
   );

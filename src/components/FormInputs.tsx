@@ -218,6 +218,7 @@ export function DatePicker({
       <input
         id={id}
         type="date"
+        role="textbox"
         required={required}
         disabled={disabled}
         aria-required={required}

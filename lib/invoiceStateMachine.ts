@@ -12,3 +12,5 @@ export function statusTransitionGuard(current: InvoiceStatus, target: InvoiceSta
   if (current === target) return true;
   return ALLOWED_TRANSITIONS[current]?.includes(target) ?? false;
 }
+
+export const isValidTransition = statusTransitionGuard;
