@@ -56,7 +56,7 @@ export default function AchievementCard({ invoiceId, totalAmount, onDismiss }: P
 
     // Fallback: copy the achievement URL to the clipboard.
     try {
-      await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+      await (navigator as Navigator).clipboard.writeText(`${shareText} ${shareUrl}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
