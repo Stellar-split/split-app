@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
   }
 
   // The transaction source must match the requested account
-  if (tx.source !== account) {
+  if (!('source' in tx) || tx.source !== account) {
     return NextResponse.json({ error: 'Transaction source does not match account' }, { status: 400 });
   }
 
