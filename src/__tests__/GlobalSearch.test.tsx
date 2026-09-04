@@ -1,14 +1,8 @@
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
+import { vi, describe, test, beforeEach, afterEach, expect } from "vitest";
 import GlobalSearch from "@/components/GlobalSearch";
 import type { Invoice } from "@stellar-split/sdk";
-
-// Mock next/navigation
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-  }),
-}));
 
 describe("GlobalSearch — query highlighting", () => {
   const mockInvoices: Invoice[] = [
@@ -47,18 +41,18 @@ describe("GlobalSearch — query highlighting", () => {
   ];
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test("highlights matched substring in invoice ID (case-insensitive)", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
     // Open search
-    const trigger = screen.getByRole("button", { name: /open search/i });
+    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
     fireEvent.click(trigger);
 
     const input = screen.getByRole("combobox");
@@ -67,17 +61,16 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
-    const marks = screen.getAllByRole("img", { hidden: true }).slice(-2);
-    expect(screen.getAllByRole("img", { hidden: true }).length).toBeGreaterThan(0);
+    expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
   });
 
   test("highlights matched substring in invoice title", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
-    const trigger = screen.getByRole("button", { name: /open search/i });
+    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
     fireEvent.click(trigger);
 
     const input = screen.getByRole("combobox");
@@ -86,7 +79,7 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
     expect(screen.getByText(/office/i)).toBeInTheDocument();
@@ -95,7 +88,7 @@ describe("GlobalSearch — query highlighting", () => {
   test("highlights matched substring in creator address", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
-    const trigger = screen.getByRole("button", { name: /open search/i });
+    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
     fireEvent.click(trigger);
 
     const input = screen.getByRole("combobox");
@@ -105,19 +98,16 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
-    const results = screen.queryByText(/no results/i);
-    if (!results) {
-      expect(screen.getByText(/GCZQ2WQUX4ZQZLWQTCCQ27FQSQQ2WQUX4ZQZLWQTC/i)).toBeInTheDocument();
-    }
+    expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
   });
 
   test("highlights matched substring in recipient address", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
-    const trigger = screen.getByRole("button", { name: /open search/i });
+    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
     fireEvent.click(trigger);
 
     const input = screen.getByRole("combobox");
@@ -127,23 +117,20 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
-    const results = screen.queryByText(/no results/i);
-    if (!results) {
-      expect(screen.getByText(/GDZST3XVCDTUJ76ZAV2HA72KYXQQ2WQUX4ZQZLW/i)).toBeInTheDocument();
-    }
+    expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
   });
 
   test("handles empty query without highlighting", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
-    const trigger = screen.getByRole("button", { name: /open search/i });
+    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
     fireEvent.click(trigger);
 
     act(() => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
     expect(
@@ -154,7 +141,7 @@ describe("GlobalSearch — query highlighting", () => {
   test("case-insensitive matching highlights correctly", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
-    const trigger = screen.getByRole("button", { name: /open search/i });
+    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
     fireEvent.click(trigger);
 
     const input = screen.getByRole("combobox");
@@ -163,7 +150,7 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
     // Should find the result even with uppercase query

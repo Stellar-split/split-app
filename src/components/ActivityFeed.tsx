@@ -237,6 +237,9 @@ export default function ActivityFeed({ open }: ActivityFeedProps) {
           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-sm">
             <p>No activity yet</p>
             <p className="text-xs mt-1">Events will appear here in real time</p>
+            <a href="/invoice/new" className="text-xs mt-2 text-indigo-400 hover:underline">
+              Create your first invoice
+            </a>
           </div>
         ) : (
           events.map((event) => (

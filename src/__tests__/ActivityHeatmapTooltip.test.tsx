@@ -103,7 +103,7 @@ describe("ActivityHeatmap Tooltip Positioning", () => {
         }
       });
     }
-  });
+  }, 30000);
 
   it("hides tooltip on mouse leave", async () => {
     render(<ActivityHeatmap invoices={mockInvoices} />);

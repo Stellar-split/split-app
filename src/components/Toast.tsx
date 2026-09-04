@@ -8,7 +8,7 @@ interface Props {
   duration?: number;
 }
 
-export default function Toast({ message, type = 'info', onDismiss, duration = 4000 }: Props) {
+export default function Toast({ message, type = 'info', onDismiss, duration }: Props) {
   const colors = { success: 'bg-green-700', error: 'bg-red-700', info: 'bg-gray-700' };
   const [isHovering, setIsHovering] = useState(false);
   const [progress, setProgress] = useState(100);

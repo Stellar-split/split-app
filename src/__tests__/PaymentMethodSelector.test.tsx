@@ -99,11 +99,11 @@ describe("PaymentMethodSelector", () => {
 
     // Focus on Freighter option
     await user.click(freighterRadio);
-    expect(freighterRadio).toBeFocused();
+    expect(freighterRadio).toHaveFocus();
 
     // Press ArrowDown to move to WalletConnect
     await user.keyboard("{ArrowDown}");
-    expect(walletConnectRadio).toBeFocused();
+    expect(walletConnectRadio).toHaveFocus();
   });
 
   test("ArrowUp key moves focus to previous option", async () => {
@@ -125,11 +125,11 @@ describe("PaymentMethodSelector", () => {
 
     // Focus on WalletConnect option
     await user.click(walletConnectRadio);
-    expect(walletConnectRadio).toBeFocused();
+    expect(walletConnectRadio).toHaveFocus();
 
     // Press ArrowUp to move to Freighter
     await user.keyboard("{ArrowUp}");
-    expect(freighterRadio).toBeFocused();
+    expect(freighterRadio).toHaveFocus();
   });
 
   test("Enter key confirms selection at focused option", async () => {
@@ -152,7 +152,7 @@ describe("PaymentMethodSelector", () => {
     // Focus and navigate to WalletConnect
     await user.click(freighterRadio);
     await user.keyboard("{ArrowDown}");
-    expect(walletConnectRadio).toBeFocused();
+    expect(walletConnectRadio).toHaveFocus();
 
     // Press Enter to confirm
     await user.keyboard("{Enter}");
@@ -181,7 +181,7 @@ describe("PaymentMethodSelector", () => {
     // Focus and navigate to WalletConnect
     await user.click(freighterRadio);
     await user.keyboard("{ArrowDown}");
-    expect(walletConnectRadio).toBeFocused();
+    expect(walletConnectRadio).toHaveFocus();
 
     // Press Space to confirm
     await user.keyboard(" ");
@@ -209,11 +209,11 @@ describe("PaymentMethodSelector", () => {
 
     // Start at WalletConnect (last option)
     await user.click(walletConnectRadio);
-    expect(walletConnectRadio).toBeFocused();
+    expect(walletConnectRadio).toHaveFocus();
 
     // Press ArrowDown to wrap to first option
     await user.keyboard("{ArrowDown}");
-    expect(freighterRadio).toBeFocused();
+    expect(freighterRadio).toHaveFocus();
   });
 
   test("focus wraps from first option to last (circular navigation reverse)", async () => {
@@ -235,11 +235,11 @@ describe("PaymentMethodSelector", () => {
 
     // Start at Freighter (first option)
     await user.click(freighterRadio);
-    expect(freighterRadio).toBeFocused();
+    expect(freighterRadio).toHaveFocus();
 
     // Press ArrowUp to wrap to last option
     await user.keyboard("{ArrowUp}");
-    expect(walletConnectRadio).toBeFocused();
+    expect(walletConnectRadio).toHaveFocus();
   });
 
   test("radio inputs have proper ARIA attributes", () => {
@@ -286,7 +286,7 @@ describe("PaymentMethodSelector", () => {
     const walletConnectRadio = screen.getByRole("radio", {
       name: /WalletConnect/i,
     });
-    expect(walletConnectRadio).toBeFocused();
+    expect(walletConnectRadio).toHaveFocus();
 
     // Confirm with Space
     await user.keyboard(" ");
@@ -317,7 +317,7 @@ describe("PaymentMethodSelector", () => {
 
     if (walletConnectRadio.hasAttribute("disabled")) {
       await user.keyboard("{ArrowDown}");
-      expect(freighterRadio).toBeFocused();
+      expect(freighterRadio).toHaveFocus();
     }
   });
 

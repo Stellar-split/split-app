@@ -27,13 +27,16 @@ export default function PaymentBreakdownModal({
 }: Props) {
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="breakdown-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
-      onClick={(e) => e.target === e.currentTarget && onBack()}
+      onClick={onBack}
     >
-      <div className="bg-gray-900 rounded-2xl w-full max-w-md p-6 flex flex-col gap-5">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="breakdown-modal-title"
+        className="bg-gray-900 rounded-2xl w-full max-w-md p-6 flex flex-col gap-5"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 id="breakdown-modal-title" className="text-lg font-semibold">Payment Breakdown</h2>
 
         {/* Breakdown table */}

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -89,13 +89,19 @@ describe('ErrorBoundary', () => {
     );
 
     const copyButton = screen.getByText('Copy error details');
-    await userEvent.click(copyButton);
+    // Use fireEvent instead of userEvent to avoid hanging with fake timers
+    await act(async () => {
+      fireEvent.click(copyButton);
+      await mockClipboard.writeText.mock.results[0]?.value;
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Copied!')).toBeInTheDocument();
     });
 
-    vi.advanceTimersByTime(2000);
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Copy error details')).toBeInTheDocument();

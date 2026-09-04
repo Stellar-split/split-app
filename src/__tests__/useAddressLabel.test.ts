@@ -4,6 +4,7 @@ import { resolveAddressLabel } from "@/hooks/useAddressLabel";
 describe("useAddressLabel / resolveAddressLabel", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network error"));
   });
 
   it("returns null for empty address", async () => {

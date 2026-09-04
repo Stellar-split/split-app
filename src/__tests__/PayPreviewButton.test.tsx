@@ -63,13 +63,15 @@ describe("PayPreviewButton", () => {
       <PayPreviewButton invoiceId="inv-1" status="Pending" />
     );
 
-    expect(screen.getByText(/Requires Freighter wallet extension/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Requires Freighter wallet extension/i)).toBeInTheDocument();
+    });
 
     const button = screen.getByRole("button", { name: /Pay This Invoice/ });
     await user.click(button);
 
     await waitFor(() => {
-      expect(screen.getByText(/Connecting wallet/i)).toBeInTheDocument();
+      expect(mockPush).toHaveBeenCalledWith("/pay/inv-1");
     });
   });
 
@@ -164,16 +166,22 @@ describe("PayPreviewButton", () => {
 
   test("button shows connecting state during wallet connection", async () => {
     const user = userEvent.setup();
-    vi.mocked(getFreighterPublicKey).mockImplementationOnce(
-      () => new Promise(resolve => setTimeout(() => resolve("GKEY123"), 100))
-    );
+    vi.mocked(getFreighterPublicKey)
+      .mockRejectedValueOnce(new Error("No wallet"))
+      .mockImplementationOnce(
+        () => new Promise(resolve => setTimeout(() => resolve("GKEY123"), 200))
+      );
 
     render(
       <PayPreviewButton invoiceId="inv-1" status="Pending" />
     );
 
+    await waitFor(() => {
+      expect(screen.getByText(/Requires Freighter wallet extension/i)).toBeInTheDocument();
+    });
+
     const button = screen.getByRole("button", { name: /Pay This Invoice/ });
-    await user.click(button);
+    user.click(button);
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Connecting wallet/i })).toBeInTheDocument();

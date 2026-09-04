@@ -1,45 +1,54 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import InvoiceTimeline from '@/components/InvoiceTimeline';
 import type { InvoiceEvent } from '@/components/InvoiceTimeline';
 
-// Mock the fetchEvents function
-jest.mock('@/components/InvoiceTimeline', () => {
-  const actual = jest.requireActual('@/components/InvoiceTimeline');
-  return actual;
-});
+const mockEventsData: InvoiceEvent[] = [
+  {
+    type: 'Created',
+    description: 'Invoice created',
+    timestamp: Math.floor(Date.now() / 1000),
+    actor: 'GCREATOR',
+    txHash: 'abc123def456',
+  },
+  {
+    type: 'PaymentReceived',
+    description: '100 USDC received',
+    timestamp: Math.floor(Date.now() / 1000) - 3600,
+    actor: 'GPAYER',
+    txHash: 'def789ghi012',
+  },
+];
 
-jest.mock('@/components/WalletAddress', () => {
-  return function MockWalletAddress({ address }: any) {
+const { mockGetInvoiceEvents } = vi.hoisted(() => ({
+  mockGetInvoiceEvents: vi.fn(),
+}));
+
+vi.mock('@/lib/stellar', () => ({
+  splitClient: {
+    getInvoiceEvents: (...args: any[]) => mockGetInvoiceEvents(...args),
+  },
+}));
+
+vi.mock('@/components/WalletAddress', () => ({
+  default: function MockWalletAddress({ address }: any) {
     return <span>{address}</span>;
-  };
-});
+  },
+}));
 
-jest.mock('@/components/ui/RelativeTime', () => {
-  return function MockRelativeTime({ iso }: any) {
+vi.mock('@/components/ui/RelativeTime', () => ({
+  default: function MockRelativeTime({ iso }: any) {
     return <span>{new Date(iso).toLocaleString()}</span>;
-  };
-});
+  },
+}));
 
 describe('InvoiceTimeline', () => {
-  const mockEvents: InvoiceEvent[] = [
-    {
-      type: 'Created',
-      description: 'Invoice created',
-      timestamp: Math.floor(Date.now() / 1000),
-      actor: 'GCREATOR',
-      txHash: 'abc123def456',
-    },
-    {
-      type: 'PaymentReceived',
-      description: '100 USDC received',
-      timestamp: Math.floor(Date.now() / 1000) - 3600,
-      actor: 'GPAYER',
-      txHash: 'def789ghi012',
-    },
-  ];
-
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
+    mockGetInvoiceEvents.mockResolvedValue({
+      events: mockEventsData,
+      nextCursor: undefined,
+    });
   });
 
   it('should render timeline events', async () => {
@@ -161,17 +170,21 @@ describe('InvoiceTimeline', () => {
   it('should render animation CSS rules', async () => {
     const { container } = render(<InvoiceTimeline invoiceId="test-id" />);
 
-    const styleTag = container.querySelector('style');
-    expect(styleTag).toBeInTheDocument();
-    expect(styleTag?.textContent).toContain('timeline-details');
-    expect(styleTag?.textContent).toContain('max-height');
-    expect(styleTag?.textContent).toContain('transition');
+    await waitFor(() => {
+      const styleTag = container.querySelector('style');
+      expect(styleTag).toBeInTheDocument();
+      expect(styleTag?.textContent).toContain('timeline-details');
+      expect(styleTag?.textContent).toContain('max-height');
+      expect(styleTag?.textContent).toContain('transition');
+    });
   });
 
   it('should respect prefers-reduced-motion', async () => {
     const { container } = render(<InvoiceTimeline invoiceId="test-id" />);
 
-    const styleTag = container.querySelector('style');
-    expect(styleTag?.textContent).toContain('prefers-reduced-motion');
+    await waitFor(() => {
+      const styleTag = container.querySelector('style');
+      expect(styleTag?.textContent).toContain('prefers-reduced-motion');
+    });
   });
 });

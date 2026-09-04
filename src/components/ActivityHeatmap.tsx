@@ -128,6 +128,8 @@ export default function ActivityHeatmap({ invoices }: ActivityHeatmapProps) {
               height={CELL}
               rx={2}
               ry={2}
+              role="button"
+              tabIndex={0}
               className={`${intensityClass(cell.count)} cursor-pointer transition-opacity hover:opacity-80`}
               onMouseEnter={(e) => {
                 const rect = (e.target as SVGRectElement).getBoundingClientRect();

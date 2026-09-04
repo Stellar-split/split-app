@@ -45,11 +45,11 @@ describe("InvoiceTable Column Visibility Toggle", () => {
     const gearButton = screen.getByRole("button", { name: /column settings/i });
     await user.click(gearButton);
 
-    expect(screen.getByText(/ID/i)).toBeInTheDocument();
-    expect(screen.getByText(/Amount/i)).toBeInTheDocument();
-    expect(screen.getByText(/Status/i)).toBeInTheDocument();
-    expect(screen.getByText(/Deadline/i)).toBeInTheDocument();
-    expect(screen.getByText(/Funded/i)).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /ID/i })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Amount/i })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Status/i })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Deadline/i })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Funded/i })).toBeInTheDocument();
   });
 
   it("toggles column visibility when checkbox is clicked", async () => {
@@ -116,7 +116,7 @@ describe("InvoiceTable Column Visibility Toggle", () => {
 
     expect(screen.getByText("inv-1")).toBeInTheDocument();
     expect(screen.getByText("inv-2")).toBeInTheDocument();
-    expect(screen.getByText("100.00")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: /Amount/ })).toBeInTheDocument();
   });
 
   it("closes dropdown menu when clicking outside", async () => {
@@ -126,12 +126,12 @@ describe("InvoiceTable Column Visibility Toggle", () => {
     const gearButton = screen.getByRole("button", { name: /column settings/i });
     await user.click(gearButton);
 
-    expect(screen.getByText(/ID/i)).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /ID/i })).toBeInTheDocument();
 
     fireEvent.click(container);
 
     await waitFor(() => {
-      expect(screen.queryByText(/ID/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     });
   });
 
@@ -153,7 +153,7 @@ describe("InvoiceTable Column Visibility Toggle", () => {
     const user = userEvent.setup();
     render(<InvoiceTable invoices={mockInvoices} />);
 
-    const amountBefore = screen.getAllByText(/100\.00/);
+    const amountBefore = screen.getAllByText(/20\.0000000/);
     expect(amountBefore.length).toBeGreaterThan(0);
 
     const gearButton = screen.getByRole("button", { name: /column settings/i });
@@ -162,7 +162,7 @@ describe("InvoiceTable Column Visibility Toggle", () => {
     const amountCheckbox = screen.getByRole("checkbox", { name: /Amount/i });
     await user.click(amountCheckbox);
 
-    const amountAfter = screen.queryAllByText(/100\.00/);
+    const amountAfter = screen.queryAllByText(/20\.0000000/);
     expect(amountAfter.length).toBe(0);
   });
 

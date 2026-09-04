@@ -86,7 +86,7 @@ export default function StatusTimeline({ invoice, total }: Props) {
   const events = buildEvents(invoice, total);
 
   // ── Mobile: horizontal stepper ─────────────────────────────────────────────
-  const STEPS = ["Created", "Partially Funded", "Fully Funded", "Released / Refunded"] as const;
+  const STEPS = ["Created", "Partially Funded", "Funded", "Released / Refunded"] as const;
 
   function getActiveStep(): number {
     if (invoice.status === "Released" || invoice.status === "Refunded") return 3;
@@ -106,7 +106,7 @@ export default function StatusTimeline({ invoice, total }: Props) {
           const current = i === active;
           const label = i === 3 && invoice.status !== "Pending" ? invoice.status : step;
           return (
-            <div key={step} className="flex-1 flex flex-col items-center min-w-0 px-1">
+            <div key={step} className={`flex-1 flex flex-col items-center min-w-0 px-1${current ? " text-white font-semibold" : ""}`}>
               <div className="flex items-center w-full">
                 {i > 0 && <div className={`flex-1 h-0.5 ${done || current ? "bg-indigo-500" : "bg-gray-700"}`} />}
                 <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${done ? "bg-indigo-500 border-indigo-500" : current ? "bg-white border-indigo-400" : "bg-gray-800 border-gray-600"}`} />

@@ -44,12 +44,17 @@ describe("PaymentProgress", () => {
   });
 
   test("displays funded and total amounts in USDC", () => {
-    render(
-      <PaymentProgress
-        funded={50_000_000n}
-        total={100_000_000n}
-      />
-    );
+    const mockInvoice = {
+      id: "inv-1",
+      status: "Pending" as const,
+      creator: "CREATOR",
+      recipients: [{ address: "RECIP", amount: 100_000_000n }],
+      token: "USDC",
+      deadline: 0,
+      funded: 50_000_000n,
+      payments: [],
+    };
+    render(<PaymentProgress invoice={mockInvoice} />);
     expect(screen.getByText(/5\.00 \/ 10\.00 USDC funded/)).toBeInTheDocument();
   });
 

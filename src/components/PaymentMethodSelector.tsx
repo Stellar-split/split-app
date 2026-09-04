@@ -69,7 +69,7 @@ export default function PaymentMethodSelector({ onMethodChange, payerAddress, re
   };
 
   return (
-    <fieldset className="mb-6 border border-gray-700 rounded-lg p-4">
+    <fieldset role="group" className="mb-6 border border-gray-700 rounded-lg p-4">
       <legend className="text-sm font-semibold text-gray-300 mb-3">Payment Method</legend>
       <div className="flex flex-col gap-3">
         <label className="flex items-center gap-3 cursor-pointer">

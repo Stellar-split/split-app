@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -23,13 +23,45 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.innerWidth < 640;
+  });
   const pathname = usePathname();
   const hamburgerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const isActive = (href: string) =>
     href === "/"
       ? pathname === href
       : pathname === href || pathname.startsWith(href + "/");
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSidebarOpen(false);
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (
+        !hamburgerRef.current?.contains(target) &&
+        !target.closest('[data-testid="mobile-sidebar"]')
+      ) {
+        setSidebarOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [sidebarOpen]);
 
   return (
     <>
@@ -89,19 +121,21 @@ export default function Navbar() {
               <span aria-hidden="true">+</span> New Invoice
             </Link>
 
-            {/* Hamburger button — visible below lg */}
-            <button
-              ref={hamburgerRef}
-              className="lg:hidden ml-1 flex items-center justify-center h-9 w-9 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
-              aria-label="Open menu"
-              aria-expanded={sidebarOpen}
-              aria-controls="mobile-sidebar"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                <path d="M2 5h14M2 9h14M2 13h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
+            {/* Hamburger button — visible below sm (640px) */}
+            {isMobile && (
+              <button
+                ref={hamburgerRef}
+                className="ml-1 flex items-center justify-center h-9 w-9 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors lg:hidden"
+                aria-label="Open menu"
+                aria-expanded={sidebarOpen}
+                aria-controls="mobile-sidebar"
+                onClick={() => setSidebarOpen((prev) => !prev)}
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <path d="M2 5h14M2 9h14M2 13h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </header>

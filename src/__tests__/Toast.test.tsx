@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Toast from '@/components/Toast';
@@ -27,10 +27,10 @@ describe('Toast', () => {
     expect(screen.getByRole('button', { name: 'Dismiss notification' })).toBeInTheDocument();
   });
 
-  it('calls onDismiss when dismiss button clicked', async () => {
+  it('calls onDismiss when dismiss button clicked', () => {
     const onDismiss = vi.fn();
     render(<Toast message="Saved!" onDismiss={onDismiss} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
@@ -73,11 +73,11 @@ describe('Toast', () => {
       <Toast message="Loading..." duration={4000} />
     );
     const progressBar = container.querySelector('div[aria-hidden="true"]');
-    const initialWidth = progressBar?.parentElement?.querySelector('div')?.style.width;
+    const initialWidth = progressBar?.style.width;
 
-    vi.advanceTimersByTime(2000);
+    act(() => { vi.advanceTimersByTime(2000); });
 
-    const updatedWidth = progressBar?.parentElement?.querySelector('div')?.style.width;
+    const updatedWidth = progressBar?.style.width;
     expect(initialWidth).not.toBe(updatedWidth);
   });
 
@@ -94,17 +94,17 @@ describe('Toast', () => {
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
-  it('resumes progress when hover ends', async () => {
+  it('resumes progress when hover ends', () => {
     const onDismiss = vi.fn();
     const { container } = render(
       <Toast message="Loading..." duration={1000} onDismiss={onDismiss} />
     );
     const alert = screen.getByRole('alert');
 
-    await userEvent.hover(alert);
-    vi.advanceTimersByTime(500);
-    await userEvent.unhover(alert);
-    vi.advanceTimersByTime(1000);
+    fireEvent.mouseEnter(alert);
+    act(() => { vi.advanceTimersByTime(500); });
+    fireEvent.mouseLeave(alert);
+    act(() => { vi.advanceTimersByTime(1100); });
 
     expect(onDismiss).toHaveBeenCalled();
   });
@@ -113,7 +113,7 @@ describe('Toast', () => {
     const onDismiss = vi.fn();
     render(<Toast message="Loading..." duration={1000} onDismiss={onDismiss} />);
 
-    vi.advanceTimersByTime(1000);
+    act(() => { vi.advanceTimersByTime(1100); });
 
     expect(onDismiss).toHaveBeenCalled();
   });

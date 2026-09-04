@@ -36,6 +36,7 @@ interface Props {
 export default function PaymentSummaryCard({ invoiceId }: Props) {
   const [loading, setLoading] = useState(true);
   const [stopped, setStopped] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [state, setState] = useState<AggState>({
     total: 0n,
     funded: 0n,
@@ -127,9 +128,35 @@ export default function PaymentSummaryCard({ invoiceId }: Props) {
       aria-labelledby="payment-summary-heading"
       className="bg-gray-900 rounded-xl p-5 mb-8"
     >
-      <h2 id="payment-summary-heading" className="text-lg font-semibold mb-4">
-        Payment Summary
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 id="payment-summary-heading" className="text-lg font-semibold">
+          Payment Summary
+        </h2>
+        <button
+          type="button"
+          aria-label="Copy reference"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(invoiceId);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            } catch {}
+          }}
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded-md hover:bg-white/[0.06]"
+        >
+          {copied ? (
+            <span className="text-green-400">Copied!</span>
+          ) : (
+            <>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+                <path d="M4 1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H4zM2 2a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2z"/>
+                <path d="M2 4H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-.5H6V11H1V5h1V4z"/>
+              </svg>
+              Copy reference
+            </>
+          )}
+        </button>
+      </div>
 
       {/* Funded total */}
       <div className="flex items-baseline justify-between flex-wrap gap-2 mb-2">

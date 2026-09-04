@@ -128,7 +128,8 @@ export default function BatchPayModal({ invoices, publicKey, onClose }: Props) {
             </button>
             <button
               onClick={handleConfirm}
-              disabled={paying}
+              disabled={paying || !publicKey}
+              title={!publicKey ? "Connect your wallet to continue" : undefined}
               className="flex-1 min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               {paying ? "Sending…" : "Confirm Payment"}

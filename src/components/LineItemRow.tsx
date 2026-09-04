@@ -59,7 +59,7 @@ export default function LineItemRow({
           <AddressBookPicker
             value={address}
             label={label}
-            onChange={(addr, lbl) => onAddressChange(addr, lbl, email)}
+            onChange={(addr, lbl) => onAddressChange(addr, lbl ?? email, email)}
             placeholder="G... or name*domain.com address"
             ariaLabel={`Recipient ${index + 1} address`}
           />
@@ -71,7 +71,7 @@ export default function LineItemRow({
             placeholder="USDC"
             step="0.0000001"
             min="0.0000001"
-            value={equalSplit ? (amountOverride ?? '') : amount}
+            value={equalSplit ? (amountOverride ?? amount) : amount}
             onChange={
               equalSplit ? undefined : (e) => onAmountChange(e.target.value)
             }

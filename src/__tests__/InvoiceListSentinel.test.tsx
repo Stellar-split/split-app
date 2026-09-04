@@ -1,27 +1,42 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import InvoiceListSentinel from '@/components/InvoiceListSentinel';
 
 describe('InvoiceListSentinel', () => {
-  let observerMock: { observe: jest.Mock; disconnect: jest.Mock; unobserve: jest.Mock };
-  let IntersectionObserverMock: jest.Mock;
+  let observerMock: { observe: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn>; unobserve: ReturnType<typeof vi.fn> };
+  let constructorCalls: Array<[Function, IntersectionObserverInit | undefined]>;
 
   beforeEach(() => {
+    constructorCalls = [];
     observerMock = {
-      observe: jest.fn(),
-      disconnect: jest.fn(),
-      unobserve: jest.fn(),
+      observe: vi.fn(),
+      disconnect: vi.fn(),
+      unobserve: vi.fn(),
     };
 
-    IntersectionObserverMock = jest.fn(() => observerMock);
-    (global as any).IntersectionObserver = IntersectionObserverMock;
+    const obs = observerMock;
+    const calls = constructorCalls;
+
+    class MockIntersectionObserver {
+      observe = obs.observe;
+      disconnect = obs.disconnect;
+      unobserve = obs.unobserve;
+
+      constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        calls.push([callback as unknown as Function, options]);
+      }
+    }
+
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
   });
 
   it('should create an IntersectionObserver on mount', () => {
-    const mockOnVisible = jest.fn();
+    const mockOnVisible = vi.fn();
     render(
       <InvoiceListSentinel
         onVisible={mockOnVisible}
@@ -30,12 +45,12 @@ describe('InvoiceListSentinel', () => {
       />
     );
 
-    expect(IntersectionObserverMock).toHaveBeenCalled();
+    expect(constructorCalls.length).toBeGreaterThan(0);
     expect(observerMock.observe).toHaveBeenCalled();
   });
 
   it('should disconnect the IntersectionObserver on unmount', () => {
-    const mockOnVisible = jest.fn();
+    const mockOnVisible = vi.fn();
     const { unmount } = render(
       <InvoiceListSentinel
         onVisible={mockOnVisible}
@@ -49,14 +64,8 @@ describe('InvoiceListSentinel', () => {
     expect(observerMock.disconnect).toHaveBeenCalled();
   });
 
-  it('should call onVisible when intersection is detected', () => {
-    const mockOnVisible = jest.fn();
-    IntersectionObserverMock.mockImplementation((callback) => {
-      setTimeout(() => {
-        callback([{ isIntersecting: true }] as any);
-      }, 0);
-      return observerMock;
-    });
+  it('should call onVisible when intersection is detected', async () => {
+    const mockOnVisible = vi.fn();
 
     render(
       <InvoiceListSentinel
@@ -66,13 +75,16 @@ describe('InvoiceListSentinel', () => {
       />
     );
 
-    waitFor(() => {
+    const [callback] = constructorCalls[0];
+    callback([{ isIntersecting: true }] as IntersectionObserverEntry[]);
+
+    await waitFor(() => {
       expect(mockOnVisible).toHaveBeenCalled();
     });
   });
 
   it('should display loading spinner when loading is true', () => {
-    const mockOnVisible = jest.fn();
+    const mockOnVisible = vi.fn();
     render(
       <InvoiceListSentinel
         onVisible={mockOnVisible}
@@ -85,7 +97,7 @@ describe('InvoiceListSentinel', () => {
   });
 
   it('should display all loaded message when allLoaded is true', () => {
-    const mockOnVisible = jest.fn();
+    const mockOnVisible = vi.fn();
     render(
       <InvoiceListSentinel
         onVisible={mockOnVisible}
@@ -98,7 +110,7 @@ describe('InvoiceListSentinel', () => {
   });
 
   it('should pass custom rootMargin to IntersectionObserver', () => {
-    const mockOnVisible = jest.fn();
+    const mockOnVisible = vi.fn();
     const customMargin = '500px';
 
     render(
@@ -110,7 +122,7 @@ describe('InvoiceListSentinel', () => {
       />
     );
 
-    const callArgs = IntersectionObserverMock.mock.calls[0];
-    expect(callArgs[1]).toEqual({ rootMargin: customMargin });
+    const [, options] = constructorCalls[0];
+    expect(options).toEqual({ rootMargin: customMargin });
   });
 });

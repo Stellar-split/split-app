@@ -58,5 +58,6 @@ export function useNetworkFeeBreakdown() {
     fetchFeeStats();
   }, [fetchFeeStats]);
 
-  return { feeBreakdown, isLoading, error, refetch: fetchFeeStats };
+  const fee = feeBreakdown ? BigInt(feeBreakdown.total.stroops) : null;
+  return { feeBreakdown, fee, loading: isLoading, isLoading, error, refetch: fetchFeeStats };
 }
