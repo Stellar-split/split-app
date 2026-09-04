@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import WalletAddress from './WalletAddress';
 import RelativeTime from '@/components/ui/RelativeTime';
+import { splitClient as _splitClient } from '@/lib/stellar';
 
 export interface InvoiceEvent {
   type:
@@ -45,11 +46,9 @@ const EVENT_META: Record<
   Archived: { icon: '📦', color: 'text-gray-400', dot: 'bg-gray-500' },
 };
 
-// Attempt to call SDK getInvoiceEvents — falls back to empty array if not available
 async function fetchEvents(invoiceId: string, cursor?: string): Promise<{ events: InvoiceEvent[]; nextCursor?: string }> {
   try {
-    const { splitClient } = await import('@/lib/stellar');
-    const client = splitClient as any;
+    const client = _splitClient as any;
     if (typeof client.getInvoiceEvents !== 'function') return { events: [] };
     const result = await client.getInvoiceEvents(invoiceId, { cursor, limit: 20 });
     return result as { events: InvoiceEvent[]; nextCursor?: string };

@@ -55,7 +55,7 @@ describe('InvoiceTimeline', () => {
     render(<InvoiceTimeline invoiceId="test-id" />);
 
     await waitFor(() => {
-      expect(screen.queryByText(/Created/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Created/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -71,68 +71,66 @@ describe('InvoiceTimeline', () => {
   it('should expand details when show details button is clicked', async () => {
     render(<InvoiceTimeline invoiceId="test-id" />);
 
-    await waitFor(() => {
-      const showDetailsButton = screen.getAllByText(/Show details/i)[0];
-      fireEvent.click(showDetailsButton);
+    // Wait for events to load, then click outside waitFor to avoid infinite retry loop
+    const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
+    fireEvent.click(showDetailsButtons[0].closest('button')!);
 
-      expect(showDetailsButton).toHaveTextContent(/Hide details/i);
+    await waitFor(() => {
+      expect(screen.getAllByText(/Hide details/i).length).toBeGreaterThan(0);
     });
   });
 
   it('should collapse details when hide details button is clicked', async () => {
     render(<InvoiceTimeline invoiceId="test-id" />);
 
+    const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
+    fireEvent.click(showDetailsButtons[0].closest('button')!);
+
+    const hideDetailsButtons = await screen.findAllByText(/Hide details/i, undefined, { timeout: 5000 });
+    fireEvent.click(hideDetailsButtons[0].closest('button')!);
+
     await waitFor(() => {
-      const showDetailsButton = screen.getAllByText(/Show details/i)[0];
-      fireEvent.click(showDetailsButton);
-
-      const hideDetailsButton = screen.getByText(/Hide details/i);
-      fireEvent.click(hideDetailsButton);
-
-      expect(screen.getByText(/Show details/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Show details/i).length).toBeGreaterThan(0);
     });
   });
 
   it('should display actor address when details are expanded', async () => {
     render(<InvoiceTimeline invoiceId="test-id" />);
 
-    await waitFor(() => {
-      const showDetailsButtons = screen.getAllByText(/Show details/i);
-      if (showDetailsButtons.length > 0) {
-        fireEvent.click(showDetailsButtons[0]);
+    const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
+    fireEvent.click(showDetailsButtons[0].closest('button')!);
 
-        expect(screen.getByText(/GCREATOR|GPAYER/)).toBeInTheDocument();
-      }
+    await waitFor(() => {
+      expect(screen.getAllByText(/GCREATOR|GPAYER/).length).toBeGreaterThan(0);
     });
   });
 
   it('should display transaction hash link when details are expanded', async () => {
     render(<InvoiceTimeline invoiceId="test-id" />);
 
-    await waitFor(() => {
-      const showDetailsButtons = screen.getAllByText(/Show details/i);
-      if (showDetailsButtons.length > 0) {
-        fireEvent.click(showDetailsButtons[0]);
+    const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
+    fireEvent.click(showDetailsButtons[0].closest('button')!);
 
-        const txLinks = screen.getAllByRole('link');
-        expect(txLinks.length).toBeGreaterThan(0);
-      }
+    await waitFor(() => {
+      // link has href to stellar.expert
+      const txLinks = screen.getAllByRole('link').filter((l) =>
+        l.getAttribute('href')?.includes('stellar.expert')
+      );
+      expect(txLinks.length).toBeGreaterThan(0);
     });
   });
 
   it('should have correct aria-expanded attribute', async () => {
     render(<InvoiceTimeline invoiceId="test-id" />);
 
+    const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
+    const button = showDetailsButtons[0].closest('button')!;
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(button);
+
     await waitFor(() => {
-      const showDetailsButtons = screen.getAllByText(/Show details/i);
-      if (showDetailsButtons.length > 0) {
-        const button = showDetailsButtons[0].closest('button');
-        expect(button).toHaveAttribute('aria-expanded', 'false');
-
-        fireEvent.click(showDetailsButtons[0]);
-
-        expect(button).toHaveAttribute('aria-expanded', 'true');
-      }
+      expect(button).toHaveAttribute('aria-expanded', 'true');
     });
   });
 
@@ -153,17 +151,17 @@ describe('InvoiceTimeline', () => {
     const { container } = render(<InvoiceTimeline invoiceId="test-id" />);
 
     await waitFor(() => {
-      const showDetailsButtons = screen.getAllByText(/Show details/i);
-      if (showDetailsButtons.length > 0) {
-        const detailsSection = container.querySelector('.timeline-details');
-        expect(detailsSection?.classList.contains('collapsed')).toBe(true);
+      expect(container.querySelectorAll('.timeline-details').length).toBeGreaterThan(0);
+    });
 
-        fireEvent.click(showDetailsButtons[0]);
+    const showDetailsButtons = screen.getAllByText(/Show details/i);
+    const detailsSections = container.querySelectorAll('.timeline-details');
+    expect(detailsSections[0]?.classList.contains('collapsed')).toBe(true);
 
-        waitFor(() => {
-          expect(detailsSection?.classList.contains('expanded')).toBe(true);
-        });
-      }
+    fireEvent.click(showDetailsButtons[0].closest('button')!);
+
+    await waitFor(() => {
+      expect(detailsSections[0]?.classList.contains('expanded')).toBe(true);
     });
   });
 
