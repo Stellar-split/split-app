@@ -4,9 +4,11 @@ import {
   contrastRatio,
   hexToRgb,
   isValidHexColor,
+  meetsWcagAA,
   meetsWcagAaAgainstWhite,
   relativeLuminance,
   WCAG_AA_CONTRAST_RATIO,
+  WCAG_AA_LARGE_TEXT_CONTRAST_RATIO,
 } from "@/lib/contrast";
 
 describe("contrast utilities (WCAG 2.1)", () => {
@@ -113,4 +115,31 @@ describe("contrast utilities (WCAG 2.1)", () => {
       expect(meetsWcagAaAgainstWhite("definitely-not-hex")).toBe(false);
     });
   });
+
+  describe("meetsWcagAA", () => {
+    it("returns true for black on white (21:1 ratio)", () => {
+      expect(meetsWcagAA("#000000", "#ffffff")).toBe(true);
+    });
+
+    it("returns false for #777777 on #ffffff for normal text (fails 4.5:1)", () => {
+      expect(meetsWcagAA("#777777", "#ffffff")).toBe(false);
+    });
+
+    it("returns true for #777777 on #ffffff for large text (passes 3:1)", () => {
+      expect(meetsWcagAA("#777777", "#ffffff", true)).toBe(true);
+    });
+
+    it("accepts rgb() and rgba() syntax", () => {
+      expect(meetsWcagAA("rgb(0, 0, 0)", "rgb(255, 255, 255)")).toBe(true);
+      expect(meetsWcagAA("rgba(0, 0, 0, 1)", "rgba(255, 255, 255, 1)")).toBe(true);
+      expect(meetsWcagAA("rgb(119, 119, 119)", "rgb(255, 255, 255)")).toBe(false);
+      expect(meetsWcagAA("rgb(119, 119, 119)", "rgb(255, 255, 255)", true)).toBe(true);
+    });
+
+    it("returns false gracefully on invalid color inputs", () => {
+      expect(meetsWcagAA("not-a-color", "#ffffff")).toBe(false);
+      expect(meetsWcagAA("#000000", "invalid-bg")).toBe(false);
+    });
+  });
 });
+
