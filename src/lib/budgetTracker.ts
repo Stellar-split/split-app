@@ -8,6 +8,51 @@ export interface SpendingRecord {
   timestamp: number;
 }
 
+export type OnOverspendCallback = (overspentBy: number, budgetId: string) => void;
+
+export interface BudgetTrackerConfig {
+  budgetId?: string;
+  limitUsdc?: number;
+  onOverspend?: OnOverspendCallback;
+}
+
+export interface RecordPaymentOptions {
+  onOverspend?: OnOverspendCallback;
+  budgetId?: string;
+}
+
+const trackerConfigs = new Map<string, BudgetTrackerConfig>();
+let defaultTrackerConfig: BudgetTrackerConfig | null = null;
+
+export function configureBudgetTracker(config: BudgetTrackerConfig): void;
+export function configureBudgetTracker(id: string, config: BudgetTrackerConfig): void;
+export function configureBudgetTracker(
+  idOrConfig: string | BudgetTrackerConfig,
+  maybeConfig?: BudgetTrackerConfig
+): void {
+  if (typeof idOrConfig === "string") {
+    if (maybeConfig) {
+      trackerConfigs.set(idOrConfig, maybeConfig);
+      if (maybeConfig.limitUsdc !== undefined) {
+        setBudgetLimit(idOrConfig, maybeConfig.limitUsdc);
+      }
+    }
+  } else {
+    defaultTrackerConfig = idOrConfig;
+    if (idOrConfig.budgetId) {
+      trackerConfigs.set(idOrConfig.budgetId, idOrConfig);
+    }
+    if (idOrConfig.limitUsdc !== undefined && idOrConfig.budgetId) {
+      setBudgetLimit(idOrConfig.budgetId, idOrConfig.limitUsdc);
+    }
+  }
+}
+
+export function resetBudgetTrackerConfig(): void {
+  trackerConfigs.clear();
+  defaultTrackerConfig = null;
+}
+
 export function getBudgetLimit(address: string): number | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(BUDGET_LIMIT_KEY + address);
@@ -16,14 +61,26 @@ export function getBudgetLimit(address: string): number | null {
   return isNaN(n) ? null : n;
 }
 
-export function setBudgetLimit(address: string, limitUsdc: number): void {
+export function setBudgetLimit(
+  address: string,
+  limitUsdc: number,
+  options?: { onOverspend?: OnOverspendCallback; budgetId?: string }
+): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(BUDGET_LIMIT_KEY + address, String(limitUsdc));
+  if (options?.onOverspend) {
+    trackerConfigs.set(address, {
+      budgetId: options.budgetId ?? address,
+      limitUsdc,
+      onOverspend: options.onOverspend,
+    });
+  }
 }
 
 export function clearBudgetLimit(address: string): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(BUDGET_LIMIT_KEY + address);
+  trackerConfigs.delete(address);
 }
 
 function readSpendingRecords(address: string): SpendingRecord[] {
@@ -35,11 +92,34 @@ function readSpendingRecords(address: string): SpendingRecord[] {
   }
 }
 
-export function recordPayment(address: string, amount: bigint): void {
+export function recordPayment(
+  address: string,
+  amount: bigint,
+  options?: RecordPaymentOptions
+): void {
   if (typeof window === "undefined") return;
+  const prevSpent = getRollingSpending(address);
   const records = readSpendingRecords(address);
   records.push({ amount: amount.toString(), timestamp: Date.now() });
   localStorage.setItem(BUDGET_SPENDING_KEY + address, JSON.stringify(records));
+
+  const limit = getBudgetLimit(address);
+  if (limit !== null) {
+    const limitUnits = BigInt(Math.round(limit * 10_000_000));
+    const newSpent = prevSpent + amount;
+    if (prevSpent <= limitUnits && newSpent > limitUnits) {
+      const overspentByUnits = newSpent - limitUnits;
+      const overspentBy = Number(overspentByUnits) / 10_000_000;
+      const budgetId = options?.budgetId ?? trackerConfigs.get(address)?.budgetId ?? address;
+      const callback =
+        options?.onOverspend ??
+        trackerConfigs.get(address)?.onOverspend ??
+        defaultTrackerConfig?.onOverspend;
+      if (callback) {
+        callback(overspentBy, budgetId);
+      }
+    }
+  }
 }
 
 /** Returns total spending in SDK units (1 USDC = 10,000,000 units) within the last 30 days. */
@@ -66,4 +146,31 @@ export function checkBudget(
   const limitUnits = BigInt(Math.round(limit * 10_000_000));
   const spent = getRollingSpending(address);
   return { hasLimit: true, limitUnits, spent, wouldExceed: spent + pendingAmount > limitUnits };
+}
+
+export class BudgetTracker {
+  constructor(public config: BudgetTrackerConfig = {}) {
+    if (config.budgetId && config.limitUsdc !== undefined) {
+      setBudgetLimit(config.budgetId, config.limitUsdc);
+    }
+    if (config.budgetId) {
+      trackerConfigs.set(config.budgetId, config);
+    }
+  }
+
+  recordPayment(amount: bigint, address?: string, options?: RecordPaymentOptions): void {
+    const target = address ?? this.config.budgetId;
+    if (!target) return;
+    recordPayment(target, amount, {
+      onOverspend: this.config.onOverspend,
+      budgetId: this.config.budgetId,
+      ...options,
+    });
+  }
+
+  checkBudget(pendingAmount: bigint, address?: string) {
+    const target = address ?? this.config.budgetId;
+    if (!target) return { hasLimit: false, limitUnits: 0n, spent: 0n, wouldExceed: false };
+    return checkBudget(target, pendingAmount);
+  }
 }
