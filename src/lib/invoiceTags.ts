@@ -6,6 +6,7 @@
  * id — the same approach `api/invoices/[id]/route.ts` uses for splitMeta.
  */
 import { z } from "zod";
+import type { Invoice } from "@stellar-split/sdk";
 
 export const MAX_TAG_LENGTH = 32;
 export const MAX_TAGS_PER_INVOICE = 20;
@@ -150,3 +151,42 @@ export function tagColorClass(tag: string): string {
   }
   return TAG_COLORS[hash % TAG_COLORS.length];
 }
+
+export interface FilterByTagsOptions {
+  matchAll?: boolean;
+}
+
+/**
+ * Filters a list of invoices by one or more tags.
+ * - Empty `tags` array returns all invoices unchanged.
+ * - Default (`matchAll: false`): returns invoices that have any of the given tags.
+ * - `matchAll: true`: returns only invoices that have all of the given tags.
+ */
+export function filterByTags(
+  invoices: Invoice[],
+  tags: string[],
+  opts: FilterByTagsOptions = {},
+): Invoice[] {
+  if (!tags || tags.length === 0) {
+    return invoices;
+  }
+
+  const { matchAll = false } = opts;
+  const targetTags = tags.map((t) => normalizeTag(t)).filter(Boolean);
+
+  if (targetTags.length === 0) {
+    return invoices;
+  }
+
+  return invoices.filter((invoice) => {
+    const attachedTags = (invoice as { tags?: readonly string[] }).tags;
+    const invTags = Array.isArray(attachedTags) ? attachedTags : getTags(invoice.id);
+
+    if (matchAll) {
+      return targetTags.every((target) => invoiceHasTag(invTags, target));
+    } else {
+      return targetTags.some((target) => invoiceHasTag(invTags, target));
+    }
+  });
+}
+
