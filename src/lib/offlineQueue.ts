@@ -1,4 +1,35 @@
 import { openDB as idbOpenDB, type IDBPDatabase } from "idb";
+import { OverflowError } from "./errors";
+
+export { OverflowError };
+
+export type OverflowStrategy = "drop-oldest" | "throw";
+
+export interface QueuePaymentOptions {
+  maxSize?: number;
+  overflowStrategy?: OverflowStrategy;
+}
+
+export interface OfflineQueueConfig {
+  maxSize?: number;
+  overflowStrategy?: OverflowStrategy;
+}
+
+let queueConfig: OfflineQueueConfig = {
+  maxSize: 100,
+  overflowStrategy: "drop-oldest",
+};
+
+export function configureOfflineQueue(config: OfflineQueueConfig): void {
+  queueConfig = { ...queueConfig, ...config };
+}
+
+export function resetOfflineQueueConfig(): void {
+  queueConfig = {
+    maxSize: 100,
+    overflowStrategy: "drop-oldest",
+  };
+}
 
 export interface QueuedPayment {
   id: string;
@@ -50,12 +81,31 @@ export async function openDB(): Promise<IDBPDatabase> {
 }
 
 export async function queuePayment(
-  payment: Omit<QueuedPayment, "id" | "status">
-) {
+  payment: Omit<QueuedPayment, "id" | "status">,
+  options?: QueuePaymentOptions
+): Promise<string> {
   const db = await openDB();
+  const maxSize = options?.maxSize ?? queueConfig.maxSize ?? 100;
+  const overflowStrategy =
+    options?.overflowStrategy ?? queueConfig.overflowStrategy ?? "drop-oldest";
+
+  const stored: StoredPayment[] = await db.getAll(STORE_NAME);
+
+  if (stored.length >= maxSize) {
+    if (overflowStrategy === "throw") {
+      throw new OverflowError(`Queue size limit of ${maxSize} reached`);
+    } else {
+      stored.sort((a, b) => a.timestamp - b.timestamp);
+      const toRemoveCount = stored.length - maxSize + 1;
+      for (let i = 0; i < toRemoveCount; i++) {
+        await db.delete(STORE_NAME, stored[i].id);
+      }
+    }
+  }
+
   const id = createId();
-  const stored = toStored({ ...payment, id, status: "pending" });
-  await db.add(STORE_NAME, stored);
+  const storedItem = toStored({ ...payment, id, status: "pending" });
+  await db.add(STORE_NAME, storedItem);
   return id;
 }
 

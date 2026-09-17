@@ -86,3 +86,10 @@ export function classifyRpcError(error: unknown): ClassifiedRpcError {
     message: text || "Something went wrong talking to Stellar.",
   };
 }
+
+export class OverflowError extends Error {
+  constructor(message: string = "Queue size limit reached") {
+    super(message);
+    this.name = "OverflowError";
+  }
+}
