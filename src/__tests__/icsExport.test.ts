@@ -90,3 +90,37 @@ describe("generateICS — date formatting", () => {
     expect(ics).toContain("DTSTART;VALUE=DATE:20250305");
   });
 });
+
+describe("generateICS — IANA timezone support", () => {
+  it("includes VTIMEZONE block and DTSTART;TZID when timezone is provided", () => {
+    const event = makeEvent({ date: new Date("2025-02-01T15:00:00Z") });
+    const ics = generateICS([event], FIXED_STAMP, "America/New_York");
+
+    expect(ics).toContain("BEGIN:VTIMEZONE");
+    expect(ics).toContain("TZID:America/New_York");
+    expect(ics).toContain("END:VTIMEZONE");
+    expect(ics).toContain("DTSTART;TZID=America/New_York:");
+    expect(ics).not.toContain("DTSTART;VALUE=DATE:");
+  });
+
+  it("supports timezone via options object", () => {
+    const event = makeEvent({ date: new Date("2025-02-01T15:00:00Z") });
+    const ics = generateICS([event], {
+      dtstamp: FIXED_STAMP,
+      timezone: "Europe/London",
+    });
+
+    expect(ics).toContain("BEGIN:VTIMEZONE");
+    expect(ics).toContain("TZID:Europe/London");
+    expect(ics).toContain("DTSTART;TZID=Europe/London:");
+  });
+
+  it("falls back to UTC/VALUE=DATE when timezone is omitted", () => {
+    const event = makeEvent({ date: new Date("2025-02-01T00:00:00Z") });
+    const ics = generateICS([event], FIXED_STAMP);
+
+    expect(ics).not.toContain("BEGIN:VTIMEZONE");
+    expect(ics).not.toContain("TZID=");
+    expect(ics).toContain("DTSTART;VALUE=DATE:20250201");
+  });
+});
