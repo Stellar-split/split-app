@@ -26,6 +26,7 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 import CopyButton from "@/components/CopyButton";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
+import AchievementCard from "@/components/AchievementCard";
 import DuplicateModal from "@/components/DuplicateModal";
 import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import ShareModal from "@/components/ShareModal";
@@ -227,6 +228,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showConfidentialFlow, setShowConfidentialFlow] = useState(false);
   const [showReconnecting, setShowReconnecting] = useState(false);
   const [showReleaseBanner, setShowReleaseBanner] = useState(false);
+  const [showNFTCelebration, setShowNFTCelebration] = useState(false);
 
   useEffect(() => {
     if (isRetroactiveInvoiceId(id)) {
@@ -243,6 +245,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   useEffect(() => {
     if (latestEvent?.type === "InvoiceReleased") {
       setShowReleaseBanner(true);
+      setShowNFTCelebration(true);
     }
   }, [latestEvent]);
 
@@ -650,6 +653,16 @@ export default function InvoiceDetailPage({ params }: Props) {
               className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm transition-colors"
             >
               Print Invoice
+            </button>
+          )}
+          {invoice.status === "Released" && isCreator && (
+            <button
+              type="button"
+              onClick={() => setShowNFTCelebration(true)}
+              className="px-3 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-600 text-white text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+              aria-label="View Settlement NFT celebration card"
+            >
+              🎉 Settlement NFT
             </button>
           )}
           {invoice.status === "Pending" && isCreator && (
@@ -1097,6 +1110,19 @@ export default function InvoiceDetailPage({ params }: Props) {
         )}
       </section>
       
+
+      {showNFTCelebration && (
+        <AchievementCard
+          invoiceId={id}
+          totalAmount={formatAmount(total)}
+          nftDetails={{
+            tokenId: `#${id.slice(0, 6).toUpperCase()}`,
+            name: `Invoice #${id} NFT Proof of Settlement`,
+            txHash: (latestEvent as any)?.txHash,
+          }}
+          onDismiss={() => setShowNFTCelebration(false)}
+        />
+      )}
 
       {showCancelModal && (
         <CancelModal
