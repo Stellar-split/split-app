@@ -110,8 +110,8 @@ export default function Navbar() {
               <SimulationModeToggle />
               <NotificationCenter />
               <HeaderShortcutsButton />
-              <ThemeToggle />
             </div>
+            <ThemeToggle />
 
             {/* New Invoice CTA — hidden below lg */}
             <Link

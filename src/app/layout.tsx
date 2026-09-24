@@ -31,6 +31,8 @@ const themeBootstrap = `
     var stored = window.localStorage.getItem("split-theme");
     var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     var isDark = stored === "dark" || (!stored && prefersDark) || (stored === "system" && prefersDark);
+    var resolved = isDark ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", resolved);
     if (isDark) {
       document.documentElement.classList.add("dark");
     } else {
