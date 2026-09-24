@@ -653,15 +653,32 @@ export default function InvoiceDetailPage({ params }: Props) {
             </button>
           )}
           {invoice.status === "Pending" && isCreator && (
-            <button
-              type="button"
-              ref={cancelModalTriggerRef}
-              onClick={() => setShowCancelModal(true)}
-              className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-              aria-label="Cancel this invoice"
-            >
-              Cancel Invoice
-            </button>
+            invoice.funded === 0n && (!invoice.payments || invoice.payments.length === 0) ? (
+              <button
+                type="button"
+                ref={cancelModalTriggerRef}
+                onClick={() => setShowCancelModal(true)}
+                className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                aria-label="Cancel this invoice"
+              >
+                Cancel Invoice
+              </button>
+            ) : (
+              <div className="relative group inline-block">
+                <button
+                  type="button"
+                  disabled
+                  className="px-3 py-1.5 rounded-lg bg-red-950/60 text-red-400/40 cursor-not-allowed text-sm transition-colors border border-red-900/40"
+                  aria-label="Cannot cancel invoice: payments already received"
+                  title="Invoices that have already received payments cannot be cancelled"
+                >
+                  Cancel Invoice
+                </button>
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-gray-200 text-xs rounded py-1 px-2 border border-gray-700 whitespace-nowrap shadow-lg z-10 pointer-events-none">
+                  Cannot cancel: payments already received
+                </div>
+              </div>
+            )
           )}
         </div>
       </div>
@@ -1101,11 +1118,15 @@ export default function InvoiceDetailPage({ params }: Props) {
       {showCancelModal && (
         <CancelModal
           invoiceId={id}
+          invoiceTitle={(invoice as any).title || loadedSplitMeta?.title || `Invoice #${id}`}
           payments={invoice.payments}
           onConfirm={async () => {
             await (splitClient as any).cancelInvoice(id);
             await load();
+          }}
+          onSuccess={() => {
             setShowCancelModal(false);
+            router.push("/dashboard");
           }}
           onClose={() => {
             setShowCancelModal(false);
