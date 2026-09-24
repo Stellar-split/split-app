@@ -120,9 +120,22 @@ export default function VotingPanel({ invoice, publicKey }: Props) {
         </div>
       </div>
 
-      <p className="text-xs text-gray-500">
-        <span className="font-semibold text-white">{majority}</span> votes needed for a majority
-        ({totalVotes} of {totalPayers} payer{totalPayers !== 1 ? "s" : ""} voted)
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-indigo-950/40 border border-indigo-800/40 rounded-lg px-3 py-2 text-xs">
+        <div>
+          <span className="text-gray-400">Quorum Required: </span>
+          <span className="font-semibold text-white">{majority} vote{majority !== 1 ? "s" : ""}</span>
+          <span className="text-gray-400"> ({Math.round((majority / totalPayers) * 100)}% of payers)</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Current Votes: </span>
+          <span className="font-semibold text-indigo-300">{votesFor}</span>
+          <span className="text-gray-500"> / {majority}</span>
+        </div>
+      </div>
+
+      <p className="text-xs text-gray-400">
+        <span className="font-semibold text-white">{majority}</span> votes needed to reach quorum and extend the deadline
+        ({totalVotes} of {totalPayers} payer{totalPayers !== 1 ? "s" : ""} have cast a vote)
       </p>
 
       {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
@@ -131,9 +144,17 @@ export default function VotingPanel({ invoice, publicKey }: Props) {
         type="button"
         onClick={handleVote}
         disabled={voted || voting}
-        className="self-start min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-default"
+        className="self-start min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-default inline-flex items-center gap-2"
       >
-        {voting ? "Submitting…" : voted ? "Already Voted" : "Vote to Extend"}
+        {voting ? (
+          "Submitting Vote…"
+        ) : voted ? (
+          <>
+            <span aria-hidden="true">✓</span> Voted to Extend
+          </>
+        ) : (
+          "Vote to Extend Deadline"
+        )}
       </button>
     </section>
   );
