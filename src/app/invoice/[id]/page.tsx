@@ -484,6 +484,10 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   const isCreator = role === "creator";
   const isRecipient = role === "recipient";
+  const isContributor = publicKey
+    ? (invoice.payments?.some((p) => p.payer === publicKey) ?? false)
+    : false;
+  const canDownloadPDF = isCreator || isContributor;
   const canAct = isCreator || isRecipient;
   const recipientShare = publicKey
     ? invoice.recipients.find((recipient) => recipient.address === publicKey)
@@ -592,7 +596,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           >
             Duplicate
           </button>
-          <InvoiceExportButton invoice={invoice} total={total} branding={branding} />
+          {canDownloadPDF && (
+            <InvoiceExportButton invoice={invoice} total={total} branding={branding} />
+          )}
           {pushStatus !== "unsupported" && !isRetroactive && (
             <button
               type="button"
