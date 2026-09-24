@@ -861,6 +861,46 @@ export default function InvoiceDetailPage({ params }: Props) {
         readOnly
       />
 
+      {/* Co-Signer Approvals summary card */}
+      {Boolean(loadedSplitMeta?.cosigners && loadedSplitMeta.cosigners.length > 0) && (
+        <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-5 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div>
+              <h3 className="text-base font-semibold text-white">Co-Signer Approvals</h3>
+              <p className="text-xs text-gray-400">
+                Requires {loadedSplitMeta?.cosignerThreshold || 1} of {loadedSplitMeta?.cosigners?.length || 1} approvals to release funds.
+              </p>
+            </div>
+            <Link
+              href={`/invoice/${id}/cosigners`}
+              className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors shrink-0 text-center"
+            >
+              View Co-Signers & Approvals →
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-gray-700 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-indigo-500 h-full rounded-full transition-all"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.round(
+                      ((loadedSplitMeta?.cosigners?.filter((c) => c.approved).length || 0) /
+                        (loadedSplitMeta?.cosignerThreshold || 1)) *
+                        100
+                    )
+                  )}%`,
+                }}
+              />
+            </div>
+            <span className="text-xs text-gray-300 font-medium">
+              {loadedSplitMeta?.cosigners?.filter((c) => c.approved).length || 0} / {loadedSplitMeta?.cosignerThreshold || 1}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Installment schedule — only shown to payers with a registered plan */}
       {isRecipient && publicKey && loadedSplitMeta?.installments && loadedSplitMeta.installments.length > 0 && (
         <InvoiceView
