@@ -18,6 +18,16 @@ export interface RecipientLine {
   percent?: string;
 }
 
+export interface ValidationError {
+  row: number;
+  column: string;
+  value: string;
+  message: string;
+}
+
+// Maximum number of validation errors to collect before short-circuiting.
+export const MAX_VALIDATION_ERRORS = 20;
+
 // Define the expected column names in CSV
 export const EXPECTED_COLUMNS = [
   "title",
@@ -48,11 +58,91 @@ export function parseRecipients(
     .filter((r) => r.address);
 }
 
+function validateRowFields(
+  typedData: Record<string, any>,
+  row: number
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  const pushError = (column: string, value: unknown, message: string) => {
+    if (errors.length >= MAX_VALIDATION_ERRORS) return;
+    errors.push({
+      row,
+      column,
+      value: value === undefined || value === null ? "" : String(value),
+      message,
+    });
+  };
+
+  if (typedData.amount !== undefined && typedData.amount !== null && typedData.amount !== "") {
+    const amountValue = String(typedData.amount).trim();
+    const numericAmount = Number(amountValue);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      pushError("amount", typedData.amount, "Amount must be a positive number");
+    }
+  }
+
+  if (typedData.recipients && typeof typedData.recipients === "string") {
+    const recipients = parseRecipients(typedData.recipients);
+    if (recipients.length === 0) {
+      pushError(
+        "recipients",
+        typedData.recipients,
+        "Recipients must include at least one address:percent entry"
+      );
+    } else {
+      recipients.forEach((recipient) => {
+        const percent = Number(recipient.percent);
+        if (!Number.isFinite(percent) || percent <= 0) {
+          pushError(
+            "recipients",
+            recipient.percent ?? "",
+            `Recipient percent for ${recipient.address} must be a positive number`
+          );
+        }
+      });
+    }
+  }
+
+  if (typedData.deadline && typeof typedData.deadline === "string") {
+    const deadlineValue = typedData.deadline.trim();
+    const asDate = new Date(deadlineValue);
+    const isDaysFromNow = /^\d+$/.test(deadlineValue);
+    if (!isDaysFromNow && Number.isNaN(asDate.getTime())) {
+      pushError(
+        "deadline",
+        typedData.deadline,
+        "Deadline must be an ISO date or a number of days from now"
+      );
+    }
+  }
+
+  if (typedData.token && typeof typedData.token === "string") {
+    const tokenValue = typedData.token.trim().toUpperCase();
+    if (tokenValue !== "USDC" && tokenValue !== "XLM") {
+      pushError("token", typedData.token, "Token must be either USDC or XLM");
+    }
+  }
+
+  return errors;
+}
+
 export function validateInvoiceFormFields(
-  data: unknown
-): { valid: boolean; data?: ParsedCSVRow; error?: string } {
+  data: unknown,
+  row: number = 1
+): { valid: boolean; data?: ParsedCSVRow; errors: ValidationError[] } {
   if (!data || typeof data !== "object") {
-    return { valid: false, error: "Invalid data format" };
+    return {
+      valid: false,
+      errors: [
+        {
+          row,
+          column: "",
+          value: data === undefined || data === null ? "" : String(data),
+          message: "Invalid data format",
+        },
+      ],
+    };
   }
 
   const typedData = data as Record<string, any>;
@@ -78,7 +168,13 @@ export function validateInvoiceFormFields(
     parsed.token = typedData.token;
   }
 
-  return { valid: true, data: parsed };
+  const errors = validateRowFields(typedData, row);
+
+  if (errors.length > 0) {
+    return { valid: false, errors };
+  }
+
+  return { valid: true, data: parsed, errors: [] };
 }
 
 export interface ColumnMapping {
