@@ -507,8 +507,24 @@ export default function InvoiceDetailPage({ params }: Props) {
   const stellarDestination =
     process.env.NEXT_PUBLIC_CONTRACT_ID ?? invoice.token;
 
+  const isPrivate =
+    (invoice as any)?.visibility === "Private" ||
+    (invoice as any)?.isPrivate === true ||
+    (loadedSplitMeta as any)?.visibility === "Private" ||
+    Boolean((invoice as any)?.accessCodeHash || (invoice as any)?.access_code_hash);
+
+  const accessCodeHash =
+    (invoice as any)?.accessCodeHash ||
+    (invoice as any)?.access_code_hash ||
+    (loadedSplitMeta as any)?.accessCodeHash;
+
   return (
-    <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
+    <AccessCodeGate
+      invoiceId={id}
+      expectedHash={accessCodeHash}
+      isPrivate={isPrivate}
+    >
+      <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         <div className="min-w-0">
       {/* Reconnecting indicator */}
@@ -1210,5 +1226,6 @@ export default function InvoiceDetailPage({ params }: Props) {
         onClose={() => setShowShareQRModal(false)}
       />
     </main>
+    </AccessCodeGate>
   );
 }
