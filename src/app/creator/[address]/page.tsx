@@ -64,6 +64,11 @@ export default async function CreatorPage({ params }: Props) {
     deadline: inv.deadline,
   }));
 
+  const reputationScore =
+    invoices.length === 0
+      ? 50
+      : Math.min(100, Math.max(10, Math.round(completionRate * 0.7 + Math.min(30, released.length * 6))));
+
   return (
     <main className="max-w-2xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
       <CreatorProfileClient
@@ -71,6 +76,7 @@ export default async function CreatorPage({ params }: Props) {
         totalInvoices={invoices.length}
         totalVolume={formatAmount(totalVolume)}
         completionRate={completionRate}
+        reputationScore={reputationScore}
         invoices={publicInvoices}
       />
     </main>
