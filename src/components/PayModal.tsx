@@ -7,6 +7,7 @@ const ReceiptPDF = lazy(() => import("./ReceiptPDF"));
 import { formatAmount, parseAmount } from "@stellar-split/sdk";
 import PaymentProgress from "./PaymentProgress";
 import PaymentBreakdownModal from "./PaymentBreakdownModal";
+import ContributionCapBadge from "./pay/ContributionCapBadge";
 import MFAGate from "./invoice/MFAGate";
 import type { Invoice } from "@stellar-split/sdk";
 import { checkBudget, getBudgetLimit, setBudgetLimit, clearBudgetLimit } from "@/lib/budgetTracker";
@@ -106,6 +107,23 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
   const paymentTotal = parsed + parsedTip;
   const remainingInvoiceAmount = positive(total - invoice.funded);
 
+  const payerCap: bigint | undefined =
+    (invoice as any).payerCap ?? (invoice as any).contributionCap ?? (invoice as any).maxContribution;
+
+  const paidByPayer = publicKey && invoice.payments
+    ? invoice.payments
+        .filter((payment) => payment.payer === publicKey)
+        .reduce((sum, payment) => sum + payment.amount, 0n)
+    : 0n;
+
+  const capRemaining = payerCap !== undefined && payerCap > 0n
+    ? positive(payerCap - paidByPayer)
+    : null;
+
+  const isCapReached = capRemaining !== null && capRemaining === 0n;
+  const liveCapRemaining = capRemaining !== null ? positive(capRemaining - parsed) : null;
+  const isCapExceeded = capRemaining !== null && parsed > capRemaining;
+
   const budgetCheck = publicKey && parsed > 0n
     ? checkBudget(publicKey, paymentTotal)
     : null;
@@ -194,6 +212,10 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
     if (!parsed || parsed <= 0n) return;
     if (parsed > remainingInvoiceAmount) {
       setError(`Amount is greater than the remaining invoice balance of ${formatAmount(remainingInvoiceAmount)} USDC.`);
+      return;
+    }
+    if (capRemaining !== null && parsed > capRemaining) {
+      setError(`Payment exceeds your remaining contribution allowance of ${formatAmount(capRemaining)} USDC.`);
       return;
     }
     if (parsedTip < 0n) {
@@ -400,63 +422,98 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
           <PaymentProgress funded={invoice.funded} total={total} />
         </div>
 
-        {/* Amount input */}
-        <div>
-          <label htmlFor="modal-pay-amount" className="block text-sm font-medium text-gray-300 mb-1">
-            Amount (USDC)
-          </label>
-          <input
-            id="modal-pay-amount"
-            type="number"
-            step="0.0000001"
-            min="0.0000001"
-            placeholder="0.00"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            autoFocus
+        {/* Contribution cap badge if cap is set */}
+        {payerCap !== undefined && payerCap > 0n && (
+          <ContributionCapBadge
+            cap={payerCap}
+            remaining={liveCapRemaining ?? 0n}
+            paid={paidByPayer}
+            entered={parsed}
+            token={invoice.token || "USDC"}
           />
-          <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-xs">
-            <span className={balance !== null ? "text-indigo-300" : "text-gray-500"}>
-              {balanceLabel}
-            </span>
-            <button
-              type="button"
-              onClick={() => setInput(formatAmount(defaultAmount))}
-              className="text-indigo-300 hover:text-indigo-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
-            >
-              Use remaining share
-            </button>
-          </div>
-        </div>
+        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="modal-pay-tip" className="block text-sm font-medium text-gray-300 mb-1">
-              Tip (optional)
-            </label>
-            <input
-              id="modal-pay-tip"
-              type="number"
-              step="0.0000001"
-              min="0"
-              placeholder="0.00"
-              value={tipInput}
-              onChange={(e) => setTipInput(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            />
+        {isCapReached ? (
+          <div
+            role="alert"
+            className="rounded-xl bg-amber-950/40 border border-amber-800/50 p-4 text-center my-2"
+          >
+            <p className="text-sm font-semibold text-amber-300">You have reached your contribution limit</p>
+            <p className="text-xs text-amber-400/80 mt-1">
+              You have already contributed {formatAmount(paidByPayer)} {invoice.token || "USDC"}, reaching the maximum cap of {formatAmount(payerCap!)} {invoice.token || "USDC"} on this invoice.
+            </p>
           </div>
+        ) : (
+          <>
+            {/* Amount input */}
+            <div>
+              <label htmlFor="modal-pay-amount" className="block text-sm font-medium text-gray-300 mb-1">
+                Amount (USDC)
+              </label>
+              <input
+                id="modal-pay-amount"
+                type="number"
+                step="0.0000001"
+                min="0.0000001"
+                placeholder="0.00"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className={`w-full bg-gray-800 border rounded-lg px-4 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  isCapExceeded ? "border-red-500" : "border-gray-700"
+                }`}
+                autoFocus
+              />
+              {isCapExceeded && (
+                <p role="alert" className="text-xs text-red-400 mt-1">
+                  Amount exceeds your remaining contribution allowance of {formatAmount(capRemaining!)} {invoice.token || "USDC"}.
+                </p>
+              )}
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-xs">
+                <span className={balance !== null ? "text-indigo-300" : "text-gray-500"}>
+                  {balanceLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const maxAllowed = capRemaining !== null && capRemaining < defaultAmount ? capRemaining : defaultAmount;
+                    setInput(formatAmount(maxAllowed));
+                  }}
+                  className="text-indigo-300 hover:text-indigo-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
+                >
+                  Use remaining share
+                </button>
+              </div>
+            </div>
 
-          <label className="flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-950/60 px-3 py-2 text-sm text-gray-300">
-            <input
-              type="checkbox"
-              checked={donateOnFailure}
-              onChange={(e) => setDonateOnFailure(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-indigo-600 focus:ring-indigo-500"
-            />
-            Donate on failure
-          </label>
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="modal-pay-tip" className="block text-sm font-medium text-gray-300 mb-1">
+                  Tip (optional)
+                </label>
+                <input
+                  id="modal-pay-tip"
+                  type="number"
+                  step="0.0000001"
+                  min="0"
+                  placeholder="0.00"
+                  value={tipInput}
+                  onChange={(e) => setTipInput(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                />
+              </div>
+
+              <label className="flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-950/60 px-3 py-2 text-sm text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={donateOnFailure}
+                  onChange={(e) => setDonateOnFailure(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-indigo-600 focus:ring-indigo-500"
+                />
+                Donate on failure
+              </label>
+            </div>
+          </>
+        )}
 
         {parsedTip > 0n && (
           <p className="text-xs text-gray-500">
@@ -526,7 +583,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
         <button
           type="button"
           onClick={handleReview}
-          disabled={paying || !parsed || parsed <= 0n}
+          disabled={paying || !parsed || parsed <= 0n || isCapReached || isCapExceeded}
           className="w-full px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {paying ? "Waiting for signature..." : "Review & Pay"}
