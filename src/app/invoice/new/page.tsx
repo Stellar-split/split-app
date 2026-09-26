@@ -574,9 +574,14 @@ function NewInvoiceForm() {
         setStepErrors((prev) => ({ ...prev, [s]: null }));
         return true;
       }
-      case 2:
+      case 2: {
+        if (deadlineDays && Number(deadlineDays) <= 0) {
+          setStepErrors((prev) => ({ ...prev, [s]: "Deadline must be a positive number of days" }));
+          return false;
+        }
         setStepErrors((prev) => ({ ...prev, [s]: null }));
         return true;
+      }
       default:
         return true;
     }
@@ -723,8 +728,19 @@ function NewInvoiceForm() {
     [step]
   );
 
+  const handleStepClick = (targetStep: number) => {
+    if (targetStep <= step) {
+      goToStep(targetStep);
+      return;
+    }
+    for (let s = step; s < targetStep; s++) {
+      if (!validateStep(s)) return;
+    }
+    goToStep(targetStep);
+  };
+
   const renderStepIndicator = () => (
-    <Stepper steps={stepperSteps} onStepClick={goToStep} className="mb-8" />
+    <Stepper steps={stepperSteps} onStepClick={handleStepClick} className="mb-8" />
   );
 
   const renderBasicInfo = () => (
