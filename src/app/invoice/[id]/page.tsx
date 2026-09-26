@@ -31,6 +31,7 @@ import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import ShareModal from "@/components/ShareModal";
 import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 import VotingPanel from "@/components/VotingPanel";
+import InvoiceLeaderboard from "@/components/invoice/InvoiceLeaderboard";
 import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
@@ -750,6 +751,9 @@ export default function InvoiceDetailPage({ params }: Props) {
         onFocusChange={updateFocusedSection}
         className="mb-8"
       >
+      {/* Top Contributors Leaderboard */}
+      <InvoiceLeaderboard invoice={invoice} publicKey={publicKey} className="mb-6" />
+
       <section className="mb-8">
         <h2 className="text-lg font-semibold text-white mb-3">
           Payments ({invoice.payments.length})
