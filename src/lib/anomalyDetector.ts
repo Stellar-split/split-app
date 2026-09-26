@@ -23,10 +23,36 @@ export enum AnomalyType {
   FIRST_TIME_LARGE = "first_time_large",
 }
 
+/**
+ * Configurable sensitivity for anomaly detection.
+ * Maps to a Z-score threshold used to decide when a pattern is flagged.
+ */
+export type SensitivityLevel = "low" | "medium" | "high";
+
+/** Z-score thresholds corresponding to each sensitivity level. */
+export const SENSITIVITY_THRESHOLDS: Record<SensitivityLevel, number> = {
+  low: 3.0,
+  medium: 2.0,
+  high: 1.5,
+};
+
 export interface AnomalyFlag {
   type: AnomalyType;
   payer: string;
   reason: string;
+}
+
+export interface AnomalyReport {
+  flags: AnomalyFlag[];
+  sensitivityLevel: SensitivityLevel;
+}
+
+export interface DetectAnomaliesOptions {
+  /**
+   * Tunes the Z-score threshold used to flag anomalies.
+   * low → 3.0, medium → 2.0, high → 1.5. Defaults to "medium".
+   */
+  sensitivityLevel?: SensitivityLevel;
 }
 
 // Tunable thresholds
@@ -35,30 +61,59 @@ const RAPID_PAYMENT_WINDOW_MS = 60 * 1000; // 60 seconds
 const FIRST_TIME_LARGE_THRESHOLD_PCT = 50; // 50% of invoice total
 
 /**
+ * Resolve the Z-score threshold for a given sensitivity level.
+ * Falls back to the "medium" threshold for unknown values.
+ */
+export function getZScoreThreshold(level: SensitivityLevel = "medium"): number {
+  return SENSITIVITY_THRESHOLDS[level] ?? SENSITIVITY_THRESHOLDS.medium;
+}
+
+/**
  * Detect anomalies for a specific payment in the context of an invoice.
  *
  * @param payment - The payment to analyze
  * @param invoice - The invoice being paid (context for total amount, all payments)
  * @param payerHistory - All payments across creator's invoices, keyed by payer address
  *                       Used to detect first-time payers. If empty/null, all payers are treated as first-time.
+ * @param options - Detection options, including the configurable `sensitivityLevel`
  * @returns AnomalyFlag[] — empty array if no flags, or one/more flags explaining the concern
  */
 export function detectAnomalies(
   payment: Payment,
   invoice: Invoice,
   payerHistory: Map<string, number> = new Map(),
+  options: DetectAnomaliesOptions = {},
 ): AnomalyFlag[] {
+  const sensitivityLevel: SensitivityLevel = options.sensitivityLevel ?? "medium";
+  const zScoreThreshold = getZScoreThreshold(sensitivityLevel);
   const flags: AnomalyFlag[] = [];
 
   // Flag 1: Rapid succession
-  const rapidFlag = checkRapidSuccession(payment, invoice);
+  const rapidFlag = checkRapidSuccession(payment, invoice, zScoreThreshold);
   if (rapidFlag) flags.push(rapidFlag);
 
   // Flag 2: First-time large payer
-  const firstTimeLargeFlag = checkFirstTimeLarge(payment, invoice, payerHistory);
+  const firstTimeLargeFlag = checkFirstTimeLarge(payment, invoice, payerHistory, zScoreThreshold);
   if (firstTimeLargeFlag) flags.push(firstTimeLargeFlag);
 
   return flags;
+}
+
+/**
+ * Build an anomaly report for a payment, including the sensitivity level used.
+ * The `sensitivityLevel` is always present for auditability.
+ */
+export function buildAnomalyReport(
+  payment: Payment,
+  invoice: Invoice,
+  payerHistory: Map<string, number> = new Map(),
+  options: DetectAnomaliesOptions = {},
+): AnomalyReport {
+  const sensitivityLevel: SensitivityLevel = options.sensitivityLevel ?? "medium";
+  return {
+    flags: detectAnomalies(payment, invoice, payerHistory, { sensitivityLevel }),
+    sensitivityLevel,
+  };
 }
 
 /**
@@ -70,6 +125,7 @@ export function detectAnomalies(
 function checkRapidSuccession(
   payment: Payment,
   invoice: Invoice,
+  zScoreThreshold: number,
 ): AnomalyFlag | null {
   const now = Date.now();
   const windowStart = now - RAPID_PAYMENT_WINDOW_MS;
@@ -81,7 +137,13 @@ function checkRapidSuccession(
     (p: Payment & { timestamp?: number }) => p.payer === payment.payer && (p.timestamp ?? 0) >= windowStart,
   );
 
-  if (payerPayments.length > RAPID_PAYMENT_COUNT) {
+  // Higher sensitivity (lower Z-score threshold) flags at a lower payment count.
+  const countThreshold = Math.max(
+    1,
+    Math.round(RAPID_PAYMENT_COUNT * (zScoreThreshold / SENSITIVITY_THRESHOLDS.medium)),
+  );
+
+  if (payerPayments.length > countThreshold) {
     return {
       type: AnomalyType.RAPID_SUCCESSION,
       payer: payment.payer,
@@ -106,6 +168,7 @@ function checkFirstTimeLarge(
   payment: Payment,
   invoice: Invoice,
   payerHistory: Map<string, number>,
+  zScoreThreshold: number,
 ): AnomalyFlag | null {
   const invoiceTotal = invoice.recipients.reduce(
     (s: bigint, r: Recipient) => s + r.amount,
@@ -124,7 +187,11 @@ function checkFirstTimeLarge(
       ? Number((payment.amount * 10_000n) / invoiceTotal) / 100
       : 0;
 
-  if (paymentPct > FIRST_TIME_LARGE_THRESHOLD_PCT) {
+  // Higher sensitivity (lower Z-score threshold) flags at a lower percentage.
+  const pctThreshold =
+    FIRST_TIME_LARGE_THRESHOLD_PCT * (zScoreThreshold / SENSITIVITY_THRESHOLDS.medium);
+
+  if (paymentPct > pctThreshold) {
     return {
       type: AnomalyType.FIRST_TIME_LARGE,
       payer: payment.payer,
