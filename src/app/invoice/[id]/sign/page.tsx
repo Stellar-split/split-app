@@ -83,6 +83,15 @@ export default function SignInvoicePage() {
       {status === 'error' && (
         <p className="text-red-400 text-sm">Error: {error}</p>
       )}
+
+      <div className="mt-8 pt-6 border-t border-gray-800">
+        <a
+          href={`/invoice/${id}/cosigners`}
+          className="text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors inline-flex items-center gap-1.5"
+        >
+          View Co-Signer Status & Approvals →
+        </a>
+      </div>
     </main>
   );
 }

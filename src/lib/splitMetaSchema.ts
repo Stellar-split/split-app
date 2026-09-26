@@ -25,12 +25,22 @@ export const InstallmentMilestoneSchema = z.object({
 
 export type InstallmentMilestoneInput = z.infer<typeof InstallmentMilestoneSchema>;
 
+export const CoSignerSchema = z.object({
+  address: z.string().min(1, "Address is required"),
+  approved: z.boolean().default(false),
+  approvedAt: z.string().optional(),
+});
+
+export type CoSignerInput = z.infer<typeof CoSignerSchema>;
+
 export const SplitMetaSchema = z
   .object({
     totalAmount: z.number().min(0, "Total amount must be >= 0"),
     assetCode: z.enum(["XLM", "USDC"]),
     recipients: z.array(RecipientLineSchema),
     installments: z.array(InstallmentMilestoneSchema).optional(),
+    cosigners: z.array(CoSignerSchema).optional(),
+    cosignerThreshold: z.number().min(1).optional(),
   })
   .superRefine((data, ctx) => {
     const shareSum = data.recipients.reduce(

@@ -16,11 +16,19 @@ export interface DerivedRecipientLine extends RecipientLine {
   netAmount: number;
 }
 
+export interface CoSigner {
+  address: string;
+  approved: boolean;
+  approvedAt?: string;
+}
+
 export interface SplitMeta {
   totalAmount: number;
   assetCode: 'XLM' | 'USDC';
   recipients: RecipientLine[];
   installments?: { id: string; amount: number; dueDate: number; status: string; txHash?: string }[];
+  cosigners?: CoSigner[];
+  cosignerThreshold?: number;
 }
 
 export interface SplitValidation {
