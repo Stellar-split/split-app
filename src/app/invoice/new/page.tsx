@@ -39,6 +39,7 @@ import {
 } from "@/hooks/useSplitCalculator";
 
 import InstallmentPlanBuilder, { type InstallmentMilestone as PlanMilestone } from "@/components/invoice/InstallmentPlanBuilder";
+import CoSignerSection from "@/components/invoice/CoSignerSection";
 import AmountDenominationInput from "@/components/AmountDenominationInput";
 import { useXlmUsdcRate } from "@/hooks/useXlmUsdcRate";
 
@@ -148,6 +149,8 @@ function NewInvoiceForm() {
   const [submitting, setSubmitting] = useState(false);
   const [splitMeta, setSplitMeta] = useState<SplitMeta | null>(null);
   const [installments, setInstallments] = useState<PlanMilestone[]>([]);
+  const [cosigners, setCosigners] = useState<string[]>([]);
+  const [cosignerThreshold, setCosignerThreshold] = useState<number>(1);
   const [tags, setTags] = useState<string[]>([]);
   const { allTags, saveTags } = useInvoiceTags();
 
@@ -624,9 +627,27 @@ function NewInvoiceForm() {
   };
 
   const payloadForApi = () => {
-    if (!splitMeta) return null;
-    if (installments.length === 0) return splitMeta;
-    return { ...splitMeta, installments };
+    if (!splitMeta && cosigners.length === 0 && installments.length === 0) return null;
+    const baseMeta = splitMeta || {
+      totalAmount: recipients.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0),
+      assetCode: (token === (process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "") ? "USDC" : "XLM") as 'USDC' | 'XLM',
+      recipients: recipients.map((r) => ({
+        address: r.address,
+        sharePercent: 100 / Math.max(1, recipients.length),
+        taxRatePercent: 0,
+        fixedFeeXLM: 0,
+      })),
+    };
+    return {
+      ...baseMeta,
+      ...(installments.length > 0 ? { installments } : {}),
+      ...(cosigners.length > 0
+        ? {
+            cosigners: cosigners.map((addr) => ({ address: addr, approved: false })),
+            cosignerThreshold,
+          }
+        : {}),
+    };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1079,6 +1100,15 @@ function NewInvoiceForm() {
         assetCode={token === (process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "") ? "USDC" : "XLM"}
         onChange={setInstallments}
       />
+
+      <CoSignerSection
+        cosigners={cosigners}
+        threshold={cosignerThreshold}
+        onChange={(signers, thresh) => {
+          setCosigners(signers);
+          setCosignerThreshold(thresh);
+        }}
+      />
     </div>
     );
   };
@@ -1121,6 +1151,14 @@ function NewInvoiceForm() {
             <span className="text-sm text-gray-400">Recipients</span>
             <span className="text-sm text-gray-200">{recipients.length}</span>
           </div>
+          {cosigners.length > 0 && (
+            <div className="px-4 py-3 flex justify-between">
+              <span className="text-sm text-gray-400">Co-Signers</span>
+              <span className="text-sm text-gray-200">
+                {cosignerThreshold} of {cosigners.length} approvals required
+              </span>
+            </div>
+          )}
           <div className="px-4 py-3 flex justify-between">
             <span className="text-sm text-gray-400">Total</span>
             <FeeTooltip
