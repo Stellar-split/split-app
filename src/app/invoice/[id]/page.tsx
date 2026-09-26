@@ -74,6 +74,7 @@ import CommentSection from "@/components/CommentSection";
 import CommentThread from "@/components/invoice/CommentThread";
 import { loadPermissions } from "@/components/CoCreatorPanel";
 import InvoiceTimeline from "@/components/InvoiceTimeline";
+import HistoryLog from "@/components/invoice/HistoryLog";
 import InvoiceExportButton from "@/components/InvoiceExportButton";
 import ReleaseBanner from "@/components/ReleaseBanner";
 import { cancelReminder, setReminder } from "@/lib/reminders";
@@ -1141,8 +1142,7 @@ export default function InvoiceDetailPage({ params }: Props) {
 
       {/* Activity Timeline */}
       <section className="mb-8" aria-labelledby="activity-timeline-heading">
-        <h2 id="activity-timeline-heading" className="text-lg font-semibold text-white mb-4">Activity Timeline</h2>
-        <InvoiceTimeline invoiceId={id} />
+        <HistoryLog invoiceId={id} />
       </section>
 
       {/* Tabbed detail section: Audit Log / History / Notes / Comments */}
@@ -1174,7 +1174,7 @@ export default function InvoiceDetailPage({ params }: Props) {
           })}
         </div>
         {activeDetailsTab === "audit" && <AuditLogTable invoiceId={id} invoice={invoice ?? undefined} />}
-        {activeDetailsTab === "history" && <VersionHistory invoiceId={id} />}
+        {activeDetailsTab === "history" && <HistoryLog invoiceId={id} />}
         {activeDetailsTab === "notes" && publicKey && (
           <CommentSection invoiceId={id} walletAddress={publicKey} />
         )}
