@@ -892,8 +892,8 @@ export default function InvoiceDetailPage({ params }: Props) {
         />
       )}
 
-      {/* Deadline extension voting — shown to payers on Pending invoices */}
-      {isRecipient && publicKey && (
+      {/* Deadline extension voting — shown to eligible payers on Pending invoices */}
+      {invoice.status === "Pending" && publicKey && (
         <VotingPanel invoice={invoice} publicKey={publicKey} />
       )}
 
