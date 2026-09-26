@@ -28,6 +28,8 @@ export default function TemplatesPage() {
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -51,26 +53,53 @@ export default function TemplatesPage() {
       i !== index ? tmpl : { ...tmpl, lastUsed: new Date().toISOString() }
     );
     persist(updated);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(
+        "invoiceTemplate",
+        JSON.stringify({
+          recipients: t.recipients,
+          token: t.token,
+          deadlineDays: 7,
+        })
+      );
+    }
     const encoded = encodeTemplate({ recipients: t.recipients, token: t.token });
     router.push(`/invoice/new?template=${encoded}`);
   };
 
   const handleDelete = (index: number) => {
+    setDeleteConfirmIndex(index);
+  };
+
+  const confirmDelete = (index: number) => {
     persist(templates.filter((_, i) => i !== index));
+    setDeleteConfirmIndex(null);
     flash("Template deleted");
   };
 
   const handleRenameStart = (index: number) => {
     setEditingIndex(index);
     setEditName(templates[index]?.name ?? "");
+    setRenameError(null);
   };
 
   const handleRenameConfirm = () => {
     if (editingIndex === null) return;
     const name = editName.trim();
-    if (!name) { setEditingIndex(null); return; }
+    if (!name) {
+      setRenameError("Template name cannot be empty");
+      return;
+    }
+    const isDuplicate = templates.some(
+      (t, i) => i !== editingIndex && t.name.toLowerCase() === name.toLowerCase()
+    );
+    if (isDuplicate) {
+      setRenameError("A template with this name already exists");
+      return;
+    }
     persist(templates.map((t, i) => (i !== editingIndex ? t : { ...t, name })));
     setEditingIndex(null);
+    setRenameError(null);
     flash("Template renamed");
   };
 
@@ -185,28 +214,43 @@ export default function TemplatesPage() {
                 className="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col gap-3 hover:border-gray-700 transition-colors"
               >
                 {editingIndex === i ? (
-                  <div className="flex gap-2">
-                    <input
-                      autoFocus
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") handleRenameConfirm(); if (e.key === "Escape") setEditingIndex(null); }}
-                      className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRenameConfirm}
-                      className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-xs font-medium transition-colors"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingIndex(null)}
-                      className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs font-medium transition-colors"
-                    >
-                      Cancel
-                    </button>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex gap-2">
+                      <input
+                        autoFocus
+                        value={editName}
+                        onChange={(e) => {
+                          setEditName(e.target.value);
+                          setRenameError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleRenameConfirm();
+                          if (e.key === "Escape") {
+                            setEditingIndex(null);
+                            setRenameError(null);
+                          }
+                        }}
+                        className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRenameConfirm}
+                        className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-xs font-medium transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingIndex(null);
+                          setRenameError(null);
+                        }}
+                        className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {renameError && <p className="text-xs text-red-400">{renameError}</p>}
                   </div>
                 ) : (
                   <h3 className="font-semibold text-white truncate">{t.name}</h3>
@@ -217,6 +261,9 @@ export default function TemplatesPage() {
                     {t.recipients.length} recipient{t.recipients.length !== 1 ? "s" : ""}
                   </span>
                   <span>{totalAmount(t.recipients).toFixed(2)} USDC total</span>
+                  {t.createdAt && (
+                    <span>Created {new Date(t.createdAt).toLocaleDateString()}</span>
+                  )}
                   {t.lastUsed && (
                     <span>Last used {timeAgo(t.lastUsed)}</span>
                   )}
@@ -228,7 +275,7 @@ export default function TemplatesPage() {
                     onClick={() => handleUse(i)}
                     className="flex-1 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-colors"
                   >
-                    Use Template
+                    Load
                   </button>
                   <button
                     type="button"
@@ -249,6 +296,37 @@ export default function TemplatesPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {deleteConfirmIndex !== null && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+          >
+            <div className="w-full max-w-sm bg-gray-900 rounded-xl p-5 border border-gray-700 shadow-xl">
+              <h3 className="text-base font-semibold text-white mb-2">Delete Template</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Are you sure you want to delete &ldquo;{templates[deleteConfirmIndex]?.name}&rdquo;? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmIndex(null)}
+                  className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-xs font-medium text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => confirmDelete(deleteConfirmIndex)}
+                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-xs font-semibold text-white"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

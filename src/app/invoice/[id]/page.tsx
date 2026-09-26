@@ -26,12 +26,13 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 import CopyButton from "@/components/CopyButton";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
-import AccessCodeGate from "@/components/invoice/AccessCodeGate";
+import AchievementCard from "@/components/AchievementCard";
 import DuplicateModal from "@/components/DuplicateModal";
 import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 import ShareModal from "@/components/ShareModal";
 import InvoiceShareQRModal from "@/components/InvoiceShareQRModal";
 import VotingPanel from "@/components/VotingPanel";
+import InvoiceLeaderboard from "@/components/invoice/InvoiceLeaderboard";
 import DeadlineExtensionPanel from "@/components/DeadlineExtensionPanel";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import RecipientPayoutTracker from "@/components/RecipientPayoutTracker";
@@ -228,6 +229,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showConfidentialFlow, setShowConfidentialFlow] = useState(false);
   const [showReconnecting, setShowReconnecting] = useState(false);
   const [showReleaseBanner, setShowReleaseBanner] = useState(false);
+  const [showNFTCelebration, setShowNFTCelebration] = useState(false);
 
   useEffect(() => {
     if (isRetroactiveInvoiceId(id)) {
@@ -244,6 +246,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   useEffect(() => {
     if (latestEvent?.type === "InvoiceReleased") {
       setShowReleaseBanner(true);
+      setShowNFTCelebration(true);
     }
   }, [latestEvent]);
 
@@ -485,6 +488,10 @@ export default function InvoiceDetailPage({ params }: Props) {
 
   const isCreator = role === "creator";
   const isRecipient = role === "recipient";
+  const isContributor = publicKey
+    ? (invoice.payments?.some((p) => p.payer === publicKey) ?? false)
+    : false;
+  const canDownloadPDF = isCreator || isContributor;
   const canAct = isCreator || isRecipient;
   const recipientShare = publicKey
     ? invoice.recipients.find((recipient) => recipient.address === publicKey)
@@ -609,7 +616,9 @@ export default function InvoiceDetailPage({ params }: Props) {
           >
             Duplicate
           </button>
-          <InvoiceExportButton invoice={invoice} total={total} branding={branding} />
+          {canDownloadPDF && (
+            <InvoiceExportButton invoice={invoice} total={total} branding={branding} />
+          )}
           {pushStatus !== "unsupported" && !isRetroactive && (
             <button
               type="button"
@@ -669,16 +678,43 @@ export default function InvoiceDetailPage({ params }: Props) {
               Print Invoice
             </button>
           )}
-          {invoice.status === "Pending" && isCreator && (
+          {invoice.status === "Released" && isCreator && (
             <button
               type="button"
-              ref={cancelModalTriggerRef}
-              onClick={() => setShowCancelModal(true)}
-              className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-              aria-label="Cancel this invoice"
+              onClick={() => setShowNFTCelebration(true)}
+              className="px-3 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-600 text-white text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+              aria-label="View Settlement NFT celebration card"
             >
-              Cancel Invoice
+              🎉 Settlement NFT
             </button>
+          )}
+          {invoice.status === "Pending" && isCreator && (
+            invoice.funded === 0n && (!invoice.payments || invoice.payments.length === 0) ? (
+              <button
+                type="button"
+                ref={cancelModalTriggerRef}
+                onClick={() => setShowCancelModal(true)}
+                className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                aria-label="Cancel this invoice"
+              >
+                Cancel Invoice
+              </button>
+            ) : (
+              <div className="relative group inline-block">
+                <button
+                  type="button"
+                  disabled
+                  className="px-3 py-1.5 rounded-lg bg-red-950/60 text-red-400/40 cursor-not-allowed text-sm transition-colors border border-red-900/40"
+                  aria-label="Cannot cancel invoice: payments already received"
+                  title="Invoices that have already received payments cannot be cancelled"
+                >
+                  Cancel Invoice
+                </button>
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-gray-200 text-xs rounded py-1 px-2 border border-gray-700 whitespace-nowrap shadow-lg z-10 pointer-events-none">
+                  Cannot cancel: payments already received
+                </div>
+              </div>
+            )
           )}
         </div>
       </div>
@@ -761,6 +797,9 @@ export default function InvoiceDetailPage({ params }: Props) {
         onFocusChange={updateFocusedSection}
         className="mb-8"
       >
+      {/* Top Contributors Leaderboard */}
+      <InvoiceLeaderboard invoice={invoice} publicKey={publicKey} className="mb-6" />
+
       <section className="mb-8">
         <h2 className="text-lg font-semibold text-white mb-3">
           Payments ({invoice.payments.length})
@@ -903,8 +942,8 @@ export default function InvoiceDetailPage({ params }: Props) {
         />
       )}
 
-      {/* Deadline extension voting — shown to payers on Pending invoices */}
-      {isRecipient && publicKey && (
+      {/* Deadline extension voting — shown to eligible payers on Pending invoices */}
+      {invoice.status === "Pending" && publicKey && (
         <VotingPanel invoice={invoice} publicKey={publicKey} />
       )}
 
@@ -1115,14 +1154,31 @@ export default function InvoiceDetailPage({ params }: Props) {
       </section>
       
 
+      {showNFTCelebration && (
+        <AchievementCard
+          invoiceId={id}
+          totalAmount={formatAmount(total)}
+          nftDetails={{
+            tokenId: `#${id.slice(0, 6).toUpperCase()}`,
+            name: `Invoice #${id} NFT Proof of Settlement`,
+            txHash: (latestEvent as any)?.txHash,
+          }}
+          onDismiss={() => setShowNFTCelebration(false)}
+        />
+      )}
+
       {showCancelModal && (
         <CancelModal
           invoiceId={id}
+          invoiceTitle={(invoice as any).title || loadedSplitMeta?.title || `Invoice #${id}`}
           payments={invoice.payments}
           onConfirm={async () => {
             await (splitClient as any).cancelInvoice(id);
             await load();
+          }}
+          onSuccess={() => {
             setShowCancelModal(false);
+            router.push("/dashboard");
           }}
           onClose={() => {
             setShowCancelModal(false);

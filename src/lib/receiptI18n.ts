@@ -1,58 +1,98 @@
 export type Locale = "en" | "es" | "pt" | "fr";
 
-const translations: Record<Locale, Record<string, string>> = {
+export interface LocaleMetadata {
+  rtl: boolean;
+  translations: Record<string, string>;
+}
+
+export const localeMetadata: Record<Locale, LocaleMetadata> = {
   en: {
-    invoice: "Invoice",
-    status: "Status",
-    creator: "Creator",
-    deadline: "Deadline",
-    total: "Total",
-    recipients: "Recipients",
-    address: "Address",
-    amount: "Amount (USDC)",
-    noDeadline: "No deadline",
-    stellarSplitInvoice: "StellarSplit On-Chain Invoice",
+    rtl: false,
+    translations: {
+      invoice: "Invoice",
+      status: "Status",
+      creator: "Creator",
+      deadline: "Deadline",
+      total: "Total",
+      recipients: "Recipients",
+      address: "Address",
+      amount: "Amount (USDC)",
+      noDeadline: "No deadline",
+      stellarSplitInvoice: "StellarSplit On-Chain Invoice",
+    },
   },
   es: {
-    invoice: "Factura",
-    status: "Estado",
-    creator: "Creador",
-    deadline: "Fecha límite",
-    total: "Total",
-    recipients: "Destinatarios",
-    address: "Dirección",
-    amount: "Cantidad (USDC)",
-    noDeadline: "Sin fecha límite",
-    stellarSplitInvoice: "Factura StellarSplit En Cadena",
+    rtl: false,
+    translations: {
+      invoice: "Factura",
+      status: "Estado",
+      creator: "Creador",
+      deadline: "Fecha límite",
+      total: "Total",
+      recipients: "Destinatarios",
+      address: "Dirección",
+      amount: "Cantidad (USDC)",
+      noDeadline: "Sin fecha límite",
+      stellarSplitInvoice: "Factura StellarSplit En Cadena",
+    },
   },
   pt: {
-    invoice: "Fatura",
-    status: "Status",
-    creator: "Criador",
-    deadline: "Prazo",
-    total: "Total",
-    recipients: "Destinatários",
-    address: "Endereço",
-    amount: "Valor (USDC)",
-    noDeadline: "Sem prazo",
-    stellarSplitInvoice: "Fatura StellarSplit On-Chain",
+    rtl: false,
+    translations: {
+      invoice: "Fatura",
+      status: "Status",
+      creator: "Criador",
+      deadline: "Prazo",
+      total: "Total",
+      recipients: "Destinatários",
+      address: "Endereço",
+      amount: "Valor (USDC)",
+      noDeadline: "Sem prazo",
+      stellarSplitInvoice: "Fatura StellarSplit On-Chain",
+    },
   },
   fr: {
-    invoice: "Facture",
-    status: "Statut",
-    creator: "Créateur",
-    deadline: "Échéance",
-    total: "Total",
-    recipients: "Destinataires",
-    address: "Adresse",
-    amount: "Montant (USDC)",
-    noDeadline: "Pas d'échéance",
-    stellarSplitInvoice: "Facture StellarSplit En Chaîne",
+    rtl: false,
+    translations: {
+      invoice: "Facture",
+      status: "Statut",
+      creator: "Créateur",
+      deadline: "Échéance",
+      total: "Total",
+      recipients: "Destinataires",
+      address: "Adresse",
+      amount: "Montant (USDC)",
+      noDeadline: "Pas d'échéance",
+      stellarSplitInvoice: "Facture StellarSplit En Chaîne",
+    },
   },
 };
 
 export function t(locale: Locale, key: string): string {
-  return translations[locale]?.[key] ?? key;
+  return localeMetadata[locale]?.translations[key] ?? key;
+}
+
+const rtlLanguageCodes = new Set([
+  "ar",
+  "arc",
+  "dv",
+  "fa",
+  "ha",
+  "he",
+  "khw",
+  "ks",
+  "ku",
+  "ps",
+  "sd",
+  "syr",
+  "ug",
+  "ur",
+  "yi",
+]);
+
+export function isRtl(locale: string): boolean {
+  const languageCode = locale.trim().toLowerCase().split(/[-_]/, 1)[0];
+  return rtlLanguageCodes.has(languageCode);
 }
 
 export function formatDate(date: Date, locale: Locale): string {

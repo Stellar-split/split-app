@@ -17,11 +17,22 @@ export interface SignalContribution {
   description: string;
 }
 
+export interface RiskFactor {
+  name: string;
+  weight: number;
+  value: number;
+}
+
 export interface FraudRiskScore {
   score: number; // 0-100
   tier: RiskTier;
   signals: SignalContribution[];
   timestamp: number;
+  factors?: RiskFactor[];
+}
+
+export interface FraudRiskScoreOptions {
+  explain?: boolean;
 }
 
 // Risk weights (tunable)
@@ -43,14 +54,18 @@ const TIER_THRESHOLDS = {
  * @param invoice - The invoice to analyze
  * @param anomalyFlags - Anomalies detected for recent payments
  * @param payerHistory - Payer history across creator's invoices
+ * @param options - Optional settings; pass `{ explain: true }` to attach a
+ *   `factors` array describing the contributing risk factors
  * @returns FraudRiskScore with breakdown
  */
 export function calculateFraudRiskScore(
   invoice: Invoice,
   anomalyFlags: AnomalyFlag[],
   payerHistory: Map<string, number> = new Map(),
+  options: FraudRiskScoreOptions = {},
 ): FraudRiskScore {
   const signals: SignalContribution[] = [];
+  const factors: RiskFactor[] = [];
   let totalScore = 0;
 
   // Signal 1: Rapid succession anomaly
@@ -68,6 +83,11 @@ export function calculateFraudRiskScore(
       weight: WEIGHTS.RAPID_SUCCESSION,
       contribution,
       description: `${rapidCount} rapid payment${rapidCount > 1 ? "s" : ""} detected`,
+    });
+    factors.push({
+      name: "rapid_succession",
+      weight: contribution,
+      value: rapidCount,
     });
     totalScore += contribution;
   }
@@ -87,6 +107,11 @@ export function calculateFraudRiskScore(
       weight: WEIGHTS.FIRST_TIME_LARGE,
       contribution,
       description: `${firstTimeLargeCount} new payer${firstTimeLargeCount > 1 ? "s" : ""} with large contribution`,
+    });
+    factors.push({
+      name: "first_time_large",
+      weight: contribution,
+      value: firstTimeLargeCount,
     });
     totalScore += contribution;
   }
@@ -108,6 +133,11 @@ export function calculateFraudRiskScore(
       contribution,
       description: `Large invoice amount (${(Number(invoiceTotal) / 1e7).toFixed(2)} XLM)`,
     });
+    factors.push({
+      name: "large_amount",
+      weight: contribution,
+      value: Number(invoiceTotal),
+    });
     totalScore += contribution;
   }
 
@@ -121,6 +151,11 @@ export function calculateFraudRiskScore(
       contribution,
       description: `High recipient count (${invoice.recipients.length} recipients)`,
     });
+    factors.push({
+      name: "unusual_pattern",
+      weight: contribution,
+      value: invoice.recipients.length,
+    });
     totalScore += contribution;
   }
 
@@ -131,12 +166,18 @@ export function calculateFraudRiskScore(
   );
   const normalizedScore = Math.min(100, (totalScore / maxPossibleScore) * 100);
 
-  return {
+  const result: FraudRiskScore = {
     score: Math.round(normalizedScore),
     tier: getTierFromScore(normalizedScore),
     signals,
     timestamp: Date.now(),
   };
+
+  if (options.explain) {
+    result.factors = factors.sort((a, b) => b.weight - a.weight);
+  }
+
+  return result;
 }
 
 function getTierFromScore(score: number): RiskTier {

@@ -18,6 +18,7 @@ export interface UserTemplate {
   name: string;
   recipients: Recipient[];
   token: string;
+  createdAt?: string;
   lastUsed?: string;
   versions?: TemplateVersion[];
 }
@@ -251,6 +252,10 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
   const [previewTemplate, setPreviewTemplate] = useState<UserTemplate | null>(null);
   /** Index of the template in the preview modal (needed to call loadTemplate). */
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -268,15 +273,36 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
     setTemplates(updated);
   };
 
-  const saveTemplate = () => {
+  const handleOpenSaveModal = () => {
     if (templates.length >= MAX_TEMPLATES) {
       flash(`Template limit reached (maximum ${MAX_TEMPLATES} templates)`, true);
       return;
     }
-    const templateName = prompt("Enter template name:");
-    if (!templateName) return;
-    const newTemplate: UserTemplate = { name: templateName, recipients, token };
+    setSaveName("");
+    setSaveError(null);
+    setShowSaveModal(true);
+  };
+
+  const confirmSaveTemplate = () => {
+    const trimmed = saveName.trim();
+    if (!trimmed) {
+      setSaveError("Template name is required");
+      return;
+    }
+    if (templates.some((t) => t.name.toLowerCase() === trimmed.toLowerCase())) {
+      setSaveError("A template with this name already exists");
+      return;
+    }
+    const newTemplate: UserTemplate = {
+      name: trimmed,
+      recipients,
+      token,
+      createdAt: new Date().toISOString(),
+    };
     persist([...templates, newTemplate]);
+    setShowSaveModal(false);
+    setSaveName("");
+    setSaveError(null);
     flash("Template saved successfully");
   };
 
@@ -352,9 +378,14 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
   };
 
   const deleteTemplate = (index: number) => {
+    setDeleteConfirmIndex(index);
+  };
+
+  const confirmDeleteTemplate = (index: number) => {
     persist(templates.filter((_, i) => i !== index));
     setSelectedTemplateIndex(null);
     setShowHistory(false);
+    setDeleteConfirmIndex(null);
     flash("Template deleted");
   };
 
@@ -424,6 +455,100 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
         />
       )}
 
+      {/* Save Template Modal */}
+      {showSaveModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="save-template-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+        >
+          <div className="w-full max-w-md bg-gray-900 rounded-xl p-5 border border-gray-700 shadow-xl">
+            <h3 id="save-template-title" className="text-base font-semibold text-white mb-3">
+              Save as Template
+            </h3>
+            <div className="mb-4">
+              <label htmlFor="template-name-input" className="block text-xs font-medium text-gray-400 mb-1">
+                Template Name
+              </label>
+              <input
+                id="template-name-input"
+                autoFocus
+                type="text"
+                value={saveName}
+                onChange={(e) => {
+                  setSaveName(e.target.value);
+                  setSaveError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") confirmSaveTemplate();
+                  if (e.key === "Escape") setShowSaveModal(false);
+                }}
+                placeholder="e.g. Monthly Payroll"
+                className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              {saveError && (
+                <p className="text-xs text-red-400 mt-1.5" role="alert">
+                  {saveError}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSaveModal(false);
+                  setSaveName("");
+                  setSaveError(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-medium text-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmSaveTemplate}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white"
+              >
+                Save Template
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmIndex !== null && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+        >
+          <div className="w-full max-w-sm bg-gray-900 rounded-xl p-5 border border-gray-700 shadow-xl">
+            <h3 className="text-base font-semibold text-white mb-2">Delete Template</h3>
+            <p className="text-sm text-gray-300 mb-4">
+              Are you sure you want to delete &ldquo;{templates[deleteConfirmIndex]?.name}&rdquo;? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmIndex(null)}
+                className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-xs font-medium text-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmDeleteTemplate(deleteConfirmIndex)}
+                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-xs font-semibold text-white"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-lg bg-gray-800 border border-gray-700 p-4 mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-medium text-gray-300">Invoice Templates</h2>
@@ -453,7 +578,7 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
         <div className="flex flex-col sm:flex-row gap-2 mb-3">
           <button
             type="button"
-            onClick={saveTemplate}
+            onClick={handleOpenSaveModal}
             className="flex-1 sm:flex-none min-h-10 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
           >
             Save as Template

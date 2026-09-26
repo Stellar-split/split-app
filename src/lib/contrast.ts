@@ -6,6 +6,9 @@
 /** Minimum contrast ratio required by WCAG AA for normal text. */
 export const WCAG_AA_CONTRAST_RATIO = 4.5;
 
+/** Minimum contrast ratio required by WCAG AA for large text. */
+export const WCAG_AA_LARGE_TEXT_CONTRAST_RATIO = 3;
+
 export interface RgbColor {
   r: number;
   g: number;
@@ -69,6 +72,23 @@ export function contrastRatio(hexA: string, hexB: string): number {
   const lighter = Math.max(lumA, lumB);
   const darker = Math.min(lumA, lumB);
   return (lighter + 0.05) / (darker + 0.05);
+}
+
+/** Returns whether a foreground/background pair meets WCAG 2.1 AA. */
+export function meetsWcagAA(
+  foreground: string,
+  background: string,
+  largeText = false,
+): boolean {
+  try {
+    const ratio = contrastRatio(foreground, background);
+    const requiredRatio = largeText
+      ? WCAG_AA_LARGE_TEXT_CONTRAST_RATIO
+      : WCAG_AA_CONTRAST_RATIO;
+    return ratio >= requiredRatio;
+  } catch {
+    return false;
+  }
 }
 
 /**

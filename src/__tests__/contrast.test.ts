@@ -5,6 +5,7 @@ import {
   hexToRgb,
   isValidHexColor,
   meetsWcagAaAgainstWhite,
+  meetsWcagAA,
   relativeLuminance,
   WCAG_AA_CONTRAST_RATIO,
 } from "@/lib/contrast";
@@ -111,6 +112,22 @@ describe("contrast utilities (WCAG 2.1)", () => {
 
     it("rejects unparseable colors instead of throwing", () => {
       expect(meetsWcagAaAgainstWhite("definitely-not-hex")).toBe(false);
+    });
+  });
+
+  describe("meetsWcagAA", () => {
+    it("uses the 4.5:1 threshold for normal text", () => {
+      expect(meetsWcagAA("#767676", "#ffffff")).toBe(true);
+      expect(meetsWcagAA("#777777", "#ffffff")).toBe(false);
+    });
+
+    it("uses the 3:1 threshold for large text", () => {
+      expect(meetsWcagAA("#949494", "#ffffff", true)).toBe(true);
+      expect(meetsWcagAA("#aaaaaa", "#ffffff", true)).toBe(false);
+    });
+
+    it("handles invalid colors without throwing", () => {
+      expect(meetsWcagAA("not-a-color", "#ffffff")).toBe(false);
     });
   });
 });
