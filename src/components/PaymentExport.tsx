@@ -11,17 +11,26 @@ import {
   PAYMENT_EXPORT_COLUMN_LABELS,
   type PaymentExportColumn,
 } from '@/lib/csvExport';
+import {
+  buildPaymentSummaryHtml,
+  downloadPaymentSummaryPDF,
+} from '@/lib/paymentExportPdf';
 
 interface Props {
   invoiceId: string;
   payments: Payment[];
 }
 
+type ExportFormat = 'csv' | 'pdf';
+
+const EXPORT_FORMATS: ExportFormat[] = ['csv', 'pdf'];
+
 export default function PaymentExport({ invoiceId, payments }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('csv');
   const [selectedColumns, setSelectedColumns] = useState<PaymentExportColumn[]>([
     ...PAYMENT_EXPORT_COLUMNS,
   ]);
@@ -47,12 +56,17 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
         endDate || null
       );
 
-      // Convert to CSV
-      const csv = paymentsToCSV(filteredPayments, selectedColumns);
+      if (exportFormat === 'pdf') {
+        const html = buildPaymentSummaryHtml(invoiceId, filteredPayments);
+        downloadPaymentSummaryPDF(html);
+      } else {
+        // Convert to CSV
+        const csv = paymentsToCSV(filteredPayments, selectedColumns);
 
-      // Download
-      const filename = generatePaymentExportFilename(invoiceId);
-      downloadCSV(csv, filename);
+        // Download
+        const filename = generatePaymentExportFilename(invoiceId);
+        downloadCSV(csv, filename);
+      }
     } catch (error) {
       console.error('Export failed:', error);
       alert('Failed to export payments. Please try again.');
@@ -78,7 +92,7 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
     <div className="bg-gray-900 rounded-lg p-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <h3 className="text-sm font-medium text-gray-300">Export Payment History</h3>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
@@ -86,13 +100,39 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
           >
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </button>
+
+          {/* Export format selector */}
+          <div
+            role="group"
+            aria-label="Export format"
+            className="inline-flex rounded-lg border border-gray-700 overflow-hidden"
+          >
+            {EXPORT_FORMATS.map((format) => (
+              <button
+                key={format}
+                type="button"
+                onClick={() => setExportFormat(format)}
+                aria-pressed={exportFormat === format}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  exportFormat === format
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                {format.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
           <button
             type="button"
             onClick={handleExport}
             disabled={exporting || payments.length === 0}
             className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-semibold transition-colors"
           >
-            {exporting ? 'Exporting...' : 'Export Payments CSV'}
+            {exporting
+              ? 'Exporting...'
+              : `Export Payments ${exportFormat.toUpperCase()}`}
           </button>
         </div>
       </div>
@@ -151,7 +191,7 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
       )}
 
       {/* Column Selection */}
-      {payments.length > 0 && (
+      {payments.length > 0 && exportFormat === 'csv' && (
         <div className="border-t border-gray-800 pt-4 mt-4">
           <p className="text-xs text-gray-400 mb-2">Columns to include</p>
           <div className="flex flex-wrap gap-3">
@@ -183,7 +223,9 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
       {/* Export Info */}
       {payments.length > 0 && !showFilters && (
         <p className="text-xs text-gray-500 mt-2">
-          CSV will include payer address, amount (USDC), timestamp, and transaction hash for all payments.
+          {exportFormat === 'pdf'
+            ? 'PDF will include the invoice number, payer addresses, amounts, timestamps, and transaction hashes.'
+            : 'CSV will include payer address, amount (USDC), timestamp, and transaction hash for all payments.'}
         </p>
       )}
     </div>
