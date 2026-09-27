@@ -9,6 +9,12 @@ export interface CreatorAttestation {
   address: string;
   signature: string;
   timestamp: number; // Unix timestamp in milliseconds
+  /**
+   * Optional human-readable description of how the creator was verified
+   * (e.g. "on-chain proof", "signed attestation"). Surfaced in the
+   * VerifiedCreatorBadge tooltip.
+   */
+  method?: string;
 }
 
 const STORAGE_KEY = "stellarsplit_creator_attestations";
