@@ -7,6 +7,7 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { generateCsv, type CsvRow } from "@/lib/csvExport";
 import type { Invoice } from "@stellar-split/sdk";
+import ChartBuilder, { type ChartBuilderDataPoint } from "@/components/analytics/ChartBuilder";
 
 const STROOPS = 10_000_000;
 
@@ -269,6 +270,26 @@ export default function AnalyticsPage() {
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
 
+    // Build per-week data points for ChartBuilder
+    const chartBuilderData: ChartBuilderDataPoint[] = weekKeys.map((k) => {
+      const weekInvoices = filtered.filter((inv) => {
+        const ts = inv.createdAt ?? inv.deadline - 7 * 86400;
+        return weekKey(ts) === k;
+      });
+      const weekReleased = weekInvoices.filter((i) => i.status === "Released");
+      const weekTimes: number[] = weekReleased.map((inv) => {
+        const created = inv.createdAt ?? inv.deadline - 7 * 86400;
+        return (inv.deadline - created) / 3600;
+      });
+      return {
+        label: weekLabel(k),
+        amount: parseFloat((weekMap.get(k) ?? 0).toFixed(2)),
+        count: weekInvoices.length,
+        successRate: weekInvoices.length > 0 ? parseFloat(((weekReleased.length / weekInvoices.length) * 100).toFixed(1)) : 0,
+        avgFundingHours: weekTimes.length > 0 ? parseFloat((weekTimes.reduce((a, b) => a + b, 0) / weekTimes.length).toFixed(1)) : 0,
+      };
+    });
+
     return {
       total,
       totalRaised,
@@ -280,6 +301,7 @@ export default function AnalyticsPage() {
       uniquePayersOverTime,
       histogramBins,
       topPayers,
+      chartBuilderData,
     };
   }, [filtered]);
 
@@ -436,6 +458,10 @@ export default function AnalyticsPage() {
               <DynamicFundingTimeHistogram data={stats.histogramBins} />
             </Suspense>
           </div>
+        </div>
+
+        <div className="mb-8">
+          <ChartBuilder data={stats.chartBuilderData} />
         </div>
 
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 mb-8">
