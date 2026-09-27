@@ -81,6 +81,11 @@ export default function SettingsPage() {
               API keys
             </a>
           </li>
+          <li>
+            <a href="/settings/widgets" className="text-indigo-400 hover:text-indigo-300">
+              Dashboard Widgets
+            </a>
+          </li>
         </ul>
       </section>
     </main>
