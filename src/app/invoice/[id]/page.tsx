@@ -75,6 +75,10 @@ import CommentThread from "@/components/invoice/CommentThread";
 import { loadPermissions } from "@/components/CoCreatorPanel";
 import InvoiceTimeline from "@/components/InvoiceTimeline";
 import HistoryLog from "@/components/invoice/HistoryLog";
+import AdvancedStatusTimeline from "@/components/invoice/AdvancedStatusTimeline";
+import InvoiceSentiment from "@/components/invoice/InvoiceSentiment";
+import PayerWalletHealth from "@/components/invoice/PayerWalletHealth";
+import ReconciliationPanel from "@/components/invoice/ReconciliationPanel";
 import InvoiceExportButton from "@/components/InvoiceExportButton";
 import ReleaseBanner from "@/components/ReleaseBanner";
 import { cancelReminder, setReminder } from "@/lib/reminders";
@@ -1139,6 +1143,16 @@ export default function InvoiceDetailPage({ params }: Props) {
           disputeStatus={(invoice as any).disputeStatus}
         />
       )}
+
+      {/* Invoice insights: status timeline, sentiment, payer health, reconciliation */}
+      <div className="mb-8 grid grid-cols-1 gap-4">
+        <AdvancedStatusTimeline invoice={invoice} />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <InvoiceSentiment invoice={invoice} />
+          <ReconciliationPanel invoice={invoice} />
+        </div>
+        <PayerWalletHealth payments={invoice.payments} />
+      </div>
 
       {/* Activity Timeline */}
       <section className="mb-8" aria-labelledby="activity-timeline-heading">
