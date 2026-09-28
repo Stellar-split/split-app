@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 import StatusBadge from "@/components/StatusBadge";
 import FundingProgress from "@/components/FundingProgress";
+import CreatorBadges, { type CreatorStats } from "@/components/CreatorBadges";
 import type { InvoiceStatus } from "@stellar-split/sdk";
 
 interface PublicInvoice {
@@ -22,6 +23,8 @@ interface Props {
   completionRate: number;
   reputationScore?: number;
   invoices: PublicInvoice[];
+  uniquePayers?: number;
+  streakWeeks?: number;
 }
 
 const PAGE_SIZE = 5;
@@ -33,9 +36,21 @@ export default function CreatorProfileClient({
   completionRate,
   reputationScore = 50,
   invoices,
+  uniquePayers = 0,
+  streakWeeks = 0,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const badgeStats: CreatorStats = {
+    totalInvoices,
+    releasedInvoices: Math.round((completionRate / 100) * totalInvoices),
+    totalVolumeUsdc: parseFloat(totalVolume.replace(/,/g, "")) || 0,
+    completionRate,
+    reputationScore,
+    uniquePayers,
+    streakWeeks,
+  };
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -110,8 +125,7 @@ export default function CreatorProfileClient({
       </section>
 
       {/* Paginated Invoice list */}
-      <section aria-labelledby="creator-invoices-heading">
-        <div className="flex items-center justify-between mb-3">
+      <section aria-labelledby="creator-invoices-heading">        <div className="flex items-center justify-between mb-3">
           <h2 id="creator-invoices-heading" className="text-lg font-semibold text-white">
             Public Invoices ({invoices.length})
           </h2>
@@ -207,6 +221,11 @@ export default function CreatorProfileClient({
             )}
           </div>
         )}
+      </section>
+
+      {/* Badges & Achievements */}
+      <section aria-labelledby="badges-section" className="mt-8">
+        <CreatorBadges stats={badgeStats} />
       </section>
     </>
   );
