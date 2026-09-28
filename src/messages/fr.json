@@ -92,5 +92,86 @@
     "yourRank": "Votre portefeuille est classé #{rank}.",
     "notInTop": "(pas dans le top 20)",
     "backToDashboard": "Retour au tableau de bord"
+  },
+  "versionHistory": {
+    "title": "Historique des versions",
+    "versions": "{count} version",
+    "versions_plural": "{count} versions",
+    "latest": "dernière",
+    "selected": "{count}/2 sélectionnés",
+    "clearSelection": "Effacer la sélection",
+    "compareSelected": "Comparer la sélection",
+    "selectForCompare": "Sélectionner",
+    "selectedForCompare": "✓ Sélectionné",
+    "restore": "Restaurer",
+    "showDiff": "Voir les modifications",
+    "hideDiff": "Masquer les modifications",
+    "noChanges": "Aucune modification de champ enregistrée pour cette entrée.",
+    "comparison": {
+      "title": "Comparaison de versions",
+      "subtitle": "Comparaison de v{left} ↔ v{right}",
+      "close": "Fermer la comparaison",
+      "noChanges": "Aucune modification de champ enregistrée pour ces versions.",
+      "noChange": "Pas de changement"
+    },
+    "restore": {
+      "title": "Restaurer la version {version} ?",
+      "description": "Vous êtes sur le point de restaurer l'état de {action}. Cette action créera une nouvelle entrée dans l'historique.",
+      "confirm": "Restaurer",
+      "cancel": "Annuler",
+      "notice": "La version {version} ({action}) a été mise en file d'attente pour restauration. Une nouvelle entrée d'historique sera créée."
+    },
+    "loading": "Chargement de l'historique…",
+    "error": "Échec du chargement de l'historique",
+    "empty": "Aucune modification enregistrée pour cette facture"
+  },
+  "advancedFilters": {
+    "title": "Filtres avancés",
+    "apply": "Appliquer les filtres",
+    "reset": "Réinitialiser",
+    "close": "Fermer",
+    "amountRange": {
+      "label": "Plage de montant (USDC)",
+      "min": "Minimum",
+      "max": "Maximum"
+    },
+    "tags": {
+      "label": "Étiquettes",
+      "placeholder": "Filtrer par étiquette…",
+      "add": "Ajouter",
+      "noMatches": "Aucune étiquette correspondante"
+    },
+    "creator": {
+      "label": "Adresse du créateur",
+      "placeholder": "G… Adresse Stellar"
+    },
+    "activeFilters": "{count} filtre actif",
+    "activeFilters_plural": "{count} filtres actifs",
+    "clearAll": "Tout effacer"
+  },
+  "bookmarks": {
+    "title": "Favoris",
+    "collections": "Collections",
+    "addBookmark": "Ajouter aux favoris",
+    "removeBookmark": "Retirer des favoris",
+    "bookmarked": "En favoris",
+    "newCollection": "Nouvelle collection",
+    "collectionName": "Nom de la collection",
+    "collectionNamePlaceholder": "ex. Factures Q4",
+    "createCollection": "Créer",
+    "deleteCollection": "Supprimer la collection",
+    "confirmDeleteCollection": "Supprimer la collection \"{name}\" ? Les favoris qu'elle contient seront supprimés.",
+    "addToCollection": "Ajouter à la collection",
+    "removeFromCollection": "Retirer de la collection",
+    "noBookmarks": "Aucun favori pour l'instant. Ajoutez des factures aux favoris pour les voir ici.",
+    "noCollections": "Aucune collection pour l'instant. Créez-en une pour organiser vos favoris.",
+    "invoiceCount": "{count} facture",
+    "invoiceCount_plural": "{count} factures",
+    "emptyCollection": "Cette collection est vide.",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "collectionNameRequired": "Le nom de la collection est requis",
+    "collectionNameTooLong": "Le nom doit comporter 40 caractères ou moins",
+    "collectionNameDuplicate": "Une collection avec ce nom existe déjà"
   }
 }
