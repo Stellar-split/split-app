@@ -113,5 +113,86 @@
     "yourRank": "Your wallet is ranked #{rank}.",
     "notInTop": "(not in top 20)",
     "backToDashboard": "Back to dashboard"
+  },
+  "versionHistory": {
+    "title": "Version History",
+    "versions": "{count} version",
+    "versions_plural": "{count} versions",
+    "latest": "latest",
+    "selected": "{count}/2 selected",
+    "clearSelection": "Clear selection",
+    "compareSelected": "Compare selected",
+    "selectForCompare": "Select",
+    "selectedForCompare": "✓ Selected",
+    "restore": "Restore",
+    "showDiff": "Show diff",
+    "hideDiff": "Hide diff",
+    "noChanges": "No detailed field changes recorded for this entry.",
+    "comparison": {
+      "title": "Version Comparison",
+      "subtitle": "Comparing v{left} ↔ v{right}",
+      "close": "Close comparison",
+      "noChanges": "No field-level changes recorded for either version.",
+      "noChange": "No change"
+    },
+    "restore": {
+      "title": "Restore Version {version}?",
+      "description": "You are about to restore the state from {action}. This action will create a new version entry in the history.",
+      "confirm": "Restore",
+      "cancel": "Cancel",
+      "notice": "Version {version} ({action}) has been queued for restore. A new history entry will be created."
+    },
+    "loading": "Loading history…",
+    "error": "Failed to load history",
+    "empty": "No changes recorded for this invoice"
+  },
+  "advancedFilters": {
+    "title": "Advanced Filters",
+    "apply": "Apply Filters",
+    "reset": "Reset",
+    "close": "Close",
+    "amountRange": {
+      "label": "Amount Range (USDC)",
+      "min": "Min",
+      "max": "Max"
+    },
+    "tags": {
+      "label": "Tags",
+      "placeholder": "Filter by tag…",
+      "add": "Add",
+      "noMatches": "No matching tags"
+    },
+    "creator": {
+      "label": "Creator Address",
+      "placeholder": "G… Stellar address"
+    },
+    "activeFilters": "{count} active filter",
+    "activeFilters_plural": "{count} active filters",
+    "clearAll": "Clear all"
+  },
+  "bookmarks": {
+    "title": "Bookmarks",
+    "collections": "Collections",
+    "addBookmark": "Bookmark",
+    "removeBookmark": "Remove bookmark",
+    "bookmarked": "Bookmarked",
+    "newCollection": "New Collection",
+    "collectionName": "Collection name",
+    "collectionNamePlaceholder": "e.g. Q4 Invoices",
+    "createCollection": "Create",
+    "deleteCollection": "Delete collection",
+    "confirmDeleteCollection": "Delete \"{name}\" collection? Bookmarks inside will be removed.",
+    "addToCollection": "Add to collection",
+    "removeFromCollection": "Remove from collection",
+    "noBookmarks": "No bookmarks yet. Bookmark invoices to see them here.",
+    "noCollections": "No collections yet. Create one to organise your bookmarks.",
+    "invoiceCount": "{count} invoice",
+    "invoiceCount_plural": "{count} invoices",
+    "emptyCollection": "This collection is empty.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "collectionNameRequired": "Collection name is required",
+    "collectionNameTooLong": "Name must be 40 characters or fewer",
+    "collectionNameDuplicate": "A collection with this name already exists"
   }
 }

@@ -39,6 +39,7 @@ import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import { invoiceHasTag } from "@/lib/invoiceTags";
 import InvoiceTable from "@/components/InvoiceTable";
 import FilterPresetDropdown from "@/components/invoices/FilterPresetDropdown";
+import AdvancedSortSelect from "@/components/invoices/AdvancedSortSelect";
 import { apiFetch } from "@/lib/apiClient";
 
 // ── URL helpers ──────────────────────────────────────────────────────────────
@@ -557,18 +558,11 @@ export default function DashboardClient() {
         >
           Sort by
         </label>
-        <select
+        <AdvancedSortSelect
           id="filter-sort"
           value={sort}
-          onChange={(e) => pushParams({ sort: e.target.value })}
-          className="min-h-9 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+          onChange={(s) => pushParams({ sort: s })}
+        />
       </div>
 
       {/* Saved presets */}

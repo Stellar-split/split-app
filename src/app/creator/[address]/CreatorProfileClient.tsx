@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 import StatusBadge from "@/components/StatusBadge";
 import FundingProgress from "@/components/FundingProgress";
+import CreatorBadges, { type CreatorStats } from "@/components/CreatorBadges";
 import type { InvoiceStatus } from "@stellar-split/sdk";
 
 interface PublicInvoice {
@@ -22,6 +23,8 @@ interface Props {
   completionRate: number;
   reputationScore?: number;
   invoices: PublicInvoice[];
+  uniquePayers?: number;
+  streakWeeks?: number;
 }
 
 const PAGE_SIZE = 5;
@@ -139,11 +142,23 @@ export default function CreatorProfileClient({
   completionRate,
   reputationScore = 50,
   invoices,
+  uniquePayers = 0,
+  streakWeeks = 0,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<"invoices" | "stats">("invoices");
   const [statusFilter, setStatusFilter] = useState<StatusFilterKey>("All");
+
+  const badgeStats: CreatorStats = {
+    totalInvoices,
+    releasedInvoices: Math.round((completionRate / 100) * totalInvoices),
+    totalVolumeUsdc: parseFloat(totalVolume.replace(/,/g, "")) || 0,
+    completionRate,
+    reputationScore,
+    uniquePayers,
+    streakWeeks,
+  };
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -296,28 +311,17 @@ export default function CreatorProfileClient({
         </div>
       </section>
 
-      {/* Tab Navigation */}
-      <div
-        className="flex gap-1 mb-6 bg-gray-900 border border-gray-800 rounded-xl p-1"
-        role="tablist"
-        aria-label="Profile sections"
-      >
-        {(["invoices", "stats"] as const).map((tab) => (
-          <button
-            key={tab}
-            role="tab"
-            aria-selected={activeTab === tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-colors capitalize ${
-              activeTab === tab
-                ? "bg-indigo-600 text-white"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            {tab === "invoices" ? "Invoices" : "Portfolio Stats"}
-          </button>
-        ))}
-      </div>
+      {/* Paginated Invoice list */}
+      <section aria-labelledby="creator-invoices-heading">        <div className="flex items-center justify-between mb-3">
+          <h2 id="creator-invoices-heading" className="text-lg font-semibold text-white">
+            Public Invoices ({invoices.length})
+          </h2>
+          {invoices.length > 0 && (
+            <span className="text-xs text-gray-400">
+              Page {currentPage} of {totalPages}
+            </span>
+          )}
+        </div>
 
       {/* Portfolio Stats Tab */}
       {activeTab === "stats" && (
@@ -444,113 +448,13 @@ export default function CreatorProfileClient({
               );
             })}
           </div>
+        )}
+      </section>
 
-          {filteredInvoices.length === 0 ? (
-            <p className="text-gray-500 text-sm bg-gray-900/40 border border-gray-800 rounded-xl p-6 text-center">
-              No invoices match this filter.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <ul className="flex flex-col gap-3" role="list">
-                {paginatedInvoices.map((inv) => {
-                  const pct =
-                    inv.total > 0n
-                      ? Math.min(100, Number((inv.funded * 100n) / inv.total))
-                      : 0;
-                  const isActive =
-                    inv.status === "Pending" && inv.deadline > now;
-                  const deadlineDate = new Date(
-                    inv.deadline * 1000
-                  ).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  });
-
-                  return (
-                    <li
-                      key={inv.id}
-                      className="bg-gray-900 rounded-xl p-4 flex flex-col gap-3 border border-gray-800"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-mono text-sm text-gray-300">
-                            Invoice #{inv.id}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {formatAmount(inv.funded)} /{" "}
-                            {formatAmount(inv.total)} USDC
-                          </p>
-                          <p className="text-xs text-gray-600 mt-0.5">
-                            Deadline: {deadlineDate}
-                          </p>
-                        </div>
-                        <StatusBadge status={inv.status} />
-                      </div>
-
-                      <FundingProgress
-                        funded={inv.funded}
-                        total={inv.total}
-                        token="USDC"
-                      />
-
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-gray-500">
-                          {pct.toFixed(1)}% funded
-                        </span>
-                        {isActive ? (
-                          <Link
-                            href={`/invoice/${inv.id}`}
-                            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold transition-colors"
-                          >
-                            Pay
-                          </Link>
-                        ) : (
-                          <Link
-                            href={`/invoice/${inv.id}`}
-                            className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-xs font-semibold transition-colors"
-                          >
-                            View
-                          </Link>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 bg-gray-900 rounded-xl border border-gray-800 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={safePage === 1}
-                    className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-medium text-gray-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-xs text-gray-400">
-                    Showing {(safePage - 1) * PAGE_SIZE + 1}–
-                    {Math.min(safePage * PAGE_SIZE, filteredInvoices.length)}{" "}
-                    of {filteredInvoices.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }
-                    disabled={safePage === totalPages}
-                    className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-medium text-gray-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </section>
-      )}
+      {/* Badges & Achievements */}
+      <section aria-labelledby="badges-section" className="mt-8">
+        <CreatorBadges stats={badgeStats} />
+      </section>
     </>
   );
 }

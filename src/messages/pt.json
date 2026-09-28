@@ -92,5 +92,86 @@
     "yourRank": "Sua carteira está na posição #{rank}.",
     "notInTop": "(não está no top 20)",
     "backToDashboard": "Voltar ao painel"
+  },
+  "versionHistory": {
+    "title": "Histórico de Versões",
+    "versions": "{count} versão",
+    "versions_plural": "{count} versões",
+    "latest": "mais recente",
+    "selected": "{count}/2 selecionados",
+    "clearSelection": "Limpar seleção",
+    "compareSelected": "Comparar selecionados",
+    "selectForCompare": "Selecionar",
+    "selectedForCompare": "✓ Selecionado",
+    "restore": "Restaurar",
+    "showDiff": "Ver alterações",
+    "hideDiff": "Ocultar alterações",
+    "noChanges": "Nenhuma alteração de campo registrada para esta entrada.",
+    "comparison": {
+      "title": "Comparação de Versões",
+      "subtitle": "Comparando v{left} ↔ v{right}",
+      "close": "Fechar comparação",
+      "noChanges": "Nenhuma alteração registrada para nenhuma das versões.",
+      "noChange": "Sem alterações"
+    },
+    "restore": {
+      "title": "Restaurar Versão {version}?",
+      "description": "Você está prestes a restaurar o estado de {action}. Esta ação criará uma nova entrada no histórico.",
+      "confirm": "Restaurar",
+      "cancel": "Cancelar",
+      "notice": "A versão {version} ({action}) foi enfileirada para restauração. Uma nova entrada de histórico será criada."
+    },
+    "loading": "Carregando histórico…",
+    "error": "Falha ao carregar histórico",
+    "empty": "Nenhuma alteração registrada para esta fatura"
+  },
+  "advancedFilters": {
+    "title": "Filtros Avançados",
+    "apply": "Aplicar Filtros",
+    "reset": "Redefinir",
+    "close": "Fechar",
+    "amountRange": {
+      "label": "Faixa de Valor (USDC)",
+      "min": "Mínimo",
+      "max": "Máximo"
+    },
+    "tags": {
+      "label": "Tags",
+      "placeholder": "Filtrar por tag…",
+      "add": "Adicionar",
+      "noMatches": "Nenhuma tag encontrada"
+    },
+    "creator": {
+      "label": "Endereço do Criador",
+      "placeholder": "G… Endereço Stellar"
+    },
+    "activeFilters": "{count} filtro ativo",
+    "activeFilters_plural": "{count} filtros ativos",
+    "clearAll": "Limpar todos"
+  },
+  "bookmarks": {
+    "title": "Favoritos",
+    "collections": "Coleções",
+    "addBookmark": "Favoritar",
+    "removeBookmark": "Remover favorito",
+    "bookmarked": "Favoritado",
+    "newCollection": "Nova Coleção",
+    "collectionName": "Nome da coleção",
+    "collectionNamePlaceholder": "ex. Faturas Q4",
+    "createCollection": "Criar",
+    "deleteCollection": "Excluir coleção",
+    "confirmDeleteCollection": "Excluir a coleção \"{name}\"? Os favoritos dentro serão removidos.",
+    "addToCollection": "Adicionar à coleção",
+    "removeFromCollection": "Remover da coleção",
+    "noBookmarks": "Nenhum favorito ainda. Favorite faturas para vê-las aqui.",
+    "noCollections": "Nenhuma coleção ainda. Crie uma para organizar seus favoritos.",
+    "invoiceCount": "{count} fatura",
+    "invoiceCount_plural": "{count} faturas",
+    "emptyCollection": "Esta coleção está vazia.",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "collectionNameRequired": "O nome da coleção é obrigatório",
+    "collectionNameTooLong": "O nome deve ter 40 caracteres ou menos",
+    "collectionNameDuplicate": "Já existe uma coleção com este nome"
   }
 }
