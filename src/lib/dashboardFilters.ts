@@ -4,35 +4,115 @@ import type { Invoice } from "@stellar-split/sdk";
 export type DashboardInvoice = Invoice;
 
 export type DashboardPresetId = "all" | "active" | "funded" | "refunded" | "expired" | "draft" | "overdue";
-export type DashboardSortId = "newest" | "oldest" | "amount-desc" | "amount-asc" | "deadline";
+/**
+ * Dashboard sort options.
+ *
+ * Issue #811: extended with advanced sort options — funded percentage,
+ * recipient count, deadline-farthest, and alphabetical-by-creator.
+ */
+export type DashboardSortId =
+  | "newest"
+  | "oldest"
+  | "amount-desc"
+  | "amount-asc"
+  | "deadline"
+  | "deadline-farthest"
+  | "funded-pct-desc"
+  | "funded-pct-asc"
+  | "recipients-desc"
+  | "recipients-asc"
+  | "creator-asc"
+  | "creator-desc";
 
-export const SORT_OPTIONS: { id: DashboardSortId; label: string }[] = [
-  { id: "newest", label: "Most Recent" },
-  { id: "oldest", label: "Oldest" },
-  { id: "amount-desc", label: "Amount (high–low)" },
-  { id: "amount-asc", label: "Amount (low–high)" },
-  { id: "deadline", label: "Deadline (soonest)" },
+export const SORT_OPTIONS: { id: DashboardSortId; label: string; group?: string }[] = [
+  // ── Recency ──────────────────────────────────────────────────────────────
+  { id: "newest",          label: "Most Recent",                group: "Date" },
+  { id: "oldest",          label: "Oldest First",               group: "Date" },
+  // ── Deadline ─────────────────────────────────────────────────────────────
+  { id: "deadline",        label: "Deadline (soonest first)",   group: "Deadline" },
+  { id: "deadline-farthest", label: "Deadline (farthest first)", group: "Deadline" },
+  // ── Amount ───────────────────────────────────────────────────────────────
+  { id: "amount-desc",     label: "Amount (high → low)",        group: "Amount" },
+  { id: "amount-asc",      label: "Amount (low → high)",        group: "Amount" },
+  // ── Funding progress ─────────────────────────────────────────────────────
+  { id: "funded-pct-desc", label: "Funded % (most funded)",     group: "Funding" },
+  { id: "funded-pct-asc",  label: "Funded % (least funded)",    group: "Funding" },
+  // ── Recipients ───────────────────────────────────────────────────────────
+  { id: "recipients-desc", label: "Recipients (most)",          group: "Recipients" },
+  { id: "recipients-asc",  label: "Recipients (fewest)",        group: "Recipients" },
+  // ── Creator ──────────────────────────────────────────────────────────────
+  { id: "creator-asc",     label: "Creator (A → Z)",            group: "Creator" },
+  { id: "creator-desc",    label: "Creator (Z → A)",            group: "Creator" },
 ];
+
+/** Unique sort groups in declaration order, for grouped UI rendering. */
+export const SORT_GROUPS: string[] = Array.from(
+  new Set(SORT_OPTIONS.map((o) => o.group ?? "").filter(Boolean)),
+);
+
+/** Returns funded percentage in [0, 1] for a given invoice. */
+function fundedPercent(inv: Invoice): number {
+  const total = inv.recipients.reduce((s, r) => s + r.amount, 0n);
+  if (total === 0n) return 0;
+  // Convert bigint to number for percentage comparison (precision sufficient for sorting)
+  return Number((inv.funded * 10_000n) / total) / 10_000;
+}
 
 export function sortInvoices(invoices: Invoice[], sort: DashboardSortId): Invoice[] {
   const list = [...invoices];
   switch (sort) {
     case "oldest":
       return list.sort((a, b) => Number(a.id) - Number(b.id));
+
     case "amount-desc":
       return list.sort((a, b) => {
         const ta = a.recipients.reduce((s, r) => s + r.amount, 0n);
         const tb = b.recipients.reduce((s, r) => s + r.amount, 0n);
         return tb > ta ? 1 : tb < ta ? -1 : 0;
       });
+
     case "amount-asc":
       return list.sort((a, b) => {
         const ta = a.recipients.reduce((s, r) => s + r.amount, 0n);
         const tb = b.recipients.reduce((s, r) => s + r.amount, 0n);
         return ta > tb ? 1 : ta < tb ? -1 : 0;
       });
+
     case "deadline":
-      return list.sort((a, b) => a.deadline - b.deadline);
+      // Put invoices with no deadline (0) at the end
+      return list.sort((a, b) => {
+        if (!a.deadline && !b.deadline) return 0;
+        if (!a.deadline) return 1;
+        if (!b.deadline) return -1;
+        return a.deadline - b.deadline;
+      });
+
+    case "deadline-farthest":
+      return list.sort((a, b) => {
+        if (!a.deadline && !b.deadline) return 0;
+        if (!a.deadline) return 1;
+        if (!b.deadline) return -1;
+        return b.deadline - a.deadline;
+      });
+
+    case "funded-pct-desc":
+      return list.sort((a, b) => fundedPercent(b) - fundedPercent(a));
+
+    case "funded-pct-asc":
+      return list.sort((a, b) => fundedPercent(a) - fundedPercent(b));
+
+    case "recipients-desc":
+      return list.sort((a, b) => b.recipients.length - a.recipients.length);
+
+    case "recipients-asc":
+      return list.sort((a, b) => a.recipients.length - b.recipients.length);
+
+    case "creator-asc":
+      return list.sort((a, b) => a.creator.localeCompare(b.creator));
+
+    case "creator-desc":
+      return list.sort((a, b) => b.creator.localeCompare(a.creator));
+
     case "newest":
     default:
       return list.sort((a, b) => Number(b.id) - Number(a.id));
