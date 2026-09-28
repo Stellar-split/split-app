@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { href: "/address-book",   label: "Contacts" },
   { href: "/recipients",     label: "Recipients" },
   { href: "/leaderboard",    label: "Leaderboard" },
+  { href: "/reputation",     label: "Reputation" },
 ];
 
 export default function Navbar() {
