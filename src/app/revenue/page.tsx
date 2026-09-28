@@ -14,6 +14,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { Invoice } from "@stellar-split/sdk";
+import EarningsForecastChart from "@/components/EarningsForecastChart";
 
 /** Convert a bigint USDC amount (7 decimals) to a JS number for charting. */
 function toUsdc(amount: bigint): number {
@@ -190,6 +191,10 @@ export default function RevenuePage() {
               </ResponsiveContainer>
             </div>
           </section>
+
+          <EarningsForecastChart
+            history={monthlyData.map((d) => ({ label: d.month, value: d.usdc }))}
+          />
 
           {/* Invoice breakdown table */}
           <section aria-labelledby="breakdown-heading" className="bg-gray-900 rounded-xl p-5">
