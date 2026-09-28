@@ -32,6 +32,17 @@ import {
   isLastColumn,
   type SearchColumn,
 } from '@/lib/searchColumns';
+import {
+  searchInvoices,
+  getStoredSearches,
+  saveSearch,
+  removeRecentSearch,
+  clearSearchHistory,
+  getSavedSearches,
+  saveNamedSearch,
+  removeSavedSearch,
+  type SavedSearch,
+} from '@/lib/invoiceSearch';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -77,7 +88,199 @@ const STATUS_STYLES: Record<string, string> = {
   Refunded: 'bg-gray-500/20 text-gray-300',
 };
 
-// ── ColumnPicker ──────────────────────────────────────────────────────────────
+// ── FullTextSearchBar ─────────────────────────────────────────────────────────
+
+interface FullTextSearchBarProps {
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit: (v: string) => void;
+  onFocus: () => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+}
+
+function FullTextSearchBar({
+  value,
+  onChange,
+  onSubmit,
+  onFocus,
+  inputRef,
+}: FullTextSearchBarProps) {
+  return (
+    <div className="relative flex items-center">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="absolute left-3 h-4 w-4 text-gray-500 pointer-events-none"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35" />
+      </svg>
+      <input
+        ref={inputRef as React.RefObject<HTMLInputElement>}
+        type="search"
+        value={value}
+        placeholder="Full-text search: id, creator, recipient, token, status…"
+        className="w-full pl-9 pr-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        aria-label="Full-text invoice search"
+        autoComplete="off"
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={onFocus}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            onSubmit(value);
+          }
+        }}
+        data-testid="fulltext-search-input"
+      />
+      {value && (
+        <button
+          type="button"
+          aria-label="Clear search"
+          className="absolute right-3 text-gray-500 hover:text-gray-300 transition-colors"
+          onClick={() => onChange('')}
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── SearchHistoryPanel ────────────────────────────────────────────────────────
+
+interface SearchHistoryPanelProps {
+  recentSearches: string[];
+  savedSearches: SavedSearch[];
+  onSelect: (query: string) => void;
+  onRemoveRecent: (query: string) => void;
+  onRemoveSaved: (id: string) => void;
+  onClearHistory: () => void;
+  onSaveCurrent: () => void;
+  currentQuery: string;
+}
+
+function SearchHistoryPanel({
+  recentSearches,
+  savedSearches,
+  onSelect,
+  onRemoveRecent,
+  onRemoveSaved,
+  onClearHistory,
+  onSaveCurrent,
+  currentQuery,
+}: SearchHistoryPanelProps) {
+  const hasAnything = recentSearches.length > 0 || savedSearches.length > 0;
+  if (!hasAnything && !currentQuery.trim()) return null;
+
+  return (
+    <div
+      className="bg-gray-900 border border-gray-700 rounded-lg p-4 space-y-4"
+      data-testid="search-history-panel"
+    >
+      {/* Save current search */}
+      {currentQuery.trim() && (
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-500">
+            Current: <span className="text-gray-300 font-medium">&ldquo;{currentQuery}&rdquo;</span>
+          </span>
+          <button
+            type="button"
+            onClick={onSaveCurrent}
+            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
+            data-testid="save-search-btn"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 3v5H9V3" />
+            </svg>
+            Save search
+          </button>
+        </div>
+      )}
+
+      {/* Saved searches */}
+      {savedSearches.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Saved Searches</h3>
+          </div>
+          <ul className="space-y-1" aria-label="Saved searches">
+            {savedSearches.map((s) => (
+              <li key={s.id} className="flex items-center gap-2 group">
+                <button
+                  type="button"
+                  onClick={() => onSelect(s.query)}
+                  className="flex-1 text-left text-sm text-indigo-300 hover:text-indigo-200 truncate flex items-center gap-1.5"
+                  data-testid={`saved-search-${s.id}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 shrink-0 text-indigo-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  {s.name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemoveSaved(s.id)}
+                  className="text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-xs"
+                  aria-label={`Remove saved search "${s.name}"`}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Recent searches */}
+      {recentSearches.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent</h3>
+            <button
+              type="button"
+              onClick={onClearHistory}
+              className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+              data-testid="clear-history-btn"
+            >
+              Clear all
+            </button>
+          </div>
+          <ul className="space-y-1" aria-label="Recent searches">
+            {recentSearches.map((q) => (
+              <li key={q} className="flex items-center gap-2 group">
+                <button
+                  type="button"
+                  onClick={() => onSelect(q)}
+                  className="flex-1 text-left text-sm text-gray-300 hover:text-white truncate flex items-center gap-1.5"
+                  data-testid={`recent-search-${q}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 shrink-0 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {q}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemoveRecent(q)}
+                  className="text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-xs"
+                  aria-label={`Remove recent search "${q}"`}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ColumnPicker({
   visibleColumns,
@@ -326,6 +529,13 @@ function SearchPageInner() {
   const [draftCreator, setDraftCreator] = useState(criteria.creator ?? '');
   const [draftRecipient, setDraftRecipient] = useState(criteria.recipient ?? '');
 
+  // Full-text search state
+  const [fullTextQuery, setFullTextQuery] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const fullTextInputRef = useRef<HTMLInputElement | null>(null);
+
   // Share status feedback
   const [shareStatus, setShareStatus] = useState<string | null>(null);
 
@@ -355,6 +565,49 @@ function SearchPageInner() {
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [knownTokens, setKnownTokens] = useState<string[]>(DEFAULT_TOKENS);
+
+  // ── Load search history from localStorage ────────────────────────────────
+
+  useEffect(() => {
+    setRecentSearches(getStoredSearches());
+    setSavedSearches(getSavedSearches());
+  }, []);
+
+  // ── Collapse history panel when clicking outside ───────────────────────────
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        fullTextInputRef.current &&
+        !fullTextInputRef.current.contains(e.target as Node) &&
+        !(e.target as Element)?.closest('[data-testid="search-history-panel"]')
+      ) {
+        setShowHistory(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // ── Full-text search submit ────────────────────────────────────────────────
+
+  const handleFullTextSubmit = useCallback((query: string) => {
+    const trimmed = query.trim();
+    if (trimmed) {
+      saveSearch(trimmed);
+      setRecentSearches(getStoredSearches());
+    }
+    setShowHistory(false);
+  }, []);
+
+  // ── Save current search as named ──────────────────────────────────────────
+
+  const handleSaveCurrentSearch = useCallback(() => {
+    const trimmed = fullTextQuery.trim();
+    if (!trimmed) return;
+    saveNamedSearch(trimmed, trimmed);
+    setSavedSearches(getSavedSearches());
+  }, [fullTextQuery]);
 
   // ── Sync URL back to state on changes ──────────────────────────────────────
 
@@ -417,6 +670,7 @@ function SearchPageInner() {
     setDraftFundedMax('');
     setDraftCreator('');
     setDraftRecipient('');
+    setFullTextQuery('');
     router.replace('/search', { scroll: false });
   }, [router]);
 
@@ -518,10 +772,15 @@ function SearchPageInner() {
 
   const results = useMemo(() => {
     const compiled = compileFilter(criteria);
-    return FilterIndex.queryIndex(allInvoices, compiled);
-  }, [allInvoices, criteria]);
+    const filtered = FilterIndex.queryIndex(allInvoices, compiled);
+    // Apply full-text search on top of structured filters
+    if (fullTextQuery.trim()) {
+      return searchInvoices(filtered, fullTextQuery);
+    }
+    return filtered;
+  }, [allInvoices, criteria, fullTextQuery]);
 
-  const filtersActive = hasActiveFilters(criteria);
+  const filtersActive = hasActiveFilters(criteria) || !!fullTextQuery.trim();
 
   // ── Input handlers ─────────────────────────────────────────────────────────
 
@@ -586,6 +845,43 @@ function SearchPageInner() {
       {fetchError && (
         <p className="text-red-400 mb-6" role="alert">{fetchError}</p>
       )}
+
+      {/* Full-text search bar */}
+      <div className="relative mb-4">
+        <FullTextSearchBar
+          value={fullTextQuery}
+          onChange={setFullTextQuery}
+          onSubmit={handleFullTextSubmit}
+          onFocus={() => setShowHistory(true)}
+          inputRef={fullTextInputRef}
+        />
+        {showHistory && (
+          <div className="absolute top-full left-0 right-0 mt-1 z-30">
+            <SearchHistoryPanel
+              recentSearches={recentSearches}
+              savedSearches={savedSearches}
+              currentQuery={fullTextQuery}
+              onSelect={(q) => {
+                setFullTextQuery(q);
+                setShowHistory(false);
+              }}
+              onRemoveRecent={(q) => {
+                removeRecentSearch(q);
+                setRecentSearches(getStoredSearches());
+              }}
+              onRemoveSaved={(id) => {
+                removeSavedSearch(id);
+                setSavedSearches(getSavedSearches());
+              }}
+              onClearHistory={() => {
+                clearSearchHistory();
+                setRecentSearches([]);
+              }}
+              onSaveCurrent={handleSaveCurrentSearch}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Filter panel */}
       <div
