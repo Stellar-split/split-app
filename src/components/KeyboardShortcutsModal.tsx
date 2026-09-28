@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import FocusTrap from "@/components/FocusTrap";
 import { useShortcutRegistry, type ShortcutDefinition } from "@/context/ShortcutRegistry";
 
@@ -10,32 +11,59 @@ interface Props {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/** Fallback category for shortcuts that do not declare a `group`. */
+const GENERAL_GROUP = "General";
+
 /**
- * Group shortcuts by their `group` field.
- * Groups are returned in the order they first appear in the registry,
- * with "General" always first when present.
+ * Categories the reference overlay leads with, in this order. Anything the
+ * registry registers under another category is listed next (alphabetically),
+ * and `General` is always last so it never pushes real categories down.
+ */
+const LEAD_CATEGORIES = ["Navigation", "Invoices", "Payments"] as const;
+
+/** Turn a category label into a DOM-id-safe fragment (`Payments & Tips` → `payments-tips`). */
+function groupDomId(group: string): string {
+  const slug = group
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `kbd-group-${slug || "group"}`;
+}
+
+/**
+ * Group shortcuts by their `group` field and return them in a stable order:
+ * the categories above first, then any other category alphabetically, then
+ * `General` last. Ordering is derived from the data only, so the overlay never
+ * reshuffles between renders.
  */
 function groupShortcuts(
   shortcuts: ShortcutDefinition[],
-): Array<{ group: string; entries: ShortcutDefinition[] }> {
+): Array<{ group: string; id: string; entries: ShortcutDefinition[] }> {
   const map = new Map<string, ShortcutDefinition[]>();
-
-  // Always seed General first so it stays at the top
-  map.set("General", []);
 
   for (const s of shortcuts) {
     // Hide internal chord-activation entries from the overlay
     if (s.id === "global:g-chord") continue;
 
-    const group = s.group ?? "General";
+    const group = s.group?.trim() || GENERAL_GROUP;
     if (!map.has(group)) map.set(group, []);
     map.get(group)!.push(s);
   }
 
-  // Remove empty groups
+  const rank = (group: string): number => {
+    const lead = LEAD_CATEGORIES.indexOf(group as (typeof LEAD_CATEGORIES)[number]);
+    if (lead !== -1) return lead;
+    if (group === GENERAL_GROUP) return Number.MAX_SAFE_INTEGER;
+    return LEAD_CATEGORIES.length + 1;
+  };
+
   return Array.from(map.entries())
     .filter(([, entries]) => entries.length > 0)
-    .map(([group, entries]) => ({ group, entries }));
+    .sort(([a], [b]) => {
+      const diff = rank(a) - rank(b);
+      return diff !== 0 ? diff : a.localeCompare(b);
+    })
+    .map(([group, entries]) => ({ group, id: groupDomId(group), entries }));
 }
 
 // ── Kbd chip ──────────────────────────────────────────────────────────────────
@@ -54,11 +82,19 @@ function KbdKey({ label }: { label: string }) {
  * KeyboardShortcutsModal
  *
  * A help overlay that lists **all shortcuts registered via ShortcutRegistry**.
- * Shortcuts are grouped by their `group` field (defaults to "General").
+ * Shortcuts are grouped by their `group` field (defaults to "General") and the
+ * categories lead in a stable order (Navigation, Invoices, Payments, …, General).
  *
  * Triggered by pressing `?` outside text inputs, or clicking the `?` icon in
  * the header. Closed by pressing Escape (handled in useKeyboardShortcuts) or
  * clicking the backdrop / close button.
+ *
+ * The overlay is rendered through a portal into `document.body`. It is mounted
+ * from the header (`HeaderShortcutsButton` → `Navbar`), and that header sets a
+ * `backdrop-blur`, which makes the header a containing block for `position:
+ * fixed` descendants. Rendering in place confined the `fixed inset-0` overlay
+ * to the header box instead of the viewport, so the dialog appeared clipped and
+ * the backdrop never covered the page.
  *
  * Components register shortcuts with `useRegisterShortcuts` — the overlay
  * automatically reflects additions and removals without any manual wiring.
@@ -66,8 +102,16 @@ function KbdKey({ label }: { label: string }) {
 export default function KeyboardShortcutsModal({ onClose }: Props) {
   const { shortcuts } = useShortcutRegistry();
   const grouped = useMemo(() => groupShortcuts(shortcuts), [shortcuts]);
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // `createPortal` needs a live DOM; skip the server/first paint.
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
       role="dialog"
@@ -141,10 +185,10 @@ export default function KeyboardShortcutsModal({ onClose }: Props) {
               </p>
             ) : (
               <div className="flex flex-col gap-5">
-                {grouped.map(({ group, entries }) => (
-                  <section key={group} aria-labelledby={`kbd-group-${group}`}>
+                {grouped.map(({ group, id, entries }) => (
+                  <section key={group} aria-labelledby={id}>
                     <h3
-                      id={`kbd-group-${group}`}
+                      id={id}
                       className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1"
                     >
                       {group}
@@ -193,6 +237,7 @@ export default function KeyboardShortcutsModal({ onClose }: Props) {
           </div>
         </div>
       </FocusTrap>
-    </div>
+    </div>,
+    document.body,
   );
 }
