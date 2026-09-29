@@ -74,4 +74,21 @@ describe("ChartBuilder (#798)", () => {
     render(<ChartBuilder data={makeData(1)} />);
     expect(screen.getByText(/1 data point\b/i)).toBeInTheDocument();
   });
+
+  it("renders the success metrics dashboard heading", () => {
+    render(<ChartBuilder data={makeData()} />);
+    expect(screen.getByText(/app creator success metrics/i)).toBeInTheDocument();
+  });
+
+  it("renders success metric summary cards", () => {
+    render(<ChartBuilder data={makeData()} />);
+    expect(screen.getByText(/success rate/i)).toBeInTheDocument();
+    expect(screen.getByText(/avg funding time/i)).toBeInTheDocument();
+  });
+
+  it("is mobile responsive with a scrollable chart container", () => {
+    render(<ChartBuilder data={makeData()} />);
+    const container = screen.getByTestId("chart-builder-container");
+    expect(container.className).toMatch(/overflow-x-auto/);
+  });
 });
