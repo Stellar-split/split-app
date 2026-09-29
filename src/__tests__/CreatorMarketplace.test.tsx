@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import CreatorMarketplace from "@/components/marketplace/CreatorMarketplace";
 import { discoverCreators, listCategories, type MarketplaceCreator } from "@/lib/creatorMarketplace";
+import { matchMentors, type MentorshipProfile } from "@/lib/mentorshipMatching";
 
 const creators: MarketplaceCreator[] = [
   { address: "GA", name: "Ada", category: "Design", tags: ["logo"], rating: 4.2, completedInvoices: 30, verified: true },
@@ -27,5 +28,42 @@ describe("CreatorMarketplace", () => {
     expect(screen.queryByText("Bo")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Search creators"), { target: { value: "zzz" } });
     expect(screen.getByText("No creators found.")).toBeInTheDocument();
+  });
+});
+
+const mentors: MentorshipProfile[] = [
+  { address: "MA", name: "Mia", skills: ["design", "branding"], interests: ["startups"], yearsExperience: 8, availability: "open" },
+  { address: "MB", name: "Max", skills: ["music", "mixing"], interests: ["audio"], yearsExperience: 4, availability: "limited" },
+  { address: "MC", name: "Nia", skills: ["design", "ui"], interests: ["startups", "audio"], yearsExperience: 12, availability: "open" },
+];
+
+describe("mentorshipMatching", () => {
+  it("matches mentors by shared skills and interests", () => {
+    const matches = matchMentors(
+      { address: "GA", name: "Ada", skills: ["design", "ui"], interests: ["startups"] },
+      mentors,
+    );
+    expect(matches.map((m) => m.mentor.name)).toEqual(["Nia", "Mia", "Max"]);
+    expect(matches[0].sharedSkills).toEqual(["design", "ui"]);
+    expect(matches[0].sharedInterests).toEqual(["startups"]);
+    expect(matches[0].score).toBeGreaterThan(matches[1].score);
+  });
+
+  it("filters by availability and respects the limit", () => {
+    const matches = matchMentors(
+      { address: "GA", name: "Ada", skills: ["design"], interests: [] },
+      mentors,
+      { availability: "open", limit: 1 },
+    );
+    expect(matches).toHaveLength(1);
+    expect(matches[0].mentor.name).toBe("Nia");
+  });
+
+  it("returns no matches when there is no overlap", () => {
+    const matches = matchMentors(
+      { address: "GA", name: "Ada", skills: ["gardening"], interests: ["cooking"] },
+      mentors,
+    );
+    expect(matches).toEqual([]);
   });
 });
