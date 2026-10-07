@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { vi } from "vitest";
 import userEvent from "@testing-library/user-event";
 import CoSignerSection from "@/components/invoice/CoSignerSection";
 import type { CoSigner } from "@/hooks/useSplitCalculator";

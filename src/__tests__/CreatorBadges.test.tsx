@@ -134,7 +134,7 @@ describe("CreatorBadges component (#801)", () => {
 
   it("renders the section heading", () => {
     render(<CreatorBadges stats={emptyStats} />);
-    expect(screen.getByText(/badges/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /badges & achievements/i })).toBeInTheDocument();
   });
 
   it("shows 0 earned message when no badges earned", () => {

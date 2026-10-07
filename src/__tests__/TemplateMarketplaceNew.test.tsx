@@ -1,9 +1,10 @@
 import React from "react";
 import { render, screen, fireEvent, within } from "@testing-library/react";
+import { vi } from "vitest";
 import TemplateMarketplace from "@/components/TemplateMarketplace";
 import type { UserTemplate } from "@/components/TemplateManager";
 
-const noop = jest.fn();
+const noop = vi.fn();
 
 describe("TemplateMarketplace (#799)", () => {
   beforeEach(() => noop.mockClear());

@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { vi } from "vitest";
 import userEvent from "@testing-library/user-event";
 import AccessCodeGate, { hashAccessCode, verifyAccessCode } from "@/components/invoice/AccessCodeGate";
 

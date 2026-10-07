@@ -1,14 +1,17 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { vi } from "vitest";
 import ChartBuilder from "@/components/analytics/ChartBuilder";
 import type { ChartBuilderDataPoint } from "@/components/analytics/ChartBuilder";
 
 // Mock recharts dynamic imports
-jest.mock("next/dynamic", () => () => {
-  const MockChart = () => <div data-testid="mock-chart" />;
-  MockChart.displayName = "MockChart";
-  return MockChart;
-});
+vi.mock("next/dynamic", () => ({
+  default: () => {
+    const MockChart = () => <div data-testid="mock-chart" />;
+    MockChart.displayName = "MockChart";
+    return MockChart;
+  },
+}));
 
 const makeData = (n = 4): ChartBuilderDataPoint[] =>
   Array.from({ length: n }, (_, i) => ({
