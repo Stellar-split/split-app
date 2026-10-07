@@ -35,8 +35,8 @@ export function searchInvoices(invoices: Invoice[], query: string): Invoice[] {
       inv.id,
       inv.status,
       inv.creator,
-      (inv as Invoice & { title?: string }).title ?? "",
-      (inv as Invoice & { token?: string }).token ?? "",
+      inv.data?.title ?? "",
+      inv.data?.token ?? "",
       ...inv.recipients.map((r) => r.address),
     ].map((f) => f.toLowerCase());
 
