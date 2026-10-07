@@ -57,7 +57,7 @@ describe("AccessCodeGate & Hash Verification", () => {
 
       expect(screen.queryByTestId("invoice-content")).not.toBeInTheDocument();
       expect(screen.getByRole("region", { name: /private invoice access code entry/i })).toBeInTheDocument();
-      expect(screen.getByRole("textbox", { name: /access code/i })).toBeInTheDocument();
+      expect(document.getElementById("access-code-input")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /unlock invoice/i })).toBeInTheDocument();
     });
 
@@ -68,7 +68,7 @@ describe("AccessCodeGate & Hash Verification", () => {
         </AccessCodeGate>
       );
 
-      const input = screen.getByRole("textbox", { name: /access code/i });
+      const input = document.getElementById("access-code-input") as HTMLInputElement;
       expect(input).toHaveAttribute("type", "password");
 
       const toggleButton = screen.getByRole("button", { name: /show access code/i });
@@ -88,7 +88,7 @@ describe("AccessCodeGate & Hash Verification", () => {
         </AccessCodeGate>
       );
 
-      const input = screen.getByRole("textbox", { name: /access code/i });
+      const input = document.getElementById("access-code-input") as HTMLInputElement;
       await user.type(input, "wrong-code");
 
       const unlockButton = screen.getByRole("button", { name: /unlock invoice/i });
@@ -116,7 +116,7 @@ describe("AccessCodeGate & Hash Verification", () => {
         </AccessCodeGate>
       );
 
-      const input = screen.getByRole("textbox", { name: /access code/i });
+      const input = document.getElementById("access-code-input") as HTMLInputElement;
       await user.type(input, "correct-code");
 
       const unlockButton = screen.getByRole("button", { name: /unlock invoice/i });
