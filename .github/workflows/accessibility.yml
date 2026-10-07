@@ -25,6 +25,11 @@ jobs:
 
       - name: Run accessibility tests (WCAG 2.1 AA gate)
         run: npx playwright test --grep @a11y
+        env:
+          NEXT_PUBLIC_STELLAR_NETWORK: ${{ secrets.NEXT_PUBLIC_STELLAR_NETWORK }}
+          NEXT_PUBLIC_CONTRACT_ID: ${{ secrets.NEXT_PUBLIC_CONTRACT_ID }}
+          NEXT_PUBLIC_RPC_URL: ${{ secrets.NEXT_PUBLIC_RPC_URL }}
+          NEXT_PUBLIC_USDC_ADDRESS: ${{ secrets.NEXT_PUBLIC_USDC_ADDRESS }}
 
       - name: Upload Playwright report
         if: failure()
