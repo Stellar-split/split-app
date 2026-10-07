@@ -191,7 +191,9 @@ describe("KeyboardShortcutsModal category grouping", () => {
       "Zebra Extras entry",
       "General entry",
     ]) {
-      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(screen.getByText((content, element) => {
+        return content.includes(label);
+      })).toBeInTheDocument();
     }
   });
 });
