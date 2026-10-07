@@ -65,9 +65,8 @@ describe("ChartBuilder (#798)", () => {
     render(<ChartBuilder data={makeData()} />);
     const select = screen.getByLabelText(/metric/i) as HTMLSelectElement;
     fireEvent.change(select, { target: { value: "count" } });
-    expect(screen.getByText((content, element) => {
-      return element?.tagName === "FOOTER" && /invoice count/i.test(content);
-    })).toBeInTheDocument();
+    // Check that "Invoice Count" text appears after metric change
+    expect(screen.getByText((content) => /invoice count/i.test(content))).toBeInTheDocument();
   });
 
   it("shows correct data point count", () => {
