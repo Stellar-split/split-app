@@ -132,7 +132,7 @@ describe("CancelModal multi-step confirmation flow and gate", () => {
     // Step 4: success state
     await waitFor(() => {
       expect(screen.getByTestId("step-success")).toBeInTheDocument();
-      expect(screen.getByText("Invoice Cancelled")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Invoice Cancelled" })).toBeInTheDocument();
     });
   });
 });

@@ -66,7 +66,7 @@ describe("CoSignerSection & Co-Signer Status Logic", () => {
     fireEvent.click(addButton);
 
     expect(screen.getByText(/Invalid Stellar public key/i)).toBeInTheDocument();
-    expect(onChange).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledTimes(1); // Only from the initial toggle
   });
 
   it("removes a co-signer and updates threshold appropriately", () => {
