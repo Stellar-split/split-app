@@ -110,7 +110,8 @@ describe("TemplateMarketplace (#799)", () => {
     render(<TemplateMarketplace onImport={noop} importedIds={new Set()} />);
     const previewButtons = screen.getAllByRole("button", { name: /preview/i });
     fireEvent.click(previewButtons[0]);
-    expect(screen.getByText(/recipients/i)).toBeInTheDocument();
-    expect(screen.getByText(/total/i)).toBeInTheDocument();
+    const modal = screen.getByRole("dialog");
+    expect(within(modal).getByText(/recipients/i)).toBeInTheDocument();
+    expect(within(modal).getByText(/total/i)).toBeInTheDocument();
   });
 });

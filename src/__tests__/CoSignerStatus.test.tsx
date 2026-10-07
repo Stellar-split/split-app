@@ -59,6 +59,9 @@ describe("CoSignerSection & Co-Signer Status Logic", () => {
     const checkbox = screen.getByLabelText(/Enable co-signer approvals/i);
     fireEvent.click(checkbox);
 
+    expect(onChange).toHaveBeenCalledTimes(1); // Enable call
+    onChange.mockClear(); // Reset after enable
+
     const input = screen.getByRole("textbox", { name: /Add Co-Signer Stellar Address/i });
     await user.type(input, "InvalidShortKey");
 
@@ -66,7 +69,7 @@ describe("CoSignerSection & Co-Signer Status Logic", () => {
     fireEvent.click(addButton);
 
     expect(screen.getByText(/Invalid Stellar public key/i)).toBeInTheDocument();
-    expect(onChange).toHaveBeenCalledTimes(1); // Only from the initial toggle
+    expect(onChange).toHaveBeenCalledTimes(0); // No call on invalid add
   });
 
   it("removes a co-signer and updates threshold appropriately", () => {
