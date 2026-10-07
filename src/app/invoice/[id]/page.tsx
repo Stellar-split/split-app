@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { splitClient, payWithNonce } from "@/lib/stellar";
@@ -24,6 +25,7 @@ import PaymentMethodSelector from "@/components/PaymentMethodSelector";
 import DeadlineCountdown from "@/components/DeadlineCountdown";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import CopyButton from "@/components/CopyButton";
+import AccessCodeGate from "@/components/invoice/AccessCodeGate";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import CancelModal from "@/components/CancelModal";
 import AchievementCard from "@/components/AchievementCard";
