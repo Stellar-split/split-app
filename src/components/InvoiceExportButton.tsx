@@ -16,29 +16,6 @@ interface Props {
 const PDF_SAFE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg']);
 
 /**
- * Fetches an image URL and returns it as a data URL that @react-pdf/renderer
- * can embed, or null when the image cannot be inlined (network failure or a
- * format react-pdf cannot decode, e.g. WebP — branding colors/tagline still
- * apply; the export never fails because of the logo).
- */
-async function fetchLogoDataUrl(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    if (!PDF_SAFE_IMAGE_TYPES.has(blob.type)) return null;
-    return await new Promise<string | null>((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Generates a QR code data URL for the given invoice verification URL.
  */
 async function generateQrCodeDataUrl(invoiceId: string): Promise<string | null> {
