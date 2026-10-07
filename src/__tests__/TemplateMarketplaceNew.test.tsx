@@ -45,16 +45,16 @@ describe("TemplateMarketplace (#799)", () => {
     render(<TemplateMarketplace onImport={noop} importedIds={new Set()} />);
     const search = screen.getByPlaceholderText(/search templates/i);
     fireEvent.change(search, { target: { value: "retainer" } });
-    expect(screen.getByText(/agency retainer/i)).toBeInTheDocument();
-    expect(screen.queryByText(/consulting day rate/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /agency retainer/i })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /consulting day rate/i })).not.toBeInTheDocument();
   });
 
   it("filters by category", () => {
     render(<TemplateMarketplace onImport={noop} importedIds={new Set()} />);
     const select = screen.getByLabelText(/filter by category/i) as HTMLSelectElement;
     fireEvent.change(select, { target: { value: "Consulting" } });
-    expect(screen.getByText(/consulting day rate/i)).toBeInTheDocument();
-    expect(screen.queryByText(/agency retainer/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /consulting day rate/i })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /agency retainer/i })).not.toBeInTheDocument();
   });
 
   it("shows empty state when no results", () => {

@@ -65,7 +65,9 @@ describe("ChartBuilder (#798)", () => {
     render(<ChartBuilder data={makeData()} />);
     const select = screen.getByLabelText(/metric/i) as HTMLSelectElement;
     fireEvent.change(select, { target: { value: "count" } });
-    expect(screen.getByText(/invoice count/i)).toBeInTheDocument();
+    expect(screen.getByText((content, element) => {
+      return element?.tagName === "FOOTER" && /invoice count/i.test(content);
+    })).toBeInTheDocument();
   });
 
   it("shows correct data point count", () => {
@@ -80,7 +82,7 @@ describe("ChartBuilder (#798)", () => {
 
   it("renders the success metrics dashboard heading", () => {
     render(<ChartBuilder data={makeData()} />);
-    expect(screen.getByText(/app creator success metrics/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /app creator success metrics/i })).toBeInTheDocument();
   });
 
   it("renders success metric summary cards", () => {
