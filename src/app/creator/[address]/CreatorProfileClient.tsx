@@ -178,7 +178,7 @@ export default function CreatorProfileClient({
   const stats = useMemo(() => {
     const released = invoices.filter((i) => i.status === "Released");
     const pending = invoices.filter((i) => i.status === "Pending");
-    const cancelled = invoices.filter((i) => i.status === "Cancelled");
+    const cancelled = invoices.filter((i) => i.status === "Refunded");
     const avgFundingPct =
       invoices.length === 0
         ? 0
@@ -246,7 +246,7 @@ export default function CreatorProfileClient({
     "All",
     "Pending",
     "Released",
-    "Cancelled",
+    "Refunded",
     "Disputed",
     "Expired",
   ];
@@ -371,7 +371,7 @@ export default function CreatorProfileClient({
                 { label: "Overdue", value: stats.overdue, color: "text-red-400" },
                 { label: "Released", value: stats.released, color: "text-emerald-400" },
                 { label: "Pending", value: stats.pending, color: "text-yellow-400" },
-                { label: "Cancelled", value: stats.cancelled, color: "text-gray-400" },
+                { label: "Refunded", value: stats.cancelled, color: "text-gray-400" },
                 {
                   label: "Avg Funding",
                   value: `${stats.avgFundingPct}%`,
