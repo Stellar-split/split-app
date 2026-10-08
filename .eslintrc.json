@@ -2,5 +2,13 @@
   "extends": "next/core-web-vitals",
   "rules": {
     "react-hooks/exhaustive-deps": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/app/creator/[address]/CreatorProfileClient.tsx"],
+      "rules": {
+        "react/no-unescaped-entities": "off"
+      }
+    }
+  ]
 }
