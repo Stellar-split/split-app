@@ -450,7 +450,6 @@ export default function CreatorProfileClient({
           </div>
         </section>
         )}
-      </>
 
       {/* Badges & Achievements */}
       <section aria-labelledby="badges-section" className="mt-8">
