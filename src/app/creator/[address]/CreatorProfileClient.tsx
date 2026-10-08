@@ -449,10 +449,10 @@ export default function CreatorProfileClient({
               );
             })}
           </div>
-        {/* eslint-disable */}
+        </section>
         )}
-      </section>
-      {/* eslint-enable */}
+
+      {/* Badges & Achievements */}
 
       {/* Badges & Achievements */}
       <section aria-labelledby="badges-section" className="mt-8">
