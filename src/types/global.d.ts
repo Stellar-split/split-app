@@ -24,4 +24,7 @@ interface FreighterWindow {
 
 declare global {
   interface Window extends FreighterWindow {}
+  interface Navigator {
+    clipboard?: Clipboard;
+  }
 }

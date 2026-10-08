@@ -91,7 +91,7 @@ export default function AchievementCard({
     }
 
     try {
-      await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+      await (navigator as any).clipboard.writeText(`${shareText} ${shareUrl}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
