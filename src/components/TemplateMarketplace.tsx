@@ -186,9 +186,8 @@ export default function TemplateMarketplace({ onImport, importedIds }: Props) {
     const userTemplate: UserTemplate = {
       name: t.name,
       recipients: t.recipients.map((r) => ({ label: r.label, address: r.address, amount: r.amount })),
-      token: t.token,
+      token: t.token || undefined,
       createdAt: new Date().toISOString(),
-      lastUsed: null,
       // store marketplace id as part of the name for dedup tracking
     };
     onImport(userTemplate);
