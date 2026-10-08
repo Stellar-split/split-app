@@ -58,4 +58,6 @@ pnpm-debug.log*
 # ── Local-only docs (never push) ───────────────────────────────────────────
 ISSUES*.md
 grantfox_issues.md
+drip_wave_issues.md
+drip_wave2_issues.md
 create_issues*.py
