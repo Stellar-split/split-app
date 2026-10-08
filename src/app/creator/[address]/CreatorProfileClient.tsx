@@ -247,8 +247,6 @@ export default function CreatorProfileClient({
     "Pending",
     "Released",
     "Refunded",
-    "Disputed",
-    "Expired",
   ];
 
   return (
