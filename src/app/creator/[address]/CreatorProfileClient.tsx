@@ -448,7 +448,6 @@ export default function CreatorProfileClient({
               );
             })}
           </div>
-        {/* eslint-disable-next-line no-unexpected-multiline */}
         )}
       </section>
 
