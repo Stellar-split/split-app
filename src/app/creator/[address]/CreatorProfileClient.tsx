@@ -312,18 +312,6 @@ export default function CreatorProfileClient({
         </div>
       </section>
 
-      {/* Paginated Invoice list */}
-      <section aria-labelledby="creator-invoices-heading">        <div className="flex items-center justify-between mb-3">
-          <h2 id="creator-invoices-heading" className="text-lg font-semibold text-white">
-            Public Invoices ({invoices.length})
-          </h2>
-          {invoices.length > 0 && (
-            <span className="text-xs text-gray-400">
-              Page {currentPage} of {totalPages}
-            </span>
-          )}
-        </div>
-
       {/* Portfolio Stats Tab */}
       {activeTab === "stats" && (
         <section
@@ -451,8 +439,6 @@ export default function CreatorProfileClient({
           </div>
         </section>
         )}
-
-      {/* Badges & Achievements */}
 
       {/* Badges & Achievements */}
       <section aria-labelledby="badges-section" className="mt-8">
