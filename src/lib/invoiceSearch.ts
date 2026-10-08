@@ -31,12 +31,13 @@ export function searchInvoices(invoices: Invoice[], query: string): Invoice[] {
 
   return invoices.filter((inv) => {
     // Build a searchable corpus for the invoice
+    const invWithData = inv as any;
     const fields: string[] = [
       inv.id,
       inv.status,
       inv.creator,
-      inv.data?.title ?? "",
-      inv.data?.token ?? "",
+      invWithData.data?.title ?? "",
+      invWithData.data?.token ?? "",
       ...inv.recipients.map((r) => r.address),
     ].map((f) => f.toLowerCase());
 

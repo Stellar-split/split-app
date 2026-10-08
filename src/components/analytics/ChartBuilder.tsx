@@ -197,9 +197,9 @@ export default function ChartBuilder({ data }: Props) {
         </div>
       ) : (
         <>
-          {chartType === "bar" && <DynamicBarChart {...chartProps} fallback={<ChartFallback />} />}
-          {chartType === "line" && <DynamicLineChart {...chartProps} fallback={<ChartFallback />} />}
-          {chartType === "area" && <DynamicAreaChart {...chartProps} fallback={<ChartFallback />} />}
+          {chartType === "bar" && <DynamicBarChart {...chartProps} />}
+          {chartType === "line" && <DynamicLineChart {...chartProps} />}
+          {chartType === "area" && <DynamicAreaChart {...chartProps} />}
         </>
       )}
 
