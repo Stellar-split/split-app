@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import CreatorMarketplace from "@/components/marketplace/CreatorMarketplace";
 import { discoverCreators, listCategories, type MarketplaceCreator } from "@/lib/creatorMarketplace";
-import { matchMentors, type MentorshipProfile } from "@/lib/mentorshipMatching";
+import { matchMentors, type MentorshipProfile } from "@/lib/mentorship";
 
 const creators: MarketplaceCreator[] = [
   { address: "GA", name: "Ada", category: "Design", tags: ["logo"], rating: 4.2, completedInvoices: 30, verified: true },
