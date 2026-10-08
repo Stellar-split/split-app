@@ -12,14 +12,14 @@ import GlobalSearch from "@/components/GlobalSearch";
 import MobileSidebar from "@/components/layout/MobileSidebar";
 
 const NAV_LINKS = [
-  { href: "/dashboard",      label: "Dashboard" },
-  { href: "/invoice",        label: "Invoices" },
-  { href: "/subscriptions",  label: "Subscriptions" },
-  { href: "/groups",         label: "Groups" },
-  { href: "/address-book",   label: "Contacts" },
-  { href: "/recipients",     label: "Recipients" },
-  { href: "/leaderboard",    label: "Leaderboard" },
-  { href: "/reputation",     label: "Reputation" },
+  { href: "/dashboard",            label: "Dashboard" },
+  { href: "/dashboard/invoices",   label: "Invoices" },
+  { href: "/subscriptions",        label: "Subscriptions" },
+  { href: "/groups",               label: "Groups" },
+  { href: "/address-book",         label: "Contacts" },
+  { href: "/recipients",           label: "Recipients" },
+  { href: "/leaderboard",          label: "Leaderboard" },
+  { href: "/reputation",           label: "Reputation" },
 ];
 
 export default function Navbar() {
