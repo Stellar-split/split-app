@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import CreatorMarketplace from "@/components/marketplace/CreatorMarketplace";
 import { discoverCreators, listCategories, type MarketplaceCreator } from "@/lib/creatorMarketplace";
-import { matchMentors, type MentorshipProfile } from "@/lib/mentorship";
+import { matchCreatorToMentors, type AppCreator, type Mentor } from "@/lib/mentorship";
 
 const creators: MarketplaceCreator[] = [
   { address: "GA", name: "Ada", category: "Design", tags: ["logo"], rating: 4.2, completedInvoices: 30, verified: true },
@@ -31,39 +31,44 @@ describe("CreatorMarketplace", () => {
   });
 });
 
-const mentors: MentorshipProfile[] = [
-  { address: "MA", name: "Mia", skills: ["design", "branding"], interests: ["startups"], yearsExperience: 8, availability: "open" },
-  { address: "MB", name: "Max", skills: ["music", "mixing"], interests: ["audio"], yearsExperience: 4, availability: "limited" },
-  { address: "MC", name: "Nia", skills: ["design", "ui"], interests: ["startups", "audio"], yearsExperience: 12, availability: "open" },
+const creator: AppCreator = {
+  id: "GA",
+  name: "Ada",
+  skills: ["design", "ui"],
+  interests: ["startups"],
+  experienceLevel: "intermediate",
+};
+
+const mentors: Mentor[] = [
+  { id: "MA", name: "Mia", expertise: ["design", "branding"], interests: ["startups"], experienceLevel: "advanced", maxMentees: 5 },
+  { id: "MB", name: "Max", expertise: ["music", "mixing"], interests: ["audio"], experienceLevel: "intermediate", maxMentees: 3 },
+  { id: "MC", name: "Nia", expertise: ["design", "ui"], interests: ["startups", "audio"], experienceLevel: "advanced", maxMentees: 4 },
 ];
 
 describe("mentorshipMatching", () => {
   it("matches mentors by shared skills and interests", () => {
-    const matches = matchMentors(
-      { address: "GA", name: "Ada", skills: ["design", "ui"], interests: ["startups"] },
-      mentors,
-    );
-    expect(matches.map((m) => m.mentor.name)).toEqual(["Nia", "Mia", "Max"]);
+    const matches = matchCreatorToMentors(creator, mentors);
+    expect(matches.map((m) => mentors.find((mentor) => mentor.id === m.mentorId)?.name)).toEqual(["Nia", "Mia"]);
     expect(matches[0].sharedSkills).toEqual(["design", "ui"]);
     expect(matches[0].sharedInterests).toEqual(["startups"]);
     expect(matches[0].score).toBeGreaterThan(matches[1].score);
   });
 
-  it("filters by availability and respects the limit", () => {
-    const matches = matchMentors(
-      { address: "GA", name: "Ada", skills: ["design"], interests: [] },
-      mentors,
-      { availability: "open", limit: 1 },
-    );
+  it("respects the limit parameter", () => {
+    const matches = matchCreatorToMentors(creator, mentors, 1);
     expect(matches).toHaveLength(1);
-    expect(matches[0].mentor.name).toBe("Nia");
+    expect(mentors.find((m) => m.id === matches[0].mentorId)?.name).toBe("Nia");
   });
 
   it("returns no matches when there is no overlap", () => {
-    const matches = matchMentors(
-      { address: "GA", name: "Ada", skills: ["gardening"], interests: ["cooking"] },
-      mentors,
-    );
+    const noSkillCreator: AppCreator = {
+      id: "GX",
+      name: "Xavier",
+      skills: ["gardening"],
+      interests: ["cooking"],
+      experienceLevel: "beginner",
+    };
+    const matches = matchCreatorToMentors(noSkillCreator, mentors);
     expect(matches).toEqual([]);
   });
 });
