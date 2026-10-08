@@ -32,9 +32,9 @@ export default function CoSignersPage() {
   useEffect(() => {
     async function checkWallet() {
       try {
-        const { getPublicKey } = await import("@stellar/freighter-api");
-        const key = await getPublicKey();
-        if (key) setConnectedAddress(key);
+        const { getAddress } = await import("@stellar/freighter-api");
+        const result = await getAddress();
+        if (result.address && !result.error) setConnectedAddress(result.address);
       } catch {
         // wallet not connected or freighter not installed
       }
@@ -70,10 +70,10 @@ export default function CoSignersPage() {
   // Connect wallet helper
   const handleConnectWallet = async () => {
     try {
-      const { setAllowed, getPublicKey } = await import("@stellar/freighter-api");
+      const { setAllowed, getAddress } = await import("@stellar/freighter-api");
       await setAllowed();
-      const key = await getPublicKey();
-      if (key) setConnectedAddress(key);
+      const result = await getAddress();
+      if (result.address && !result.error) setConnectedAddress(result.address);
     } catch (e) {
       setError("Failed to connect Freighter wallet");
     }
