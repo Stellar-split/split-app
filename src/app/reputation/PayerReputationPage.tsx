@@ -28,15 +28,15 @@ function buildReputationData(
       if (p.payer !== address) continue;
       totalPaid++;
       totalVolume += p.amount;
-      if (p.timestamp && inv.deadline && p.timestamp <= inv.deadline) {
+      if ((p as any).timestamp && inv.deadline && (p as any).timestamp <= inv.deadline) {
         onTimePaid++;
       }
     }
     if (
-      (inv.status === "Disputed" || inv.status === "Released") &&
+      ((inv as any).status === "Disputed" || inv.status === "Released") &&
       inv.payments.some((p) => p.payer === address)
     ) {
-      if (inv.status === "Disputed") {
+      if ((inv as any).status === "Disputed") {
         disputeCount++;
       }
     }
