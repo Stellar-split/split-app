@@ -1226,7 +1226,7 @@ export default function InvoiceDetailPage({ params }: Props) {
       {showCancelModal && (
         <CancelModal
           invoiceId={id}
-          invoiceTitle={(invoice as any).title || loadedSplitMeta?.title || `Invoice #${id}`}
+          invoiceTitle={(invoice as any).title || `Invoice #${id}`}
           payments={invoice.payments}
           onConfirm={async () => {
             await (splitClient as any).cancelInvoice(id);
