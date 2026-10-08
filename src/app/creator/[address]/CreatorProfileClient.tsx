@@ -1,4 +1,3 @@
-/* eslint-disable */
 "use client";
 
 import { useState, useMemo } from "react";
@@ -449,10 +448,8 @@ export default function CreatorProfileClient({
               );
             })}
           </div>
-        {/* eslint-disable */}
         )}
       </section>
-      {/* eslint-enable */}
 
       {/* Badges & Achievements */}
       <section aria-labelledby="badges-section" className="mt-8">
