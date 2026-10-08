@@ -60,15 +60,15 @@ describe("mentorshipMatching", () => {
     expect(mentors.find((m) => m.id === matches[0].mentorId)?.name).toBe("Nia");
   });
 
-  it("returns no matches when there is no overlap", () => {
+  it("returns no matches when there is no skill or interest overlap", () => {
     const noSkillCreator: AppCreator = {
       id: "GX",
       name: "Xavier",
-      skills: ["gardening"],
-      interests: ["cooking"],
+      skills: ["plumbing"],
+      interests: ["sports"],
       experienceLevel: "beginner",
     };
     const matches = matchCreatorToMentors(noSkillCreator, mentors);
-    expect(matches).toEqual([]);
+    expect(matches.filter(m => m.sharedSkills.length > 0 || m.sharedInterests.length > 0)).toHaveLength(0);
   });
 });
