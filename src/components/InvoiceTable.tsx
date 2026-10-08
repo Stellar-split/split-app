@@ -128,7 +128,13 @@ function SortHeader({ column, label, sort, onSort, className = "" }: SortHeaderP
     isActive ? (sort.dir === "asc" ? "↑" : "↓") : "↕";
 
   return (
-    <th scope="col" className={`text-left px-4 py-3 ${className}`}>
+    <th
+      scope="col"
+      className={`text-left px-4 py-3 ${className}`}
+      aria-sort={
+        isActive ? (sort.dir === "asc" ? "ascending" : "descending") : "none"
+      }
+    >
       <button
         type="button"
         onClick={() => onSort(column)}
@@ -138,9 +144,6 @@ function SortHeader({ column, label, sort, onSort, className = "" }: SortHeaderP
             ? "text-indigo-400"
             : "text-gray-500 hover:text-gray-200",
         ].join(" ")}
-        aria-sort={
-          isActive ? (sort.dir === "asc" ? "ascending" : "descending") : "none"
-        }
       >
         <span>{label}</span>
         <span aria-hidden="true" className="text-[10px]">

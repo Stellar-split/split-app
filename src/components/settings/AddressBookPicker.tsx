@@ -172,6 +172,7 @@ export default function AddressBookPicker({
           aria-label={ariaLabel}
           aria-expanded={isOpen}
           aria-autocomplete="list"
+          aria-controls="address-book-listbox"
           role="combobox"
           className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 min-h-11 text-sm font-mono text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
@@ -184,6 +185,7 @@ export default function AddressBookPicker({
 
       {isOpen && (suggestions.length > 0 || suggestedLabel) && (
         <ul
+          id="address-book-listbox"
           role="listbox"
           className="absolute z-30 w-full bg-gray-900 border border-gray-700 rounded-lg mt-1 max-h-56 overflow-y-auto shadow-xl divide-y divide-gray-800"
         >
