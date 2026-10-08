@@ -68,7 +68,7 @@ describe("AccessibilityAuditPanel", () => {
   it("runs the audit on demand", () => {
     render(
       <div>
-        <img src="x.png" alt="" />
+        <img src="x.png" />
         <AccessibilityAuditPanel />
       </div>,
     );
