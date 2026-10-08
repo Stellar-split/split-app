@@ -56,6 +56,6 @@ pnpm-debug.log*
 *.tgz
 
 # ── Local-only docs (never push) ───────────────────────────────────────────
-ISSUES.md
+ISSUES*.md
 grantfox_issues.md
 create_issues*.py
