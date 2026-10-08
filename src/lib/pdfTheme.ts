@@ -7,6 +7,8 @@
  * respective backgrounds — see `src/lib/contrast.ts` for the checker.
  */
 
+export type ExportMode = "print" | "screen";
+
 export interface PdfTheme {
   /** Page background colour. */
   background: string;
