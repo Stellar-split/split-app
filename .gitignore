@@ -54,3 +54,8 @@ pnpm-debug.log*
 .cache/
 .eslintcache
 *.tgz
+
+# ── Local-only docs (never push) ───────────────────────────────────────────
+ISSUES.md
+grantfox_issues.md
+create_issues*.py
