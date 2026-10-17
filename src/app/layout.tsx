@@ -22,6 +22,7 @@ import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import { FiatRateProvider } from "@/hooks/useFiatRate";
 import { ShortcutRegistryProvider } from "@/context/ShortcutRegistry";
 import OfflineBanner from "@/components/OfflineBanner";
+import WalletSecurityCenter from "@/components/security/WalletSecurityCenter";
 import { getNonce } from "@/lib/csp";
 import TransitionProvider from "@/components/layout/TransitionProvider";
 
@@ -135,6 +136,7 @@ export default function RootLayout({
                             <SimulationBanner />
                             <UpgradeBanner />
                             <OfflineBanner />
+                            <WalletSecurityCenter />
                             <TransitionProvider>
                               <ErrorBoundary>{children}</ErrorBoundary>
                             </TransitionProvider>

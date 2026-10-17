@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/apiClient';
+import WalletSecuritySettings from '@/components/security/WalletSecuritySettings';
 
 interface SecuritySettingsResponse {
   mfaEnabled: boolean;
@@ -156,6 +157,8 @@ export default function SecuritySettingsPage() {
           </div>
           <Link href="/settings" className="text-sm text-indigo-400 hover:text-indigo-300">← Back to settings</Link>
         </div>
+
+        <WalletSecuritySettings />
 
         <section className="rounded-2xl border border-gray-800 bg-gray-900/80 p-6 shadow-xl">
           <div className="flex items-center justify-between gap-4">

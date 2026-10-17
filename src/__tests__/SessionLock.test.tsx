@@ -133,3 +133,52 @@ test("lock overlay shows Resume button", () => {
   expect(screen.getByText("Session Locked")).toBeInTheDocument();
   expect(screen.getAllByText("Resume").length).toBeGreaterThanOrEqual(1);
 });
+
+test("warns during the last minute before locking", () => {
+  render(
+    <SessionLockProvider>
+      <TestConsumer />
+    </SessionLockProvider>,
+  );
+
+  act(() => {
+    jest.advanceTimersByTime(14 * 60 * 1000 + 30_000);
+  });
+
+  expect(screen.getByText(/Your session will lock in \d+s/)).toBeInTheDocument();
+  fireEvent.click(screen.getByText("Stay signed in"));
+  expect(screen.queryByText(/Your session will lock in/)).not.toBeInTheDocument();
+  expect(screen.getByTestId("locked").textContent).toBe("false");
+});
+
+test("locking clears the cached wallet session", () => {
+  sessionStorage.setItem("stellarsplit_wallet", JSON.stringify({ address: "GABC", walletType: "freighter" }));
+  render(
+    <SessionLockProvider>
+      <TestConsumer />
+    </SessionLockProvider>,
+  );
+
+  act(() => {
+    jest.advanceTimersByTime(16 * 60 * 1000);
+  });
+
+  expect(screen.getByTestId("locked").textContent).toBe("true");
+  expect(sessionStorage.getItem("stellarsplit_wallet")).toBeNull();
+});
+
+test("requires biometrics to unlock when enabled", () => {
+  localStorage.setItem("stellarsplit_biometric_credential", "abc");
+  render(
+    <SessionLockProvider>
+      <TestConsumer />
+    </SessionLockProvider>,
+  );
+
+  act(() => {
+    jest.advanceTimersByTime(16 * 60 * 1000);
+  });
+
+  expect(screen.getByText("Unlock with biometrics")).toBeInTheDocument();
+  expect(screen.getByText("Disconnect wallet")).toBeInTheDocument();
+});

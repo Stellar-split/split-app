@@ -9,6 +9,7 @@ import {
   getWalletConnectPublicKey,
 } from "@/lib/freighter";
 import type { WalletType } from "@/lib/freighter";
+import { connectLimiter, enforceRateLimit, recordSecurityEvent } from "@/lib/walletSecurity";
 
 const STORAGE_KEY = "stellarsplit_wallet";
 
@@ -143,6 +144,12 @@ export function useWallet() {
   const connect = useCallback(async (type: WalletType) => {
     setState((prev) => ({ ...prev, connecting: true, error: null }));
     try {
+      enforceRateLimit(connectLimiter, type, "wallet connection");
+    } catch (e) {
+      setState((prev) => ({ ...prev, connecting: false, error: (e as Error).message }));
+      throw e;
+    }
+    try {
       if (type === "freighter") {
         const address = await connectFreighter();
         writeCache({ address, walletType: "freighter" });
@@ -155,6 +162,7 @@ export function useWallet() {
       setState((prev) => ({ ...prev, address: publicKey, walletType: "walletconnect", connecting: false }));
       return { address: publicKey, walletType: "walletconnect" as WalletType, uri };
     } catch (e) {
+      recordSecurityEvent({ type: "connect_failed", detail: type });
       setState((prev) => ({ ...prev, connecting: false, error: String(e) }));
       throw e;
     }

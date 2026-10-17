@@ -4,6 +4,7 @@
  * All functions are safe to import in Server Components — they guard against
  * SSR by checking `typeof window` before calling browser-only Freighter APIs.
  */
+import { enforceRateLimit, recordSecurityEvent, signLimiter } from "./walletSecurity";
 
 export const NETWORK_PASSPHRASE =
   process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
@@ -110,20 +111,29 @@ export async function isWalletConnected(): Promise<boolean> {
   }
 }
 
-/** Sign a transaction with the currently connected wallet adapter. */
+/**
+ * Sign a transaction with the currently connected wallet adapter.
+ * Rate limited, and rejected/failed signatures are logged so repeated
+ * unexpected signing prompts surface as suspicious activity.
+ */
 export async function signTransaction(xdr: string): Promise<string> {
   if (typeof window === "undefined") throw new Error("Browser only");
+  enforceRateLimit(signLimiter, "sign", "transaction signing");
 
-  // Try WalletConnect first if available
   try {
-    const wcKey = await getWalletConnectPublicKey();
-    if (wcKey) {
-      return signWithWalletConnect(xdr);
+    // Try WalletConnect first if available
+    let wcKey: string | null = null;
+    try {
+      wcKey = await getWalletConnectPublicKey();
+    } catch {
+      // WalletConnect not available, try Freighter
     }
-  } catch {
-    // WalletConnect not available, try Freighter
-  }
+    if (wcKey) return await signWithWalletConnect(xdr);
 
-  // Fall back to Freighter
-  return signWithFreighter(xdr);
+    // Fall back to Freighter
+    return await signWithFreighter(xdr);
+  } catch (e) {
+    recordSecurityEvent({ type: "sign_rejected", detail: e instanceof Error ? e.message : String(e) });
+    throw e;
+  }
 }
