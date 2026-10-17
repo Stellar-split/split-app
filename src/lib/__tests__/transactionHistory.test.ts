@@ -54,7 +54,7 @@ const rec = (over: Partial<TxRecord>): TxRecord => ({
 
 const sample: TxRecord[] = [
   rec({ id: "1", createdAt: "2026-10-01T10:00:00Z", hash: "aaa", type: "payment", direction: "outgoing", asset: "XLM" }),
-  rec({ id: "2", createdAt: "2026-10-05T10:00:00Z", hash: "bbb", type: "path_payment", direction: "incoming", asset: "USDC", from: ALICE, memo: "invoice 42" }),
+  rec({ id: "2", createdAt: "2026-10-05T10:00:00Z", hash: "hash-two-xyz", type: "path_payment", direction: "incoming", asset: "USDC", from: ALICE, memo: "invoice 42" }),
   rec({ id: "3", createdAt: "2026-10-10T10:00:00Z", hash: "ccc", type: "create_account", direction: "incoming", wallet: BOB }),
 ];
 
@@ -73,7 +73,7 @@ describe("filterTransactions", () => {
   });
 
   it("searches hash, addresses and memo case-insensitively", () => {
-    expect(filterTransactions(sample, { search: "BBB" }).map((r) => r.id)).toEqual(["2"]);
+    expect(filterTransactions(sample, { search: "XYZ" }).map((r) => r.id)).toEqual(["2"]);
     expect(filterTransactions(sample, { search: "invoice 42" }).map((r) => r.id)).toEqual(["2"]);
     expect(filterTransactions(sample, { search: ALICE.slice(0, 10) }).map((r) => r.id)).toEqual(["2"]);
   });
