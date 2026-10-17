@@ -14,11 +14,10 @@ import { checkBudget, getBudgetLimit, setBudgetLimit, clearBudgetLimit } from "@
 import { fetchUsdcBalance, USDC_CONTRACT_ID } from "@/lib/stellar";
 import { saveReceipt } from "@/lib/receiptStore";
 import { apiFetch } from "@/lib/apiClient";
+import { getActiveNetwork } from "@/lib/networks";
 
 const STELLAR_EXPERT_BASE =
-  process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
-    ? "https://stellar.expert/explorer/public/tx"
-    : "https://stellar.expert/explorer/testnet/tx";
+  getActiveNetwork().explorerTxBase;
 
 type PaymentResult = { txHash?: string } | void;
 

@@ -6,26 +6,28 @@
 
 import { StellarSplitClient, formatAmount } from "@stellar-split/sdk";
 import { NETWORK_PASSPHRASE } from "./freighter";
+import { getActiveNetwork } from "./networks";
 
 let _client: StellarSplitClient | null = null;
 
+const activeNetwork = getActiveNetwork();
+
 export const MEMO_MAX_BYTES = 28;
-export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
-export const HORIZON_URL =
-  process.env.NEXT_PUBLIC_HORIZON_URL ??
-  (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
-    ? "https://horizon.stellar.org"
-    : "https://horizon-testnet.stellar.org");
+export const RPC_URL = activeNetwork.rpcUrl;
+export const HORIZON_URL = activeNetwork.horizonUrl;
 export const NORMAL_FEE_THRESHOLD = 100;
 
-export const USDC_CONTRACT_ID = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "";
+export const USDC_CONTRACT_ID = activeNetwork.usdcAddress;
 
 export const MAX_RECIPIENTS = 10;
 
 export function getSplitClient(): StellarSplitClient {
   if (!_client) {
-    const contractId = process.env.NEXT_PUBLIC_CONTRACT_ID ?? "";
-    _client = new StellarSplitClient({ rpcUrl: RPC_URL, networkPassphrase: NETWORK_PASSPHRASE, contractId });
+    _client = new StellarSplitClient({
+      rpcUrl: RPC_URL,
+      networkPassphrase: NETWORK_PASSPHRASE,
+      contractId: activeNetwork.contractId,
+    });
   }
   return _client;
 }
@@ -249,10 +251,7 @@ export async function fetchUsdcBalance(
 
   const server = new rpc.Server(RPC_URL, { allowHttp: true });
 
-  const networkPassphrase =
-    process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
-      ? Networks.PUBLIC
-      : Networks.TESTNET;
+  const networkPassphrase = NETWORK_PASSPHRASE;
 
   const contract = new Contract(tokenContractId);
   const accountArg = Address.fromString(walletAddress).toScVal();

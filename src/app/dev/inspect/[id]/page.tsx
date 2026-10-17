@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import type { Invoice } from "@stellar-split/sdk";
+import { getActiveNetwork } from "@/lib/networks";
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 
@@ -104,8 +105,8 @@ export default function InspectPage() {
     setError(null);
     try {
       const invoice = await splitClient.getInvoice(id);
-      const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
-      const contractId = process.env.NEXT_PUBLIC_CONTRACT_ID ?? "";
+      const rpcUrl = getActiveNetwork().rpcUrl;
+      const contractId = getActiveNetwork().contractId;
       const wasmHash = await fetchWasmHash(contractId, rpcUrl);
       const storageKey = `Invoice:${id}`;
       setData({ invoice, wasmHash, storageKey });

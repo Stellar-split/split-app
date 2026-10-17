@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Invoice } from '@stellar-split/sdk';
 import type { StellarSplitClient } from '@stellar-split/sdk';
+import { getActiveNetwork } from "@/lib/networks";
 
 export interface InvoiceStreamEvent {
   type: 'PaymentReceived' | 'InvoiceReleased' | 'InvoiceRefunded';
@@ -86,10 +87,10 @@ export function useInvoiceStream(invoiceId: string): UseInvoiceStreamResult {
   const pollEvents = useCallback(async () => {
     try {
       const { rpc } = await import('@stellar/stellar-sdk');
-      const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? 'https://soroban-testnet.stellar.org';
+      const rpcUrl = getActiveNetwork().rpcUrl;
       const server = new rpc.Server(rpcUrl, { allowHttp: rpcUrl.startsWith('http://') });
 
-      const contractId = process.env.NEXT_PUBLIC_CONTRACT_ID ?? '';
+      const contractId = getActiveNetwork().contractId;
       if (!contractId) return;
 
       const params: any = {

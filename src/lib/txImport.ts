@@ -3,6 +3,7 @@
  * operations into invoice recipient lines, for retroactively recording
  * ad-hoc payments as StellarSplit invoices.
  */
+import { getActiveNetwork, MAINNET_PASSPHRASE } from "@/lib/networks";
 
 export interface RecipientLine {
   address: string;
@@ -90,7 +91,7 @@ function horizonUrlFor(network: "mainnet" | "testnet"): string {
 }
 
 function currentNetwork(): "mainnet" | "testnet" {
-  return process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet" ? "mainnet" : "testnet";
+  return getActiveNetwork().passphrase === MAINNET_PASSPHRASE ? "mainnet" : "testnet";
 }
 
 async function transactionExistsOn(

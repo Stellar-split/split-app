@@ -15,6 +15,7 @@ import {
   isValidUrl,
   type VerificationRequest,
 } from '@/lib/verificationRequests';
+import { getActiveNetwork } from "@/lib/networks";
 
 export default function VerifyIdentityPage() {
   const [mounted, setMounted] = useState(false);
@@ -71,9 +72,7 @@ export default function VerifyIdentityPage() {
       const signedMessage = await signMessage(challenge, {
         address,
         networkPassphrase:
-          process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet'
-            ? 'Public Global Stellar Network ; September 2015'
-            : 'Test SDF Network ; September 2015',
+          getActiveNetwork().passphrase,
       });
 
       // Store attestation

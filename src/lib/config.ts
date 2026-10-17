@@ -1,22 +1,26 @@
 /**
  * App-level Stellar / Soroban configuration.
- * Mirrors env vars used by `src/lib/stellar.ts` so settings pages can import a single module.
+ * Resolved from the active network (see `src/lib/networks.ts`) so settings
+ * pages can import a single module.
  */
+import { getActiveNetwork } from "./networks";
 
-export const STELLAR_NETWORK =
-  process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet" ? "mainnet" : "testnet";
+const active = getActiveNetwork();
 
-export const RPC_URL =
-  process.env.NEXT_PUBLIC_RPC_URL ??
-  (STELLAR_NETWORK === "mainnet"
-    ? "https://soroban.stellar.org"
-    : "https://soroban-testnet.stellar.org");
+/** "custom" networks are reported by their passphrase family for callers that only know testnet/mainnet. */
+export const STELLAR_NETWORK: "mainnet" | "testnet" =
+  active.id === "mainnet" || (active.id === "custom" && active.explorerTxBase.includes("/public/"))
+    ? "mainnet"
+    : "testnet";
+
+export const RPC_URL = active.rpcUrl;
 
 /** StellarSplit contract ID used for on-chain calls and event filtering. */
-export const contractId = process.env.NEXT_PUBLIC_CONTRACT_ID ?? "";
+export const contractId = active.contractId;
 
 export const config = {
   network: STELLAR_NETWORK,
+  networkId: active.id,
   rpcUrl: RPC_URL,
   contractId,
 } as const;

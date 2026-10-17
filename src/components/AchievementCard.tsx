@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import confetti from "canvas-confetti";
+import { getActiveNetwork } from "@/lib/networks";
 
 export interface NFTDetails {
   tokenId?: string;
@@ -19,9 +20,7 @@ interface Props {
 }
 
 const STELLAR_EXPERT_BASE =
-  process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
-    ? "https://stellar.expert/explorer/public/tx"
-    : "https://stellar.expert/explorer/testnet/tx";
+  getActiveNetwork().explorerTxBase;
 
 export default function AchievementCard({
   invoiceId,

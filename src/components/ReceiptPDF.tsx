@@ -1,11 +1,10 @@
 "use client";
 
 import { formatAmount } from "@stellar-split/sdk";
+import { getActiveNetwork } from "@/lib/networks";
 
 const STELLAR_EXPERT_BASE =
-  process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
-    ? "https://stellar.expert/explorer/public/tx"
-    : "https://stellar.expert/explorer/testnet/tx";
+  getActiveNetwork().explorerTxBase;
 
 export interface ReceiptData {
   txHash: string;

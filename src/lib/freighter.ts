@@ -5,10 +5,10 @@
  * SSR by checking `typeof window` before calling browser-only Freighter APIs.
  */
 
-export const NETWORK_PASSPHRASE =
-  process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
-    ? "Public Global Stellar Network ; September 2015"
-    : "Test SDF Network ; September 2015";
+import { getActiveNetwork } from "./networks";
+
+/** Passphrase of the active network (user-selected in the browser, env default on the server). */
+export const NETWORK_PASSPHRASE = getActiveNetwork().passphrase;
 
 export type WalletType = "freighter" | "walletconnect";
 

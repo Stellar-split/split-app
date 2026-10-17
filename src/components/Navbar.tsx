@@ -8,6 +8,7 @@ import SimulationModeToggle from "@/components/SimulationModeToggle";
 import NotificationCenter from "@/components/NotificationCenter";
 import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 import NetworkStatus from "@/components/NetworkStatus";
+import NetworkSelector from "@/components/NetworkSelector";
 import GlobalSearch from "@/components/GlobalSearch";
 import MobileSidebar from "@/components/layout/MobileSidebar";
 
@@ -106,6 +107,8 @@ export default function Navbar() {
 
           {/* Right-side actions */}
           <div className="ml-auto flex items-center gap-1">
+            {/* Network selector stays visible at every breakpoint */}
+            <NetworkSelector />
             <div className="hidden sm:flex items-center gap-2">
               <NetworkStatus />
               <SimulationModeToggle />

@@ -7,10 +7,11 @@ import {
   xdr,
 } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE } from "./freighter";
+import { getActiveNetwork } from "@/lib/networks";
 
 const RPC_URL =
-  process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
-const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID ?? "";
+  getActiveNetwork().rpcUrl;
+const CONTRACT_ID = getActiveNetwork().contractId;
 
 const BLINDING_KEY_PREFIX = "stellarsplit_blinding";
 const REVEALED_KEY_PREFIX = "stellarsplit_revealed";
