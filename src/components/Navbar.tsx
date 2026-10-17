@@ -14,6 +14,7 @@ import MobileSidebar from "@/components/layout/MobileSidebar";
 const NAV_LINKS = [
   { href: "/dashboard",            label: "Dashboard" },
   { href: "/dashboard/invoices",   label: "Invoices" },
+  { href: "/transactions",         label: "Transactions" },
   { href: "/subscriptions",        label: "Subscriptions" },
   { href: "/groups",               label: "Groups" },
   { href: "/address-book",         label: "Contacts" },

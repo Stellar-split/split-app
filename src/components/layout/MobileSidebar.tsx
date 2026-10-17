@@ -8,6 +8,7 @@ import FocusTrap from "@/components/FocusTrap";
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/invoice", label: "Invoices" },
+  { href: "/transactions", label: "Transactions" },
   { href: "/subscriptions", label: "Subscriptions" },
   { href: "/groups", label: "Groups" },
   { href: "/address-book", label: "Contacts" },
