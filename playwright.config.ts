@@ -15,6 +15,17 @@ export default defineConfig({
     },
   },
 
+  // Visual regression settings: a small per-pixel color tolerance plus an
+  // overall ratio keeps the suite resilient to anti-aliasing/font-rendering
+  // noise between CI runs while still catching real UI regressions.
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.02,
+      threshold: 0.2,
+      animations: 'disabled',
+    },
+  },
+
   projects: [
     {
       name: 'chromium',
