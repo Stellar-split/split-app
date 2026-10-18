@@ -1,4 +1,5 @@
-const CACHE_NAME = "stellarsplit-v1";
+const CACHE_NAME = "stellarsplit-v2";
+const SYNC_TAG = "stellarsplit-queued-payments";
 const PRECACHE_URLS = ["/", "/dashboard", "/offline.html", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -36,6 +37,20 @@ self.addEventListener("push", (event) => {
       icon: "/icons/icon-192.png",
       tag: invoiceId ? `funding-milestone-${invoiceId}-${milestone}` : undefined,
       data: { invoiceId, url: invoiceId ? `/invoice/${invoiceId}` : "/" },
+    })
+  );
+});
+
+// Background Sync: when connectivity returns, ask any open client to flush
+// the IndexedDB-backed offline payment queue. Actual submission happens in
+// the page (it needs wallet access), so we just relay the signal.
+self.addEventListener("sync", (event) => {
+  if (event.tag !== SYNC_TAG) return;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        client.postMessage({ type: "SYNC_QUEUED_PAYMENTS" });
+      }
     })
   );
 });

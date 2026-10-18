@@ -50,12 +50,15 @@ export async function queuePayment(
   const db = await openDB();
   const id = crypto.randomUUID();
   const stored = toStored({ ...payment, id, status: "pending" });
-  return new Promise((resolve, reject) => {
+  const queuedId = await new Promise<string>((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
     tx.objectStore(STORE_NAME).add(stored);
     tx.oncomplete = () => resolve(id);
     tx.onerror = () => reject(tx.error);
   });
+  // Best-effort: ask the SW to retry this via Background Sync once online.
+  void registerBackgroundSync();
+  return queuedId;
 }
 
 export async function getQueuedPayments(): Promise<QueuedPayment[]> {
@@ -170,5 +173,42 @@ export function setupOnlineListener(
     processQueue(submitFn);
   };
   window.addEventListener("online", handler);
-  return () => window.removeEventListener("online", handler);
+
+  // Listen for the service worker's Background Sync signal too, so the
+  // queue is flushed even if the "online" event fires before the page is
+  // focused, or the sync fires later via the browser's background sync API.
+  const messageHandler = (event: MessageEvent) => {
+    if (event.data?.type === "SYNC_QUEUED_PAYMENTS") {
+      processQueue(submitFn);
+    }
+  };
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("message", messageHandler);
+  }
+
+  return () => {
+    window.removeEventListener("online", handler);
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.removeEventListener("message", messageHandler);
+    }
+  };
+}
+
+/**
+ * Registers a Background Sync request so the service worker can prompt a
+ * retry of the queued-payment flush even if the tab is closed before
+ * connectivity returns. Falls back silently when Background Sync isn't
+ * supported (e.g. Safari) — the "online" listener above still covers that.
+ */
+export async function registerBackgroundSync(): Promise<void> {
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const syncRegistration = registration as ServiceWorkerRegistration & {
+      sync?: { register: (tag: string) => Promise<void> };
+    };
+    await syncRegistration.sync?.register("stellarsplit-queued-payments");
+  } catch {
+    // Background Sync unsupported or registration failed — ignore.
+  }
 }
