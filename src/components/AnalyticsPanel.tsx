@@ -1,10 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { formatAmount } from "@stellar-split/sdk";
 import { useI18n } from "@/components/I18nProvider";
 import type { Invoice } from "@stellar-split/sdk";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+
+// recharts is only needed once the (initially collapsed) panel is opened, so
+// it's lazy-loaded instead of shipping with every page that renders this.
+const DynamicAnalyticsPanelWeeklyChart = dynamic(
+  () => import("@/components/AnalyticsPanelWeeklyChart"),
+  { ssr: false }
+);
 
 interface Props {
   invoices: Invoice[];
@@ -107,30 +114,7 @@ export default function AnalyticsPanel({ invoices }: Props) {
           {chartData.length > 0 && (
             <div className="bg-gray-800 rounded-lg p-4 overflow-x-auto">
               <p className="text-sm text-gray-400 mb-3">{t("dashboard.invoicesByWeek")}</p>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis
-                    dataKey="week"
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1f2937",
-                      border: "1px solid #374151",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Bar dataKey="invoices" fill="#6366f1" />
-                </BarChart>
-              </ResponsiveContainer>
+              <DynamicAnalyticsPanelWeeklyChart data={chartData} />
             </div>
           )}
         </div>

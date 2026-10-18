@@ -1,19 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount } from "@stellar-split/sdk";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import type { Invoice } from "@stellar-split/sdk";
+
+// recharts is a sizeable dependency only needed once data has loaded, so it's
+// excluded from this route's initial chunk and fetched on demand.
+const DynamicRevenueMonthlyChart = dynamic(() => import("@/components/RevenueMonthlyChart"), {
+  ssr: false,
+  loading: () => <div className="w-full h-full animate-pulse bg-gray-800 rounded-lg" />,
+});
 
 /** Convert a bigint USDC amount (7 decimals) to a JS number for charting. */
 function toUsdc(amount: bigint): number {
@@ -174,20 +173,7 @@ export default function RevenuePage() {
           <section aria-labelledby="chart-heading" className="bg-gray-900 rounded-xl p-5 mb-8">
             <h2 id="chart-heading" className="text-lg font-semibold mb-4">Monthly Revenue (Last 6 Months)</h2>
             <div className="w-full h-48 sm:h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="month" tick={{ fill: "#9ca3af", fontSize: 12 }} />
-                  <YAxis tick={{ fill: "#9ca3af", fontSize: 12 }} unit=" USDC" width={80} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: 8 }}
-                    labelStyle={{ color: "#e5e7eb" }}
-                    itemStyle={{ color: "#818cf8" }}
-                    formatter={(value: number) => [`${value} USDC`, "Revenue"]}
-                  />
-                  <Bar dataKey="usdc" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <DynamicRevenueMonthlyChart data={monthlyData} />
             </div>
           </section>
 
