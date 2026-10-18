@@ -12,6 +12,7 @@ import { useI18n } from "@/components/I18nProvider";
 import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
 import { decodeTemplate } from "@/lib/templateSharing";
+import DraftCollaborationPanel from "@/components/DraftCollaborationPanel";
 
 const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
@@ -88,6 +89,8 @@ function NewInvoiceForm() {
 
   const fromId = searchParams.get("from");
   const deadlineParam = searchParams.get("deadline");
+  const draftId =
+    searchParams.get("draft") ?? fromId ?? "new-invoice-draft";
   const [cloneSourceId, setCloneSourceId] = useState<string | null>(null);
   const [originalToken, setOriginalToken] = useState<string | null>(null);
   const [originalRecipients, setOriginalRecipients] = useState<RecipientRow[] | null>(null);
@@ -696,6 +699,8 @@ function NewInvoiceForm() {
 
       <h1 className="text-3xl font-bold mb-2">Create Invoice</h1>
       <h1 className="text-3xl font-bold mb-8">Create Invoice</h1>
+
+      <DraftCollaborationPanel draftId={draftId} />
 
       {/* Cloned-from banner */}
       {cloneSourceId && (
