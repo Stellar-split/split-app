@@ -5,6 +5,7 @@
  * route handler (for the client-side infinite-scroll dashboard).
  */
 import { splitClient } from "@/lib/stellar";
+import { blockchainCache } from "@/lib/blockchainCache";
 import type { Invoice } from "@stellar-split/sdk";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -40,7 +41,12 @@ export async function fetchInvoicesForAddress(
     if (id > startId + limit * 10) break;
 
     try {
-      const inv = await splitClient.getInvoice(String(id));
+      // Cached: the dashboard/infinite-scroll list re-scans the same id
+      // range on every page load and poll, so this collapses repeat RPC
+      // calls for invoices that haven't changed in the last few seconds.
+      const inv = await blockchainCache.getOrFetch("invoice", String(id), () =>
+        splitClient.getInvoice(String(id))
+      );
       const mine =
         inv.creator === publicKey || inv.recipients.some((r) => r.address === publicKey);
 

@@ -6,6 +6,7 @@
 
 import { StellarSplitClient, formatAmount } from "@stellar-split/sdk";
 import { NETWORK_PASSPHRASE } from "./freighter";
+import { blockchainCache } from "./blockchainCache";
 
 let _client: StellarSplitClient | null = null;
 
@@ -68,7 +69,12 @@ export async function quoteXlmToUsdc(
   const destinationAmount = formatAmount(usdcAmount);
   const usdcAsset = new Asset("USDC", USDC_CONTRACT_ID);
   const server = new Horizon.Server(HORIZON_URL);
-  const result = await server.strictReceivePaths(walletAddress, usdcAsset, destinationAmount).call();
+  // Cached briefly: a user tweaking an amount input re-triggers this quote
+  // repeatedly for the same wallet/amount pair within a few seconds.
+  const cacheKey = `${walletAddress}:${destinationAmount}`;
+  const result = await blockchainCache.getOrFetch("quote", cacheKey, () =>
+    server.strictReceivePaths(walletAddress, usdcAsset, destinationAmount).call()
+  );
   const path = result.records?.[0];
   if (!path) {
     throw new Error("No XLM->USDC path found.");
