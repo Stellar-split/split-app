@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { truncateAddress, formatAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 import FundingProgress from "./FundingProgress";
@@ -23,7 +24,7 @@ interface Props {
  * InvoiceCard — summary card showing recipients, total, funded %, and status.
  * Optionally includes a compare checkbox when in compare mode.
  */
-export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompareToggle, isComparing, isChecked, tags = [] }: Props) {
+function InvoiceCard({ invoice, displayNumber, onShareQR, onCompareToggle, isComparing, isChecked, tags = [] }: Props) {
   const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
   const deadlineLabel = new Date(invoice.deadline * 1000).toLocaleDateString();
   const createdDate = new Date(parseInt(invoice.id) * 1000 || 0); // Rough estimate from id
@@ -130,3 +131,8 @@ export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompa
     </div>
   );
 }
+
+// Grids of these render dozens at a time (dashboard, search results); memo
+// skips re-rendering cards whose own props haven't changed when a sibling's
+// state (search text, filters, selection) updates the parent.
+export default memo(InvoiceCard);
