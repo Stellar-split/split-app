@@ -4,10 +4,20 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 const { withSentryConfig } = require("@sentry/nextjs");
 
 /** @type {import('next').NextConfig} */
+// CDN host for static assets (/_next/static/*, /public/*). When unset,
+// Next.js serves assets from the app's own origin — i.e. it "falls back to
+// origin" automatically, so leaving CDN_ASSET_PREFIX unconfigured is a safe
+// default for local dev / CI, not a broken state.
+const cdnAssetPrefix = process.env.CDN_ASSET_PREFIX || undefined;
+
 const nextConfig = {
   // Gzip/Brotli-compress all server responses (HTML, JSON API payloads, etc.)
   // to cut payload size for slower / mobile connections.
   compress: true,
+  // Serve build output (JS/CSS chunks) from a CDN when configured. Next.js
+  // fingerprints these files with content hashes, so swapping the prefix on
+  // deploy is automatic cache-busting / versioning — no manual query strings.
+  assetPrefix: cdnAssetPrefix,
   experimental: {
     serverComponentsExternalPackages: ["@stellar/stellar-sdk", "@vercel/blob"],
   },
