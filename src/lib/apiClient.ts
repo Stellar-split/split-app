@@ -48,14 +48,48 @@ export function getCachedCsrfExpiry(): number {
 }
 
 /**
+ * Lightweight network metrics, used to confirm the impact of compression /
+ * batching work (#916). Not sent anywhere by default — callers (e.g. an
+ * analytics/monitoring integration) can read `getNetworkMetrics()`.
+ */
+interface NetworkMetrics {
+  requestCount: number;
+  totalDurationMs: number;
+  totalResponseBytes: number;
+}
+
+const networkMetrics: NetworkMetrics = {
+  requestCount: 0,
+  totalDurationMs: 0,
+  totalResponseBytes: 0,
+};
+
+function recordNetworkMetric(durationMs: number, response: Response) {
+  networkMetrics.requestCount += 1;
+  networkMetrics.totalDurationMs += durationMs;
+  const contentLength = Number(response.headers.get("content-length") ?? 0);
+  if (!Number.isNaN(contentLength)) {
+    networkMetrics.totalResponseBytes += contentLength;
+  }
+}
+
+export function getNetworkMetrics(): NetworkMetrics {
+  return { ...networkMetrics };
+}
+
+/**
  * fetch() wrapper that attaches a CSRF token to mutating requests and
  * retries once, with a freshly-fetched token, if the server rejects the
  * first attempt with 403.
  */
 export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
   const method = (init.method ?? "GET").toUpperCase();
+  const startedAt = Date.now();
+
   if (!MUTATING_METHODS.has(method)) {
-    return fetch(input, init);
+    const response = await fetch(input, init);
+    recordNetworkMetric(Date.now() - startedAt, response);
+    return response;
   }
 
   const attempt = async (token: string) => {
@@ -67,9 +101,12 @@ export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {})
   const token = await getCsrfToken();
   const response = await attempt(token);
   if (response.status !== 403) {
+    recordNetworkMetric(Date.now() - startedAt, response);
     return response;
   }
 
   const freshToken = await getCsrfToken(true);
-  return attempt(freshToken);
+  const retried = await attempt(freshToken);
+  recordNetworkMetric(Date.now() - startedAt, retried);
+  return retried;
 }
