@@ -14,6 +14,7 @@ import CommandPalette from "@/components/CommandPalette";
 import { SessionLockProvider } from "@/contexts/SessionLockContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import InstallBanner from "@/components/InstallBanner";
+import SkipNavLink from "@/components/SkipNavLink";
 import QueryProvider from "@/contexts/QueryProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
@@ -120,10 +121,15 @@ export default function RootLayout({
               <I18nProvider>
                 <SessionLockProvider>
                   <ToastProvider>
+                    <SkipNavLink />
                     <Navbar />
                     <SimulationBanner />
                     <UpgradeBanner />
-                    <ErrorBoundary>{children}</ErrorBoundary>
+                    <ErrorBoundary>
+                      <main id="main-content" tabIndex={-1}>
+                        {children}
+                      </main>
+                    </ErrorBoundary>
                     <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
                       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
                         <p className="text-xs text-gray-500">
