@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatAmount } from "@stellar-split/sdk";
 import { t, formatDate, type Locale } from "@/lib/receiptI18n";
 import type { Invoice } from "@stellar-split/sdk";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getPDFThemeClasses, type ExportMode } from "@/lib/pdfTheme";
+import {
+  DEFAULT_INVOICE_BRANDING,
+  loadInvoiceBranding,
+  type InvoiceBranding,
+} from "@/lib/invoiceBranding";
 
 interface Props {
   invoice: Invoice;
@@ -17,6 +22,11 @@ export default function InvoicePDF({ invoice, total, locale = "en" }: Props) {
   const [exportMode, setExportMode] = useState<ExportMode>("print");
   const { resolvedTheme } = useTheme();
   const theme = getPDFThemeClasses(exportMode, resolvedTheme);
+  const [branding, setBranding] = useState<InvoiceBranding>(DEFAULT_INVOICE_BRANDING);
+
+  useEffect(() => {
+    setBranding(loadInvoiceBranding());
+  }, []);
 
   const deadline = invoice.deadline > 0
     ? formatDate(new Date(invoice.deadline * 1000), locale)
@@ -60,14 +70,24 @@ export default function InvoicePDF({ invoice, total, locale = "en" }: Props) {
       </div>
 
       {/* Print-only content */}
-      <div id="invoice-print" className={`hidden print:block p-8 text-sm leading-relaxed relative ${theme.container}`}>
-        {invoice.status !== "Released" && (
+      <div
+        id="invoice-print"
+        className={`hidden print:block p-8 text-sm leading-relaxed relative ${theme.container}`}
+        style={{ fontFamily: branding.fontFamily }}
+      >
+        {invoice.status !== "Released" && branding.watermarkEnabled && (
           <div className="fixed inset-0 pointer-events-none print:fixed print:inset-0 print:pointer-events-none z-0 flex items-center justify-center opacity-10">
-            <div className={`transform -rotate-45 text-9xl font-bold whitespace-nowrap ${theme.watermark}`}>DRAFT</div>
+            <div className={`transform -rotate-45 text-9xl font-bold whitespace-nowrap ${theme.watermark}`}>
+              {branding.watermarkText}
+            </div>
           </div>
         )}
         <div className="relative z-10">
-        <h1 className="text-2xl font-bold mb-1">
+        {branding.logoDataUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={branding.logoDataUrl} alt="" className="h-12 w-auto mb-4" />
+        )}
+        <h1 className="text-2xl font-bold mb-1" style={{ color: branding.accentColor }}>
           {t(locale, "invoice")} #{invoice.id}
         </h1>
         <p className={`${theme.subtitle} mb-6`}>{t(locale, "stellarSplitInvoice")}</p>
@@ -93,10 +113,12 @@ export default function InvoicePDF({ invoice, total, locale = "en" }: Props) {
           </tbody>
         </table>
 
-        <h2 className="font-semibold text-base mb-2">{t(locale, "recipients")}</h2>
+        <h2 className="font-semibold text-base mb-2" style={{ color: branding.accentColor }}>
+          {t(locale, "recipients")}
+        </h2>
         <table className="w-full border-collapse">
           <thead>
-            <tr className={`border-b-2 ${theme.borderHeaderRow}`}>
+            <tr className={`border-b-2 ${theme.borderHeaderRow}`} style={{ borderColor: branding.accentColor }}>
               <th className="text-left py-1.5 pr-4">{t(locale, "address")}</th>
               <th className="text-right py-1.5">{t(locale, "amount")}</th>
             </tr>
