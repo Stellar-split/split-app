@@ -201,7 +201,13 @@ export default function BrandingForm() {
           {logoUrl ? (
             <div className="flex items-center gap-3 rounded-lg border border-gray-700 bg-white/95 px-3 py-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- user-supplied CDN URL */}
-              <img src={logoUrl} alt="Your logo" className="h-10 w-auto max-w-[160px] object-contain" />
+              <img
+                src={logoUrl}
+                alt="Your logo"
+                loading="lazy"
+                decoding="async"
+                className="h-10 w-auto max-w-[160px] object-contain"
+              />
             </div>
           ) : (
             <div className="flex h-14 w-24 items-center justify-center rounded-lg border border-dashed border-gray-600 text-xs text-gray-500">
@@ -350,7 +356,13 @@ export default function BrandingForm() {
           <div className="flex items-center gap-3">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- user-supplied CDN URL
-              <img src={logoUrl} alt="Logo preview" className="h-10 w-auto max-w-[140px] object-contain" />
+              <img
+                src={logoUrl}
+                alt="Logo preview"
+                loading="lazy"
+                decoding="async"
+                className="h-10 w-auto max-w-[140px] object-contain"
+              />
             ) : (
               <span aria-hidden="true" className="text-2xl" style={{ color: previewAccent }}>
                 ✦

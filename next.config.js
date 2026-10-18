@@ -9,6 +9,9 @@ const nextConfig = {
     serverComponentsExternalPackages: ["@stellar/stellar-sdk", "@vercel/blob"],
   },
   images: {
+    // Serve modern formats where the browser supports them; falls back
+    // automatically for browsers that don't.
+    formats: ["image/webp"],
     // Recipient avatars fall back to Gravatar; served unoptimized so no image
     // requests are proxied through the Next.js optimizer.
     remotePatterns: [
