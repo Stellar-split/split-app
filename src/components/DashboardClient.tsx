@@ -20,6 +20,7 @@ import { formatAmount } from "@stellar-split/sdk";
 import type { Invoice } from "@stellar-split/sdk";
 import { useInfiniteInvoices } from "@/hooks/useInfiniteInvoices";
 import InvoiceListSentinel from "@/components/InvoiceListSentinel";
+import ScrollToTopButton from "@/components/ScrollToTopButton";
 import { useInvoiceSelection } from "@/hooks/useInvoiceSelection";
 import BulkActionToolbar from "@/components/invoice/BulkActionToolbar";
 import {
@@ -1095,6 +1096,8 @@ export default function DashboardClient() {
           allLoaded={!hasMore && !loading}
         />
       )}
+
+      <ScrollToTopButton />
 
       {/* Batch Pay Modal */}
       {showBatchModal && publicKey && selectedInvoices.length > 0 && (
