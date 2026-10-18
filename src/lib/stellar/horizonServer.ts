@@ -26,24 +26,73 @@ export interface FetchInvoicesResult {
  * Scans invoice ids starting after `cursor`, returning up to `limit`
  * invoices owned by (created by or a recipient of) `publicKey`.
  */
+// Short-lived in-memory cache of fetched invoices, shared across requests
+// within this server process. The scan below re-reads the same low-numbered
+// invoice ids on every page/filter request, so caching avoids redundant
+// on-chain lookups for the common case of a user paging/filtering repeatedly
+// within a short window.
+const INVOICE_CACHE_TTL_MS = 15_000;
+const invoiceCache = new Map<string, { invoice: Invoice | null; expiresAt: number }>();
+
+async function getInvoiceCached(id: string): Promise<Invoice | null> {
+  const cached = invoiceCache.get(id);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.invoice;
+  }
+  let invoice: Invoice | null;
+  try {
+    invoice = await splitClient.getInvoice(id);
+  } catch {
+    // splitClient throws when the invoice id does not exist.
+    invoice = null;
+  }
+  invoiceCache.set(id, { invoice, expiresAt: Date.now() + INVOICE_CACHE_TTL_MS });
+  return invoice;
+}
+
+const SCAN_BATCH_SIZE = 10;
+
+/**
+ * Scans invoice ids starting after `cursor`, returning up to `limit`
+ * invoices owned by (created by or a recipient of) `publicKey`.
+ *
+ * Ids are fetched in parallel batches (instead of one at a time) to cut
+ * wall-clock latency, with recently-seen invoices served from a short-lived
+ * cache. Scanning stops as soon as a batch contains a non-existent id,
+ * which marks the end of the list.
+ */
 export async function fetchInvoicesForAddress(
   publicKey: string,
   { cursor, limit: limitParam, q: qParam }: FetchInvoicesOptions = {}
 ): Promise<FetchInvoicesResult> {
+  const startTime = performance.now();
   const limit = Math.min(Math.max(1, limitParam ?? DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
   const q = (qParam ?? "").trim().toLowerCase();
   const startId = cursor ? parseInt(cursor, 10) + 1 : 1;
+  const maxScanId = startId + limit * 10;
 
   const results: Invoice[] = [];
+  let reachedEnd = false;
+  let scannedCount = 0;
 
-  for (let id = startId; results.length < limit; id++) {
-    if (id > startId + limit * 10) break;
+  for (let batchStart = startId; results.length < limit && batchStart <= maxScanId; batchStart += SCAN_BATCH_SIZE) {
+    const batchIds = Array.from(
+      { length: SCAN_BATCH_SIZE },
+      (_, i) => batchStart + i
+    ).filter((id) => id <= maxScanId);
+    if (batchIds.length === 0) break;
 
-    try {
-      const inv = await splitClient.getInvoice(String(id));
+    const batchInvoices = await Promise.all(batchIds.map((id) => getInvoiceCached(String(id))));
+    scannedCount += batchIds.length;
+
+    for (const inv of batchInvoices) {
+      if (inv === null) {
+        reachedEnd = true;
+        break;
+      }
+
       const mine =
         inv.creator === publicKey || inv.recipients.some((r) => r.address === publicKey);
-
       if (mine) {
         if (q) {
           const invExt = inv as { title?: string; memo?: string };
@@ -54,12 +103,21 @@ export async function fetchInvoicesForAddress(
           results.push(inv);
         }
       }
-    } catch {
-      // splitClient throws when the invoice id does not exist — end of list.
-      return { invoices: results, nextCursor: null };
     }
+
+    if (reachedEnd) break;
   }
 
-  const nextCursor = results.length === limit ? String(results[results.length - 1].id) : null;
+  const nextCursor = !reachedEnd && results.length === limit
+    ? String(results[results.length - 1].id)
+    : null;
+
+  const durationMs = performance.now() - startTime;
+  if (durationMs > 500) {
+    console.warn(
+      `[invoices] slow scan: ${durationMs.toFixed(0)}ms, scanned ${scannedCount} ids, returned ${results.length}`
+    );
+  }
+
   return { invoices: results, nextCursor };
 }
