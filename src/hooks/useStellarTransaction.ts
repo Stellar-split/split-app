@@ -4,12 +4,9 @@ import { useCallback, useRef, useState } from "react";
 import { signTransaction, NETWORK_PASSPHRASE } from "@/lib/freighter";
 import { classifyError } from "@/lib/errors";
 import { useToast } from "@/contexts/ToastContext";
+import { getActiveNetwork } from "@/lib/networks";
 
-const HORIZON_URL =
-  process.env.NEXT_PUBLIC_HORIZON_URL ??
-  (process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
-    ? "https://horizon.stellar.org"
-    : "https://horizon-testnet.stellar.org");
+const HORIZON_URL = getActiveNetwork().horizonUrl;
 
 /** Poll interval and ceiling for Horizon confirmation. */
 const POLL_INTERVAL_MS = 400;

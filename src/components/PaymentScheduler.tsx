@@ -1,6 +1,17 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import {
+  getDueSchedules,
+  getScheduleHistory,
+  pauseSchedule,
+  resumeSchedule,
+  cancelSchedule,
+  recordPaymentAttempt,
+  computeNextRun,
+  type RecurringSchedule,
+  type ScheduleHistoryEntry,
+} from "../lib/recurringScheduleService";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -122,6 +133,8 @@ interface Props {
   token?: "USDC" | "XLM";
   /** Called when user confirms a payment for an instalment */
   onPayInstalment?: (instalment: ScheduledInstalment) => void;
+  /** Called to submit an automatic payment for a due recurring schedule */
+  onProcessRecurringPayment?: (schedule: RecurringSchedule) => Promise<boolean> | boolean;
 }
 
 export default function PaymentScheduler({
@@ -129,6 +142,7 @@ export default function PaymentScheduler({
   totalAmount: defaultAmount = 1000,
   token = "USDC",
   onPayInstalment,
+  onProcessRecurringPayment,
 }: Props) {
   // Check for existing saved schedule
   const existing = useMemo(() => {
@@ -146,6 +160,77 @@ export default function PaymentScheduler({
   const [numInstalments, setNumInstalments] = useState(existing?.config.instalments ?? 3);
   const [startDate, setStartDate] = useState(existing?.config.startDate ?? todayStr());
   const [amountError, setAmountError] = useState<string | null>(null);
+
+  // Recurring schedule state
+  const [recurringSchedules, setRecurringSchedules] = useState<RecurringSchedule[]>([]);
+  const [history, setHistory] = useState<ScheduleHistoryEntry[]>([]);
+  const [processingIds, setProcessingIds] = useState<string[]>([]);
+  const [recurringError, setRecurringError] = useState<string | null>(null);
+
+  const refreshRecurring = useCallback(() => {
+    setRecurringSchedules(getDueSchedules(invoiceId));
+    setHistory(getScheduleHistory(invoiceId));
+  }, [invoiceId]);
+
+  useEffect(() => {
+    refreshRecurring();
+  }, [refreshRecurring]);
+
+  const handleProcessDue = useCallback(
+    async (schedule: RecurringSchedule) => {
+      if (schedule.status !== "active") return;
+      setRecurringError(null);
+      setProcessingIds((prev) => [...prev, schedule.id]);
+      try {
+        const ok = onProcessRecurringPayment
+          ? await onProcessRecurringPayment(schedule)
+          : true;
+        recordPaymentAttempt(schedule.id, {
+          status: ok ? "success" : "failed",
+          amount: schedule.amount,
+          nextRun: ok ? computeNextRun(schedule) : schedule.nextRun,
+          note: ok ? "Automatic payment submitted" : "Payment submission failed",
+        });
+        refreshRecurring();
+      } catch (err) {
+        recordPaymentAttempt(schedule.id, {
+          status: "failed",
+          amount: schedule.amount,
+          nextRun: schedule.nextRun,
+          note: err instanceof Error ? err.message : "Payment submission failed",
+        });
+        setRecurringError("Failed to process recurring payment. Please retry.");
+        refreshRecurring();
+      } finally {
+        setProcessingIds((prev) => prev.filter((id) => id !== schedule.id));
+      }
+    },
+    [onProcessRecurringPayment, refreshRecurring]
+  );
+
+  const handlePause = useCallback(
+    (id: string) => {
+      pauseSchedule(id);
+      refreshRecurring();
+    },
+    [refreshRecurring]
+  );
+
+  const handleResume = useCallback(
+    (id: string) => {
+      resumeSchedule(id);
+      refreshRecurring();
+    },
+    [refreshRecurring]
+  );
+
+  const handleCancelRecurring = useCallback(
+    (id: string) => {
+      cancelSchedule(id);
+      refreshRecurring();
+    },
+    [refreshRecurring]
+  );
 
   const preview = useMemo(() => {
     if (amount <= 0) return [];
@@ -211,6 +296,112 @@ export default function PaymentScheduler({
   const paidAmount = instalments.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
   const progressPct = instalments.length > 0 ? Math.round((paidCount / instalments.length) * 100) : 0;
 
+  // ── Recurring schedules panel (shared across views) ──────────────────────────
+  const recurringPanel = (
+    <div className="mb-5">
+      <p className="text-xs uppercase tracking-widest text-gray-500 font-semibold mb-2">
+        Recurring Invoices
+      </p>
+      {recurringError && <p className="text-xs text-red-400 mb-2">{recurringError}</p>}
+      {recurringSchedules.length === 0 ? (
+        <p className="text-xs text-gray-500">No recurring schedules for this invoice.</p>
+      ) : (
+        <ul className="space-y-2">
+          {recurringSchedules.map((sched) => {
+            const isProcessing = processingIds.includes(sched.id);
+            const isDue = sched.status === "active" && sched.nextRun <= todayStr();
+            return (
+              <li
+                key={sched.id}
+                className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-gray-200 font-medium truncate">
+                      {sched.templateName ?? "Recurring invoice"} · {sched.amount.toLocaleString()} {sched.token}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {sched.status.charAt(0).toUpperCase() + sched.status.slice(1)} · Next run{" "}
+                      {new Date(sched.nextRun + "T00:00:00").toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isDue && (
+                      <button
+                        type="button"
+                        onClick={() => handleProcessDue(sched)}
+                        disabled={isProcessing}
+                        className="min-h-8 px-3 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        {isProcessing ? "Processing…" : "Pay now"}
+                      </button>
+                    )}
+                    {sched.status === "active" && (
+                      <button
+                        type="button"
+                        onClick={() => handlePause(sched.id)}
+                        className="min-h-8 px-3 text-xs font-semibold rounded-lg bg-amber-600/80 hover:bg-amber-500 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        Pause
+                      </button>
+                    )}
+                    {sched.status === "paused" && (
+                      <button
+                        type="button"
+                        onClick={() => handleResume(sched.id)}
+                        className="min-h-8 px-3 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        Resume
+                      </button>
+                    )}
+                    {sched.status !== "cancelled" && (
+                      <button
+                        type="button"
+                        onClick={() => handleCancelRecurring(sched.id)}
+                        className="min-h-8 px-3 text-xs font-semibold rounded-lg bg-gray-700 hover:bg-red-600 text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-3">
+          <p className="text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1.5">
+            Recurring History
+          </p>
+          <ul className="space-y-1">
+            {history.slice(0, 5).map((entry) => (
+              <li key={entry.id} className="flex items-center justify-between text-xs text-gray-400">
+                <span>
+                  {new Date(entry.timestamp).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}{" "}
+                  · {entry.status}
+                </span>
+                <span className={entry.status === "success" ? "text-emerald-400" : "text-red-400"}>
+                  {entry.amount.toLocaleString()} {token}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+
   // ── Setup view ───────────────────────────────────────────────────────────────
   if (mode === "setup") {
     return (
@@ -221,6 +412,8 @@ export default function PaymentScheduler({
         <h2 id="payment-scheduler-heading" className="text-base font-semibold text-white mb-4">
           Pay Over Time — Schedule Payments
         </h2>
+
+        {recurringPanel}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
           {/* Total Amount */}
@@ -360,6 +553,8 @@ export default function PaymentScheduler({
           Reset
         </button>
       </div>
+
+      {recurringPanel}
 
       {/* Progress bar */}
       <div className="mb-5">

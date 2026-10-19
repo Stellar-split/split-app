@@ -9,8 +9,9 @@ import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 import type { Invoice, Payment } from "@stellar-split/sdk";
 import { SkeletonPaymentRow } from "@/components/Skeleton";
 import PaymentScheduler from "@/components/PaymentScheduler";
+import { getActiveNetwork } from "@/lib/networks";
 
-const STELLAR_EXPERT_BASE = "https://stellar.expert/explorer/testnet/tx";
+const STELLAR_EXPERT_BASE = getActiveNetwork().explorerTxBase;
 const ITEMS_PER_PAGE = 20;
 const MAX_INVOICES = 100;
 

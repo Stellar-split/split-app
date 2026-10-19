@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import WalletAddress from './WalletAddress';
 import RelativeTime from '@/components/ui/RelativeTime';
 import { splitClient as _splitClient } from '@/lib/stellar';
+import { getActiveNetwork } from "@/lib/networks";
 
 export interface InvoiceEvent {
   type:
@@ -27,9 +28,7 @@ interface Props {
 }
 
 const STELLAR_EXPERT_BASE =
-  process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet'
-    ? 'https://stellar.expert/explorer/public/tx'
-    : 'https://stellar.expert/explorer/testnet/tx';
+  getActiveNetwork().explorerTxBase;
 
 const EVENT_META: Record<
   InvoiceEvent['type'],

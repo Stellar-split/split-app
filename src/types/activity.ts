@@ -2,7 +2,13 @@ export type ActivityEventType =
   | "payment_received"
   | "status_change"
   | "comment"
-  | "co_creator_action";
+  | "co_creator_action"
+  | "milestone_condition_met"
+  | "milestone_released"
+  | "dispute_opened"
+  | "dispute_evidence_submitted"
+  | "dispute_resolved"
+  | "dispute_enforced";
 
 export interface ActivityEvent {
   eventId: string;

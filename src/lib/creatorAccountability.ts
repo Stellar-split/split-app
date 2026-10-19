@@ -57,3 +57,145 @@ export function computeAccountabilityScore(input: AccountabilityInput): Accounta
   const score = breakdown.fulfillment + breakdown.disputes + breakdown.responsiveness;
   return { score, grade: gradeForScore(score), breakdown };
 }
+
+/** Live accountability metrics tracked per creator address. */
+export interface AccountabilityMetrics extends AccountabilityInput {
+  /** Last time the metrics changed, as an epoch millisecond timestamp. */
+  updatedAt: number;
+  /** Latest computed result, kept in sync with the raw metrics. */
+  result: AccountabilityResult;
+}
+
+export type AccountabilityEvent =
+  | { type: "invoice_fulfilled" }
+  | { type: "invoice_cancelled" }
+  | { type: "invoice_created" }
+  | { type: "dispute_opened" }
+  | { type: "dispute_lost" }
+  | { type: "response_time"; hours: number };
+
+export const ACCOUNTABILITY_UPDATED_EVENT = "stellarsplit:accountability-updated";
+
+export interface AccountabilityUpdateDetail {
+  address: string;
+  metrics: AccountabilityMetrics;
+}
+
+type AccountabilityListener = (metrics: AccountabilityMetrics) => void;
+
+const emptyInput = (): AccountabilityInput => ({
+  totalInvoices: 0,
+  fulfilledInvoices: 0,
+  cancelledInvoices: 0,
+  disputes: 0,
+  disputesLost: 0,
+  avgResponseHours: 0,
+});
+
+const metricsStore = new Map<string, AccountabilityMetrics>();
+const listeners = new Map<string, Set<AccountabilityListener>>();
+
+const normalizeAddress = (address: string) => address.trim().toLowerCase();
+
+function buildMetrics(input: AccountabilityInput): AccountabilityMetrics {
+  return {
+    ...input,
+    updatedAt: Date.now(),
+    result: computeAccountabilityScore(input),
+  };
+}
+
+function emitUpdate(address: string, metrics: AccountabilityMetrics): void {
+  const detail: AccountabilityUpdateDetail = { address, metrics };
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    window.dispatchEvent(new CustomEvent<AccountabilityUpdateDetail>(ACCOUNTABILITY_UPDATED_EVENT, { detail }));
+  }
+  const subs = listeners.get(address);
+  if (!subs) return;
+  subs.forEach((listener) => {
+    try {
+      listener(metrics);
+    } catch {
+      // A faulty listener must not break other subscribers.
+    }
+  });
+}
+
+/** Returns the current metrics for an address, or null if none have been recorded. */
+export function getAccountabilityMetrics(address: string): AccountabilityMetrics | null {
+  return metricsStore.get(normalizeAddress(address)) ?? null;
+}
+
+/**
+ * Records an accountability event for a creator and notifies subscribers.
+ * Returns the updated metrics.
+ */
+export function recordAccountabilityEvent(address: string, event: AccountabilityEvent): AccountabilityMetrics {
+  const key = normalizeAddress(address);
+  const current = metricsStore.get(key);
+  const input: AccountabilityInput = current ? { ...current } : emptyInput();
+
+  switch (event.type) {
+    case "invoice_created":
+      input.totalInvoices += 1;
+      break;
+    case "invoice_fulfilled":
+      input.fulfilledInvoices += 1;
+      break;
+    case "invoice_cancelled":
+      input.cancelledInvoices += 1;
+      break;
+    case "dispute_opened":
+      input.disputes += 1;
+      break;
+    case "dispute_lost":
+      input.disputesLost += 1;
+      break;
+    case "response_time": {
+      const hours = Number.isFinite(event.hours) && event.hours >= 0 ? event.hours : 0;
+      input.avgResponseHours = current
+        ? (current.avgResponseHours + hours) / 2
+        : hours;
+      break;
+    }
+  }
+
+  const metrics = buildMetrics(input);
+  metricsStore.set(key, metrics);
+  emitUpdate(key, metrics);
+  return metrics;
+}
+
+/**
+ * Subscribes to metric changes for a creator address. The listener is invoked
+ * immediately with the current metrics (if any) and again on every update.
+ * Returns an unsubscribe function.
+ */
+export function subscribeAccountabilityMetrics(
+  address: string,
+  listener: AccountabilityListener,
+): () => void {
+  const key = normalizeAddress(address);
+  let subs = listeners.get(key);
+  if (!subs) {
+    subs = new Set();
+    listeners.set(key, subs);
+  }
+  subs.add(listener);
+
+  const existing = metricsStore.get(key);
+  if (existing) {
+    try {
+      listener(existing);
+    } catch {
+      // Ignore listener errors on initial emit.
+    }
+  }
+
+  return () => {
+    const current = listeners.get(key);
+    if (!current) return;
+    current.delete(listener);
+    if (current.size === 0) listeners.delete(key);
+  };
+}

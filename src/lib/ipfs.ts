@@ -138,3 +138,69 @@ export async function uploadToIpfsWithFallback(file: File): Promise<string> {
     return mockIpfsUpload(file);
   }
 }
+
+/**
+ * Metadata describing an uploaded evidence file.
+ */
+export interface EvidenceUploadResult {
+  cid: string;
+  filename: string;
+  size: number;
+  uploadedAt: string;
+}
+
+/**
+ * Upload an evidence file to IPFS and return its metadata.
+ * Used for both milestone evidence and dispute evidence submission.
+ * File type and size are validated using the same rules as uploadToIpfs.
+ *
+ * @param file - The evidence file to upload
+ * @returns Metadata for the uploaded evidence
+ * @throws Error if the file is invalid or upload fails
+ */
+export async function uploadEvidence(file: File): Promise<EvidenceUploadResult> {
+  // Validate file size (max 10MB)
+  const MAX_SIZE = 10 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    throw new Error("File size exceeds 10MB limit");
+  }
+
+  // Validate file type
+  const allowedTypes = [
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "text/plain",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error("File type not supported. Use PDF, images, or text documents.");
+  }
+
+  const cid = await uploadToIpfsWithFallback(file);
+
+  if (!isValidCid(cid)) {
+    throw new Error("Invalid CID returned from IPFS upload");
+  }
+
+  return {
+    cid,
+    filename: file.name,
+    size: file.size,
+    uploadedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Validate an evidence reference (CID) used for milestone or dispute evidence.
+ *
+ * @param cid - The IPFS CID to validate
+ * @returns true if the CID is a valid evidence reference, false otherwise
+ */
+export function validateEvidenceReference(cid: string): boolean {
+  if (!cid || typeof cid !== "string") return false;
+  return isValidCid(cid.trim());
+}

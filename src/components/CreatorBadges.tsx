@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import type { TrustBadge, TrustTier } from "@/lib/creatorVerification";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,6 +24,8 @@ export interface CreatorStats {
   reputationScore: number;
   uniquePayers: number;
   streakWeeks: number;
+  trustBadges?: TrustBadge[];
+  trustTier?: TrustTier;
 }
 
 // ─── Badge catalogue ───────────────────────────────────────────────────────────
@@ -164,6 +167,47 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     tier: "gold",
     check: (s) => s.streakWeeks >= 12,
   },
+  // ── Trust badges (mirrors getTrustBadges in src/lib/creatorVerification.ts) ──
+  {
+    id: "trust-email",
+    name: "Email Verified",
+    description: "Verified your email address.",
+    icon: "✉️",
+    tier: "bronze",
+    check: (s) => !!s.trustBadges?.some((b) => b.id === "email"),
+  },
+  {
+    id: "trust-wallet",
+    name: "Wallet Verified",
+    description: "Connected and verified your Stellar wallet.",
+    icon: "🔑",
+    tier: "bronze",
+    check: (s) => !!s.trustBadges?.some((b) => b.id === "wallet"),
+  },
+  {
+    id: "trust-kyc",
+    name: "KYC Verified",
+    description: "Completed identity verification (KYC).",
+    icon: "🪪",
+    tier: "silver",
+    check: (s) => !!s.trustBadges?.some((b) => b.id === "kyc"),
+  },
+  {
+    id: "trust-established",
+    name: "Established Creator",
+    description: "Has a long-standing, active creator history.",
+    icon: "🏛️",
+    tier: "gold",
+    check: (s) => !!s.trustBadges?.some((b) => b.id === "established"),
+  },
+  {
+    id: "trust-reliable",
+    name: "Reliable Creator",
+    description: "Consistently meets payment and completion expectations.",
+    icon: "🤝",
+    tier: "platinum",
+    check: (s) => !!s.trustBadges?.some((b) => b.id === "reliable"),
+  },
 ];
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
@@ -246,6 +290,9 @@ export default function CreatorBadges({ stats, showLocked = true }: Props) {
     return counts;
   }, [earned]);
 
+  const trustBadges = useMemo(() => stats.trustBadges ?? [], [stats.trustBadges]);
+  const trustTier = stats.trustTier;
+
   return (
     <section aria-labelledby="badges-heading" className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -267,6 +314,37 @@ export default function CreatorBadges({ stats, showLocked = true }: Props) {
           )}
         </div>
       </div>
+
+      {(trustBadges.length > 0 || trustTier) && (
+        <div className="mb-5">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <p className="text-xs uppercase tracking-widest text-gray-500 font-semibold">Trust</p>
+            {trustTier && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-700/30 text-emerald-300 capitalize">
+                {trustTier} tier
+              </span>
+            )}
+          </div>
+          {trustBadges.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {trustBadges.map((b) => (
+                <span
+                  key={b.id}
+                  title={b.description}
+                  className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-emerald-900/20 ring-1 ring-emerald-500/40 text-emerald-300 font-medium"
+                >
+                  <span aria-hidden="true">{b.icon}</span>
+                  {b.label}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              No trust badges yet — verify your email and wallet to build trust.
+            </p>
+          )}
+        </div>
+      )}
 
       {earned.length === 0 && (
         <p className="text-sm text-gray-500 mb-4">

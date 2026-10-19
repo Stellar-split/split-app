@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import FocusTrap from "./FocusTrap";
+import { getActiveNetwork } from "@/lib/networks";
 
 const EXPLORER_BASE =
-  process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
-    ? "https://stellar.expert/explorer/public/tx"
-    : "https://stellar.expert/explorer/testnet/tx";
+  getActiveNetwork().explorerTxBase;
 
 interface Props {
   txHash: string;

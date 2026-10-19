@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { splitClient } from "@/lib/stellar";
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
+import { getIpfsUrl, isValidCid } from "@/lib/ipfs";
 
 interface VerifiedProof {
   payer: string;
@@ -11,18 +12,22 @@ interface VerifiedProof {
   imageUrl?: string;
 }
 
+type ViewerMode = "payment" | "evidence";
+
 interface Props {
   invoiceId: string;
+  mode?: ViewerMode;
 }
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.25;
 
-export default function ProofViewer({ invoiceId }: Props) {
+export default function ProofViewer({ invoiceId, mode = "payment" }: Props) {
   const [proofHash, setProofHash] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState<VerifiedProof | null>(null);
+  const [evidenceCid, setEvidenceCid] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -55,6 +60,16 @@ export default function ProofViewer({ invoiceId }: Props) {
     setVerifying(true);
 
     try {
+      if (mode === "evidence") {
+        const cid = proofHash.trim();
+        if (!isValidCid(cid)) {
+          setError("Invalid evidence CID. Please provide a valid IPFS CID.");
+          return;
+        }
+        setEvidenceCid(cid);
+        return;
+      }
+
       // In a real implementation, this would call splitClient.generatePaymentProof
       // and compare against the proof hash. For now, we'll simulate the verification.
       const proof = await (splitClient as any).generatePaymentProof(proofHash);
@@ -75,22 +90,39 @@ export default function ProofViewer({ invoiceId }: Props) {
     }
   };
 
+  const resetViewer = () => {
+    setVerified(null);
+    setEvidenceCid(null);
+    setProofHash("");
+    setError(null);
+    resetZoom();
+  };
+
+  const isEvidence = mode === "evidence";
+  const evidenceUrl = evidenceCid ? getIpfsUrl(evidenceCid) : null;
+  const evidenceIsPdf = evidenceCid ? /\.pdf$/i.test(evidenceCid) : false;
+  const showViewer = isEvidence ? Boolean(evidenceCid) : Boolean(verified);
+
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4">Verify Payment Proof</h3>
+      <h3 className="text-lg font-semibold mb-4">
+        {isEvidence ? "View Evidence" : "Verify Payment Proof"}
+      </h3>
 
-      {!verified ? (
+      {!showViewer ? (
         <div className="space-y-4">
           <div>
             <label htmlFor="proof-hash" className="block text-sm font-medium text-gray-300 mb-2">
-              Proof Hash
+              {isEvidence ? "Evidence CID" : "Proof Hash"}
             </label>
             <input
               id="proof-hash"
               type="text"
               value={proofHash}
               onChange={(e) => setProofHash(e.target.value)}
-              placeholder="Paste proof hash here..."
+              placeholder={
+                isEvidence ? "Paste IPFS CID here..." : "Paste proof hash here..."
+              }
               className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
             />
           </div>
@@ -103,36 +135,112 @@ export default function ProofViewer({ invoiceId }: Props) {
             disabled={verifying || !proofHash.trim()}
             className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium disabled:opacity-50"
           >
-            {verifying ? "Verifying…" : "Verify Proof"}
+            {verifying
+              ? "Verifying…"
+              : isEvidence
+                ? "Load Evidence"
+                : "Verify Proof"}
           </button>
         </div>
       ) : (
         <div className="space-y-4">
           <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
             <span className="text-green-400 text-lg">✓</span>
-            <span className="text-sm font-medium text-green-300">Proof Verified</span>
+            <span className="text-sm font-medium text-green-300">
+              {isEvidence ? "Evidence Loaded" : "Proof Verified"}
+            </span>
           </div>
 
-          <div className="bg-gray-900 rounded-lg p-4 space-y-3">
-            <div>
-              <p className="text-xs text-gray-500">Payer</p>
-              <p className="text-sm font-mono text-gray-300">
-                {truncateAddress(verified.payer)}
-              </p>
+          {!isEvidence && verified && (
+            <div className="bg-gray-900 rounded-lg p-4 space-y-3">
+              <div>
+                <p className="text-xs text-gray-500">Payer</p>
+                <p className="text-sm font-mono text-gray-300">
+                  {truncateAddress(verified.payer)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Amount</p>
+                <p className="text-sm font-medium text-gray-300">
+                  {formatAmount(verified.amount)} USDC
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Ledger</p>
+                <p className="text-sm text-gray-300">{verified.ledger}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-gray-500">Amount</p>
-              <p className="text-sm font-medium text-gray-300">
-                {formatAmount(verified.amount)} USDC
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Ledger</p>
-              <p className="text-sm text-gray-300">{verified.ledger}</p>
-            </div>
-          </div>
+          )}
 
-          {verified.imageUrl && (
+          {isEvidence && evidenceCid && (
+            <div className="bg-gray-900 rounded-lg p-4 space-y-1">
+              <p className="text-xs text-gray-500">CID</p>
+              <p className="text-sm font-mono text-gray-300 break-all">{evidenceCid}</p>
+            </div>
+          )}
+
+          {isEvidence && evidenceUrl && evidenceIsPdf && (
+            <div className="rounded-lg border border-gray-700 bg-gray-900 overflow-hidden">
+              <iframe
+                src={evidenceUrl}
+                title="Evidence document"
+                className="h-96 w-full"
+              />
+            </div>
+          )}
+
+          {isEvidence && evidenceUrl && !evidenceIsPdf && (
+            <div className="space-y-2">
+              <div
+                className="relative h-64 overflow-hidden rounded-lg border border-gray-700 bg-gray-900"
+                style={{ cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default" }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
+              >
+                <img
+                  src={evidenceUrl}
+                  alt="Evidence"
+                  draggable={false}
+                  className="h-full w-full object-contain select-none"
+                  style={{
+                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                    transformOrigin: "center center",
+                  }}
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={zoomOut}
+                  disabled={zoom <= MIN_ZOOM}
+                  aria-label="Zoom out"
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-700 text-sm font-medium hover:bg-gray-700 disabled:opacity-50"
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  onClick={zoomIn}
+                  disabled={zoom >= MAX_ZOOM}
+                  aria-label="Zoom in"
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-700 text-sm font-medium hover:bg-gray-700 disabled:opacity-50"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={resetZoom}
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-700 text-sm font-medium hover:bg-gray-700"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!isEvidence && verified?.imageUrl && (
             <div className="space-y-2">
               <div
                 className="relative h-64 overflow-hidden rounded-lg border border-gray-700 bg-gray-900"
@@ -185,14 +293,10 @@ export default function ProofViewer({ invoiceId }: Props) {
 
           <button
             type="button"
-            onClick={() => {
-              setVerified(null);
-              setProofHash("");
-              resetZoom();
-            }}
+            onClick={resetViewer}
             className="w-full px-4 py-2 rounded-lg border border-gray-700 text-sm font-medium hover:bg-gray-700"
           >
-            Verify Another
+            {isEvidence ? "Load Another" : "Verify Another"}
           </button>
         </div>
       )}

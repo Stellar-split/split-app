@@ -17,13 +17,27 @@ interface Props {
   isChecked?: boolean;
   /** Tags applied to this invoice, rendered as colour-coded pills. */
   tags?: string[];
+  /** Bundle this invoice belongs to, rendered as a badge. */
+  bundleId?: string;
+  /** Completion status of the bundle this invoice belongs to. */
+  bundleStatus?: string;
+  /** Recurring schedule this invoice was generated from, rendered as a badge. */
+  scheduleId?: string;
+  /** Status of the recurring schedule (e.g. active, paused, cancelled). */
+  scheduleStatus?: string;
+  /** Enables the bundle-selection checkbox when provided. */
+  onBundleToggle?: (id: string, checked: boolean) => void;
+  /** Whether this invoice is selected for bundle creation. */
+  isBundleSelected?: boolean;
 }
+=======
 
 /**
  * InvoiceCard — summary card showing recipients, total, funded %, and status.
  * Optionally includes a compare checkbox when in compare mode.
  */
-export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompareToggle, isComparing, isChecked, tags = [] }: Props) {
+export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompareToggle, isComparing, isChecked, tags = [], bundleId, bundleStatus, scheduleId, scheduleStatus, onBundleToggle, isBundleSelected }: Props) {
+=======
   const total = invoice.recipients.reduce((s, r) => s + r.amount, 0n);
   const deadlineLabel = new Date(invoice.deadline * 1000).toLocaleDateString();
   const createdDate = new Date(parseInt(invoice.id) * 1000 || 0); // Rough estimate from id
@@ -40,6 +54,15 @@ export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompa
               onChange={(e) => onCompareToggle?.(invoice.id, e.target.checked)}
               className="w-5 h-5 cursor-pointer rounded border-gray-400 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 shrink-0"
               aria-label={`Compare invoice ${invoice.id}`}
+            />
+          )}
+          {onBundleToggle && (
+            <input
+              type="checkbox"
+              checked={isBundleSelected || false}
+              onChange={(e) => onBundleToggle(invoice.id, e.target.checked)}
+              className="w-5 h-5 cursor-pointer rounded border-gray-400 dark:border-gray-600 focus:ring-2 focus:ring-emerald-500 shrink-0"
+              aria-label={`Select invoice ${invoice.id} for bundle`}
             />
           )}
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 truncate">
@@ -85,6 +108,29 @@ export default function InvoiceCard({ invoice, displayNumber, onShareQR, onCompa
       <p className="text-xs text-gray-500 mb-3">
         Created {getRelativeAge(createdDate)} · Due {deadlineLabel}
       </p>
+
+      {(bundleId || scheduleId) && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {bundleId && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full text-xs px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+              title={`Bundle ${bundleId}${bundleStatus ? ` · ${bundleStatus}` : ""}`}
+            >
+              Bundle {bundleId}
+              {bundleStatus && <span className="opacity-75">· {bundleStatus}</span>}
+            </span>
+          )}
+          {scheduleId && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-600 dark:text-indigo-400"
+              title={`Recurring schedule ${scheduleId}${scheduleStatus ? ` · ${scheduleStatus}` : ""}`}
+            >
+              Recurring {scheduleId}
+              {scheduleStatus && <span className="opacity-75">· {scheduleStatus}</span>}
+            </span>
+          )}
+        </div>
+      )}
 
       {tags.length > 0 && <TagPills tags={tags} max={4} className="mb-3" />}
 

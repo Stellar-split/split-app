@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { splitClient } from "@/lib/stellar";
 import ThemeToggle from "@/components/ThemeToggle";
+import { getActiveNetwork } from "@/lib/networks";
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 
@@ -61,7 +62,7 @@ function DebuggerContent() {
       } else {
         // Generic fallback: build a minimal transaction envelope and simulate it
         const { rpc } = await import("@stellar/stellar-sdk");
-        const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
+        const rpcUrl = getActiveNetwork().rpcUrl;
         const server = new rpc.Server(rpcUrl);
         // as any: simulateTransaction overload with plain object args is not in @stellar/stellar-sdk RPC types
         const raw = await (server as any).simulateTransaction({

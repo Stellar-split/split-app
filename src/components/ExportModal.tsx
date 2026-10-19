@@ -1,10 +1,15 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { Invoice } from '@stellar-split/sdk';
 import type { ExportFilterOptions } from '@/lib/invoiceExcelExport';
-import { downloadExcel, generateExportFilename } from '@/lib/invoiceExcelExport';
-import { apiFetch } from '@/lib/apiClient';
+import {
+  exportPayments,
+  addExportHistoryEntry,
+  getExportHistory,
+  type ExportFormat,
+  type ExportHistoryEntry,
+} from '@/lib/paymentExport';
 
 /** Return a date string in "YYYY-MM-DD" format for an offset of `daysAgo` from today. */
 function dateString(daysAgo: number = 0): string {
@@ -28,6 +33,15 @@ export default function ExportModal({
 }: ExportModalProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('csv');
+  const [history, setHistory] = useState<ExportHistoryEntry[]>([]);
+
+  // Load recent export history when the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setHistory(getExportHistory());
+    }
+  }, [isOpen]);
 
   // Date-range state — "From" defaults to 30 days ago, "To" defaults to today
   const [startDate, setStartDate] = useState<string>(() => dateString(30));
@@ -93,47 +107,16 @@ export default function ExportModal({
         filters.assets = selectedAssets;
       }
 
-      // Build query params so the API route can also filter server-side
-      const params = new URLSearchParams();
-      if (startDate) params.set('from', startDate);
-      if (endDate) params.set('to', endDate);
+      const result = await exportPayments(invoices, filters, exportFormat);
 
-      const response = await apiFetch(`/api/invoices/export?${params.toString()}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          invoices,
-          filters,
-        }),
+      // Record the export in history
+      addExportHistoryEntry({
+        format: exportFormat,
+        invoiceCount: result.invoiceCount,
+        filters,
+        filename: result.filename,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Export failed');
-      }
-
-      // Handle async export (202 Accepted)
-      if (response.status === 202) {
-        const jobData = await response.json();
-        setError(`Export queued as job ${jobData.jobId}. This will be processed in the background.`);
-        return;
-      }
-
-      // Handle synchronous export (200 OK)
-      const blob = await response.blob();
-      const filename = generateExportFilename('invoices');
-
-      // Download the file
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      setHistory(getExportHistory());
 
       onExport?.();
       onClose();
@@ -143,7 +126,7 @@ export default function ExportModal({
       setIsExporting(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoices, startDate, endDate, selectedStatuses, selectedAssets, onExport, onClose]);
+  }, [invoices, startDate, endDate, selectedStatuses, selectedAssets, exportFormat, onExport, onClose]);
 
   if (!isOpen) return null;
 
@@ -247,6 +230,27 @@ export default function ExportModal({
             )}
           </div>
 
+          {/* Format Selector */}
+          <div>
+            <label
+              htmlFor="export-format"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Format
+            </label>
+            <select
+              id="export-format"
+              value={exportFormat}
+              onChange={(e) => setExportFormat(e.target.value as ExportFormat)}
+              disabled={isExporting}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
+            >
+              <option value="csv">CSV</option>
+              <option value="json">JSON</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </div>
+
           {/* Status Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -288,6 +292,30 @@ export default function ExportModal({
               ))}
             </div>
           </div>
+
+          {/* Export History */}
+          {history.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Recent Exports
+              </label>
+              <ul className="space-y-1 text-sm text-gray-600">
+                {history.slice(0, 5).map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="flex justify-between gap-2 border-b border-gray-100 pb-1"
+                  >
+                    <span className="truncate">
+                      {entry.filename} ({entry.format.toUpperCase()})
+                    </span>
+                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                      {new Date(entry.createdAt).toLocaleString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -304,7 +332,7 @@ export default function ExportModal({
             disabled={isExporting || invoices.length === 0}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isExporting ? 'Exporting...' : 'Export to Excel'}
+            {isExporting ? 'Exporting...' : `Export to ${exportFormat.toUpperCase()}`}
           </button>
         </div>
       </div>

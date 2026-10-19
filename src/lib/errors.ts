@@ -2,6 +2,8 @@ export type ErrorKind =
   | "wallet_not_connected"
   | "invoice_not_found"
   | "rpc_timeout"
+  | "not_a_cosigner"
+  | "cosigner_approval_failed"
   | "unknown";
 
 export interface ClassifiedError {
@@ -24,6 +26,16 @@ const PATTERNS: { kind: ErrorKind; match: RegExp; message: string }[] = [
     kind: "rpc_timeout",
     match: /rpc timeout|timed out|timeout/i,
     message: "The Stellar RPC request timed out. Please try again.",
+  },
+  {
+    kind: "not_a_cosigner",
+    match: /not a cosigner|not a co-signer|not a designated cosigner|not a designated co-signer|cosigner not found|co-signer not found/i,
+    message: "This wallet is not a designated co-signer for this invoice.",
+  },
+  {
+    kind: "cosigner_approval_failed",
+    match: /cosigner approval failed|co-signer approval failed|approval failed|failed to approve/i,
+    message: "Co-signer approval could not be submitted. Please try again.",
   },
 ];
 

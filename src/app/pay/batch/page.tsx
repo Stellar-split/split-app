@@ -6,6 +6,7 @@ import { getFreighterPublicKey } from "@/lib/freighter";
 import { parseAmount } from "@stellar-split/sdk";
 import BatchPayQueue from "@/components/BatchPayQueue";
 import type { Invoice } from "@stellar-split/sdk";
+import { getActiveNetwork } from "@/lib/networks";
 
 interface QueueEntry {
   invoice: Invoice;
@@ -13,9 +14,7 @@ interface QueueEntry {
 }
 
 const STELLAR_EXPERT_BASE =
-  process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
-    ? "https://stellar.expert/explorer/public/tx"
-    : "https://stellar.expert/explorer/testnet/tx";
+  getActiveNetwork().explorerTxBase;
 
 export default function BatchPayPage() {
   const [search, setSearch] = useState("");
