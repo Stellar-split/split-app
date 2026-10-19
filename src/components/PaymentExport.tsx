@@ -3,27 +3,23 @@
 import { useState } from 'react';
 import type { Payment } from '@stellar-split/sdk';
 import {
-  paymentsToCSV,
-  downloadCSV,
-  generatePaymentExportFilename,
   filterPaymentsByDateRange,
   PAYMENT_EXPORT_COLUMNS,
   PAYMENT_EXPORT_COLUMN_LABELS,
   type PaymentExportColumn,
 } from '@/lib/csvExport';
 import {
-  buildPaymentSummaryHtml,
-  downloadPaymentSummaryPDF,
-} from '@/lib/paymentExportPdf';
+  exportPayments,
+  recordExportHistory,
+  type ExportFormat,
+} from '@/lib/paymentExport';
 
 interface Props {
   invoiceId: string;
   payments: Payment[];
 }
 
-type ExportFormat = 'csv' | 'pdf';
-
-const EXPORT_FORMATS: ExportFormat[] = ['csv', 'pdf'];
+const EXPORT_FORMATS: ExportFormat[] = ['csv', 'json', 'pdf'];
 
 export default function PaymentExport({ invoiceId, payments }: Props) {
   const [showFilters, setShowFilters] = useState(false);
@@ -56,17 +52,23 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
         endDate || null
       );
 
-      if (exportFormat === 'pdf') {
-        const html = buildPaymentSummaryHtml(invoiceId, filteredPayments);
-        downloadPaymentSummaryPDF(html);
-      } else {
-        // Convert to CSV
-        const csv = paymentsToCSV(filteredPayments, selectedColumns);
+      exportPayments({
+        invoiceId,
+        payments: filteredPayments,
+        format: exportFormat,
+        columns: selectedColumns,
+        startDate: startDate || null,
+        endDate: endDate || null,
+      });
 
-        // Download
-        const filename = generatePaymentExportFilename(invoiceId);
-        downloadCSV(csv, filename);
-      }
+      recordExportHistory({
+        invoiceId,
+        format: exportFormat,
+        paymentCount: filteredPayments.length,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        columns: exportFormat === 'csv' ? selectedColumns : undefined,
+      });
     } catch (error) {
       console.error('Export failed:', error);
       alert('Failed to export payments. Please try again.');
@@ -225,7 +227,9 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
         <p className="text-xs text-gray-500 mt-2">
           {exportFormat === 'pdf'
             ? 'PDF will include the invoice number, payer addresses, amounts, timestamps, and transaction hashes.'
-            : 'CSV will include payer address, amount (USDC), timestamp, and transaction hash for all payments.'}
+            : exportFormat === 'json'
+              ? 'JSON will include payer address, amount (USDC), timestamp, and transaction hash for all payments.'
+              : 'CSV will include payer address, amount (USDC), timestamp, and transaction hash for all payments.'}
         </p>
       )}
     </div>

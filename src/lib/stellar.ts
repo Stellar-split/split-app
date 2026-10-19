@@ -282,16 +282,98 @@ export async function fetchUsdcBalance(
 }
 
 /**
- * Resolve a federation address (e.g., alice*example.com) to a Stellar address
+ * Validate a Stellar account address using StrKey.
+ * Returns true only for well-formed, checksum-valid ed25519 public keys.
  */
-export async function resolveFederationAddress(federationAddress: string): Promise<string | null> {
+export function validateStellarAddress(address: string): boolean {
+  if (typeof address !== "string" || address.length === 0) return false;
+  try {
+    // StrKey is a synchronous part of the SDK; require it lazily to keep the
+    // module load-time footprint small.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { StrKey } = require("@stellar/stellar-sdk") as typeof import("@stellar/stellar-sdk");
+    return StrKey.isValidEd25519PublicKey(address);
+  } catch {
+    return false;
+  }
+}
+
+export const FEDERATION_SERVER_URL =
+  process.env.NEXT_PUBLIC_FEDERATION_SERVER_URL ?? "https://federation.stellar.org";
+export const FEDERATION_TIMEOUT_MS = 8000;
+
+/**
+ * Resolve a federation address (e.g., alice*example.com) to a Stellar address.
+ *
+ * Uses the configured federation server URL and a bounded timeout so a slow or
+ * unreachable server cannot hang the UI. Returns null on any failure.
+ */
+export async function resolveFederationAddress(
+  federationAddress: string,
+  options: { serverUrl?: string; timeoutMs?: number } = {}
+): Promise<string | null> {
+  if (typeof federationAddress !== "string" || !federationAddress.includes("*")) {
+    return null;
+  }
+
+  const serverUrl = options.serverUrl ?? FEDERATION_SERVER_URL;
+  const timeoutMs = options.timeoutMs ?? FEDERATION_TIMEOUT_MS;
+
   try {
     const { Federation } = await import("@stellar/stellar-sdk");
-    const result = await Federation.Server.resolve(federationAddress);
-    return result.account_id;
+    const server = new Federation.Server(serverUrl);
+    const result = await Promise.race([
+      server.resolve(federationAddress),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Federation resolution timed out.")), timeoutMs)
+      ),
+    ]);
+    return result.account_id ?? null;
   } catch {
     return null;
   }
+}
+
+export interface AccountBalance {
+  /** Asset code, or "XLM" for the native asset. */
+  assetCode: string;
+  /** Issuer account for issued assets; null for native XLM. */
+  assetIssuer: string | null;
+  /** Raw balance in stroops. */
+  raw: bigint;
+  /** Human-readable balance (7 decimal places). */
+  formatted: string;
+  /** Whether this is the native XLM asset. */
+  isNative: boolean;
+}
+
+/**
+ * Fetch all balances (native XLM plus issued assets) for an account from Horizon.
+ *
+ * Throws if the account cannot be loaded (e.g. unfunded or invalid address).
+ */
+export async function fetchAccountBalances(walletAddress: string): Promise<AccountBalance[]> {
+  const { Horizon } = await import("@stellar/stellar-sdk");
+  const server = new Horizon.Server(HORIZON_URL);
+  const account = await server.loadAccount(walletAddress);
+
+  return account.balances.map((balance) => {
+    const isNative = balance.asset_type === "native";
+    const assetCode = isNative ? "XLM" : (balance as { asset_code?: string }).asset_code ?? "";
+    const assetIssuer = isNative
+      ? null
+      : (balance as { asset_issuer?: string }).asset_issuer ?? null;
+    const raw = BigInt(
+      Math.round(parseFloat(balance.balance) * 1e7)
+    );
+    return {
+      assetCode,
+      assetIssuer,
+      raw,
+      formatted: formatAmount(raw),
+      isNative,
+    };
+  });
 }
 
 /**
@@ -328,4 +410,202 @@ export function validateRecipientAmountSum(amounts: number[], totalAmount: numbe
   const totalStroops = Math.round(totalAmount * STROOP_SCALE);
   const sumStroops = amounts.reduce((s, a) => s + Math.round(a * STROOP_SCALE), 0);
   return totalStroops === sumStroops;
+}
+
+/**
+ * Release funds for a milestone, but only once every condition attached to
+ * that milestone has been satisfied and approved.
+ *
+ * The milestone release gate (`canReleaseMilestone`) is evaluated first; if
+ * any condition is unmet this throws before any transaction is built, so no
+ * funds can move. On success the existing contract `release` path is invoked
+ * and a notification is emitted.
+ */
+export async function releaseMilestoneFunds(params: {
+  invoiceId: string;
+  milestoneId: string;
+  payer: string;
+}): Promise<{ txHash: string }> {
+  const { canReleaseMilestone } = await import("./milestones");
+  const { notifyMilestoneReleased } = await import("./notifications");
+
+  const gate = await canReleaseMilestone({
+    invoiceId: params.invoiceId,
+    milestoneId: params.milestoneId,
+  });
+
+  if (!gate.canRelease) {
+    const unmet = gate.unmetConditions?.length
+      ? ` Unmet conditions: ${gate.unmetConditions.join(", ")}.`
+      : "";
+    throw new Error(`Milestone conditions are not satisfied.${unmet}`);
+  }
+
+  const client = getSplitClient();
+  const { TransactionBuilder, BASE_FEE, Memo, nativeToScVal, rpc } = await import("@stellar/stellar-sdk");
+  const { signWithFreighter } = await import("./freighter");
+
+  // Same rationale as `payMilestone`: the published SDK does not expose a
+  // typed milestone-release call with a custom memo, so reach the underlying
+  // internals at runtime.
+  const internals = client as unknown as {
+    contract: { call: (...args: any[]) => any };
+    server: any;
+    config: { networkPassphrase: string };
+  };
+
+  const memoText = `INV:${params.invoiceId}:REL:${params.milestoneId}`.slice(0, MEMO_MAX_BYTES);
+
+  const operation = internals.contract.call(
+    "release_milestone",
+    nativeToScVal(BigInt(params.invoiceId), { type: "u64" }),
+    nativeToScVal(params.milestoneId, { type: "string" })
+  );
+
+  const sourceAccount = await internals.server.getAccount(params.payer);
+  const networkPassphrase = internals.config.networkPassphrase;
+
+  const tx = new TransactionBuilder(sourceAccount, {
+    fee: BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(operation)
+    .addMemo(Memo.text(memoText))
+    .setTimeout(30)
+    .build();
+
+  const simResult = await internals.server.simulateTransaction(tx);
+  if (rpc.Api.isSimulationError(simResult)) {
+    throw new Error(`Simulation failed: ${simResult.error}`);
+  }
+
+  const preparedTx = rpc.assembleTransaction(tx, simResult).build();
+  const signedXdr = await signWithFreighter(preparedTx.toXDR());
+  const signedTx = TransactionBuilder.fromXDR(signedXdr, networkPassphrase);
+  const sendResult = await internals.server.sendTransaction(signedTx);
+
+  if (sendResult.status === "ERROR") {
+    throw new Error(`Transaction failed: ${JSON.stringify(sendResult.errorResult)}`);
+  }
+
+  let getResult = await internals.server.getTransaction(sendResult.hash);
+  let attempts = 0;
+  while (getResult.status === rpc.Api.GetTransactionStatus.NOT_FOUND && attempts < 20) {
+    await new Promise((r) => setTimeout(r, 1500));
+    getResult = await internals.server.getTransaction(sendResult.hash);
+    attempts++;
+  }
+
+  if (getResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+    throw new Error(`Transaction not confirmed: ${getResult.status}`);
+  }
+
+  await notifyMilestoneReleased({
+    invoiceId: params.invoiceId,
+    milestoneId: params.milestoneId,
+    txHash: sendResult.hash,
+  });
+
+  return { txHash: sendResult.hash };
+}
+
+export type DisputeOutcome = "release" | "refund" | "split";
+
+/**
+ * Enforce a resolved dispute by invoking the matching contract method.
+ *
+ * - `release` pays the recipient the disputed funds.
+ * - `refund` returns the disputed funds to the payer.
+ * - `split` divides the disputed funds according to the resolution's split
+ *   ratio (defaults to an even split when none is supplied).
+ *
+ * A notification is emitted on success so both parties are informed.
+ */
+export async function enforceDisputeResolution(params: {
+  invoiceId: string;
+  outcome: DisputeOutcome;
+  payer: string;
+  splitRatio?: number;
+}): Promise<{ txHash: string }> {
+  const { notifyDisputeResolved } = await import("./notifications");
+
+  const methodByOutcome: Record<DisputeOutcome, string> = {
+    release: "release_disputed_funds",
+    refund: "refund_disputed_funds",
+    split: "split_disputed_funds",
+  };
+
+  const method = methodByOutcome[params.outcome];
+  if (!method) {
+    throw new Error(`Unsupported dispute outcome: ${params.outcome}`);
+  }
+
+  const client = getSplitClient();
+  const { TransactionBuilder, BASE_FEE, Memo, nativeToScVal, rpc } = await import("@stellar/stellar-sdk");
+  const { signWithFreighter } = await import("./freighter");
+
+  const internals = client as unknown as {
+    contract: { call: (...args: any[]) => any };
+    server: any;
+    config: { networkPassphrase: string };
+  };
+
+  const memoText = `INV:${params.invoiceId}:DSP:${params.outcome}`.slice(0, MEMO_MAX_BYTES);
+
+  const callArgs: any[] = [nativeToScVal(BigInt(params.invoiceId), { type: "u64" })];
+  if (params.outcome === "split") {
+    const ratio = params.splitRatio ?? 0.5;
+    if (ratio < 0 || ratio > 1) {
+      throw new Error("splitRatio must be between 0 and 1.");
+    }
+    callArgs.push(nativeToScVal(Math.round(ratio * 10_000), { type: "u32" }));
+  }
+
+  const operation = internals.contract.call(method, ...callArgs);
+
+  const sourceAccount = await internals.server.getAccount(params.payer);
+  const networkPassphrase = internals.config.networkPassphrase;
+
+  const tx = new TransactionBuilder(sourceAccount, {
+    fee: BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(operation)
+    .addMemo(Memo.text(memoText))
+    .setTimeout(30)
+    .build();
+
+  const simResult = await internals.server.simulateTransaction(tx);
+  if (rpc.Api.isSimulationError(simResult)) {
+    throw new Error(`Simulation failed: ${simResult.error}`);
+  }
+
+  const preparedTx = rpc.assembleTransaction(tx, simResult).build();
+  const signedXdr = await signWithFreighter(preparedTx.toXDR());
+  const signedTx = TransactionBuilder.fromXDR(signedXdr, networkPassphrase);
+  const sendResult = await internals.server.sendTransaction(signedTx);
+
+  if (sendResult.status === "ERROR") {
+    throw new Error(`Transaction failed: ${JSON.stringify(sendResult.errorResult)}`);
+  }
+
+  let getResult = await internals.server.getTransaction(sendResult.hash);
+  let attempts = 0;
+  while (getResult.status === rpc.Api.GetTransactionStatus.NOT_FOUND && attempts < 20) {
+    await new Promise((r) => setTimeout(r, 1500));
+    getResult = await internals.server.getTransaction(sendResult.hash);
+    attempts++;
+  }
+
+  if (getResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+    throw new Error(`Transaction not confirmed: ${getResult.status}`);
+  }
+
+  await notifyDisputeResolved({
+    invoiceId: params.invoiceId,
+    outcome: params.outcome,
+    txHash: sendResult.hash,
+  });
+
+  return { txHash: sendResult.hash };
 }

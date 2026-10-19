@@ -4,6 +4,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/apiClient';
+import {
+  clearWalletConnection,
+  getWalletConnection,
+  getWalletPersistencePreference,
+  setWalletPersistencePreference,
+  type WalletConnection,
+} from '@/lib/walletConnection';
 
 interface SecuritySettingsResponse {
   mfaEnabled: boolean;
@@ -24,10 +31,14 @@ export default function SecuritySettingsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState('default-user');
+  const [wallet, setWallet] = useState<WalletConnection | null>(null);
+  const [persistWallet, setPersistWallet] = useState(true);
 
   useEffect(() => {
     const stored = localStorage.getItem('stellarsplit_wallet_address') || 'default-user';
     setUserId(stored);
+    setWallet(getWalletConnection());
+    setPersistWallet(getWalletPersistencePreference());
 
     const load = async () => {
       try {
@@ -42,6 +53,24 @@ export default function SecuritySettingsPage() {
 
     load();
   }, []);
+
+  const handleDisconnectWallet = () => {
+    clearWalletConnection();
+    setWallet(null);
+    setMessage('Wallet disconnected.');
+  };
+
+  const handleTogglePersistence = (next: boolean) => {
+    setPersistWallet(next);
+    setWalletPersistencePreference(next);
+    if (!next) {
+      clearWalletConnection();
+      setWallet(null);
+      setMessage('Wallet connection persistence disabled and stored connection cleared.');
+    } else {
+      setMessage('Wallet connection will be remembered on this device.');
+    }
+  };
 
   const refreshSettings = async (id: string) => {
     try {
@@ -156,6 +185,53 @@ export default function SecuritySettingsPage() {
           </div>
           <Link href="/settings" className="text-sm text-indigo-400 hover:text-indigo-300">← Back to settings</Link>
         </div>
+
+        <section className="rounded-2xl border border-gray-800 bg-gray-900/80 p-6 shadow-xl">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold">Wallet connection</h2>
+              <p className="mt-1 text-sm text-gray-400">Your wallet connection is remembered on this device so you can pick up where you left off.</p>
+            </div>
+            <div className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-sm text-indigo-300">
+              {wallet ? 'Connected' : 'Disconnected'}
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-xl border border-gray-800 bg-gray-950/70 p-4">
+              <p className="text-sm font-medium text-gray-200">Current connection</p>
+              {wallet ? (
+                <>
+                  <p className="mt-2 text-sm text-gray-400">Wallet: {wallet.walletType}</p>
+                  <p className="mt-1 break-all text-sm text-gray-400">Address: {wallet.address}</p>
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-gray-400">No wallet is currently connected.</p>
+              )}
+              <button
+                type="button"
+                onClick={handleDisconnectWallet}
+                disabled={!wallet}
+                className="mt-4 rounded-lg border border-gray-700 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-gray-800 disabled:opacity-50"
+              >
+                Disconnect wallet
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-gray-800 bg-gray-950/70 p-4">
+              <p className="text-sm font-medium text-gray-200">Privacy</p>
+              <label className="mt-3 flex items-start gap-3 text-sm text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={persistWallet}
+                  onChange={(event) => handleTogglePersistence(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-gray-700 bg-gray-800"
+                />
+                <span>Remember my wallet connection on this device. Turning this off clears any stored connection data.</span>
+              </label>
+            </div>
+          </div>
+        </section>
 
         <section className="rounded-2xl border border-gray-800 bg-gray-900/80 p-6 shadow-xl">
           <div className="flex items-center justify-between gap-4">

@@ -86,6 +86,11 @@ export default function SettingsPage() {
               Dashboard Widgets
             </a>
           </li>
+          <li>
+            <a href="/settings/wallet-verification" className="text-indigo-400 hover:text-indigo-300">
+              Wallet Verification
+            </a>
+          </li>
         </ul>
       </section>
     </main>

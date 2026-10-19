@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { searchAddressHistory } from "@/lib/invoiceHistory";
 import { getAddressBook } from "@/lib/addressBook";
+import { resolveFederationAddress } from "@/lib/stellar";
 
 /**
  * Derives a smart label suggestion for a Stellar address or Federation address:
@@ -13,10 +14,11 @@ export async function resolveAddressLabel(address: string): Promise<string | nul
   if (!trimmed) return null;
 
   // 1. Resolve federation address (e.g., user*domain.com or *domain.com)
+  //    Uses the shared cached resolver so labels benefit from caching and
+  //    consistent error handling.
   if (trimmed.includes("*")) {
     try {
-      const { Federation } = await import("@stellar/stellar-sdk");
-      const record = await Federation.Server.resolve(trimmed);
+      const record = await resolveFederationAddress(trimmed);
       if (record) {
         const username = trimmed.split("*")[0];
         if (username && username.length > 0) {

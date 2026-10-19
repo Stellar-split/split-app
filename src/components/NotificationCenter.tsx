@@ -4,7 +4,14 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
 
-export type NotificationType = "payment" | "funded" | "released" | "expired" | "reminder";
+export type NotificationType =
+  | "payment"
+  | "funded"
+  | "released"
+  | "expired"
+  | "reminder"
+  | "milestone"
+  | "dispute";
 
 export interface AppNotification {
   id: string;
@@ -18,8 +25,36 @@ export interface AppNotification {
 
 const STORAGE_KEY = "stellarsplit_notifications_v2";
 const SUBSCRIBED_KEY = "stellarsplit_notify_invoices";
+const MILESTONES_KEY = "stellarsplit_milestones_v1";
+const DISPUTES_KEY = "stellarsplit_disputes_v1";
 const MAX_NOTIFICATIONS = 50;
 const POLL_INTERVAL_MS = 30_000;
+
+interface MilestoneRecord {
+  id: string;
+  invoiceId: string;
+  title: string;
+  status: "pending" | "submitted" | "approved" | "released" | "rejected";
+  conditions?: { id: string; met: boolean }[];
+}
+
+interface DisputeRecord {
+  id: string;
+  invoiceId: string;
+  status: "open" | "evidence" | "review" | "resolved" | "enforced";
+  evidence?: { id: string; submittedBy: string }[];
+  resolution?: string;
+}
+
+function loadRecords<T>(key: string): T[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) ?? "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 function loadNotifications(): AppNotification[] {
   if (typeof window === "undefined") return [];
@@ -71,6 +106,8 @@ const TYPE_ICONS: Record<NotificationType, string> = {
   released: "🚀",
   expired: "⏰",
   reminder: "📅",
+  milestone: "🎯",
+  dispute: "⚖️",
 };
 
 export default function NotificationCenter() {
@@ -173,6 +210,114 @@ export default function NotificationCenter() {
           }
         } catch {
           // skip unavailable invoices
+        }
+      }
+
+      // Milestone condition / release transitions
+      const milestones = loadRecords<MilestoneRecord>(MILESTONES_KEY);
+      for (const m of milestones) {
+        if (!ids.includes(m.invoiceId)) continue;
+        const title = m.title || `Milestone on Invoice #${m.invoiceId}`;
+
+        const allConditionsMet =
+          !!m.conditions &&
+          m.conditions.length > 0 &&
+          m.conditions.every((c) => c.met);
+        if (allConditionsMet) {
+          const key = `milestone-conditions-${m.id}`;
+          if (!existing.some((n) => n.id === key)) {
+            newItems.push({
+              id: key,
+              type: "milestone",
+              invoiceId: m.invoiceId,
+              invoiceTitle: title,
+              message: `All conditions met for ${title}`,
+              timestamp: Date.now(),
+              read: false,
+            });
+          }
+        }
+
+        if (m.status === "released") {
+          const key = `milestone-released-${m.id}`;
+          if (!existing.some((n) => n.id === key)) {
+            newItems.push({
+              id: key,
+              type: "milestone",
+              invoiceId: m.invoiceId,
+              invoiceTitle: title,
+              message: `Milestone funds released: ${title}`,
+              timestamp: Date.now(),
+              read: false,
+            });
+          }
+        }
+      }
+
+      // Dispute lifecycle transitions
+      const disputes = loadRecords<DisputeRecord>(DISPUTES_KEY);
+      for (const d of disputes) {
+        if (!ids.includes(d.invoiceId)) continue;
+        const title = `Invoice #${d.invoiceId}`;
+
+        if (d.status === "open") {
+          const key = `dispute-open-${d.id}`;
+          if (!existing.some((n) => n.id === key)) {
+            newItems.push({
+              id: key,
+              type: "dispute",
+              invoiceId: d.invoiceId,
+              invoiceTitle: title,
+              message: `Dispute opened on ${title}`,
+              timestamp: Date.now(),
+              read: false,
+            });
+          }
+        }
+
+        if (d.evidence && d.evidence.length > 0) {
+          const key = `dispute-evidence-${d.id}-${d.evidence.length}`;
+          if (!existing.some((n) => n.id === key)) {
+            newItems.push({
+              id: key,
+              type: "dispute",
+              invoiceId: d.invoiceId,
+              invoiceTitle: title,
+              message: `New evidence submitted for dispute on ${title}`,
+              timestamp: Date.now(),
+              read: false,
+            });
+          }
+        }
+
+        if (d.status === "resolved") {
+          const key = `dispute-resolved-${d.id}`;
+          if (!existing.some((n) => n.id === key)) {
+            newItems.push({
+              id: key,
+              type: "dispute",
+              invoiceId: d.invoiceId,
+              invoiceTitle: title,
+              message: `Dispute resolved on ${title}`,
+              timestamp: Date.now(),
+              read: false,
+            });
+          }
+        }
+
+        if (d.status === "enforced") {
+          const key = `dispute-enforced-${d.id}`;
+          if (!existing.some((n) => n.id === key)) {
+            newItems.push({
+              id: key,
+              type: "dispute",
+              invoiceId: d.invoiceId,
+              invoiceTitle: title,
+              message: `Dispute resolution enforced on ${title}`,
+              timestamp: Date.now(),
+              read: false,
+            });
+          }
         }
       }
 

@@ -6,32 +6,34 @@ import { truncateAddress } from "@stellar-split/sdk";
 import { uploadToIpfs } from "@/lib/ipfs";
 import { getSplitClient } from "@/lib/stellar";
 import ArbitratorPicker from "@/components/ArbitratorPicker";
-
-interface DisputeMetadata {
-  reason: string;
-  description: string;
-  initiator: string;
-  timestamp: number;
-  arbitrators: string[];
-  evidenceLinks: Array<{ cid: string; timestamp: number; submitter: string; filename: string }>;
-}
-
-interface DisputeVoteTally {
-  releaseVotes: number;
-  refundVotes: number;
-  votedArbitrators: string[];
-}
-
-interface DisputeStatus extends DisputeMetadata, DisputeVoteTally {
-  resolved: boolean;
-  outcome?: "Release" | "Refund";
-}
+import {
+  type DisputeRecord,
+  type DisputeState,
+  type DisputeOutcome,
+  isVotingComplete,
+  canEnforceResolution,
+} from "@/lib/arbitrators";
 
 interface Props {
   invoice: Invoice;
   publicKey: string;
   onRefresh?: () => Promise<void>;
 }
+
+/** Emit a toast notification if the global toast container is available. */
+function notify(message: string, type: "success" | "error" | "info" = "info") {
+  if (typeof window !== "undefined" && (window as any).__toastContainer?.addToast) {
+    (window as any).__toastContainer.addToast(message, type);
+  }
+}
+
+const STATE_LABELS: Record<DisputeState, string> = {
+  Open: "Open",
+  Evidence: "Evidence Collection",
+  Voting: "Arbitrator Voting",
+  Resolved: "Resolved",
+  Enforced: "Enforced",
+};
 
 /**
  * DisputePanel — Full arbitration interface for Disputed invoices.
@@ -44,18 +46,22 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
+  const [enforcing, setEnforcing] = useState(false);
+  const [enforceError, setEnforceError] = useState<string | null>(null);
 
   // Only render for Disputed invoices
   if ((invoice.status as string) !== "Disputed") return null;
 
   // Access dispute data from extended invoice type
-  const dispute = (invoice as Invoice & { disputeStatus?: DisputeStatus }).disputeStatus;
+  const dispute = (invoice as Invoice & { disputeRecord?: DisputeRecord }).disputeRecord;
   if (!dispute) return null;
 
   const isArbitrator = dispute.arbitrators.includes(publicKey);
-  const hasVoted = dispute.votedArbitrators.includes(publicKey);
+  const hasVoted = dispute.votes.some((v) => v.arbitrator === publicKey);
+  const votingComplete = isVotingComplete(dispute);
+  const canEnforce = canEnforceResolution(dispute);
 
-  const handleVote = async (voteType: "Release" | "Refund") => {
+  const handleVote = async (voteType: DisputeOutcome) => {
     if (!isArbitrator || hasVoted) return;
 
     setVoteError(null);
@@ -69,23 +75,52 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
         vote: voteType === "Release" ? 1 : 0,
       });
 
-      // Show success toast
-      if (typeof window !== "undefined" && (window as any).__toastContainer?.addToast) {
-        (window as any).__toastContainer.addToast(`Vote "${voteType}" submitted successfully`, "success");
-      }
+      notify(`Vote "${voteType}" submitted successfully`, "success");
 
       // Refresh invoice data
       if (onRefresh) await onRefresh();
     } catch (err) {
-      setVoteError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      setVoteError(message);
+      notify(`Failed to submit vote: ${message}`, "error");
     } finally {
       setVoting(false);
     }
   };
 
-  const totalVotes = dispute.releaseVotes + dispute.refundVotes;
-  const releasePercent = totalVotes > 0 ? (dispute.releaseVotes / totalVotes) * 100 : 0;
-  const refundPercent = totalVotes > 0 ? (dispute.refundVotes / totalVotes) * 100 : 0;
+  const handleEnforce = async () => {
+    if (!canEnforce) return;
+
+    setEnforceError(null);
+    setEnforcing(true);
+
+    try {
+      const client = getSplitClient();
+      await (client as any).enforceDisputeResolution({
+        invoiceId: invoice.id,
+        arbitrator: publicKey,
+      });
+
+      notify(
+        `Resolution enforced: ${dispute.outcome === "Release" ? "funds released" : "funds refunded"}`,
+        "success",
+      );
+
+      if (onRefresh) await onRefresh();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setEnforceError(message);
+      notify(`Failed to enforce resolution: ${message}`, "error");
+    } finally {
+      setEnforcing(false);
+    }
+  };
+
+  const releaseVotes = dispute.votes.filter((v) => v.vote === "Release").length;
+  const refundVotes = dispute.votes.filter((v) => v.vote === "Refund").length;
+  const totalVotes = releaseVotes + refundVotes;
+  const releasePercent = totalVotes > 0 ? (releaseVotes / totalVotes) * 100 : 0;
+  const refundPercent = totalVotes > 0 ? (refundVotes / totalVotes) * 100 : 0;
 
   return (
     <>
@@ -102,17 +137,23 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
               This invoice is under arbitration review
             </p>
           </div>
-          {dispute.resolved && (
-            <span
-              className={`px-4 py-2 rounded-full text-sm font-bold ${
-                dispute.outcome === "Release"
-                  ? "bg-green-500/20 text-green-400"
-                  : "bg-orange-500/20 text-orange-400"
-              }`}
-            >
-              {dispute.outcome === "Release" ? "✓ Approved" : "↩️ Refunded"}
+          <div className="flex flex-col items-end gap-2">
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-300">
+              {STATE_LABELS[dispute.state]}
             </span>
-          )}
+            {dispute.state === "Resolved" || dispute.state === "Enforced" ? (
+              <span
+                className={`px-4 py-2 rounded-full text-sm font-bold ${
+                  dispute.outcome === "Release"
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-orange-500/20 text-orange-400"
+                }`}
+              >
+                {dispute.outcome === "Release" ? "✓ Approved" : "↩️ Refunded"}
+                {dispute.state === "Enforced" ? " • Enforced" : ""}
+              </span>
+            ) : null}
+          </div>
         </div>
 
         {/* Dispute Metadata */}
@@ -137,6 +178,28 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
           </div>
         </div>
 
+        {/* Dispute Timeline */}
+        {dispute.timeline.length > 0 && (
+          <div className="mb-6 bg-gray-900/60 rounded-xl p-4 border border-gray-700">
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-3">Timeline</p>
+            <ol className="space-y-2">
+              {dispute.timeline.map((event, idx) => (
+                <li key={idx} className="flex items-start gap-3 text-sm">
+                  <span className="text-gray-500 shrink-0 font-mono text-xs pt-0.5">
+                    {new Date(event.timestamp * 1000).toLocaleString()}
+                  </span>
+                  <span className="text-gray-300">
+                    {event.description}
+                    {event.actor ? (
+                      <span className="text-gray-500"> — {truncateAddress(event.actor)}</span>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
         {/* Description */}
         {dispute.description && (
           <div className="mb-6 bg-gray-900/60 rounded-xl p-4 border border-gray-700">
@@ -159,7 +222,7 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
             <div>
               <div className="flex items-center justify-between text-sm mb-1">
                 <span className="text-green-400 font-medium">✓ Approve Release</span>
-                <span className="text-green-400 font-bold">{dispute.releaseVotes}</span>
+                <span className="text-green-400 font-bold">{releaseVotes}</span>
               </div>
               <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
                 <div
@@ -173,7 +236,7 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
             <div>
               <div className="flex items-center justify-between text-sm mb-1">
                 <span className="text-orange-400 font-medium">↩️ Reject / Refund</span>
-                <span className="text-orange-400 font-bold">{dispute.refundVotes}</span>
+                <span className="text-orange-400 font-bold">{refundVotes}</span>
               </div>
               <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
                 <div
@@ -186,7 +249,7 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
         </div>
 
         {/* Arbitrator Actions */}
-        {isArbitrator && !dispute.resolved && (
+        {isArbitrator && dispute.state !== "Resolved" && dispute.state !== "Enforced" && (
           <div className="mb-6 bg-indigo-950/30 border-2 border-indigo-500/30 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-lg">⚖️</span>
@@ -232,13 +295,43 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
           </div>
         )}
 
+        {/* Resolution Enforcement */}
+        {isArbitrator && votingComplete && dispute.state !== "Enforced" && (
+          <div className="mb-6 bg-green-950/30 border-2 border-green-500/30 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">🔒</span>
+              <h3 className="text-sm font-bold text-green-300 uppercase tracking-wide">
+                Enforce Resolution
+              </h3>
+            </div>
+            <p className="text-sm text-gray-300 mb-4">
+              Voting is complete. The outcome is{" "}
+              <span className="font-semibold text-white">{dispute.outcome}</span>. Enforce this
+              resolution to settle the invoice on-chain.
+            </p>
+            <button
+              onClick={handleEnforce}
+              disabled={!canEnforce || enforcing}
+              className="w-full px-4 py-3 rounded-lg bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Enforce dispute resolution"
+            >
+              {enforcing ? "Enforcing..." : "🔒 Enforce Resolution"}
+            </button>
+            {enforceError && (
+              <p role="alert" className="text-red-400 text-sm mt-3">
+                {enforceError}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Evidence Section */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-white">Evidence Submitted</h3>
             <button
               onClick={() => setShowEvidenceModal(true)}
-              disabled={dispute.resolved}
+              disabled={dispute.state === "Resolved" || dispute.state === "Enforced"}
               className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Submit evidence"
             >
@@ -292,7 +385,7 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
           onSelect={() => {}}
           disabled={true}
           showVoteStatus={true}
-          votedArbitrators={dispute.votedArbitrators}
+          votedArbitrators={dispute.votes.map((v) => v.arbitrator)}
         />
       </section>
 
@@ -363,14 +456,13 @@ function EvidenceUploadModal({ invoiceId, publicKey, onClose, onSuccess }: Evide
         filename: file.name,
       });
 
-      // Show success toast
-      if (typeof window !== "undefined" && (window as any).__toastContainer?.addToast) {
-        (window as any).__toastContainer.addToast("Evidence submitted successfully", "success");
-      }
+      notify("Evidence submitted successfully", "success");
 
       await onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload evidence");
+      const message = err instanceof Error ? err.message : "Failed to upload evidence";
+      setError(message);
+      notify(`Failed to submit evidence: ${message}`, "error");
     } finally {
       setUploading(false);
     }

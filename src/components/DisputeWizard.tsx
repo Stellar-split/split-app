@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { searchArbitrators, getArbitrators } from "@/lib/arbitrators";
 import type { Arbitrator } from "@/lib/arbitrators";
+import { createDispute } from "@/lib/disputes";
+import type { DisputeRecord } from "@/lib/disputes";
+import { notifyDisputeOpened } from "@/lib/disputeNotifications";
 
 const DISPUTE_REASONS = [
   "Non-delivery",
@@ -17,6 +20,8 @@ interface Props {
   invoiceId: string;
   onSubmit: (reason: string, description: string, arbitratorAddress?: string) => Promise<void>;
   onClose: () => void;
+  /** Called after a dispute is successfully created so the invoice can be refreshed. */
+  onCreated?: (dispute: DisputeRecord) => void;
 }
 
 /**
@@ -64,7 +69,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
  * DisputeWizard — multi-step modal form for filing an on-chain dispute.
  * Guides the user through: reason → description → arbitrator → confirmation.
  */
-export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
+export default function DisputeWizard({ invoiceId, onSubmit, onClose, onCreated }: Props) {
   const [step, setStep] = useState(1);
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
@@ -72,6 +77,7 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
   const [arbitratorSearch, setArbitratorSearch] = useState("");
   const [manualArbitrator, setManualArbitrator] = useState("");
   const [useManualEntry, setUseManualEntry] = useState(false);
+  const [evidenceNote, setEvidenceNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,9 +100,29 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
 
   const handleConfirm = async () => {
     setError(null);
+
+    if (!reason) {
+      setError("Please select a dispute reason.");
+      return;
+    }
+    if (description.trim().length < 20) {
+      setError("Description must be at least 20 characters.");
+      return;
+    }
+
     setSubmitting(true);
     try {
+      const dispute = await createDispute({
+        invoiceId,
+        reason,
+        description: description.trim(),
+        arbitratorAddress: effectiveArbitrator || undefined,
+        evidence: evidenceNote.trim() ? [{ note: evidenceNote.trim() }] : undefined,
+      });
+
       await onSubmit(reason, description, effectiveArbitrator || undefined);
+      notifyDisputeOpened(dispute);
+      onCreated?.(dispute);
       onClose();
     } catch (err) {
       setError(String(err));
@@ -269,6 +295,17 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose }: Props) {
                   <p className="text-sm text-gray-300 font-mono break-all">{effectiveArbitrator}</p>
                 </div>
               )}
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-gray-400">Evidence (optional)</p>
+              <textarea
+                value={evidenceNote}
+                onChange={(e) => setEvidenceNote(e.target.value)}
+                placeholder="Add a note or reference to supporting evidence..."
+                maxLength={500}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none h-20"
+              />
+              <p className="text-xs text-gray-500">{evidenceNote.length}/500 characters</p>
             </div>
           </div>
         )}

@@ -14,7 +14,8 @@ import { checkBudget, getBudgetLimit, setBudgetLimit, clearBudgetLimit } from "@
 import { fetchUsdcBalance, USDC_CONTRACT_ID } from "@/lib/stellar";
 import { saveReceipt } from "@/lib/receiptStore";
 import { apiFetch } from "@/lib/apiClient";
-import { getActiveNetwork } from "@/lib/networks";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
+import type { RateLock } from "@/lib/currency";
 
 const STELLAR_EXPERT_BASE =
   getActiveNetwork().explorerTxBase;
@@ -24,6 +25,7 @@ type PaymentResult = { txHash?: string } | void;
 interface PaymentOptions {
   tip: bigint;
   donateOnFailure: boolean;
+  rateLock?: RateLock;
 }
 
 interface Props {
@@ -92,6 +94,12 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
   const [mfaSettings, setMfaSettings] = useState<{ mfaEnabled: boolean; highValueThreshold: number } | null>(null);
   const [showMfaGate, setShowMfaGate] = useState(false);
   const [pendingPayment, setPendingPayment] = useState<{ amount: bigint; email?: string; options?: PaymentOptions } | null>(null);
+  const [rateLock, setRateLock] = useState<RateLock | null>(null);
+  const [lockExpired, setLockExpired] = useState(false);
+
+  const invoiceCurrency = (invoice as any).currency || "USDC";
+  const { rates, loading: ratesLoading, error: ratesError, getRate } = useExchangeRates();
+  const xlmRate = getRate("XLM");
 
   const defaultAmount = getDefaultPaymentAmount(invoice, total, publicKey);
 
@@ -131,6 +139,17 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
   useEffect(() => {
     setInput(formatAmount(defaultAmount));
   }, [defaultAmount]);
+
+  useEffect(() => {
+    if (!rateLock) {
+      setLockExpired(false);
+      return;
+    }
+    const check = () => setLockExpired(Date.now() >= rateLock.expiresAt);
+    check();
+    const timer = setInterval(check, 1000);
+    return () => clearInterval(timer);
+  }, [rateLock]);
 
   useEffect(() => {
     if (publicKey) {
@@ -209,6 +228,11 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
 
   const handleReview = () => {
     if (!parsed || parsed <= 0n) return;
+    if (lockExpired) {
+      setRateLock(null);
+      setError("The exchange rate lock expired. Review the updated rate and try again.");
+      return;
+    }
     if (parsed > remainingInvoiceAmount) {
       setError(`Amount is greater than the remaining invoice balance of ${formatAmount(remainingInvoiceAmount)} USDC.`);
       return;
@@ -226,6 +250,14 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
       return;
     }
     setError(null);
+    if (!rateLock && xlmRate) {
+      setRateLock({
+        currency: invoiceCurrency,
+        rate: xlmRate.rate,
+        lockedAt: Date.now(),
+        expiresAt: Date.now() + 5 * 60 * 1000,
+      });
+    }
     setShowBreakdown(true);
   };
 
@@ -238,6 +270,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
     const options = {
       tip: parsedTip,
       donateOnFailure,
+      rateLock: rateLock ?? undefined,
     };
 
     const requiresMfa = Boolean(mfaSettings?.mfaEnabled) && Number(total) >= (mfaSettings?.highValueThreshold ?? 0);
@@ -561,6 +594,44 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
           </div>
         )}
 
+        {/* Currency & conversion preview */}
+        <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400">Invoice currency</span>
+            <span className="font-semibold text-gray-200">{invoiceCurrency}</span>
+          </div>
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-gray-400">XLM rate</span>
+            <span className="font-mono text-gray-200">
+              {ratesLoading
+                ? "Loading..."
+                : ratesError
+                  ? "Unavailable"
+                  : xlmRate
+                    ? `1 ${invoiceCurrency} ≈ ${xlmRate.rate.toFixed(6)} XLM`
+                    : "Unavailable"}
+            </span>
+          </div>
+          {paymentTotal > 0n && xlmRate && (
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-gray-400">Converted total</span>
+              <span className="font-mono text-indigo-300">
+                ≈ {(Number(formatAmount(paymentTotal)) * xlmRate.rate).toFixed(6)} XLM
+              </span>
+            </div>
+          )}
+          {rateLock && (
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-gray-400">Rate locked</span>
+              <span className={lockExpired ? "text-red-400" : "text-green-400"}>
+                {lockExpired
+                  ? "Expired — refresh to continue"
+                  : `until ${new Date(rateLock.expiresAt).toLocaleTimeString()}`}
+              </span>
+            </div>
+          )}
+        </div>
+
         {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
 
         {/* Email input (optional) */}
@@ -582,7 +653,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
         <button
           type="button"
           onClick={handleReview}
-          disabled={paying || !parsed || parsed <= 0n || isCapReached || isCapExceeded}
+          disabled={paying || !parsed || parsed <= 0n || isCapReached || isCapExceeded || lockExpired}
           className="w-full px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {paying ? "Waiting for signature..." : "Review & Pay"}

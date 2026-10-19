@@ -167,6 +167,26 @@ interface InvoiceTableProps {
   onSort?: (sort: InvoiceTableSortState) => void;
   /** Content to render in each row's action column */
   rowAction?: (inv: Invoice) => React.ReactNode;
+  /** Optional map of invoice id → bundle id, used to show bundle membership badges */
+  bundleByInvoice?: Record<string, string>;
+  /** Called with the selected invoice ids when the user clicks "Create bundle" */
+  onCreateBundle?: (invoiceIds: string[]) => void;
+}
+
+// ── Bundle selection helpers ──────────────────────────────────────────────────
+
+/** An invoice can only be bundled while it is still collecting funds. */
+function isBundleEligible(inv: Invoice, now: number): boolean {
+  const status = getInvoiceDisplayStatus(inv, now);
+  return status === "Pending" || status === "Partial" || status === "Funded";
+}
+
+function bundleIneligibilityReason(inv: Invoice, now: number): string {
+  const status = getInvoiceDisplayStatus(inv, now);
+  if (status === "Expired") return "Expired invoices cannot be bundled";
+  if (status === "Released") return "Released invoices cannot be bundled";
+  if (status === "Refunded") return "Refunded invoices cannot be bundled";
+  return `Invoices with status "${status}" cannot be bundled`;
 }
 
 /**
@@ -184,9 +204,14 @@ export default function InvoiceTable({
   sort: externalSort,
   onSort: externalOnSort,
   rowAction,
+  bundleByInvoice = {},
+  onCreateBundle,
 }: InvoiceTableProps) {
   const [internalSort, setInternalSort] =
     useState<InvoiceTableSortState>(DEFAULT_SORT);
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [selectionError, setSelectionError] = useState<string | null>(null);
 
   const [colVisible, setColVisible] = useState<Record<ColumnKey, boolean>>(() => {
     try {
@@ -241,6 +266,66 @@ export default function InvoiceTable({
 
   const sorted = useMemo(() => sortInvoices(invoices, sort), [invoices, sort]);
 
+  const now = Math.floor(Date.now() / 1000);
+
+  // Drop selections for invoices that are no longer present in the list.
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const present = new Set(invoices.map((inv) => inv.id));
+      let changed = false;
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (present.has(id)) next.add(id);
+        else changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [invoices]);
+
+  const toggleSelected = useCallback(
+    (inv: Invoice) => {
+      if (!isBundleEligible(inv, now)) {
+        setSelectionError(bundleIneligibilityReason(inv, now));
+        return;
+      }
+      setSelectionError(null);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(inv.id)) next.delete(inv.id);
+        else next.add(inv.id);
+        return next;
+      });
+    },
+    [now],
+  );
+
+  const selectedInvoices = useMemo(
+    () => invoices.filter((inv) => selectedIds.has(inv.id)),
+    [invoices, selectedIds],
+  );
+
+  const selectedTotal = useMemo(
+    () => selectedInvoices.reduce((s, inv) => s + totalAmount(inv), 0n),
+    [selectedInvoices],
+  );
+
+  const handleCreateBundle = useCallback(() => {
+    if (selectedIds.size < 2) {
+      setSelectionError("Select at least two invoices to create a bundle.");
+      return;
+    }
+    const ineligible = selectedInvoices.filter((inv) => !isBundleEligible(inv, now));
+    if (ineligible.length > 0) {
+      setSelectionError(
+        `${ineligible.length} selected invoice${ineligible.length === 1 ? "" : "s"} can no longer be bundled.`,
+      );
+      return;
+    }
+    setSelectionError(null);
+    onCreateBundle?.(Array.from(selectedIds));
+  }, [selectedIds, selectedInvoices, now, onCreateBundle]);
+
   if (invoices.length === 0) {
     return (
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 p-6 text-center">
@@ -249,12 +334,47 @@ export default function InvoiceTable({
     );
   }
 
-  const now = Math.floor(Date.now() / 1000);
-
   return (
     <div>
-      {/* Gear button + column settings dropdown */}
-      <div className="flex justify-end mb-2">
+      {/* Bundle selection toolbar + column settings dropdown */}
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <div className="flex flex-wrap items-center gap-2 min-h-[32px]">
+          {onCreateBundle && (
+            <>
+              <span className="text-xs text-gray-400" aria-live="polite">
+                {selectedIds.size === 0
+                  ? "Select invoices to bundle"
+                  : `${selectedIds.size} selected · ${formatAmount(selectedTotal)} USDC`}
+              </span>
+              {selectedIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedIds(new Set());
+                    setSelectionError(null);
+                  }}
+                  className="text-xs text-gray-400 hover:text-gray-200 underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleCreateBundle}
+                disabled={selectedIds.size < 2}
+                className="rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                Create bundle
+              </button>
+            </>
+          )}
+          {selectionError && (
+            <span role="alert" className="text-xs text-red-400">
+              {selectionError}
+            </span>
+          )}
+        </div>
+        <div className="relative">
         <div className="relative">
           <button
             ref={gearRef}
@@ -297,6 +417,11 @@ export default function InvoiceTable({
         >
           <thead className="bg-gray-100 dark:bg-gray-800/80">
             <tr>
+              {onCreateBundle && (
+                <th scope="col" className="w-10 px-4 py-3">
+                  <span className="sr-only">Select</span>
+                </th>
+              )}
               {colVisible.id && (
                 <SortHeader column="id" label="ID" sort={sort} onSort={handleSort} className="w-28" />
               )}
@@ -337,21 +462,52 @@ export default function InvoiceTable({
               const { text: dlText, urgent: dlUrgent } = deadlineRelative(inv.deadline);
               const displayNum = displayNumbers[inv.id] ?? inv.id;
               const tags = tagsByInvoice[inv.id] ?? [];
+              const bundleId = bundleByInvoice[inv.id];
+              const eligible = isBundleEligible(inv, now);
+              const selected = selectedIds.has(inv.id);
 
               return (
                 <tr
                   key={inv.id}
-                  className="group bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  className={[
+                    "group transition-colors",
+                    selected
+                      ? "bg-indigo-50 dark:bg-indigo-900/20"
+                      : "bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50",
+                  ].join(" ")}
                 >
+                  {onCreateBundle && (
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        disabled={!eligible}
+                        onChange={() => toggleSelected(inv)}
+                        aria-label={`Select invoice ${displayNum} for bundling`}
+                        title={eligible ? undefined : bundleIneligibilityReason(inv, now)}
+                        className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+                      />
+                    </td>
+                  )}
                   {colVisible.id && (
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/invoice/${inv.id}`}
-                        className="font-mono text-indigo-400 hover:text-indigo-300 hover:underline transition-colors"
-                        aria-label={`View invoice ${displayNum}`}
-                      >
-                        {displayNum}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/invoice/${inv.id}`}
+                          className="font-mono text-indigo-400 hover:text-indigo-300 hover:underline transition-colors"
+                          aria-label={`View invoice ${displayNum}`}
+                        >
+                          {displayNum}
+                        </Link>
+                        {bundleId && (
+                          <span
+                            className="inline-block rounded-full bg-purple-900/50 border border-purple-700/40 px-1.5 py-0 text-[10px] text-purple-300"
+                            title={`In bundle ${bundleId}`}
+                          >
+                            Bundle {bundleId}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   )}
 

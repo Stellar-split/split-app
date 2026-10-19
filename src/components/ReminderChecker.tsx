@@ -3,6 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { getReminders, type Reminder } from "@/lib/reminders";
 import { getSnoozeState, snoozeInvoice, type SnoozeOption } from "@/lib/expirySnooze";
+import {
+  isReminderSuppressed,
+  dispatchReminder,
+  recordReminderEvent,
+} from "@/lib/reminderEngine";
 
 const CHECK_INTERVAL_MS = 60_000;
 
@@ -12,18 +17,10 @@ const SNOOZE_OPTIONS: { option: SnoozeOption; label: string }[] = [
   { option: "3d", label: "3 days" },
 ];
 
-async function fireNotification(reminder: Reminder) {
-  if (!("Notification" in window)) return;
-  const show = () =>
-    new Notification(`StellarSplit Reminder — Invoice #${reminder.invoiceId}`, {
-      body: reminder.message,
-      icon: "/favicon.ico",
-    });
-  if (Notification.permission === "granted") {
-    show();
-  } else if (Notification.permission === "default") {
-    const permission = await Notification.requestPermission();
-    if (permission === "granted") show();
+async function deliverReminder(reminder: Reminder) {
+  const delivered = await dispatchReminder(reminder);
+  if (delivered) {
+    recordReminderEvent(reminder.invoiceId, "sent");
   }
 }
 
@@ -38,11 +35,14 @@ export default function ReminderChecker() {
   const checkReminders = useCallback(() => {
     const now = new Date();
     const due = getReminders().filter(
-      (r) => new Date(r.reminderDate) <= now && !getSnoozeState(r.invoiceId)
+      (r) =>
+        new Date(r.reminderDate) <= now &&
+        !getSnoozeState(r.invoiceId) &&
+        !isReminderSuppressed(r.invoiceId)
     );
     setDueReminders((prev) => {
       const newlyDue = due.filter((r) => !prev.some((p) => p.invoiceId === r.invoiceId));
-      newlyDue.forEach(fireNotification);
+      newlyDue.forEach(deliverReminder);
       return due;
     });
   }, []);
@@ -59,6 +59,10 @@ export default function ReminderChecker() {
     setDueReminders((prev) => prev.filter((r) => r.invoiceId !== invoiceId));
   };
 
+  const handleOpen = (invoiceId: string) => {
+    recordReminderEvent(invoiceId, "opened");
+  };
+
   if (dueReminders.length === 0) return null;
 
   return (
@@ -66,6 +70,7 @@ export default function ReminderChecker() {
       {dueReminders.map((reminder) => (
         <div
           key={reminder.invoiceId}
+          onClick={() => handleOpen(reminder.invoiceId)}
           className="bg-gray-900 border border-gray-700 rounded-lg p-3 shadow-lg flex items-start justify-between gap-3"
         >
           <div className="text-sm text-gray-200">

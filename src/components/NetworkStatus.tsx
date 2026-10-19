@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { getActiveNetwork } from "@/lib/networks";
+import { useWalletBalance } from "../hooks/useWalletBalance";
+import { useWalletConnect } from "../hooks/useWalletConnect";
 
 const POLL_MS = 60_000;
 
@@ -45,6 +46,9 @@ export default function NetworkStatus() {
   const [justReconnected, setJustReconnected] = useState(false);
   const [browserOffline, setBrowserOffline] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const { lowBalance, lowBalanceAssets } = useWalletBalance();
+  const { status: wcStatus } = useWalletConnect();
 
   const poll = useCallback(async () => {
     const s = await checkHealth(getActiveNetwork().rpcUrl);
@@ -132,6 +136,55 @@ export default function NetworkStatus() {
       }`
     : "Soroban RPC: checking…";
 
+  // ── WalletConnect connection indicator styles ───────────────────────────────
+
+  const wcConnected = wcStatus === "connected";
+  const wcPending = wcStatus === "connecting" || wcStatus === "pairing";
+
+  const wcDotColor = wcConnected
+    ? "bg-blue-400"
+    : wcPending
+    ? "bg-blue-400 animate-pulse"
+    : wcStatus === "error" || wcStatus === "disconnected"
+    ? "bg-gray-500"
+    : "bg-gray-400";
+
+  const wcLabel = wcConnected
+    ? "Wallet connected"
+    : wcPending
+    ? "Connecting…"
+    : wcStatus === "error"
+    ? "Wallet error"
+    : "Wallet disconnected";
+
+  const wcTooltip = `WalletConnect: ${wcLabel}`;
+
+  // ── Low balance warning styles ──────────────────────────────────────────────
+
+  const lowBalanceTooltip =
+    lowBalanceAssets && lowBalanceAssets.length > 0
+      ? `Low balance: ${lowBalanceAssets.join(", ")}`
+      : "One or more token balances are low";
+
+  // ── Network badge styles ─────────────────────────────────────────────────────
+
+  const networkBadgeClasses =
+    NETWORK === "Mainnet"
+      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+      : NETWORK === "Testnet"
+      ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
+      : "bg-gray-500/15 border-gray-500/40 text-gray-400";
+
+  const networkIcon =
+    NETWORK === "Mainnet" ? "🌐" : NETWORK === "Testnet" ? "🧪" : "❓";
+
+  const networkTooltip =
+    NETWORK === "Mainnet"
+      ? "Connected to Stellar Mainnet — real assets"
+      : NETWORK === "Testnet"
+      ? "Connected to Stellar Testnet — test assets only"
+      : "Network unknown — check NEXT_PUBLIC_STELLAR_NETWORK";
+
   return (
     <>
       {/* ── Offline banner ── */}
@@ -167,8 +220,47 @@ export default function NetworkStatus() {
         </div>
       )}
 
-      {/* ── RPC health ── */}
+      {/* ── Network badge + RPC health + WalletConnect + low balance ── */}
       <div className="flex items-center gap-2">
+        {/* Low balance warning badge */}
+        {lowBalance && (
+          <div className="group relative">
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-orange-500/40 bg-orange-500/15 px-2 py-0.5 text-xs font-semibold tracking-wide text-orange-300 select-none"
+              role="status"
+              aria-label="Low balance warning"
+            >
+              <span aria-hidden="true">⚠️</span>
+              <span className="hidden sm:inline">Low balance</span>
+            </span>
+            {/* Tooltip */}
+            <span
+              role="tooltip"
+              className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 hidden group-hover:block whitespace-nowrap rounded bg-gray-900 border border-gray-700 px-2 py-1 text-xs text-gray-200 shadow-lg"
+            >
+              {lowBalanceTooltip}
+            </span>
+          </div>
+        )}
+
+        {/* Permanent Mainnet / Testnet badge */}
+        <div className="group relative">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold tracking-wide select-none ${networkBadgeClasses}`}
+            aria-label={`Network: ${NETWORK}`}
+          >
+            <span aria-hidden="true">{networkIcon}</span>
+            <span className="hidden sm:inline">{NETWORK}</span>
+          </span>
+          {/* Tooltip */}
+          <span
+            role="tooltip"
+            className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 hidden group-hover:block whitespace-nowrap rounded bg-gray-900 border border-gray-700 px-2 py-1 text-xs text-gray-200 shadow-lg"
+          >
+            {networkTooltip}
+          </span>
+        </div>
+
         {/* RPC health dot */}
         <div className="group relative flex items-center gap-1.5 cursor-default select-none">
           <span
@@ -182,6 +274,22 @@ export default function NetworkStatus() {
             className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 hidden group-hover:block whitespace-nowrap rounded bg-gray-900 border border-gray-700 px-2 py-1 text-xs text-gray-200 shadow-lg"
           >
             {rpcTooltip}
+          </span>
+        </div>
+
+        {/* WalletConnect connection dot */}
+        <div className="group relative flex items-center gap-1.5 cursor-default select-none">
+          <span
+            className={`inline-block w-2 h-2 rounded-full shrink-0 ${wcDotColor}`}
+            aria-hidden="true"
+          />
+          <span className="text-xs text-gray-400 hidden sm:inline">{wcLabel}</span>
+          {/* Tooltip */}
+          <span
+            role="tooltip"
+            className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 hidden group-hover:block whitespace-nowrap rounded bg-gray-900 border border-gray-700 px-2 py-1 text-xs text-gray-200 shadow-lg"
+          >
+            {wcTooltip}
           </span>
         </div>
       </div>

@@ -8,6 +8,8 @@ export type WalletErrorType =
   | "locked"
   | "rejected"
   | "network_mismatch"
+  | "walletconnect_failed"
+  | "wallet_switch_failed"
   | null;
 
 interface Props {
@@ -140,6 +142,104 @@ function NetworkMismatchContent({
   );
 }
 
+function WalletConnectFailedContent({
+  onRetry,
+  onDismiss,
+}: {
+  onRetry: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <>
+      <div className="flex flex-col items-center text-center gap-3 mb-6">
+        <span className="text-4xl" aria-hidden="true">🔗</span>
+        <h2 className="text-lg font-bold text-white">WalletConnect Failed</h2>
+        <p className="text-sm text-slate-400">
+          We couldn&apos;t establish a WalletConnect session. This can happen if the
+          QR code expired or the connection was interrupted.
+        </p>
+      </div>
+      <ol className="text-sm text-slate-400 space-y-2 mb-6 text-left">
+        <li className="flex gap-2">
+          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-600/30 text-brand-300 text-xs flex items-center justify-center font-bold">1</span>
+          Make sure your mobile wallet app is open and connected to the internet.
+        </li>
+        <li className="flex gap-2">
+          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-600/30 text-brand-300 text-xs flex items-center justify-center font-bold">2</span>
+          Click <span className="text-white font-medium">Retry</span> to generate a fresh QR code.
+        </li>
+        <li className="flex gap-2">
+          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-600/30 text-brand-300 text-xs flex items-center justify-center font-bold">3</span>
+          Scan the new QR code with your wallet app to reconnect.
+        </li>
+      </ol>
+      <div className="flex flex-col gap-3">
+        <button
+          onClick={onRetry}
+          className="w-full h-10 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold transition-colors"
+        >
+          Retry WalletConnect
+        </button>
+        <button
+          onClick={onDismiss}
+          className="w-full h-10 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 text-sm font-medium transition-colors"
+        >
+          Choose Another Wallet
+        </button>
+      </div>
+    </>
+  );
+}
+
+function WalletSwitchFailedContent({
+  onRetry,
+  onDismiss,
+}: {
+  onRetry: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <>
+      <div className="flex flex-col items-center text-center gap-3 mb-6">
+        <span className="text-4xl" aria-hidden="true">🔀</span>
+        <h2 className="text-lg font-bold text-white">Couldn&apos;t Switch Wallet</h2>
+        <p className="text-sm text-slate-400">
+          Switching to the selected wallet failed. Your previous wallet may still be
+          connected. Try again, or pick a different wallet.
+        </p>
+      </div>
+      <ol className="text-sm text-slate-400 space-y-2 mb-6 text-left">
+        <li className="flex gap-2">
+          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-600/30 text-brand-300 text-xs flex items-center justify-center font-bold">1</span>
+          Confirm the target wallet extension or app is unlocked.
+        </li>
+        <li className="flex gap-2">
+          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-600/30 text-brand-300 text-xs flex items-center justify-center font-bold">2</span>
+          Approve the connection request in that wallet.
+        </li>
+        <li className="flex gap-2">
+          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-600/30 text-brand-300 text-xs flex items-center justify-center font-bold">3</span>
+          Click <span className="text-white font-medium">Try Again</span> below.
+        </li>
+      </ol>
+      <div className="flex flex-col gap-3">
+        <button
+          onClick={onRetry}
+          className="w-full h-10 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold transition-colors"
+        >
+          Try Again
+        </button>
+        <button
+          onClick={onDismiss}
+          className="w-full h-10 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 text-sm font-medium transition-colors"
+        >
+          Choose Another Wallet
+        </button>
+      </div>
+    </>
+  );
+}
+
 export default function WalletErrorModal({
   errorType,
   onDismiss,
@@ -202,6 +302,12 @@ export default function WalletErrorModal({
             expectedNetwork={expectedNetwork}
             onDismiss={onDismiss}
           />
+        )}
+        {errorType === "walletconnect_failed" && (
+          <WalletConnectFailedContent onRetry={onRetry} onDismiss={onDismiss} />
+        )}
+        {errorType === "wallet_switch_failed" && (
+          <WalletSwitchFailedContent onRetry={onRetry} onDismiss={onDismiss} />
         )}
       </div>
     </div>

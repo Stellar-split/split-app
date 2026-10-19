@@ -2,15 +2,75 @@
 
 import { useMemo, useState } from "react";
 
+import {
+  createRecurringSchedule,
+  updateRecurringSchedule,
+  type RecurringFrequency,
+  type RecurringSchedule,
+  type RecurringScheduleInput,
+  type ScheduleConflict,
+} from "@/lib/recurring-schedule";
+
 interface RecurringConfig {
   enabled: boolean;
-  intervalDays: 7 | 30;
+  frequency: RecurringFrequency;
+  intervalDays: number;
+  startDate: string;
   endDate?: string;
   maxOccurrences?: number;
+  timezone: string;
 }
 
 interface Props {
   onConfirm: (config: RecurringConfig) => void;
+  /** Existing schedule id — when provided, confirm updates instead of creating. */
+  scheduleId?: string;
+  /** Existing schedule to edit, if any. */
+  initialSchedule?: RecurringSchedule;
+}
+
+const FREQUENCY_OPTIONS: { value: RecurringFrequency; label: string }[] = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "custom", label: "Custom" },
+];
+
+const FREQUENCY_DAYS: Record<Exclude<RecurringFrequency, "custom">, number> = {
+  daily: 1,
+  weekly: 7,
+  monthly: 30,
+};
+
+function todayISO(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function resolveIntervalDays(frequency: RecurringFrequency, customInterval: string): number {
+  if (frequency === "custom") return parseInt(customInterval, 10) || 0;
+  return FREQUENCY_DAYS[frequency];
+}
+
+function validateInput(input: RecurringScheduleInput): string | null {
+  if (!input.startDate) return "A start date is required.";
+  if (input.startDate < todayISO()) return "Start date cannot be in the past.";
+  if (!Number.isFinite(input.intervalDays) || input.intervalDays < 1) {
+    return "Interval must be at least 1 day.";
+  }
+  if (input.frequency === "custom" && input.intervalDays > 365) {
+    return "Custom interval cannot exceed 365 days.";
+  }
+  if (input.endDate && input.endDate < input.startDate) {
+    return "End date must be on or after the start date.";
+  }
+  if (
+    input.maxOccurrences !== undefined &&
+    (!Number.isInteger(input.maxOccurrences) || input.maxOccurrences < 1)
+  ) {
+    return "Max occurrences must be a positive whole number.";
+  }
+  if (!input.timezone) return "A timezone is required.";
+  return null;
 }
 
 // --- #616: mini calendar helpers ---
@@ -107,7 +167,8 @@ function MiniCalendar({ year, month, highlightedDays }: MiniCalendarProps) {
  * Re-renders automatically when intervalDays, startDate, or endDate change.
  */
 interface ScheduleCalendarPreviewProps {
-  intervalDays: 7 | 30;
+  intervalDays: number;
+  startDate: string; // ISO date string or ""
   endDate: string; // ISO date string or ""
   useMaxOccurrences: boolean;
   maxOccurrences: string;
@@ -115,19 +176,20 @@ interface ScheduleCalendarPreviewProps {
 
 function ScheduleCalendarPreview({
   intervalDays,
+  startDate,
   endDate,
   useMaxOccurrences,
   maxOccurrences,
 }: ScheduleCalendarPreviewProps) {
   const scheduleDates = useMemo(() => {
-    const startDate = new Date();
+    const resolvedStart = startDate ? new Date(startDate) : new Date();
     const resolvedEndDate =
       !useMaxOccurrences && endDate ? new Date(endDate) : null;
     const limit = useMaxOccurrences
       ? Math.min(parseInt(maxOccurrences) || 6, 6)
       : 6;
-    return computeSchedule(intervalDays, startDate, resolvedEndDate, limit);
-  }, [intervalDays, endDate, useMaxOccurrences, maxOccurrences]);
+    return computeSchedule(intervalDays, resolvedStart, resolvedEndDate, limit);
+  }, [intervalDays, startDate, endDate, useMaxOccurrences, maxOccurrences]);
 
   // Group dates by year-month
   const monthGroups = useMemo(() => {
@@ -183,17 +245,59 @@ function ScheduleCalendarPreview({
 }
 // --- end #616 ---
 
-export default function RecurringWizard({ onConfirm }: Props) {
+export default function RecurringWizard({
+  onConfirm,
+  scheduleId,
+  initialSchedule,
+}: Props) {
   const [step, setStep] = useState(1);
-  const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
-  const [endDate, setEndDate] = useState("");
-  const [maxOccurrences, setMaxOccurrences] = useState("");
-  const [useMaxOccurrences, setUseMaxOccurrences] = useState(false);
+  const [frequency, setFrequency] = useState<RecurringFrequency>(
+    initialSchedule?.frequency ?? "weekly"
+  );
+  const [customInterval, setCustomInterval] = useState(
+    initialSchedule?.frequency === "custom"
+      ? String(initialSchedule.intervalDays)
+      : "14"
+  );
+  const [startDate, setStartDate] = useState(
+    initialSchedule?.startDate ?? todayISO()
+  );
+  const [endDate, setEndDate] = useState(initialSchedule?.endDate ?? "");
+  const [maxOccurrences, setMaxOccurrences] = useState(
+    initialSchedule?.maxOccurrences !== undefined
+      ? String(initialSchedule.maxOccurrences)
+      : ""
+  );
+  const [useMaxOccurrences, setUseMaxOccurrences] = useState(
+    initialSchedule?.maxOccurrences !== undefined
+  );
+  const [timezone, setTimezone] = useState(
+    initialSchedule?.timezone ??
+      Intl.DateTimeFormat().resolvedOptions().timeZone ??
+      "UTC"
+  );
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [conflicts, setConflicts] = useState<ScheduleConflict[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const intervalDays = resolveIntervalDays(frequency, customInterval);
+
+  const buildInput = (): RecurringScheduleInput => ({
+    frequency,
+    intervalDays,
+    startDate,
+    timezone,
+    ...(useMaxOccurrences && maxOccurrences
+      ? { maxOccurrences: parseInt(maxOccurrences, 10) }
+      : {}),
+    ...(!useMaxOccurrences && endDate ? { endDate } : {}),
+  });
 
   const generatePreviewDates = () => {
-    const dates = [];
-    let current = new Date();
-    const limit = useMaxOccurrences ? parseInt(maxOccurrences) : 12;
+    const dates: string[] = [];
+    let current = startDate ? new Date(startDate) : new Date();
+    const limit = useMaxOccurrences ? parseInt(maxOccurrences) || 12 : 12;
 
     for (let i = 0; i < limit; i++) {
       current = new Date(current.getTime() + intervalDays * 24 * 60 * 60 * 1000);
@@ -206,54 +310,150 @@ export default function RecurringWizard({ onConfirm }: Props) {
   const previewDates = step === 3 ? generatePreviewDates() : [];
 
   const handleNext = () => {
+    setValidationError(null);
+    if (step === 1) {
+      const error = validateInput(buildInput());
+      if (error) {
+        setValidationError(error);
+        return;
+      }
+    }
     if (step < 3) setStep(step + 1);
   };
 
   const handleBack = () => {
+    setValidationError(null);
+    setConflicts([]);
+    setSubmitError(null);
     if (step > 1) setStep(step - 1);
   };
 
-  const handleConfirm = () => {
-    onConfirm({
-      enabled: true,
-      intervalDays,
-      ...(useMaxOccurrences && { maxOccurrences: parseInt(maxOccurrences) }),
-      ...(!useMaxOccurrences && endDate && { endDate }),
-    });
+  const handleConfirm = async () => {
+    setValidationError(null);
+    setSubmitError(null);
+    setConflicts([]);
+
+    const input = buildInput();
+    const error = validateInput(input);
+    if (error) {
+      setValidationError(error);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = scheduleId
+        ? await updateRecurringSchedule(scheduleId, input)
+        : await createRecurringSchedule(input);
+
+      if (!result.ok) {
+        if (result.conflicts.length > 0) {
+          setConflicts(result.conflicts);
+        } else {
+          setSubmitError(result.error ?? "Unable to save the recurring schedule.");
+        }
+        return;
+      }
+
+      onConfirm({
+        enabled: true,
+        frequency: input.frequency,
+        intervalDays: input.intervalDays,
+        startDate: input.startDate,
+        timezone: input.timezone,
+        ...(input.maxOccurrences !== undefined && {
+          maxOccurrences: input.maxOccurrences,
+        }),
+        ...(input.endDate && { endDate: input.endDate }),
+      });
+    } catch {
+      setSubmitError("Unable to save the recurring schedule.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
       <h3 className="text-lg font-semibold mb-6">Recurring Invoice Setup</h3>
 
-      {/* Step 1: Interval Selection */}
+      {/* Step 1: Frequency & Interval Selection */}
       {step === 1 && (
         <div className="space-y-4">
-          <p className="text-sm text-gray-400 mb-4">Step 1 of 3: Select interval</p>
+          <p className="text-sm text-gray-400 mb-4">Step 1 of 3: Select schedule</p>
           <div className="space-y-3">
-            {[
-              { value: 7, label: "Weekly" },
-              { value: 30, label: "Monthly" },
-            ].map((option) => (
+            {FREQUENCY_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setIntervalDays(option.value as 7 | 30)}
+                onClick={() => setFrequency(option.value)}
                 className={`w-full p-4 rounded-lg border-2 transition-colors text-left ${
-                  intervalDays === option.value
+                  frequency === option.value
                     ? "border-indigo-500 bg-indigo-500/10"
                     : "border-gray-700 bg-gray-900 hover:border-gray-600"
                 }`}
               >
                 <span className="font-medium">{option.label}</span>
-                <span className="text-xs text-gray-400 ml-2">({option.value} days)</span>
+                {option.value !== "custom" && (
+                  <span className="text-xs text-gray-400 ml-2">
+                    (every {FREQUENCY_DAYS[option.value]} day
+                    {FREQUENCY_DAYS[option.value] !== 1 ? "s" : ""})
+                  </span>
+                )}
               </button>
             ))}
+          </div>
+
+          {frequency === "custom" && (
+            <div>
+              <label className="block text-xs text-gray-400 mb-1" htmlFor="custom-interval">
+                Every N days
+              </label>
+              <input
+                id="custom-interval"
+                type="number"
+                min="1"
+                max="365"
+                value={customInterval}
+                onChange={(e) => setCustomInterval(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1" htmlFor="start-date">
+                Start date
+              </label>
+              <input
+                id="start-date"
+                type="date"
+                value={startDate}
+                min={todayISO()}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1" htmlFor="timezone">
+                Timezone
+              </label>
+              <input
+                id="timezone"
+                type="text"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                placeholder="e.g. America/New_York"
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
           </div>
 
           {/* #616: mini calendar preview — visible from step 1 onwards */}
           <ScheduleCalendarPreview
             intervalDays={intervalDays}
+            startDate={startDate}
             endDate={endDate}
             useMaxOccurrences={useMaxOccurrences}
             maxOccurrences={maxOccurrences}
@@ -309,6 +509,7 @@ export default function RecurringWizard({ onConfirm }: Props) {
           {/* #616: mini calendar updates as user changes end date / occurrences */}
           <ScheduleCalendarPreview
             intervalDays={intervalDays}
+            startDate={startDate}
             endDate={endDate}
             useMaxOccurrences={useMaxOccurrences}
             maxOccurrences={maxOccurrences}
@@ -336,11 +537,52 @@ export default function RecurringWizard({ onConfirm }: Props) {
           {/* #616: mini calendar on confirmation step too */}
           <ScheduleCalendarPreview
             intervalDays={intervalDays}
+            startDate={startDate}
             endDate={endDate}
             useMaxOccurrences={useMaxOccurrences}
             maxOccurrences={maxOccurrences}
           />
+
+          <div className="bg-gray-900 rounded-lg p-4 text-xs text-gray-400 space-y-1">
+            <p>
+              <span className="text-gray-500">Frequency:</span>{" "}
+              {FREQUENCY_OPTIONS.find((o) => o.value === frequency)?.label} (every{" "}
+              {intervalDays} day{intervalDays !== 1 ? "s" : ""})
+            </p>
+            <p>
+              <span className="text-gray-500">Starts:</span>{" "}
+              {startDate ? new Date(startDate).toLocaleDateString() : "—"}
+            </p>
+            <p>
+              <span className="text-gray-500">Timezone:</span> {timezone}
+            </p>
+          </div>
+
+          {conflicts.length > 0 && (
+            <div
+              role="alert"
+              className="rounded-lg border border-red-700 bg-red-900/30 p-3 text-xs text-red-300"
+            >
+              <p className="font-semibold mb-1">Schedule conflicts detected</p>
+              <ul className="list-disc list-inside space-y-1">
+                {conflicts.map((conflict, i) => (
+                  <li key={i}>{conflict.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
+      )}
+
+      {validationError && (
+        <p role="alert" className="mt-4 text-xs text-red-400">
+          {validationError}
+        </p>
+      )}
+      {submitError && (
+        <p role="alert" className="mt-4 text-xs text-red-400">
+          {submitError}
+        </p>
       )}
 
       {/* Navigation */}
@@ -365,9 +607,10 @@ export default function RecurringWizard({ onConfirm }: Props) {
           <button
             type="button"
             onClick={handleConfirm}
-            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium"
+            disabled={submitting}
+            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Confirm
+            {submitting ? "Saving…" : "Confirm"}
           </button>
         )}
       </div>

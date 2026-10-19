@@ -1,12 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { computeUpcomingDates } from "@/lib/subscriptions";
+import {
+  computeUpcomingDates,
+  type RecurringSchedule,
+  type ScheduleStatus,
+} from "@/lib/subscriptions";
 
 interface Props {
-  intervalDays: number;
+  schedule: RecurringSchedule;
   count?: number;
   fromDate?: Date;
+  status?: ScheduleStatus;
 }
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -16,14 +21,17 @@ function getDaysInMonth(year: number, month: number): number {
 }
 
 export default function SubscriptionCalendarPreview({
-  intervalDays,
+  schedule,
   count = 6,
   fromDate,
+  status = "active",
 }: Props) {
   const upcomingDates = useMemo(
-    () => computeUpcomingDates(intervalDays, count, fromDate),
-    [intervalDays, count, fromDate]
+    () => computeUpcomingDates(schedule, count, fromDate),
+    [schedule, count, fromDate]
   );
+
+  const isInactive = status === "paused" || status === "cancelled";
 
   const initialView = useMemo(() => {
     const first = upcomingDates[0] ?? fromDate ?? new Date();
@@ -63,9 +71,22 @@ export default function SubscriptionCalendarPreview({
   return (
     <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-300">
-          Upcoming Invoice Dates
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-300">
+            Upcoming Invoice Dates
+          </h3>
+          {status !== "active" && (
+            <span
+              className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                status === "paused"
+                  ? "bg-yellow-900/50 text-yellow-300"
+                  : "bg-red-900/50 text-red-300"
+              }`}
+            >
+              {status}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -90,9 +111,17 @@ export default function SubscriptionCalendarPreview({
       </div>
 
       {upcomingDates.length === 0 ? (
-        <p className="text-sm text-gray-500">No upcoming dates.</p>
+        <p className="text-sm text-gray-500">
+          {isInactive
+            ? "No upcoming dates while this schedule is inactive."
+            : "No upcoming dates."}
+        </p>
       ) : (
-        <div className="grid grid-cols-7 gap-0.5">
+        <div
+          className={`grid grid-cols-7 gap-0.5 ${
+            isInactive ? "opacity-50" : ""
+          }`}
+        >
           {DAY_LABELS.map((label) => (
             <div
               key={label}
@@ -124,7 +153,11 @@ export default function SubscriptionCalendarPreview({
 
       <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded bg-indigo-600" />
+          <span
+            className={`w-3 h-3 rounded ${
+              isInactive ? "bg-gray-600" : "bg-indigo-600"
+            }`}
+          />
           Invoice date
         </div>
         <div>Next {count} dates shown</div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
 import type { Payment } from "@stellar-split/sdk";
+import { formatAssetAmount } from "../lib/balanceFormat";
 
 const COLORS = ["#6366f1", "#22d3ee", "#f59e0b", "#10b981", "#f43f5e", "#a78bfa", "#fb923c"];
 
@@ -55,7 +56,7 @@ export default function PaymentSourceBar({ payments, total }: Props) {
             className="relative group cursor-pointer transition-opacity hover:opacity-80"
             onMouseEnter={() => setHoveredPayer(segment.payer)}
             onMouseLeave={() => setHoveredPayer(null)}
-            title={`${segment.payer}: ${formatAmount(segment.amount)} USDC`}
+            title={`${segment.payer}: ${formatAssetAmount(segment.amount, "USDC")}`}
           >
             {segment.percentage > 8 && (
               <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white pointer-events-none">
@@ -64,7 +65,7 @@ export default function PaymentSourceBar({ payments, total }: Props) {
             )}
             {hoveredPayer === segment.payer && (
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10 border border-gray-600">
-                {truncateAddress(segment.payer)}: {formatAmount(segment.amount)} USDC
+                {truncateAddress(segment.payer)}: {formatAssetAmount(segment.amount, "USDC")}
               </div>
             )}
           </div>
@@ -73,7 +74,7 @@ export default function PaymentSourceBar({ payments, total }: Props) {
           <div
             style={{ width: `${unfundedPercentage}%` }}
             className="bg-gray-700"
-            title={`Unfunded: ${formatAmount(unfunded)} USDC`}
+            title={`Unfunded: ${formatAssetAmount(unfunded, "USDC")}`}
           />
         )}
       </div>
@@ -97,7 +98,7 @@ export default function PaymentSourceBar({ payments, total }: Props) {
               </span>
             </div>
             <span className="text-indigo-300 font-semibold">
-              {formatAmount(segment.amount)} USDC
+              {formatAssetAmount(segment.amount, "USDC")}
             </span>
           </div>
         ))}
@@ -108,7 +109,7 @@ export default function PaymentSourceBar({ payments, total }: Props) {
               <span className="text-gray-400">Unfunded</span>
             </div>
             <span className="text-gray-400 font-semibold">
-              {formatAmount(unfunded)} USDC
+              {formatAssetAmount(unfunded, "USDC")}
             </span>
           </div>
         )}
