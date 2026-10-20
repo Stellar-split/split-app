@@ -1,4 +1,4 @@
-export type ExportFormat = 'csv' | 'json' | 'pdf';
+export type ExportFormat = 'csv' | 'json' | 'pdf' | 'xml' | 'html' | 'custom';
 
 export interface ExportFilters {
   startDate?: string;
@@ -19,6 +19,18 @@ export interface ExportHistoryEntry {
 }
 
 const STORAGE_KEY = 'payment_export_history';
+const SCHEDULE_STORAGE_KEY = 'invoice_export_schedule';
+
+export interface ScheduledInvoiceExport {
+  id: string;
+  invoiceId: string;
+  format: ExportFormat;
+  scheduledAt: string;
+  status: 'pending' | 'completed';
+  content: string;
+  mimeType: string;
+  extension: string;
+}
 
 function isBrowser(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
@@ -107,5 +119,51 @@ export function clearExportHistory(): void {
     window.localStorage.removeItem(STORAGE_KEY);
   } catch {
     // Ignore storage errors.
+  }
+}
+
+export function getScheduledInvoiceExports(): ScheduledInvoiceExport[] {
+  if (!isBrowser()) return [];
+  try {
+    const value: unknown = JSON.parse(window.localStorage.getItem(SCHEDULE_STORAGE_KEY) ?? '[]');
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is ScheduledInvoiceExport =>
+      typeof item === 'object' && item !== null &&
+      typeof item.id === 'string' && typeof item.invoiceId === 'string' &&
+      typeof item.scheduledAt === 'string' && typeof item.content === 'string' &&
+      typeof item.mimeType === 'string' && typeof item.extension === 'string' &&
+      (item.status === 'pending' || item.status === 'completed')
+    );
+  } catch {
+    return [];
+  }
+}
+
+export function scheduleInvoiceExport(
+  job: Omit<ScheduledInvoiceExport, 'id' | 'status'>
+): ScheduledInvoiceExport {
+  const scheduled: ScheduledInvoiceExport = {
+    ...job,
+    id: generateId(),
+    status: 'pending',
+  };
+  const jobs = getScheduledInvoiceExports();
+  jobs.push(scheduled);
+  try {
+    window.localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(jobs));
+  } catch {
+    throw new Error('Unable to save scheduled export in browser storage.');
+  }
+  return scheduled;
+}
+
+export function completeScheduledInvoiceExport(id: string): void {
+  const jobs = getScheduledInvoiceExports().map((job) =>
+    job.id === id ? { ...job, status: 'completed' as const } : job
+  );
+  try {
+    window.localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(jobs));
+  } catch {
+    // The downloaded export is still complete if history persistence fails.
   }
 }

@@ -71,24 +71,9 @@ const fetchMock = vi.fn(async () =>
 );
 vi.stubGlobal('fetch', fetchMock);
 
-// Reset retry metrics between tests if the metrics module is present.
-async function resetRetryMetrics(): Promise<void> {
-  try {
-    const mod: any = await import('./lib/reliability/retryMetrics');
-    if (mod && typeof mod.resetRetryMetrics === 'function') {
-      mod.resetRetryMetrics();
-    } else if (mod && mod.retryMetrics && typeof mod.retryMetrics.reset === 'function') {
-      mod.retryMetrics.reset();
-    }
-  } catch {
-    // Metrics module not present in this test context; nothing to reset.
-  }
-}
-
-beforeEach(async () => {
+beforeEach(() => {
   onlineStatus = true;
   fetchMock.mockClear();
-  await resetRetryMetrics();
 });
 
 afterEach(() => {

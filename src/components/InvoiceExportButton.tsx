@@ -1,9 +1,16 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Invoice } from '@stellar-split/sdk';
 import { formatAmount } from '@stellar-split/sdk';
 import { DEFAULT_ACCENT_COLOR, BRAND_FONT_OPTIONS, type BrandSettings } from '@/lib/brandSettings';
+import { generateInvoiceExport, type InvoiceExportFormat } from '@/lib/invoiceFormatExport';
+import {
+  addExportHistoryEntry,
+  completeScheduledInvoiceExport,
+  getScheduledInvoiceExports,
+  scheduleInvoiceExport,
+} from '@/lib/exportHistory';
 
 /** Resolves the react-pdf font name for a brand font (falls back to Helvetica). */
 function resolvePdfFontFamily(font: BrandSettings['fontFamily'] | undefined): string {
@@ -160,6 +167,36 @@ export default function InvoiceExportButton({ invoice, total, branding }: Props)
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [emailValue, setEmailValue] = useState('');
   const [emailStatus, setEmailStatus] = useState<{ ok: boolean; message: string } | null>(null);
+  const [exportFormat, setExportFormat] = useState<InvoiceExportFormat>('json');
+  const [customTemplate, setCustomTemplate] = useState('Invoice {{id}}\nTotal: {{total}} {{token}}\nStatus: {{status}}');
+  const [scheduledAt, setScheduledAt] = useState('');
+  const [formatLoading, setFormatLoading] = useState(false);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const processDueExports = () => {
+      const now = Date.now();
+      for (const job of getScheduledInvoiceExports()) {
+        if (job.status !== 'pending' || new Date(job.scheduledAt).getTime() > now) continue;
+        const blob = new Blob([job.content], { type: job.mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `invoice-${job.invoiceId}.${job.extension}`;
+        link.click();
+        URL.revokeObjectURL(url);
+        completeScheduledInvoiceExport(job.id);
+        addExportHistoryEntry({ format: job.format, filters: { invoiceId: job.invoiceId, scheduled: true }, recordCount: 1, status: 'completed' });
+      }
+    };
+    processDueExports();
+    const interval = window.setInterval(processDueExports, 15000);
+    window.addEventListener('focus', processDueExports);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', processDueExports);
+    };
+  }, []);
 
   const resolveBranding = useCallback(async (): Promise<BrandSettings | null> => {
     if (branding) return branding;
@@ -323,10 +360,58 @@ export default function InvoiceExportButton({ invoice, total, branding }: Props)
       a.download = `invoice-${invoice.id}-${formattedDate}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
+      addExportHistoryEntry({ format: 'pdf', filters: { invoiceId: invoice.id }, recordCount: 1, status: 'completed' });
     } finally {
       setLoading(false);
     }
   }, [invoice, total, resolveBranding]);
+
+  const downloadInvoiceFormat = useCallback((content: string, mimeType: string, extension: string) => {
+    const url = URL.createObjectURL(new Blob([content], { type: mimeType }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `invoice-${invoice.id}.${extension}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [invoice.id]);
+
+  const handleFormatExport = useCallback(() => {
+    setFormatLoading(true);
+    setExportMessage(null);
+    try {
+      const result = generateInvoiceExport(invoice, total, exportFormat, customTemplate);
+      downloadInvoiceFormat(result.content, result.mimeType, result.extension);
+      addExportHistoryEntry({ format: exportFormat, filters: { invoiceId: invoice.id }, recordCount: 1, status: 'completed' });
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : 'Export failed.');
+    } finally {
+      setFormatLoading(false);
+    }
+  }, [customTemplate, downloadInvoiceFormat, exportFormat, invoice, total]);
+
+  const handleScheduleExport = useCallback(() => {
+    const date = new Date(scheduledAt);
+    if (!scheduledAt || Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) {
+      setExportMessage('Choose a future date and time.');
+      return;
+    }
+    try {
+      const result = generateInvoiceExport(invoice, total, exportFormat, customTemplate);
+      scheduleInvoiceExport({
+        invoiceId: invoice.id,
+        format: exportFormat,
+        scheduledAt: date.toISOString(),
+        content: result.content,
+        mimeType: result.mimeType,
+        extension: result.extension,
+      });
+      addExportHistoryEntry({ format: exportFormat, filters: { invoiceId: invoice.id, scheduled: true }, recordCount: 1, status: 'pending' });
+      setExportMessage(`Export scheduled for ${date.toLocaleString()}.`);
+      setScheduledAt('');
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : 'Could not schedule export.');
+    }
+  }, [customTemplate, exportFormat, invoice, scheduledAt, total]);
 
   const handleReceiptDownload = useCallback(async () => {
     setReceiptLoading(true);
@@ -384,6 +469,22 @@ export default function InvoiceExportButton({ invoice, total, branding }: Props)
           )}
         </button>
 
+        <label className="sr-only" htmlFor={`invoice-export-format-${invoice.id}`}>Export format</label>
+        <select
+          id={`invoice-export-format-${invoice.id}`}
+          value={exportFormat}
+          onChange={(event) => setExportFormat(event.target.value as InvoiceExportFormat)}
+          className="rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100"
+        >
+          <option value="json">JSON</option>
+          <option value="xml">XML</option>
+          <option value="html">HTML</option>
+          <option value="custom">Custom</option>
+        </select>
+        <button type="button" onClick={handleFormatExport} disabled={formatLoading} className="rounded bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50">
+          {formatLoading ? 'Exporting...' : `Export ${exportFormat.toUpperCase()}`}
+        </button>
+
         {/* Receipt PDF download (compact A5) */}
         <button
           type="button"
@@ -430,6 +531,19 @@ export default function InvoiceExportButton({ invoice, total, branding }: Props)
           Print
         </button>
       </div>
+
+      {exportFormat === 'custom' && (
+        <label className="flex flex-col gap-1 text-xs text-gray-300">
+          Custom template (use {'{{field}}'} placeholders)
+          <textarea value={customTemplate} onChange={(event) => setCustomTemplate(event.target.value)} rows={3} className="rounded border border-gray-600 bg-gray-900 p-2 font-mono text-gray-100" />
+        </label>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="sr-only" htmlFor={`invoice-export-date-${invoice.id}`}>Schedule export date and time</label>
+        <input id={`invoice-export-date-${invoice.id}`} type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} className="rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100" />
+        <button type="button" onClick={handleScheduleExport} disabled={!scheduledAt} className="rounded border border-gray-600 px-3 py-1.5 text-sm text-gray-200 disabled:opacity-50">Schedule {exportFormat.toUpperCase()}</button>
+      </div>
+      {exportMessage && <p role="status" className="text-xs text-gray-300">{exportMessage}</p>}
 
       {/* Email receipt input panel */}
       {showEmailInput && (

@@ -11,7 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { forecastEarnings, totalForecast, type EarningsPoint } from "@/lib/earningsForecast";
+import { forecastEarningsDetailed, totalForecast, type EarningsPoint } from "@/lib/earningsForecast";
 
 interface Props {
   history: EarningsPoint[];
@@ -32,13 +32,16 @@ function nextMonthLabels(count: number): string[] {
 export default function EarningsForecastChart({ history }: Props) {
   const [horizon, setHorizon] = useState<number>(3);
 
+  const forecast = useMemo(
+    () => forecastEarningsDetailed(history, horizon, nextMonthLabels(horizon)),
+    [history, horizon]
+  );
   const data = useMemo(
-    () =>
-      forecastEarnings(history, horizon, nextMonthLabels(horizon)).map((p) => ({
+    () => forecast.points.map((p) => ({
         ...p,
         band: p.low !== undefined && p.high !== undefined ? [p.low, p.high] : undefined,
       })),
-    [history, horizon]
+    [forecast.points]
   );
   const total = useMemo(() => totalForecast(data), [data]);
   const hasData = history.some((h) => h.value > 0);
@@ -76,6 +79,11 @@ export default function EarningsForecastChart({ history }: Props) {
               {total} USDC
             </span>
           </p>
+          <p className="mb-3 text-xs text-gray-500" data-testid="forecast-metrics">
+            {forecast.model === "linear" ? "Linear regression" : "3-period moving average"} · walk-forward MAE {forecast.metrics.mae} USDC · RMSE {forecast.metrics.rmse} USDC
+            {forecast.metrics.mape !== null ? ` · MAPE ${forecast.metrics.mape}%` : ""}
+            {forecast.metrics.sampleCount === 0 ? " · awaiting more history for validation" : ""}
+          </p>
           <div className="w-full h-56 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -100,7 +108,7 @@ export default function EarningsForecastChart({ history }: Props) {
             </ResponsiveContainer>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            Linear trend over your last {history.length} months; shaded area shows the expected range.
+            Model retrained on your latest {history.length} months; shaded area shows the 95% prediction interval.
           </p>
         </>
       )}
