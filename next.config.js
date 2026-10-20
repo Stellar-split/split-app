@@ -46,6 +46,10 @@ const nextConfig = {
         headers: [
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // X-XSS-Protection enables the browser's built-in XSS filter (IE/Chrome legacy).
+          // Modern browsers rely on CSP instead, but this header provides defence-in-depth
+          // for older clients. Mode=block prevents partial rendering of detected attacks.
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           {
             key: 'Strict-Transport-Security',
