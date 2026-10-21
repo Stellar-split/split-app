@@ -418,8 +418,8 @@ export default function DashboardClient() {
   // on every DashboardClient render.
   const toggleCompareSelect = useCallback((id: string) => {
     setCompareSelected((prev) => {
-      if (prev.size >= 2 && !prev.has(id)) {
-        return prev; // Max 2 invoices
+      if (prev.size >= 10 && !prev.has(id)) {
+        return prev;
       }
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -434,9 +434,9 @@ export default function DashboardClient() {
   };
 
   const handleCompare = () => {
-    if (compareSelected.size === 2) {
-      const [id1, id2] = Array.from(compareSelected);
-      router.push(`/invoice/compare?a=${id1}&b=${id2}`);
+    if (compareSelected.size >= 2 && compareSelected.size <= 10) {
+      const query = new URLSearchParams({ ids: Array.from(compareSelected).join(",") });
+      router.push(`/invoice/compare?${query.toString()}`);
     }
   };
 
@@ -653,11 +653,11 @@ export default function DashboardClient() {
               </button>
               <button
                 onClick={handleCompare}
-                disabled={compareSelected.size !== 2}
+                disabled={compareSelected.size < 2 || compareSelected.size > 10}
                 className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
                 aria-label={`Compare ${compareSelected.size} selected invoices`}
               >
-                Compare Selected ({compareSelected.size}/2)
+                Compare Selected ({compareSelected.size}/10)
               </button>
             </>
           )}
@@ -781,7 +781,7 @@ export default function DashboardClient() {
       {/* Bulk reminder results */}
       {compareMode && (
         <p className="text-sm text-gray-400 mb-4" role="status">
-          Select up to 2 invoices to compare side-by-side.
+          Select 2–10 invoices to compare against a baseline.
         </p>
       )}
 

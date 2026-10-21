@@ -10,7 +10,10 @@ import {
 } from "@/lib/archiveInvoices";
 import {
   exportInvoicesBulk,
+  getBulkInvoiceAudit,
   printInvoicesBulk,
+  recordBulkInvoiceOperation,
+  type BulkInvoiceOperation,
   type BulkExportFormat,
 } from "@/lib/bulkInvoiceOps";
 
@@ -54,6 +57,10 @@ export default function BulkActionBar({
   } | null>(null);
   const [showUndoToast, setShowUndoToast] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [pendingOperation, setPendingOperation] = useState<BulkInvoiceOperation | null>(null);
+  const [operationError, setOperationError] = useState<string | null>(null);
+  const [auditEntries, setAuditEntries] = useState<ReturnType<typeof getBulkInvoiceAudit>>([]);
+  const [showAudit, setShowAudit] = useState(false);
 
   const pendingCount = selectedInvoices.filter(
     (inv) => inv.status === "Pending",
@@ -79,8 +86,22 @@ export default function BulkActionBar({
       setShowUndoToast(true);
       setTimeout(() => setShowUndoToast(false), getUndoTimeout());
       onArchiveChange?.();
+      setPendingOperation(null);
+      setOperationError(null);
+    } catch (error) {
+      setOperationError(`Could not archive invoices: ${String(error)}`);
+      return;
     } finally {
       setArchiveLoading(false);
+    }
+    try {
+      recordBulkInvoiceOperation({
+        operation: "archive",
+        invoiceIds: idsToArchive,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      setOperationError(`Invoices were archived, but the audit entry could not be saved: ${String(error)}`);
     }
   };
 
@@ -98,8 +119,22 @@ export default function BulkActionBar({
       setShowUndoToast(true);
       setTimeout(() => setShowUndoToast(false), getUndoTimeout());
       onArchiveChange?.();
+      setPendingOperation(null);
+      setOperationError(null);
+    } catch (error) {
+      setOperationError(`Could not unarchive invoices: ${String(error)}`);
+      return;
     } finally {
       setArchiveLoading(false);
+    }
+    try {
+      recordBulkInvoiceOperation({
+        operation: "unarchive",
+        invoiceIds: idsToUnarchive,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      setOperationError(`Invoices were unarchived, but the audit entry could not be saved: ${String(error)}`);
     }
   };
 
@@ -112,6 +147,62 @@ export default function BulkActionBar({
     }
     setShowUndoToast(false);
     onArchiveChange?.();
+    try {
+      recordBulkInvoiceOperation({
+        operation: "undo",
+        invoiceIds: undoAction.ids,
+        timestamp: Date.now(),
+        details: undoAction.isArchive ? "Undo archive" : "Undo unarchive",
+      });
+      setOperationError(null);
+    } catch (error) {
+      setOperationError(`Undo completed, but the audit entry could not be saved: ${String(error)}`);
+    }
+  };
+
+  const confirmOperation = async () => {
+    if (!pendingOperation) return;
+    if (pendingOperation === "archive") {
+      await handleArchive();
+    } else if (pendingOperation === "unarchive") {
+      await handleUnarchive();
+    } else {
+      setArchiveLoading(true);
+      try {
+        await onBulkCancel();
+        setPendingOperation(null);
+        setOperationError(null);
+        try {
+          recordBulkInvoiceOperation({
+            operation: "cancel",
+            invoiceIds: selectedInvoices
+              .filter((invoice) => invoice.status === "Pending")
+              .map((invoice) => invoice.id),
+            timestamp: Date.now(),
+          });
+        } catch (error) {
+          setOperationError(`Invoices were cancelled, but the audit entry could not be saved: ${String(error)}`);
+        }
+      } catch (error) {
+        setOperationError(`Could not cancel invoices: ${String(error)}`);
+      } finally {
+        setArchiveLoading(false);
+      }
+    }
+  };
+
+  const toggleAudit = () => {
+    if (showAudit) {
+      setShowAudit(false);
+      return;
+    }
+    try {
+      setAuditEntries(getBulkInvoiceAudit());
+      setOperationError(null);
+      setShowAudit(true);
+    } catch (error) {
+      setOperationError(`Could not load the local operation audit: ${String(error)}`);
+    }
   };
 
   // ── Export ─────────────────────────────────────────────────────────────────
@@ -166,8 +257,12 @@ export default function BulkActionBar({
           {pendingCount > 0 && (
             <button
               type="button"
-              onClick={onBulkCancel}
-              className="text-xs px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white font-semibold transition-colors"
+              onClick={() => {
+                setPendingOperation("cancel");
+                setOperationError(null);
+              }}
+              disabled={archiveLoading}
+              className="text-xs px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold transition-colors"
             >
               Cancel ({pendingCount})
             </button>
@@ -177,7 +272,10 @@ export default function BulkActionBar({
           {!archivedOnly && archivedCount < selectedCount && (
             <button
               type="button"
-              onClick={handleArchive}
+              onClick={() => {
+                setPendingOperation("archive");
+                setOperationError(null);
+              }}
               disabled={archiveLoading}
               className="text-xs px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold transition-colors"
             >
@@ -191,7 +289,10 @@ export default function BulkActionBar({
           {archivedCount > 0 && (
             <button
               type="button"
-              onClick={handleUnarchive}
+              onClick={() => {
+                setPendingOperation("unarchive");
+                setOperationError(null);
+              }}
               disabled={archiveLoading}
               className="text-xs px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold transition-colors"
             >
@@ -271,6 +372,14 @@ export default function BulkActionBar({
           {/* Done */}
           <button
             type="button"
+            onClick={toggleAudit}
+            className="text-xs px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold transition-colors"
+            aria-expanded={showAudit}
+          >
+            {showAudit ? "Hide audit" : "Audit trail"}
+          </button>
+          <button
+            type="button"
             onClick={onCancel}
             className="text-xs px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold transition-colors"
           >
@@ -278,6 +387,95 @@ export default function BulkActionBar({
           </button>
         </div>
       </div>
+
+      {operationError && (
+        <p role="alert" className="fixed bottom-20 left-4 z-50 max-w-lg rounded-lg border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-200 shadow-xl">
+          {operationError}
+        </p>
+      )}
+
+      {showAudit && (
+        <section aria-label="Bulk operation audit trail" className="fixed bottom-20 right-4 z-40 max-h-80 w-[min(28rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-gray-700 bg-gray-900 p-4 shadow-xl">
+          <h2 className="mb-3 text-sm font-semibold text-white">Recent bulk operations (this browser)</h2>
+          {auditEntries.length === 0 ? (
+            <p className="text-sm text-gray-400">No recorded bulk operations.</p>
+          ) : (
+            <ol className="space-y-3">
+              {auditEntries.map((entry, index) => (
+                <li key={`${entry.timestamp}-${index}`} className="border-b border-gray-800 pb-2 text-xs">
+                  <p className="font-semibold text-gray-200">
+                    {entry.operation} · {entry.invoiceIds.length} invoice{entry.invoiceIds.length === 1 ? "" : "s"}
+                  </p>
+                  <p className="text-gray-400">{new Date(entry.timestamp).toLocaleString()}</p>
+                  <p className="break-all text-gray-500">{entry.invoiceIds.join(", ")}</p>
+                  {entry.details && <p className="text-gray-400">{entry.details}</p>}
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      )}
+
+      {pendingOperation && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !archiveLoading) setPendingOperation(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bulk-operation-title"
+            className="w-full max-w-lg rounded-xl border border-gray-700 bg-gray-900 p-5 shadow-2xl"
+          >
+            <h2 id="bulk-operation-title" className="text-lg font-semibold text-white">
+              Review {pendingOperation} operation
+            </h2>
+            <p className="mt-1 text-sm text-gray-400">
+              {pendingOperation === "cancel"
+                ? `${pendingCount} pending invoice${pendingCount === 1 ? "" : "s"} will be cancelled.`
+                : `${pendingOperation === "archive" ? selectedCount - archivedCount : archivedCount} invoice${(pendingOperation === "archive" ? selectedCount - archivedCount : archivedCount) === 1 ? "" : "s"} will be ${pendingOperation}d.`}
+            </p>
+            <ul className="mt-4 max-h-48 space-y-2 overflow-y-auto rounded-lg bg-gray-800 p-3">
+              {selectedInvoices
+                .filter((invoice) => pendingOperation !== "cancel" || invoice.status === "Pending")
+                .filter((invoice) =>
+                  pendingOperation === "archive"
+                    ? !isInvoiceArchived(invoice.id)
+                    : pendingOperation === "unarchive"
+                      ? isInvoiceArchived(invoice.id)
+                      : true,
+                )
+                .map((invoice) => (
+                  <li key={invoice.id} className="flex justify-between gap-4 text-sm text-gray-200">
+                    <span className="font-mono">#{invoice.id}</span>
+                    <span className="text-gray-400">{invoice.status}</span>
+                  </li>
+                ))}
+            </ul>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={archiveLoading}
+                onClick={() => setPendingOperation(null)}
+                className="rounded-lg bg-gray-700 px-4 py-2 text-sm text-gray-200 hover:bg-gray-600 disabled:opacity-50"
+              >
+                Review later
+              </button>
+              <button
+                type="button"
+                disabled={archiveLoading}
+                onClick={confirmOperation}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+              >
+                {archiveLoading ? "Processing…" : `Confirm ${pendingOperation}`}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Undo toast */}
       {showUndoToast && undoAction && (

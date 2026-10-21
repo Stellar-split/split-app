@@ -28,6 +28,35 @@ export interface BulkPrintOptions {
   showRecipients?: boolean;
 }
 
+export type BulkInvoiceOperation = "archive" | "unarchive" | "cancel";
+
+export interface BulkInvoiceAuditRecord {
+  operation: BulkInvoiceOperation | "undo";
+  invoiceIds: string[];
+  timestamp: number;
+  details?: string;
+}
+
+const BULK_AUDIT_STORAGE_KEY = "invoice_bulk_operation_audit";
+
+export function recordBulkInvoiceOperation(
+  record: BulkInvoiceAuditRecord,
+): void {
+  if (typeof window === "undefined") return;
+  const stored = window.localStorage.getItem(BULK_AUDIT_STORAGE_KEY);
+  const history: BulkInvoiceAuditRecord[] = stored ? JSON.parse(stored) : [];
+  window.localStorage.setItem(
+    BULK_AUDIT_STORAGE_KEY,
+    JSON.stringify([record, ...history].slice(0, 200)),
+  );
+}
+
+export function getBulkInvoiceAudit(): BulkInvoiceAuditRecord[] {
+  if (typeof window === "undefined") return [];
+  const stored = window.localStorage.getItem(BULK_AUDIT_STORAGE_KEY);
+  return stored ? JSON.parse(stored) : [];
+}
+
 // ── CSV Export ────────────────────────────────────────────────────────────────
 
 function escapeCSV(value: string): string {

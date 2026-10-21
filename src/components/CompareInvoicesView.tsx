@@ -15,6 +15,7 @@ interface Props {
 }
 
 type DiffMode = "all" | "diffs-only";
+type ComparisonFilter = "all" | "financial" | "status" | "participants";
 
 /** Returns a highlight wrapper class when two values differ */
 function diffClass(a: string | number, b: string | number): string {
@@ -48,6 +49,7 @@ function formatDelta(a: bigint, b: bigint): { label: string; positive: boolean; 
  */
 export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB }: Props) {
   const [diffMode, setDiffMode] = useState<DiffMode>("all");
+  const [comparisonFilter, setComparisonFilter] = useState<ComparisonFilter>("all");
   const [activeSection, setActiveSection] = useState<"overview" | "details">("overview");
 
   const totalA = invoiceA.recipients.reduce((s, r) => s + r.amount, 0n);
@@ -167,16 +169,59 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
     },
   ];
 
-  const visibleRows =
-    diffMode === "diffs-only"
-      ? rows.filter((r) => String(r.rawA) !== String(r.rawB))
-      : rows;
+  const visibleRows = rows.filter((row) => {
+    const isDifferent = String(row.rawA) !== String(row.rawB);
+    const matchesDiffMode = diffMode === "all" || isDifferent;
+    const matchesCategory =
+      comparisonFilter === "all" ||
+      (comparisonFilter === "financial" && ["Total Amount", "Funded", "Progress", "Token"].includes(row.label)) ||
+      (comparisonFilter === "status" && ["Status", "Deadline"].includes(row.label)) ||
+      (comparisonFilter === "participants" && ["Recipients", "Payments"].includes(row.label));
+    return matchesDiffMode && matchesCategory;
+  });
 
   const diffCount = rows.filter((r) => String(r.rawA) !== String(r.rawB)).length;
 
   // Delta summary values
   const totalDelta = formatDelta(totalA, totalB);
   const fundedDelta = formatDelta(invoiceA.funded, invoiceB.funded);
+
+  const exportComparison = (format: "csv" | "json") => {
+    const rowsToExport = visibleRows.map((row) => ({
+      field: row.label,
+      invoiceA: row.rawA,
+      invoiceB: row.rawB,
+      differs: String(row.rawA) !== String(row.rawB),
+    }));
+    const content =
+      format === "json"
+        ? JSON.stringify(
+            {
+              invoiceIds: [String(invoiceA.id), String(invoiceB.id)],
+              filters: { diffMode, category: comparisonFilter },
+              differences: diffCount,
+              rows: rowsToExport,
+            },
+            null,
+            2,
+          )
+        : [
+            "Field,Invoice A,Invoice B,Different",
+            ...rowsToExport.map((row) =>
+              [row.field, row.invoiceA, row.invoiceB, row.differs]
+                .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+                .join(","),
+            ),
+          ].join("\n");
+    const mimeType = format === "json" ? "application/json" : "text/csv";
+    const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `invoice-comparison-${invoiceA.id}-vs-${invoiceB.id}.${format}`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -235,7 +280,33 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
           <span className="inline-block w-3 h-3 rounded ring-2 ring-yellow-400/60 bg-yellow-50 dark:bg-yellow-900/20" />
           Highlighted rows differ
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="sr-only" htmlFor="comparison-filter">Filter comparison fields</label>
+          <select
+            id="comparison-filter"
+            value={comparisonFilter}
+            onChange={(event) => setComparisonFilter(event.target.value as ComparisonFilter)}
+            className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+          >
+            <option value="all">All categories</option>
+            <option value="financial">Financial</option>
+            <option value="status">Status &amp; timing</option>
+            <option value="participants">Participants</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => exportComparison("csv")}
+            className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+          >
+            Export CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => exportComparison("json")}
+            className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+          >
+            Export JSON
+          </button>
           <button
             onClick={() => setDiffMode("all")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
@@ -248,6 +319,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
             All fields
           </button>
           <button
+            type="button"
             onClick={() => setDiffMode("diffs-only")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               diffMode === "diffs-only"

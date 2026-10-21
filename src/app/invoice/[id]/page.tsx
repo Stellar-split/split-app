@@ -79,8 +79,10 @@ import InvoiceTimeline from "@/components/InvoiceTimeline";
 import HistoryLog from "@/components/invoice/HistoryLog";
 import AdvancedStatusTimeline from "@/components/invoice/AdvancedStatusTimeline";
 import InvoiceSentiment from "@/components/invoice/InvoiceSentiment";
+import FraudRiskPanel from "@/components/invoice/FraudRiskPanel";
 import PayerWalletHealth from "@/components/invoice/PayerWalletHealth";
 import ReconciliationPanel from "@/components/invoice/ReconciliationPanel";
+import { detectAnomalies } from "@/lib/anomalyDetector";
 import InvoiceExportButton from "@/components/InvoiceExportButton";
 // Only rendered once an invoice transitions to "released", and pulls in the
 // canvas-confetti animation library — load it on demand instead of in the
@@ -503,6 +505,16 @@ export default function InvoiceDetailPage({ params }: Props) {
     : false;
   const canDownloadPDF = isCreator || isContributor;
   const canAct = isCreator || isRecipient;
+  const invoicePayerHistory = new Map<string, number>(
+    invoice.payments.map((payment) => [payment.payer, 1] as const),
+  );
+  const anomalyFlags = invoice.payments
+    .flatMap((payment) => detectAnomalies(payment, invoice, invoicePayerHistory))
+    .filter((flag, index, flags) =>
+      flags.findIndex((candidate) =>
+        candidate.type === flag.type && candidate.payer === flag.payer,
+      ) === index,
+    );
   const recipientShare = publicKey
     ? invoice.recipients.find((recipient) => recipient.address === publicKey)
     : undefined;
@@ -1140,6 +1152,10 @@ export default function InvoiceDetailPage({ params }: Props) {
           <InvoiceSentiment invoice={invoice} />
           <ReconciliationPanel invoice={invoice} />
         </div>
+        <FraudRiskPanel
+          invoice={invoice}
+          anomalyFlags={anomalyFlags}
+        />
         <PayerWalletHealth payments={invoice.payments} />
       </div>
 
