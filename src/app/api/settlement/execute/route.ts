@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { defaultSettlementEngine } from '@/lib/settlement';
+import { applyRateLimit } from '@/lib/middleware/rateLimitMiddleware';
+import { PAYMENT_RATE_LIMIT } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
+  const rateCheck = applyRateLimit(req, PAYMENT_RATE_LIMIT);
+  if (rateCheck.limited) return rateCheck.response;
   try {
     const body = await req.json();
     const {

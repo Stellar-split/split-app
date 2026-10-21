@@ -8,6 +8,7 @@ const STORAGE_KEY = 'split-notification-prefs';
 interface EventPrefs {
   inApp: boolean;
   browser: boolean;
+  email: boolean;
 }
 
 interface NotifPrefs {
@@ -19,11 +20,11 @@ interface NotifPrefs {
 }
 
 const DEFAULT_PREFS: NotifPrefs = {
-  paymentReceived:    { inApp: true,  browser: false },
-  invoiceFunded:      { inApp: true,  browser: false },
-  refundIssued:       { inApp: true,  browser: false },
-  disputeRaised:      { inApp: true,  browser: false },
-  deadlineApproaching:{ inApp: true,  browser: false },
+  paymentReceived:    { inApp: true,  browser: false, email: false },
+  invoiceFunded:      { inApp: true,  browser: false, email: false },
+  refundIssued:       { inApp: true,  browser: false, email: false },
+  disputeRaised:      { inApp: true,  browser: false, email: false },
+  deadlineApproaching:{ inApp: true,  browser: false, email: false },
 };
 
 const EVENT_LABELS: { key: keyof NotifPrefs; label: string; description: string }[] = [
@@ -80,7 +81,7 @@ export default function NotificationPreferencesPage() {
     setMounted(true);
   }, []);
 
-  const toggle = (key: keyof NotifPrefs, col: 'inApp' | 'browser') => {
+  const toggle = (key: keyof NotifPrefs, col: 'inApp' | 'browser' | 'email') => {
     setPrefs((prev) => ({
       ...prev,
       [key]: { ...prev[key], [col]: !prev[key][col] },
@@ -151,16 +152,17 @@ export default function NotificationPreferencesPage() {
       {/* Preferences table */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-6">
         {/* Column headers */}
-        <div className="grid grid-cols-[1fr_80px_80px] gap-4 px-4 py-3 border-b border-gray-800 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+        <div className="grid grid-cols-[1fr_80px_80px_80px] gap-4 px-4 py-3 border-b border-gray-800 text-xs font-semibold text-gray-400 uppercase tracking-wide">
           <span>Event</span>
           <span className="text-center">In-App</span>
           <span className="text-center">Browser</span>
+          <span className="text-center">Email</span>
         </div>
 
         {EVENT_LABELS.map(({ key, label, description }, i) => (
           <div
             key={key}
-            className={`grid grid-cols-[1fr_80px_80px] gap-4 items-center px-4 py-4 ${
+            className={`grid grid-cols-[1fr_80px_80px_80px] gap-4 items-center px-4 py-4 ${
               i < EVENT_LABELS.length - 1 ? 'border-b border-gray-800' : ''
             }`}
           >
@@ -177,6 +179,14 @@ export default function NotificationPreferencesPage() {
                 onChange={() => toggle(key, 'browser')}
                 disabled={browserDenied}
               />
+            </div>
+            <div className="flex justify-center">
+              <span title="Configure RESEND_API_KEY to enable email notifications">
+                <Toggle
+                  on={prefs[key].email}
+                  onChange={() => toggle(key, 'email')}
+                />
+              </span>
             </div>
           </div>
         ))}

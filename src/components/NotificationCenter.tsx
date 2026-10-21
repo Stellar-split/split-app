@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
+import { apiFetch } from "@/lib/apiClient";
 
-export type NotificationType = "payment" | "funded" | "released" | "expired";
+export type NotificationType = "payment" | "funded" | "released" | "expired" | "reminder";
 
 export interface AppNotification {
   id: string;
@@ -64,6 +65,7 @@ const TYPE_ICONS: Record<NotificationType, string> = {
   funded: "✅",
   released: "🚀",
   expired: "⏰",
+  reminder: "🔔",
 };
 
 export default function NotificationCenter() {
@@ -214,15 +216,13 @@ export default function NotificationCenter() {
   const unread = notifications.filter((n) => !n.read).length;
   const badgeCount = unread > 99 ? "99+" : unread > 0 ? String(unread) : null;
 
-  // Focus first item when opening
-  useEffect(() => {
-    if (open) {
-      setTimeout(() => firstItemRef.current?.focus(), 50);
-    }
-  }, [open]);
-
-  const unread = notifications.filter((n) => !n.read).length;
-  const badgeCount = unread > 99 ? "99+" : unread > 0 ? String(unread) : null;
+  const persistMarkAllRead = async (ids: string[]) => {
+    await apiFetch("/api/notifications/mark-read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+  };
 
   const markAllRead = async () => {
     const previous = notifications;

@@ -58,31 +58,110 @@ export async function sendPaymentReceiptEmail(
       };
     }
 
-    // TODO: Implement actual email sending
-    // For now, return a successful response indicating the infrastructure is in place.
-    // In production, integrate with:
-    // 1. Resend (recommended) via RESEND_API_KEY
-    // 2. SMTP fallback via nodemailer
-    // 3. AWS SES
-    // 4. SendGrid
+    const apiKey = process.env.RESEND_API_KEY;
 
-    // Log the email send attempt
+    if (!apiKey) {
+      // Graceful degradation: log and skip when not configured (dev/staging).
+      console.log(
+        `[Email] RESEND_API_KEY not configured — skipping receipt email to ${data.recipientEmail}`,
+        { invoiceId: data.invoiceId, transactionHash: data.transactionHash }
+      );
+      await markEmailAsSent(data.invoiceId, data.transactionHash, data.recipientEmail);
+      return {
+        success: true,
+        messageId: `skipped-${Date.now()}`,
+        recipient: data.recipientEmail,
+      };
+    }
+
+    const fromAddress =
+      process.env.EMAIL_FROM ?? "noreply@stellarsplit-dapp.vercel.app";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+
+    const subject = `Payment Received – Invoice #${data.invoiceId}`;
+    const formattedDate = new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(data.paidAt);
+
+    const html = `
+      <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px">
+        <div style="background:#fff;padding:30px;border-radius:8px;margin-bottom:20px">
+          <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#111827">Payment Received ✓</h1>
+          <p style="margin:0;color:#6b7280;font-size:14px">Invoice #${data.invoiceId}</p>
+        </div>
+        <div style="background:#fff;padding:30px;border-radius:8px;margin-bottom:20px">
+          <p style="margin:0 0 16px;font-size:16px;color:#111827">Hi ${data.recipientName},</p>
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#374151">
+            A payment has been confirmed on the Stellar network for Invoice #${data.invoiceId}.
+          </p>
+          <div style="background:#f3f4f6;padding:20px;border-radius:6px;margin-bottom:20px">
+            <table style="width:100%;font-size:14px;border-collapse:collapse">
+              <tr>
+                <td style="padding:8px 0;color:#6b7280;width:40%">Amount:</td>
+                <td style="padding:8px 0;font-weight:600;color:#111827">${data.paymentAmount} ${data.paymentAsset}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0;color:#6b7280">Date:</td>
+                <td style="padding:8px 0;font-weight:600;color:#111827">${formattedDate}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0;color:#6b7280">From:</td>
+                <td style="padding:8px 0;font-family:monospace;font-size:12px;color:#374151;word-break:break-all">${data.payerAddress}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0;color:#6b7280">Transaction:</td>
+                <td style="padding:8px 0;font-family:monospace;font-size:11px;color:#374151;word-break:break-all">${data.transactionHash}</td>
+              </tr>
+            </table>
+          </div>
+          <p style="margin:0">
+            <a href="${appUrl}/invoice/${data.invoiceId}"
+               style="display:inline-block;background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">
+              View Invoice
+            </a>
+          </p>
+        </div>
+        <p style="text-align:center;color:#9ca3af;font-size:12px">
+          © ${new Date().getFullYear()} StellarSplit · Automated receipt
+        </p>
+      </div>
+    `;
+
     console.log(`[Email] Sending receipt to ${data.recipientEmail}`, {
       invoiceId: data.invoiceId,
       transactionHash: data.transactionHash,
-      paidAt: data.paidAt,
     });
 
-    // Record that email was sent
-    await markEmailAsSent(
-      data.invoiceId,
-      data.transactionHash,
-      data.recipientEmail,
-    );
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromAddress,
+        to: [data.recipientEmail],
+        subject,
+        html,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Resend API error ${res.status}: ${errText}`);
+    }
+
+    const resData = (await res.json()) as { id?: string };
+
+    await markEmailAsSent(data.invoiceId, data.transactionHash, data.recipientEmail);
 
     return {
       success: true,
-      messageId: `mock-${Date.now()}`,
+      messageId: resData.id,
       recipient: data.recipientEmail,
     };
   } catch (error) {

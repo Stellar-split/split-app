@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { splitClient } from "@/lib/stellar";
 import { assertCsrf } from "@/lib/middleware/csrfMiddleware";
+import { applyRateLimit } from "@/lib/middleware/rateLimitMiddleware";
+import { PAYMENT_RATE_LIMIT } from "@/lib/rateLimit";
 
 /**
  * In-memory store for manually-marked installment payments.

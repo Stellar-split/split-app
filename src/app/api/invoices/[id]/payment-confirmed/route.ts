@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 import type { Invoice, Payment } from "@stellar-split/sdk";
+import { applyRateLimit } from "@/lib/middleware/rateLimitMiddleware";
+import { PAYMENT_RATE_LIMIT } from "@/lib/rateLimit";
 import {
 
   sendPaymentReceiptEmail,
@@ -30,6 +32,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const rateCheck = applyRateLimit(request, PAYMENT_RATE_LIMIT);
+  if (rateCheck.limited) return rateCheck.response;
+
   try {
     const invoiceId = params.id;
     const body = await request.json();

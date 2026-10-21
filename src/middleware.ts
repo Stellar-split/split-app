@@ -27,6 +27,10 @@ function getBackupWebhookOrigins(): string[] {
     .filter(Boolean);
 }
 
+function getCspReportUri(): string | undefined {
+  return process.env.CSP_REPORT_URI || undefined;
+}
+
 /**
  * Generates a fresh CSP nonce per request and forwards it two ways:
  *  - as a request header, so Server Components can read it via next/headers
@@ -47,6 +51,7 @@ export function middleware(request: NextRequest) {
   const csp = buildCSP(nonce, {
     allowFraming: isEmbed,
     connectSrc: connectSrc.length > 0 ? connectSrc : undefined,
+    reportUri: getCspReportUri(),
   });
 
   const requestHeaders = new Headers(request.headers);

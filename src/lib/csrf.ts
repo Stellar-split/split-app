@@ -9,10 +9,20 @@
 
 const TOKEN_TTL_MS = 60 * 60 * 1000; // 60 minutes
 
+const DEV_CSRF_SECRET = "dev-csrf-secret-not-for-production-use";
+
 function getCsrfSecret(): string {
   const secret = process.env.CSRF_SECRET;
   if (!secret) {
-    throw new Error("CSRF_SECRET environment variable is required but not set");
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("CSRF_SECRET environment variable is required but not set");
+    }
+    // In development/test, fall back to a fixed secret so the app works
+    // out of the box without configuration. Never used in production.
+    console.warn(
+      "[CSRF] CSRF_SECRET is not set. Using insecure dev fallback. Set CSRF_SECRET in .env.local for local dev."
+    );
+    return DEV_CSRF_SECRET;
   }
   return secret;
 }
