@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   SUPPORTED_CHAINS,
   estimateBridgeFee,
+  optimizeBridgeRoute,
   connectWalletForChain,
   buildBridgePayment,
   pollBridgeStatus,
@@ -19,25 +20,41 @@ import type {
 /** Chain selector tabs. */
 function ChainSelector({
   selected,
+  automatic,
   onSelect,
+  onAutomatic,
   disabled,
 }: {
   selected: SupportedChain;
+  automatic: boolean;
   onSelect: (chain: SupportedChain) => void;
+  onAutomatic: () => void;
   disabled: boolean;
 }) {
   return (
-    <div role="radiogroup" aria-label="Source chain" className="flex gap-2">
+    <div role="radiogroup" aria-label="Source chain" className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        role="radio"
+        aria-checked={automatic}
+        disabled={disabled}
+        onClick={onAutomatic}
+        className={`flex-1 min-w-32 px-4 py-2.5 rounded-lg text-sm font-semibold border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed ${
+          automatic ? "bg-indigo-600 border-indigo-500 text-white" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
+        }`}
+      >
+        Lowest USDC fee
+      </button>
       {SUPPORTED_CHAINS.map((chain) => (
         <button
           key={chain.id}
           type="button"
           role="radio"
-          aria-checked={selected === chain.id}
+          aria-checked={!automatic && selected === chain.id}
           disabled={disabled}
           onClick={() => onSelect(chain.id)}
           className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed ${
-            selected === chain.id
+            !automatic && selected === chain.id
               ? "bg-indigo-600 border-indigo-500 text-white"
               : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
           }`}
@@ -267,8 +284,12 @@ export default function CrossChainPayment({ invoiceId, stellarDestination }: Pro
   const [step, setStep] = useState<Step>("select");
 
   // Chain & amount
-  const [chain, setChain] = useState<SupportedChain>("ethereum");
   const [amount, setAmount] = useState("");
+  const [manualChain, setManualChain] = useState<SupportedChain | null>(null);
+  const routePlan = amount && Number(amount) > 0
+    ? optimizeBridgeRoute(amount, { preferredChain: manualChain ?? undefined })
+    : null;
+  const chain = routePlan?.selected.chain ?? manualChain ?? "solana";
   const [estimate, setEstimate] = useState<FeeEstimate | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [estimateError, setEstimateError] = useState(false);
@@ -331,7 +352,12 @@ export default function CrossChainPayment({ invoiceId, stellarDestination }: Pro
   }, [chain]);
 
   const handleChainSelect = (c: SupportedChain) => {
-    setChain(c);
+    setManualChain(c);
+    setStep("select");
+  };
+
+  const handleAutomaticRoute = () => {
+    setManualChain(null);
     setStep("select");
   };
 
@@ -384,6 +410,7 @@ export default function CrossChainPayment({ invoiceId, stellarDestination }: Pro
   const handleReset = () => {
     setStep("select");
     setAmount("");
+    setManualChain(null);
     setEstimate(null);
     setWalletAddress(null);
     setWalletError(null);
@@ -435,7 +462,9 @@ export default function CrossChainPayment({ invoiceId, stellarDestination }: Pro
             </p>
             <ChainSelector
               selected={chain}
+              automatic={manualChain === null}
               onSelect={handleChainSelect}
+              onAutomatic={handleAutomaticRoute}
               disabled={false}
             />
           </div>
@@ -471,6 +500,39 @@ export default function CrossChainPayment({ invoiceId, stellarDestination }: Pro
             loading={estimateLoading}
             error={estimateError}
           />
+          {routePlan && (
+            <div className="rounded-lg border border-gray-700 bg-gray-800/70 p-4 text-sm" aria-live="polite">
+              <p className="font-semibold text-white">
+                {manualChain ? "Manual route" : "Lowest USDC-fee route"}: {routePlan.selected.chain === "ethereum" ? "Ethereum" : "Solana"}
+              </p>
+              {!manualChain && routePlan.savingsVsEthereum !== "0.000000" && (
+                <p className="mt-1 text-green-300">
+                  Saves {routePlan.savingsVsEthereum} USDC in bridge fees ({routePlan.savingsPercent.toFixed(2)}%) versus Ethereum.
+                </p>
+              )}
+              {manualChain && routePlan.costAboveCheapest !== "0.000000" && (
+                <p className="mt-1 text-amber-300">
+                  This override adds {routePlan.costAboveCheapest} USDC in bridge fees versus the lowest-fee route.
+                </p>
+              )}
+              <p className="mt-1 text-xs text-gray-400">Native-token gas fees are shown separately and are not included in this comparison.</p>
+              {routePlan.fallbackRoutes.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-gray-400">Fallback routes:</span>
+                  {routePlan.fallbackRoutes.map((route) => (
+                    <button
+                      key={route.chain}
+                      type="button"
+                      onClick={() => handleChainSelect(route.chain)}
+                      className="rounded border border-gray-600 px-2 py-1 text-xs text-gray-200 hover:border-gray-400"
+                    >
+                      {route.chain === "ethereum" ? "Ethereum" : "Solana"} · {route.estimate.estimatedUsdcFee} USDC fee
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
