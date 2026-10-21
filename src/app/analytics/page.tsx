@@ -9,6 +9,7 @@ import { generateCsv, type CsvRow } from "@/lib/csvExport";
 import type { Invoice } from "@stellar-split/sdk";
 import ChartBuilder, { type ChartBuilderDataPoint } from "@/components/analytics/ChartBuilder";
 import AnalyticsPanel from "@/components/subscriptions/AnalyticsPanel";
+import DataQualityPanel from "@/components/DataQualityPanel";
 import { loadSubscriptions, type Subscription } from "@/lib/subscriptions";
 
 const STROOPS = 10_000_000;
@@ -445,6 +446,7 @@ export default function AnalyticsPage() {
           </div>
         ) : (
           <>
+          <DataQualityPanel invoices={filtered} />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <KpiCard
             label="Total Raised"
