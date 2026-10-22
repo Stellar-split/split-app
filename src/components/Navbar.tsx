@@ -17,6 +17,8 @@ import HelpTooltip from "@/components/HelpTooltip";
 const NAV_LINKS = [
   { href: "/dashboard",            label: "Dashboard" },
   { href: "/dashboard/invoices",   label: "Invoices" },
+  { href: "/analytics",            label: "Analytics" },
+  { href: "/approvals",            label: "Approvals" },
   { href: "/transactions",         label: "Transactions" },
   { href: "/subscriptions",        label: "Subscriptions" },
   { href: "/groups",               label: "Groups" },

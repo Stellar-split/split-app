@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -113,6 +114,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const nonce = getNonce();
+  const isEmbed = headers().get("x-app-pathname")?.startsWith("/embed/") ?? false;
 
   return (
     // dir="ltr" is set here as scaffold; I18nProvider will update it client-side when RTL locales (ar/he) are added
@@ -128,27 +130,27 @@ export default function RootLayout({
               <I18nProvider>
                 <SessionLockProvider>
                   <ToastProvider>
-                    <SkipNavLink />
-                    <Navbar />
-                    <SimulationBanner />
-                    <UpgradeBanner />
+                    {!isEmbed && <SkipNavLink />}
+                    {!isEmbed && <Navbar />}
+                    {!isEmbed && <SimulationBanner />}
+                    {!isEmbed && <UpgradeBanner />}
                     <ErrorBoundary>
-                      <main id="main-content" tabIndex={-1}>
-                        {children}
-                      </main>
+                      {isEmbed ? children : <main id="main-content" tabIndex={-1}>{children}</main>}
                     </ErrorBoundary>
-                    <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
-                      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-                        <p className="text-xs text-gray-500">
-                          © {new Date().getFullYear()} StellarSplit
-                        </p>
-                        <LanguageSwitcher />
-                      </div>
-                    </footer>
-                    <CommandPalette />
-                    <OnboardingFlow />
-                    <RecipientOnboarding />
-                    <InstallBanner />
+                    {!isEmbed && (
+                      <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
+                        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+                          <p className="text-xs text-gray-500">
+                            © {new Date().getFullYear()} StellarSplit
+                          </p>
+                          <LanguageSwitcher />
+                        </div>
+                      </footer>
+                    )}
+                    {!isEmbed && <CommandPalette />}
+                    {!isEmbed && <OnboardingFlow />}
+                    {!isEmbed && <RecipientOnboarding />}
+                    {!isEmbed && <InstallBanner />}
                   </ToastProvider>
                 </SessionLockProvider>
               </I18nProvider>

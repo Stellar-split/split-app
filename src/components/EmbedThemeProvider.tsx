@@ -6,6 +6,7 @@ interface EmbedThemeConfig {
   primaryColor?: string;
   logoUrl?: string;
   borderRadius?: string;
+  backgroundColor?: string;
 }
 
 interface EmbedThemeProviderProps {
@@ -67,6 +68,10 @@ export function validateThemeConfig(config: EmbedThemeConfig): EmbedThemeConfig 
     validated.borderRadius = config.borderRadius;
   }
 
+  if (config.backgroundColor && isValidHexColor(config.backgroundColor)) {
+    validated.backgroundColor = config.backgroundColor;
+  }
+
   return validated;
 }
 
@@ -80,13 +85,14 @@ export default function EmbedThemeProvider({
     () => ({
       "--embed-primary-color": validated.primaryColor || "#4f46e5",
       "--embed-border-radius": validated.borderRadius || "0.5rem",
+      "--embed-background-color": validated.backgroundColor || "#0b1220",
       "--embed-logo-url": validated.logoUrl ? `url('${validated.logoUrl}')` : "none",
     } as React.CSSProperties),
     [validated]
   );
 
   return (
-    <div style={cssVariables}>
+    <div style={cssVariables} className="min-h-screen bg-[var(--embed-background-color)]">
       {children}
     </div>
   );

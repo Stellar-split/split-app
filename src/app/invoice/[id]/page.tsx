@@ -104,6 +104,11 @@ import { useInvoiceRole } from "@/hooks/useInvoiceRole";
 import CursorOverlay from "@/components/CursorOverlay";
 import ReconnectionBanner from "@/components/ReconnectionBanner";
 import SplitSummaryCard from "@/components/invoice/SplitSummaryCard";
+import {
+  captureInvoiceTouchpoint,
+  recordPaymentConversion,
+  recordPaymentTouchpoint,
+} from "@/lib/paymentAttribution";
 
 const RecipientPieChart = dynamic(() => import("@/components/RecipientPieChart"), { ssr: false });
 const InvoiceQR = dynamic(() => import("@/components/InvoiceQR"), { ssr: false });
@@ -289,6 +294,11 @@ export default function InvoiceDetailPage({ params }: Props) {
   };
 
   useEffect(() => {
+    try {
+      captureInvoiceTouchpoint(id, window.location.href, document.referrer);
+    } catch {
+      // Ignore malformed URL or unavailable browser APIs.
+    }
     getFreighterPublicKey().then(setPublicKey).catch(() => null);
     if (isRetroactive) {
       load().catch((e) => {
@@ -441,6 +451,14 @@ export default function InvoiceDetailPage({ params }: Props) {
       });
       setTxHash(result.txHash);
       setShowSuccess(true);
+      recordPaymentConversion({
+        invoiceId: id,
+        timestamp: Date.now(),
+        amount: Number(amount) / 10_000_000,
+        currency: "USDC",
+        channel: `wallet:${paymentMethod}`,
+        txHash: result.txHash,
+      });
       try {
         const existing = JSON.parse(localStorage.getItem("stellarsplit_adapter_usage") ?? "[]");
         existing.push({ adapter: paymentMethod, timestamp: Date.now() });
@@ -1027,7 +1045,15 @@ export default function InvoiceDetailPage({ params }: Props) {
           )}
 
           <PaymentMethodSelector
-            onMethodChange={setPaymentMethod}
+            onMethodChange={(method) => {
+              setPaymentMethod(method);
+              recordPaymentTouchpoint({
+                invoiceId: id,
+                timestamp: Date.now(),
+                channel: `wallet:${method}`,
+                type: "payment-method",
+              });
+            }}
             payerAddress={publicKey}
             recipientAddress={recipientShare?.address}
           />
@@ -1107,6 +1133,14 @@ export default function InvoiceDetailPage({ params }: Props) {
               amount,
               metadata: mfaToken ? { mfaToken } : undefined,
             } as Parameters<typeof splitClient.pay>[0] & { metadata?: { mfaToken: string } });
+            recordPaymentConversion({
+              invoiceId: id,
+              timestamp: Date.now(),
+              amount: Number(amount) / 10_000_000,
+              currency: "USDC",
+              channel: `wallet:${paymentMethod}`,
+              txHash: result.txHash,
+            });
             fetch("/api/cron/funding-thresholds", {
               method: "POST",
               headers: { "Content-Type": "application/json" },

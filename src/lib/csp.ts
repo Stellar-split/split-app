@@ -15,36 +15,13 @@ export interface BuildCSPOptions {
    * browsers that honour CSP over the legacy header.
    */
   allowFraming?: boolean;
-  /**
-   * Additional origins to include in the `connect-src` directive. These are
-   * merged with (and deduplicated against) the hardcoded Stellar origins.
-   * Passed from middleware when analytics or backup webhook origins are
-   * enabled via environment variables.
-   */
-  connectSrc?: string[];
-  /**
-   * URL to which the browser should POST CSP violation reports.
-   * When set, a `report-uri` directive is appended to the policy.
-   * Configure via the `CSP_REPORT_URI` environment variable.
-   */
-  reportUri?: string;
+  frameOrigin?: string | null;
 }
 
-export function buildCSP(
-  nonce: string,
-  { allowFraming = false, connectSrc, reportUri }: BuildCSPOptions = {},
-): string {
-  const connectSrcOrigins = [
-    "'self'",
-    'https://*.stellar.org',
-    'https://horizon-testnet.stellar.org',
-    'https://horizon.stellar.org',
-    'https://soroban-testnet.stellar.org',
-    ...(connectSrc ?? []),
-  ];
-  // Deduplicate while preserving insertion order
-  const uniqueConnectSrc = [...new Set(connectSrcOrigins)];
-
+export function buildCSP(nonce: string, { allowFraming = false, frameOrigin }: BuildCSPOptions = {}): string {
+  const frameAncestors = frameOrigin === null
+    ? "'none'"
+    : frameOrigin ?? (allowFraming ? "*" : "'none'");
   const directives = [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
@@ -55,7 +32,7 @@ export function buildCSP(
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,
-    allowFraming ? `frame-ancestors *` : `frame-ancestors 'none'`,
+    `frame-ancestors ${frameAncestors}`,
     `upgrade-insecure-requests`,
   ];
 

@@ -20,6 +20,14 @@ import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
 import { decodeTemplate } from "@/lib/templateSharing";
 import DraftCollaborationPanel from "@/components/DraftCollaborationPanel";
+import {
+  createApprovalRequest,
+  getApprovalPolicy,
+  notifyApprovalUsers,
+  saveApprovalRequests,
+  getApprovalRequests,
+  shouldRequireApproval,
+} from "@/lib/invoiceApprovals";
 
 const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
@@ -670,6 +678,46 @@ function NewInvoiceForm() {
 
     try {
       const creator = await getFreighterPublicKey();
+      const amounts = recipients.map((recipient) =>
+        toUsdc(equalSplit ? perRecipientAmount ?? "0" : recipient.amount),
+      );
+      const approvalAmount = amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
+      const policy = getApprovalPolicy(creator);
+
+      if (shouldRequireApproval(approvalAmount, policy)) {
+        const approvalRequest = createApprovalRequest(
+          {
+            owner: creator,
+            title: `Invoice for ${recipients[0]?.address ?? "recipient"}`,
+            amount: approvalAmount,
+            payload: {
+              recipients: recipients.map((recipient, index) => ({
+                address: recipient.address,
+                amount: amounts[index],
+              })),
+              token,
+              deadline: cloneSourceId
+                ? Math.floor(new Date(cloneDeadlineIso).getTime() / 1000)
+                : deadlineFromDays(deadlineDays),
+              ...(recurring ? { recurring, intervalDays } : {}),
+              ...(payloadForApi() ? { splitMeta: payloadForApi() } : {}),
+              ...(tags.length > 0 ? { tags: [...tags] } : {}),
+              ...(cloneSourceId ? { cloneSourceId } : {}),
+            },
+          },
+          policy!,
+        );
+        saveApprovalRequests([approvalRequest, ...getApprovalRequests()]);
+        notifyApprovalUsers(
+          approvalRequest,
+          approvalRequest.levels[0]?.approvers ?? [],
+          `Approval requested for ${approvalRequest.title}`,
+        );
+        discardDraft();
+        addToast("Invoice submitted for approval", "success");
+        router.push(`/approvals?request=${approvalRequest.id}`);
+        return;
+      }
 
       if (cloneSourceId) {
         const deadlineTs = Math.floor(new Date(cloneDeadlineIso).getTime() / 1000);

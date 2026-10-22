@@ -1,707 +1,88 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Task Manager API",
+    "title": "StellarSplit REST API",
     "version": "1.0.0",
-    "description": "Machine-readable OpenAPI 3.1 specification for the Task Manager API.\n\n## Overview\nThis document describes every public HTTP endpoint exposed by the service, including request/response schemas, worked examples, authentication requirements, and error scenarios aligned with the application's `AppError` taxonomy.\n\n## Authentication\nMost endpoints require a bearer token. Obtain a token from `POST /api/auth/login` and send it in the `Authorization` header:\n\n```\nAuthorization: Bearer <token>\n```\n\n## Error model\nAll errors are returned as JSON with the following shape:\n\n```json\n{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Human readable message\",\n    \"details\": [ { \"field\": \"email\", \"message\": \"must be a valid email\" } ],\n    \"requestId\": \"b3f1c2a4-...\"\n  }\n}\n```\n\nThe `code` field is drawn from the `AppError` taxonomy:\n\n| Code | HTTP status | Meaning |\n| --- | --- | --- |\n| `VALIDATION_ERROR` | 400 | Request body/query failed validation |\n| `UNAUTHORIZED` | 401 | Missing or invalid credentials/token |\n| `FORBIDDEN` | 403 | Authenticated but not allowed |\n| `NOT_FOUND` | 404 | Resource does not exist |\n| `CONFLICT` | 409 | Resource state conflict (e.g. duplicate email) |\n| `RATE_LIMITED` | 429 | Too many requests |\n| `INTERNAL_ERROR` | 500 | Unexpected server error |\n\n## Keeping this document in sync\nThis file is generated from the route definitions and Zod schemas. To regenerate after changing an endpoint:\n\n```bash\nnpm run docs:openapi   # regenerates public/openapi.json\nnpm run docs:lint      # validates the spec against OpenAPI 3.1\n```\n\nCI runs `docs:lint` and fails the build if the committed spec is stale or invalid. Do not hand-edit generated sections; update the source schemas instead.",
-    "contact": {
-      "name": "API Team",
-      "email": "api@example.com"
-    },
-    "license": {
-      "name": "MIT",
-      "url": "https://opensource.org/licenses/MIT"
-    }
+    "description": "Versioned read API for invoices and payment history. Blockchain mutations must be signed by the user's wallet through the StellarSplit SDK. See docs/REST_API.md for authentication, pagination, response formats, and rate-limit behavior."
   },
-  "servers": [
-    {
-      "url": "http://localhost:3000",
-      "description": "Local development"
-    },
-    {
-      "url": "https://api.example.com",
-      "description": "Production"
-    }
-  ],
-  "tags": [
-    { "name": "Auth", "description": "Registration, login, and session management" },
-    { "name": "Users", "description": "User profile operations" },
-    { "name": "Tasks", "description": "Task CRUD operations" },
-    { "name": "Health", "description": "Service health and readiness" }
-  ],
-  "security": [{ "bearerAuth": [] }],
+  "servers": [{ "url": "/", "description": "Current StellarSplit deployment" }],
+  "tags": [{ "name": "Invoices", "description": "Read invoice data and payment history" }],
+  "security": [{ "BearerApiKey": [] }],
   "paths": {
-    "/api/health": {
+    "/api/v1/invoices": {
       "get": {
-        "tags": ["Health"],
-        "summary": "Service health check",
-        "description": "Returns the current health status of the service. Does not require authentication.",
-        "operationId": "getHealth",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "Service is healthy",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/HealthResponse" },
-                "example": { "status": "ok", "uptime": 12345.67, "version": "1.0.0" }
-              }
-            }
-          },
-          "500": { "$ref": "#/components/responses/InternalError" }
-        }
-      }
-    },
-    "/api/auth/register": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Register a new user",
-        "description": "Creates a new user account and returns an access token.",
-        "operationId": "registerUser",
-        "security": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/RegisterRequest" },
-              "example": {
-                "email": "jane.doe@example.com",
-                "password": "S3cure!Passw0rd",
-                "name": "Jane Doe"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "User created",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthResponse" },
-                "example": {
-                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                  "user": {
-                    "id": "usr_01HXYZ",
-                    "email": "jane.doe@example.com",
-                    "name": "Jane Doe",
-                    "createdAt": "2024-01-15T10:30:00.000Z"
-                  }
-                }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ValidationError" },
-          "409": {
-            "description": "Email already registered",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-                "example": {
-                  "error": {
-                    "code": "CONFLICT",
-                    "message": "A user with this email already exists",
-                    "requestId": "b3f1c2a4-1f2e-4c3d-9a8b-7e6d5c4b3a21"
-                  }
-                }
-              }
-            }
-          },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/InternalError" }
-        }
-      }
-    },
-    "/api/auth/login": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Log in",
-        "description": "Authenticates a user and returns an access token.",
-        "operationId": "loginUser",
-        "security": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/LoginRequest" },
-              "example": {
-                "email": "jane.doe@example.com",
-                "password": "S3cure!Passw0rd"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Authenticated",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthResponse" },
-                "example": {
-                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                  "user": {
-                    "id": "usr_01HXYZ",
-                    "email": "jane.doe@example.com",
-                    "name": "Jane Doe",
-                    "createdAt": "2024-01-15T10:30:00.000Z"
-                  }
-                }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ValidationError" },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-                "example": {
-                  "error": {
-                    "code": "UNAUTHORIZED",
-                    "message": "Invalid email or password",
-                    "requestId": "b3f1c2a4-1f2e-4c3d-9a8b-7e6d5c4b3a21"
-                  }
-                }
-              }
-            }
-          },
-          "429": { "$ref": "#/components/responses/RateLimited" },
-          "500": { "$ref": "#/components/responses/InternalError" }
-        }
-      }
-    },
-    "/api/auth/logout": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Log out",
-        "description": "Invalidates the current access token.",
-        "operationId": "logoutUser",
-        "responses": {
-          "204": { "description": "Logged out" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "500": { "$ref": "#/components/responses/InternalError" }
-        }
-      }
-    },
-    "/api/users/me": {
-      "get": {
-        "tags": ["Users"],
-        "summary": "Get current user",
-        "description": "Returns the profile of the authenticated user.",
-        "operationId": "getCurrentUser",
-        "responses": {
-          "200": {
-            "description": "Current user profile",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/User" },
-                "example": {
-                  "id": "usr_01HXYZ",
-                  "email": "jane.doe@example.com",
-                  "name": "Jane Doe",
-                  "createdAt": "2024-01-15T10:30:00.000Z"
-                }
-              }
-            }
-          },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "500": { "$ref": "#/components/responses/InternalError" }
-        }
-      },
-      "patch": {
-        "tags": ["Users"],
-        "summary": "Update current user",
-        "description": "Updates the profile of the authenticated user.",
-        "operationId": "updateCurrentUser",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateUserRequest" },
-              "example": { "name": "Jane Q. Doe" }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated user profile",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/User" },
-                "example": {
-                  "id": "usr_01HXYZ",
-                  "email": "jane.doe@example.com",
-                  "name": "Jane Q. Doe",
-                  "createdAt": "2024-01-15T10:30:00.000Z"
-                }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ValidationError" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "500": { "$ref": "#/components/responses/InternalError" }
-        }
-      }
-    },
-    "/api/tasks": {
-      "get": {
-        "tags": ["Tasks"],
-        "summary": "List tasks",
-        "description": "Returns a paginated list of tasks belonging to the authenticated user.",
-        "operationId": "listTasks",
+        "tags": ["Invoices"],
+        "operationId": "listInvoicesV1",
+        "summary": "List invoices for a Stellar address",
+        "description": "Returns invoices created by or addressed to publicKey. Results are cursor-paginated. limit defaults to 20 and is capped at 50. Bigint values are decimal strings.",
         "parameters": [
-          {
-            "name": "status",
-            "in": "query",
-            "description": "Filter by task status",
-            "required": false,
-            "schema": { "$ref": "#/components/schemas/TaskStatus" }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "Page number (1-based)",
-            "required": false,
-            "schema": { "type": "integer", "minimum": 1, "default": 1 }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Page size",
-            "required": false,
-            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }
-          }
+          { "name": "publicKey", "in": "query", "required": true, "description": "Stellar account public key.", "schema": { "type": "string", "pattern": "^G[A-Z2-7]{55}$" }, "example": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF" },
+          { "name": "cursor", "in": "query", "required": false, "description": "Exclusive invoice ID cursor returned by the previous page.", "schema": { "type": "string", "pattern": "^[1-9][0-9]*$" }, "example": "25" },
+          { "name": "limit", "in": "query", "required": false, "description": "Page size from 1 to 50; defaults to 20.", "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 20 }, "example": 20 },
+          { "name": "q", "in": "query", "required": false, "description": "Prefix search on invoice title or memo.", "schema": { "type": "string", "maxLength": 100 }, "example": "design" }
         ],
         "responses": {
-          "200": {
-            "description": "Paginated task list",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/TaskListResponse" },
-                "example": {
-                  "data": [
-                    {
-                      "id": "tsk_01HABC",
-                      "title": "Write documentation",
-                      "description": "Add OpenAPI spec",
-                      "status": "in_progress",
-                      "dueDate": "2024-02-01T00:00:00.000Z",
-                      "createdAt": "2024-01-15T10:30:00.000Z",
-                      "updatedAt": "2024-01-16T09:00:00.000Z"
-                    }
-                  ],
-                  "meta": { "page": 1, "limit": 20, "total": 1, "totalPages": 1 }
-                }
-              }
-            }
-          },
+          "200": { "description": "Invoice page", "content": { "application/json": { "example": { "data": { "invoices": [{ "id": "25", "status": "Pending", "creator": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "funded": "12500000", "deadline": 1800000000, "recipients": [], "payments": [] }], "nextCursor": "25" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
           "400": { "$ref": "#/components/responses/ValidationError" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
-          "500": { "$ref": "#/components/responses/InternalError" }
-        }
-      },
-      "post": {
-        "tags": ["Tasks"],
-        "summary": "Create a task",
-        "description": "Creates a new task for the authenticated user.",
-        "operationId": "createTask",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateTaskRequest" },
-              "example": {
-                "title": "Write documentation",
-                "description": "Add OpenAPI spec",
-                "status": "todo",
-                "dueDate": "2024-02-01T00:00:00.000Z"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Task created",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Task" },
-                "example": {
-                  "id": "tsk_01HABC",
-                  "title": "Write documentation",
-                  "description": "Add OpenAPI spec",
-                  "status": "todo",
-                  "dueDate": "2024-02-01T00:00:00.000Z",
-                  "createdAt": "2024-01-15T10:30:00.000Z",
-                  "updatedAt": "2024-01-15T10:30:00.000Z"
-                }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/ValidationError" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "500": { "$ref": "#/components/responses/InternalError" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "502": { "$ref": "#/components/responses/UpstreamError" },
+          "503": { "$ref": "#/components/responses/ConfigurationError" }
         }
       }
     },
-    "/api/tasks/{id}": {
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "description": "Task identifier",
-          "schema": { "type": "string", "example": "tsk_01HABC" }
-        }
-      ],
+    "/api/v1/invoices/{id}": {
       "get": {
-        "tags": ["Tasks"],
-        "summary": "Get a task",
-        "description": "Returns a single task by id.",
-        "operationId": "getTask",
+        "tags": ["Invoices"],
+        "operationId": "getInvoiceV1",
+        "summary": "Get an invoice",
+        "description": "Returns one invoice by its positive numeric contract ID. Bigint values are decimal strings.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Positive numeric invoice ID.", "schema": { "type": "string", "pattern": "^[1-9][0-9]*$" }, "example": "25" }
+        ],
         "responses": {
-          "200": {
-            "description": "Task",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Task" },
-                "example": {
-                  "id": "tsk_01HABC",
-                  "title": "Write documentation",
-                  "description": "Add OpenAPI spec",
-                  "status": "in_progress",
-                  "dueDate": "2024-02-01T00:00:00.000Z",
-                  "createdAt": "2024-01-15T10:30:00.000Z",
-                  "updatedAt": "2024-01-16T09:00:00.000Z"
-                }
-              }
-            }
-          },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalError" }
-        }
-      },
-      "patch": {
-        "tags": ["Tasks"],
-        "summary": "Update a task",
-        "description": "Partially updates a task.",
-        "operationId": "updateTask",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateTaskRequest" },
-              "example": { "status": "done" }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated task",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Task" },
-                "example": {
-                  "id": "tsk_01HABC",
-                  "title": "Write documentation",
-                  "description": "Add OpenAPI spec",
-                  "status": "done",
-                  "dueDate": "2024-02-01T00:00:00.000Z",
-                  "createdAt": "2024-01-15T10:30:00.000Z",
-                  "updatedAt": "2024-01-17T12:00:00.000Z"
-                }
-              }
-            }
-          },
+          "200": { "description": "Invoice", "content": { "application/json": { "example": { "data": { "invoice": { "id": "25", "status": "Pending", "creator": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "funded": "12500000", "deadline": 1800000000, "recipients": [], "payments": [] } }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
           "400": { "$ref": "#/components/responses/ValidationError" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalError" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ConfigurationError" }
         }
-      },
-      "delete": {
-        "tags": ["Tasks"],
-        "summary": "Delete a task",
-        "description": "Deletes a task by id.",
-        "operationId": "deleteTask",
+      }
+    },
+    "/api/v1/invoices/{id}/history": {
+      "get": {
+        "tags": ["Invoices"],
+        "operationId": "listInvoicePaymentHistoryV1",
+        "summary": "List invoice payments",
+        "description": "Returns a page of an invoice's payment history. cursor is a zero-based offset; nextCursor is null when history is exhausted.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Positive numeric invoice ID.", "schema": { "type": "string", "pattern": "^[1-9][0-9]*$" }, "example": "25" },
+          { "name": "cursor", "in": "query", "required": false, "description": "Zero-based payment offset; defaults to 0.", "schema": { "type": "integer", "minimum": 0, "default": 0 }, "example": 0 },
+          { "name": "limit", "in": "query", "required": false, "description": "Page size from 1 to 50; defaults to 10.", "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 10 }, "example": 10 }
+        ],
         "responses": {
-          "204": { "description": "Task deleted" },
+          "200": { "description": "Payment history page", "content": { "application/json": { "example": { "data": { "payments": [{ "payer": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "amount": "5000000", "timestamp": 1799990000 }], "nextCursor": null }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+          "400": { "$ref": "#/components/responses/ValidationError" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalError" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ConfigurationError" }
         }
       }
     }
   },
   "components": {
     "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "JWT access token obtained from `POST /api/auth/login`."
-      }
-    },
-    "schemas": {
-      "HealthResponse": {
-        "type": "object",
-        "required": ["status", "uptime", "version"],
-        "properties": {
-          "status": { "type": "string", "enum": ["ok", "degraded"], "example": "ok" },
-          "uptime": { "type": "number", "description": "Uptime in seconds", "example": 12345.67 },
-          "version": { "type": "string", "example": "1.0.0" }
-        }
-      },
-      "RegisterRequest": {
-        "type": "object",
-        "required": ["email", "password", "name"],
-        "properties": {
-          "email": { "type": "string", "format": "email", "example": "jane.doe@example.com" },
-          "password": {
-            "type": "string",
-            "minLength": 8,
-            "description": "Must contain at least one letter and one number",
-            "example": "S3cure!Passw0rd"
-          },
-          "name": { "type": "string", "minLength": 1, "maxLength": 100, "example": "Jane Doe" }
-        }
-      },
-      "LoginRequest": {
-        "type": "object",
-        "required": ["email", "password"],
-        "properties": {
-          "email": { "type": "string", "format": "email", "example": "jane.doe@example.com" },
-          "password": { "type": "string", "example": "S3cure!Passw0rd" }
-        }
-      },
-      "AuthResponse": {
-        "type": "object",
-        "required": ["token", "user"],
-        "properties": {
-          "token": { "type": "string", "description": "JWT access token", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
-          "user": { "$ref": "#/components/schemas/User" }
-        }
-      },
-      "User": {
-        "type": "object",
-        "required": ["id", "email", "name", "createdAt"],
-        "properties": {
-          "id": { "type": "string", "example": "usr_01HXYZ" },
-          "email": { "type": "string", "format": "email", "example": "jane.doe@example.com" },
-          "name": { "type": "string", "example": "Jane Doe" },
-          "createdAt": { "type": "string", "format": "date-time", "example": "2024-01-15T10:30:00.000Z" }
-        }
-      },
-      "UpdateUserRequest": {
-        "type": "object",
-        "minProperties": 1,
-        "properties": {
-          "name": { "type": "string", "minLength": 1, "maxLength": 100, "example": "Jane Q. Doe" }
-        }
-      },
-      "TaskStatus": {
-        "type": "string",
-        "enum": ["todo", "in_progress", "done"],
-        "example": "in_progress"
-      },
-      "Task": {
-        "type": "object",
-        "required": ["id", "title", "status", "createdAt", "updatedAt"],
-        "properties": {
-          "id": { "type": "string", "example": "tsk_01HABC" },
-          "title": { "type": "string", "minLength": 1, "maxLength": 200, "example": "Write documentation" },
-          "description": { "type": ["string", "null"], "maxLength": 2000, "example": "Add OpenAPI spec" },
-          "status": { "$ref": "#/components/schemas/TaskStatus" },
-          "dueDate": { "type": ["string", "null"], "format": "date-time", "example": "2024-02-01T00:00:00.000Z" },
-          "createdAt": { "type": "string", "format": "date-time", "example": "2024-01-15T10:30:00.000Z" },
-          "updatedAt": { "type": "string", "format": "date-time", "example": "2024-01-16T09:00:00.000Z" }
-        }
-      },
-      "CreateTaskRequest": {
-        "type": "object",
-        "required": ["title"],
-        "properties": {
-          "title": { "type": "string", "minLength": 1, "maxLength": 200, "example": "Write documentation" },
-          "description": { "type": "string", "maxLength": 2000, "example": "Add OpenAPI spec" },
-          "status": { "$ref": "#/components/schemas/TaskStatus" },
-          "dueDate": { "type": "string", "format": "date-time", "example": "2024-02-01T00:00:00.000Z" }
-        }
-      },
-      "UpdateTaskRequest": {
-        "type": "object",
-        "minProperties": 1,
-        "properties": {
-          "title": { "type": "string", "minLength": 1, "maxLength": 200, "example": "Write documentation" },
-          "description": { "type": ["string", "null"], "maxLength": 2000, "example": "Add OpenAPI spec" },
-          "status": { "$ref": "#/components/schemas/TaskStatus" },
-          "dueDate": { "type": ["string", "null"], "format": "date-time", "example": "2024-02-01T00:00:00.000Z" }
-        }
-      },
-      "TaskListResponse": {
-        "type": "object",
-        "required": ["data", "meta"],
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Task" }
-          },
-          "meta": { "$ref": "#/components/schemas/PaginationMeta" }
-        }
-      },
-      "PaginationMeta": {
-        "type": "object",
-        "required": ["page", "limit", "total", "totalPages"],
-        "properties": {
-          "page": { "type": "integer", "minimum": 1, "example": 1 },
-          "limit": { "type": "integer", "minimum": 1, "example": 20 },
-          "total": { "type": "integer", "minimum": 0, "example": 1 },
-          "totalPages": { "type": "integer", "minimum": 0, "example": 1 }
-        }
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "required": ["error"],
-        "properties": {
-          "error": {
-            "type": "object",
-            "required": ["code", "message"],
-            "properties": {
-              "code": {
-                "type": "string",
-                "description": "AppError taxonomy code",
-                "enum": [
-                  "VALIDATION_ERROR",
-                  "UNAUTHORIZED",
-                  "FORBIDDEN",
-                  "NOT_FOUND",
-                  "CONFLICT",
-                  "RATE_LIMITED",
-                  "INTERNAL_ERROR"
-                ],
-                "example": "VALIDATION_ERROR"
-              },
-              "message": { "type": "string", "example": "Request validation failed" },
-              "details": {
-                "type": "array",
-                "description": "Field-level validation details (only for VALIDATION_ERROR)",
-                "items": {
-                  "type": "object",
-                  "required": ["field", "message"],
-                  "properties": {
-                    "field": { "type": "string", "example": "email" },
-                    "message": { "type": "string", "example": "must be a valid email" }
-                  }
-                }
-              },
-              "requestId": { "type": "string", "description": "Correlation id for support", "example": "b3f1c2a4-1f2e-4c3d-9a8b-7e6d5c4b3a21" }
-            }
-          }
-        }
-      }
+      "BearerApiKey": { "type": "http", "scheme": "bearer", "bearerFormat": "StellarSplit API key", "description": "Signed StellarSplit API key. Read- or write-scoped keys may read v1 resources." }
     },
     "responses": {
-      "ValidationError": {
-        "description": "Request validation failed",
-        "content": {
-          "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": {
-              "error": {
-                "code": "VALIDATION_ERROR",
-                "message": "Request validation failed",
-                "details": [
-                  { "field": "email", "message": "must be a valid email" },
-                  { "field": "password", "message": "must be at least 8 characters" }
-                ],
-                "requestId": "b3f1c2a4-1f2e-4c3d-9a8b-7e6d5c4b3a21"
-              }
-            }
-          }
-        }
-      },
-      "Unauthorized": {
-        "description": "Missing or invalid credentials",
-        "content": {
-          "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": {
-              "error": {
-                "code": "UNAUTHORIZED",
-                "message": "Authentication required",
-                "requestId": "b3f1c2a4-1f2e-4c3d-9a8b-7e6d5c4b3a21"
-              }
-            }
-          }
-        }
-      },
-      "Forbidden": {
-        "description": "Authenticated but not allowed to access the resource",
-        "content": {
-          "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": {
-              "error": {
-                "code": "FORBIDDEN",
-                "message": "You do not have permission to access this resource",
-                "requestId": "b3f1c2a4-1f2e-4c3d-9a8b-7e6d5c4b3a21"
-              }
-            }
-          }
-        }
-      },
-      "NotFound": {
-        "description": "Resource not found",
-        "content": {
-          "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": {
-              "error": {
-                "code": "NOT_FOUND",
-                "message": "Task not found",
-                "requestId": "b3f1c2a4-1f2e-4c3d-9a8b-7e6d5c4b3a21"
-              }
-            }
-          }
-        }
-      },
-      "RateLimited": {
-        "description": "Too many requests",
-        "headers": {
-          "Retry-After": {
-            "description": "Seconds until the next request may be attempted",
-            "schema": { "type": "integer", "example": 30 }
-          }
-        },
-        "content": {
-          "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": {
-              "error": {
-                "code": "RATE_LIMITED",
-                "message": "Too many requests, please try again later",
-                "requestId": "b3f1c2a4-1f2e-4c3d-9a8b-7e6d5c4b3a21"
-              }
-            }
-          }
-        }
-      },
-      "InternalError": {
-        "description": "Unexpected server error",
-        "content": {
-          "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": {
-              "error": {
-                "code": "INTERNAL_ERROR",
-                "message": "An unexpected error occurred",
-                "requestId": "b3f1c2a4-1f2e-4c3d-9a8b-7e6d5c4b3a21"
-              }
-            }
-          }
-        }
-      }
+      "ValidationError": { "description": "Invalid path or query parameters", "content": { "application/json": { "example": { "error": { "code": "VALIDATION_ERROR", "message": "One or more query parameters are invalid.", "details": { "fieldErrors": { "publicKey": ["Must be a valid Stellar public key"] } }, "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+      "Unauthorized": { "description": "Missing or invalid API key", "content": { "application/json": { "example": { "error": { "code": "UNAUTHORIZED", "message": "A valid API key is required.", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+      "NotFound": { "description": "Invoice does not exist", "content": { "application/json": { "example": { "error": { "code": "NOT_FOUND", "message": "Invoice was not found.", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+      "RateLimited": { "description": "Quota exceeded. Includes Retry-After and X-RateLimit-* headers.", "headers": { "Retry-After": { "schema": { "type": "integer" }, "description": "Seconds until retry is permitted." } }, "content": { "application/json": { "example": { "error": { "code": "RATE_LIMITED", "message": "Too many requests. Retry after the rate limit window resets.", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+      "UpstreamError": { "description": "Stellar network could not be reached", "content": { "application/json": { "example": { "error": { "code": "UPSTREAM_ERROR", "message": "Unable to fetch invoices from the Stellar network.", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+      "ConfigurationError": { "description": "Production API-key signing secret is not configured", "content": { "application/json": { "example": { "error": { "code": "CONFIGURATION_ERROR", "message": "API key authentication is not configured.", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } }
     }
   }
 }
