@@ -25,6 +25,10 @@ const EVENT_LABELS: Record<SecurityEventType, string> = {
   secret_detected: "Secret key or recovery phrase entered",
   rate_limited: "Wallet action rate limited",
   session_locked: "Session locked after inactivity",
+  biometric_enrolled: "Biometric unlock enabled",
+  biometric_disabled: "Biometric unlock disabled",
+  biometric_success: "Biometric verification succeeded",
+  biometric_failed: "Biometric verification failed",
 };
 
 /**
