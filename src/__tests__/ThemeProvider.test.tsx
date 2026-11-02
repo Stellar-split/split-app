@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import ThemeToggle from "@/components/ThemeToggle";

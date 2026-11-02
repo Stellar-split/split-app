@@ -1,4 +1,5 @@
 import { forecastEarnings, forecastEarningsDetailed, totalForecast } from "@/lib/earningsForecast";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 
 describe("forecastEarnings", () => {
   it("projects a linear trend", () => {

@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render } from "@testing-library/react";
 import { Skeleton, SkeletonCard } from "@/components/Skeleton";
 

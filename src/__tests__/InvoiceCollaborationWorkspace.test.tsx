@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import InvoiceCollaborationWorkspace from "@/components/workspace/InvoiceCollaborationWorkspace";
 import { addNote, progress, setRole } from "@/lib/invoiceWorkspace";
 

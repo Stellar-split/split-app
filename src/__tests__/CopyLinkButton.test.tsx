@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import CopyLinkButton from "@/components/CopyLinkButton";
 

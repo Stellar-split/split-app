@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from "@testing-library/react";
 import StatusBadge from "@/components/StatusBadge";
 import { STATUS_CONFIG } from "@/lib/invoiceStatus";

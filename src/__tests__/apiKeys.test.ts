@@ -6,6 +6,7 @@
  */
 
 import {
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
   STORAGE_KEY,
   checkWriteScope,
   generateKeyValue,

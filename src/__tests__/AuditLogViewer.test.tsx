@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from "@testing-library/react";
 import AuditLogViewer from "@/components/audit/AuditLogViewer";
 import { auditEntriesToCsv, filterAuditEntries, type AuditEntry } from "@/lib/auditLog";

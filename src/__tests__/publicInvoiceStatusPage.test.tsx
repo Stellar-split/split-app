@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import "@testing-library/jest-dom";
 
 describe("Issue #415: Dynamic Public Invoice Status Page", () => {

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import InvoiceMilestoneCelebration from "@/components/milestones/InvoiceMilestoneCelebration";
 import { fundedPercent, newestMilestone } from "@/lib/invoiceMilestones";
 

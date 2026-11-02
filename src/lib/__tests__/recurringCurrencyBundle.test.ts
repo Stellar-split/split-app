@@ -1,4 +1,5 @@
 import {
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
   validateRecurringSchedule,
   detectScheduleConflicts,
   computeNextRun,

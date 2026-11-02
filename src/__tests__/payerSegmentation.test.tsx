@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, within } from "@testing-library/react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import PayerSegmentation from "@/components/analytics/PayerSegmentation";
 import {
   championThreshold,

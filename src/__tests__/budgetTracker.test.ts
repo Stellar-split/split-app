@@ -6,6 +6,7 @@
  */
 
 import {
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
   setBudgetLimit,
   clearBudgetLimit,
   recordPayment,

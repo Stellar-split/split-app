@@ -1,4 +1,5 @@
 import { getInvoiceOcrAnalytics, recognizeInvoiceFields, recordInvoiceOcrReview } from '@/lib/invoiceOcr';
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 
 describe('recognizeInvoiceFields', () => {
   it('extracts invoice fields and scores recognized values', () => {

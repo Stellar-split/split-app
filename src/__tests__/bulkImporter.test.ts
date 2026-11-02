@@ -11,6 +11,7 @@
  */
 
 import { validateRows } from "@/lib/bulkImporter";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import type { RecipientRow, ValidationResult } from "@/lib/bulkImporter";
 
 // ---------------------------------------------------------------------------

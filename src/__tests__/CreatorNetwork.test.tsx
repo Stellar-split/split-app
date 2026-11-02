@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import CreatorNetwork from "@/components/network/CreatorNetwork";
 import { acceptConnection, requestConnection, suggestCreators } from "@/lib/creatorNetwork";
 

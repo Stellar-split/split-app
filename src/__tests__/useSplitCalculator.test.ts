@@ -1,4 +1,5 @@
 import { resolveRounding } from '@/hooks/useSplitCalculator';
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 
 describe('resolveRounding', () => {
   const STROOP_SCALE = 1e7;

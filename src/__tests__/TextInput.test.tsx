@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import TextInput from '@/components/TextInput';
 
 describe('TextInput', () => {

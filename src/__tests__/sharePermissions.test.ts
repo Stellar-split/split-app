@@ -1,4 +1,5 @@
 import { can, revokeGrant, upsertGrant, type ShareGrant } from "@/lib/sharePermissions";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 
 const OWNER = "GOWNER";
 const EDITOR = "GEDITOR";

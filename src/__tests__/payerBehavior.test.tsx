@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import PayerBehaviorAnalytics from "@/components/analytics/PayerBehaviorAnalytics";
 import { analyzePayers } from "@/lib/payerBehavior";
 

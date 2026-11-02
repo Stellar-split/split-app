@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from "@testing-library/react";
 import CreatorMarketplace from "@/components/marketplace/CreatorMarketplace";
 import { discoverCreators, listCategories, type MarketplaceCreator } from "@/lib/creatorMarketplace";

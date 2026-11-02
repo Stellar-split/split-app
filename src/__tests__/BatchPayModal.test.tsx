@@ -9,6 +9,7 @@
  */
 
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, act, fireEvent } from "@testing-library/react";
 import BatchPayModal from "@/components/BatchPayModal";
 import type { Invoice } from "@stellar-split/sdk";
