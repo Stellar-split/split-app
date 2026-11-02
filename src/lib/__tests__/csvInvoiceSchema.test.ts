@@ -89,6 +89,7 @@ describe("validateInvoiceFormFields", () => {
         deadline: "2026-12-31",
         token: "USDC",
       },
+      errors: [],
     });
   });
 
