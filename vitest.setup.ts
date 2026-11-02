@@ -84,39 +84,11 @@ afterEach(() => {
 // Mock external ledger dependencies that may not be available
 vi.mock('@ledgerhq/hw-transport-webhid', () => ({ default: {} }), { external: true });
 vi.mock('@ledgerhq/hw-app-str', () => ({ default: {} }), { external: true });
-// Mock missing UI components
-const React = require('react');
-vi.mock('@/components/ArbitratorPicker', () => ({
-  default: () => null,
-}));
-
-vi.mock('@/components/FocusTrap', () => ({
-  default: ({ children }: any) => React.createElement(React.Fragment, null, children),
-}));
-
-vi.mock('@/components/Modal', () => ({
-  default: ({ children, isOpen }: any) => isOpen ? React.createElement(React.Fragment, null, children) : null,
-}));
 
 vi.mock('@/lib/ipfs', () => ({
   uploadToIpfs: vi.fn().mockResolvedValue('QmMockCID'),
 }));
 
-// Mock additional components
-vi.mock('@/components/I18nProvider', () => ({
-  useI18n: () => ({ t: (key: string) => key }),
-  default: ({ children }: any) => React.createElement(React.Fragment, null, children),
-}));
-
-vi.mock('@/components/ToastContainer', () => ({
-  default: () => null,
-}));
-
-vi.mock('@/components/TxConfirmModal', () => ({
-  default: () => null,
-}));
-
-// Mock stellar functions
 vi.mock('@/lib/stellar', () => ({
   getSplitClient: vi.fn(() => ({
     voteDispute: vi.fn().mockResolvedValue({ txHash: 'mock' }),
