@@ -94,8 +94,18 @@ vi.mock('@/lib/stellar', () => ({
     voteDispute: vi.fn().mockResolvedValue({ txHash: 'mock' }),
     addDisputeEvidence: vi.fn().mockResolvedValue({ txHash: 'mock' }),
   })),
+  splitClient: {
+    voteDispute: vi.fn().mockResolvedValue({ txHash: 'mock' }),
+    addDisputeEvidence: vi.fn().mockResolvedValue({ txHash: 'mock' }),
+  },
   USDC_CONTRACT_ID: 'CUSDC',
+  MAX_RECIPIENTS: 10,
   fetchUsdcBalance: vi.fn().mockResolvedValue(1000000n),
+  getMinimumBalance: vi.fn().mockResolvedValue(5000000n),
+  validateStellarAddress: vi.fn().mockResolvedValue(true),
+  validateFederationAddress: vi.fn().mockResolvedValue(true),
+  resolveFederationAddress: vi.fn().mockResolvedValue('GTEST123'),
+  payMilestone: vi.fn().mockResolvedValue({ txHash: 'mock' }),
 }));
 
 // Mock components that are only used within providers but tested independently
