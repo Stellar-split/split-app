@@ -84,3 +84,19 @@ afterEach(() => {
 // Mock external ledger dependencies that may not be available
 vi.mock('@ledgerhq/hw-transport-webhid', () => ({ default: {} }), { external: true });
 vi.mock('@ledgerhq/hw-app-str', () => ({ default: {} }), { external: true });
+// Mock missing UI components
+vi.mock('@/components/ArbitratorPicker', () => ({
+  default: () => <div data-testid="arbitrator-picker" />,
+}));
+
+vi.mock('@/components/FocusTrap', () => ({
+  default: ({ children }: any) => <>{children}</>,
+}));
+
+vi.mock('@/components/Modal', () => ({
+  default: ({ children, isOpen }: any) => isOpen ? <>{children}</> : null,
+}));
+
+vi.mock('@/lib/ipfs', () => ({
+  uploadToIpfs: vi.fn().mockResolvedValue('QmMockCID'),
+}));
