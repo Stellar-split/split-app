@@ -85,16 +85,17 @@ afterEach(() => {
 vi.mock('@ledgerhq/hw-transport-webhid', () => ({ default: {} }), { external: true });
 vi.mock('@ledgerhq/hw-app-str', () => ({ default: {} }), { external: true });
 // Mock missing UI components
+const React = require('react');
 vi.mock('@/components/ArbitratorPicker', () => ({
-  default: () => <div data-testid="arbitrator-picker" />,
+  default: () => React.createElement('div', { 'data-testid': 'arbitrator-picker' }),
 }));
 
 vi.mock('@/components/FocusTrap', () => ({
-  default: ({ children }: any) => <>{children}</>,
+  default: ({ children }: any) => React.createElement(React.Fragment, null, children),
 }));
 
 vi.mock('@/components/Modal', () => ({
-  default: ({ children, isOpen }: any) => isOpen ? <>{children}</> : null,
+  default: ({ children, isOpen }: any) => isOpen ? React.createElement(React.Fragment, null, children) : null,
 }));
 
 vi.mock('@/lib/ipfs', () => ({
