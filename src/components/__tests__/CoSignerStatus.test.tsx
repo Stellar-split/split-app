@@ -6,7 +6,7 @@ import CoSignerStatus from '../CoSignerStatus';
 
 describe('CoSignerStatus', () => {
   const defaultProps = {
-    coSigners: [
+    cosigners: [
       { address: 'GAAAA1111', approved: false },
       { address: 'GBBBB2222', approved: true },
       { address: 'GCCCC3333', approved: false },
@@ -41,7 +41,7 @@ describe('CoSignerStatus', () => {
     render(
       <CoSignerStatus
         {...defaultProps}
-        coSigners={[
+        cosigners={[
           { address: 'GAAAA1111', approved: true },
           { address: 'GBBBB2222', approved: true },
           { address: 'GCCCC3333', approved: false },
@@ -56,7 +56,7 @@ describe('CoSignerStatus', () => {
     render(
       <CoSignerStatus
         {...defaultProps}
-        coSigners={[
+        cosigners={[
           { address: 'GAAAA1111', approved: true },
           { address: 'GBBBB2222', approved: true },
           { address: 'GCCCC3333', approved: true },
