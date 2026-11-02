@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * Tests for the multi-step form progress indicator (#475).
  */
@@ -48,7 +49,7 @@ describe("Stepper", () => {
   });
 
   test("completed steps are clickable and report their index", async () => {
-    const onStepClick = jest.fn();
+    const onStepClick = vi.fn();
     render(<Stepper steps={steps} onStepClick={onStepClick} />);
 
     await userEvent.click(screen.getByRole("button", { name: /Go back to step 1: Details/i }));
@@ -57,7 +58,7 @@ describe("Stepper", () => {
   });
 
   test("current and upcoming steps are not clickable", () => {
-    render(<Stepper steps={steps} onStepClick={jest.fn()} />);
+    render(<Stepper steps={steps} onStepClick={vi.fn()} />);
 
     // Only the single completed step renders as a button.
     expect(screen.getAllByRole("button")).toHaveLength(1);

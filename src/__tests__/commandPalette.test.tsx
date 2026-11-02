@@ -1,8 +1,9 @@
+import { vi } from "vitest";
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import CommandPalette, { fuzzyMatch } from "@/components/CommandPalette";
 
-const navigateSpy = jest.fn();
+const navigateSpy = vi.fn();
 
 beforeEach(() => {
   navigateSpy.mockClear();

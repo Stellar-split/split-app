@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * Unit tests for @mention parsing, chip rendering, self-mention suppression,
  * and malformed pattern handling in CommentSection / notifications.
@@ -94,7 +95,7 @@ describe("notifyMention", () => {
   let NotificationSpy: jest.Mock;
 
   beforeEach(() => {
-    NotificationSpy = jest.fn();
+    NotificationSpy = vi.fn();
     NotificationSpy.permission = "granted" as NotificationPermission;
     Object.defineProperty(global, "Notification", {
       writable: true,

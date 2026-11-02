@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * Unit tests for QRModal polling (#211).
  *
@@ -33,7 +34,7 @@ vi.mock("qrcode.react", () => ({
 const baseProps = {
   open: true,
   uri: "wc:test-uri",
-  onClose: jest.fn(),
+  onClose: vi.fn(),
 };
 
 beforeEach(() => {
@@ -47,7 +48,7 @@ afterEach(() => {
 });
 
 test("onConnected fires exactly once when wallet connects", async () => {
-  const onConnected = jest.fn();
+  const onConnected = vi.fn();
   mockIsWalletConnected.mockResolvedValue(true);
 
   render(<QRModal {...baseProps} onConnected={onConnected} pollingInterval={2000} />);
@@ -60,7 +61,7 @@ test("onConnected fires exactly once when wallet connects", async () => {
 });
 
 test("onConnected does not fire again if connection stays true", async () => {
-  const onConnected = jest.fn();
+  const onConnected = vi.fn();
   mockIsWalletConnected.mockResolvedValue(true);
 
   render(<QRModal {...baseProps} onConnected={onConnected} pollingInterval={2000} />);
@@ -75,7 +76,7 @@ test("onConnected does not fire again if connection stays true", async () => {
 });
 
 test("onConnected does not fire while wallet not connected", async () => {
-  const onConnected = jest.fn();
+  const onConnected = vi.fn();
   mockIsWalletConnected.mockResolvedValue(false);
 
   render(<QRModal {...baseProps} onConnected={onConnected} pollingInterval={2000} />);
@@ -88,7 +89,7 @@ test("onConnected does not fire while wallet not connected", async () => {
 });
 
 test("polling stops when open becomes false", async () => {
-  const onConnected = jest.fn();
+  const onConnected = vi.fn();
   mockIsWalletConnected.mockResolvedValue(false);
 
   const { rerender } = render(
@@ -111,7 +112,7 @@ test("polling stops when open becomes false", async () => {
 });
 
 test("no interval leak: re-opening fires onConnected exactly once per cycle", async () => {
-  const onConnected = jest.fn();
+  const onConnected = vi.fn();
 
   // First open: wallet not connected
   const { rerender } = render(
@@ -143,7 +144,7 @@ test("no interval leak: re-opening fires onConnected exactly once per cycle", as
 });
 
 test("pollingInterval prop controls tick frequency", async () => {
-  const onConnected = jest.fn();
+  const onConnected = vi.fn();
   mockIsWalletConnected.mockResolvedValue(true);
 
   render(<QRModal {...baseProps} onConnected={onConnected} pollingInterval={500} />);

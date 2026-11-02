@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { render, screen } from '@testing-library/react';
 import PaymentProgress from '@/components/PaymentProgress';
 import type { Invoice } from '@stellar-split/sdk';

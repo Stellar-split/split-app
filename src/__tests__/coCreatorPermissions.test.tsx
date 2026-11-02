@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import React from "react";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import CoCreatorPanel, {
@@ -101,7 +102,7 @@ describe("CoCreatorPanel — permission levels", () => {
   });
 
   test("adding a co-creator stores the selected permission level", async () => {
-    const onUpdate = jest.fn().mockResolvedValue(undefined);
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
     render(
       <CoCreatorPanel
         invoice={makeInvoice()}

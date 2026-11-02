@@ -1,22 +1,23 @@
+import { vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import InvoiceExportButton from '@/components/InvoiceExportButton';
 import type { Invoice } from '@stellar-split/sdk';
 
 // Mock the dynamic PDF import
 jest.mock('@react-pdf/renderer', () => ({
-  pdf: jest.fn(() => ({
-    toBlob: jest.fn(async () => new Blob(['test'])),
+  pdf: vi.fn(() => ({
+    toBlob: vi.fn(async () => new Blob(['test'])),
   })),
-  Document: jest.fn(() => null),
-  Page: jest.fn(() => null),
-  Text: jest.fn(() => null),
-  View: jest.fn(() => null),
-  StyleSheet: { create: jest.fn((obj) => obj) },
-  Image: jest.fn(() => null),
+  Document: vi.fn(() => null),
+  Page: vi.fn(() => null),
+  Text: vi.fn(() => null),
+  View: vi.fn(() => null),
+  StyleSheet: { create: vi.fn((obj) => obj) },
+  Image: vi.fn(() => null),
 }));
 
 jest.mock('@/lib/branding', () => ({
-  fetchBrandSettings: jest.fn(async () => ({})),
+  fetchBrandSettings: vi.fn(async () => ({})),
 }));
 
 describe('InvoiceExportButton', () => {
@@ -34,9 +35,9 @@ describe('InvoiceExportButton', () => {
   };
 
   beforeEach(() => {
-    global.URL.createObjectURL = jest.fn(() => 'blob:test');
-    global.URL.revokeObjectURL = jest.fn();
-    HTMLAnchorElement.prototype.click = jest.fn();
+    global.URL.createObjectURL = vi.fn(() => 'blob:test');
+    global.URL.revokeObjectURL = vi.fn();
+    HTMLAnchorElement.prototype.click = vi.fn();
 
     jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,

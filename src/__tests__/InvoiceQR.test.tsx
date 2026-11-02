@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import InvoiceQR, { clampAmount, MIN_AMOUNT } from "@/components/InvoiceQR";

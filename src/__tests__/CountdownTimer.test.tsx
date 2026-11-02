@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import CountdownTimer from "@/components/CountdownTimer";
 

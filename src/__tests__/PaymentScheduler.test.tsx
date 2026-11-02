@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import PaymentScheduler from "@/components/PaymentScheduler";
@@ -103,7 +104,7 @@ describe("PaymentScheduler (#800)", () => {
   });
 
   it("calls onPayInstalment callback when paying", () => {
-    const onPay = jest.fn();
+    const onPay = vi.fn();
     render(<PaymentScheduler {...defaultProps} onPayInstalment={onPay} />);
     const freqSelect = screen.getByLabelText(/payment frequency/i) as HTMLSelectElement;
     fireEvent.change(freqSelect, { target: { value: "one-time" } });

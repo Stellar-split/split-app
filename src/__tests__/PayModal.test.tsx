@@ -1,4 +1,5 @@
 import React from "react";
+import { vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import PayModal, { getPaymentErrorMessage } from "@/components/PayModal";
 import type { Invoice } from "@stellar-split/sdk";
@@ -41,7 +42,7 @@ const invoice: Invoice = {
 
 describe("PayModal", () => {
   it("defaults to remaining share, shows balance, pays with tip, and renders explorer link", async () => {
-    const onPay = jest.fn().mockResolvedValue({ txHash: "abc123hash" });
+    const onPay = vi.fn().mockResolvedValue({ txHash: "abc123hash" });
 
     render(
       <PayModal
@@ -49,7 +50,7 @@ describe("PayModal", () => {
         total={100n * SCALE}
         publicKey="GPAYER"
         onPay={onPay}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />
     );
 
