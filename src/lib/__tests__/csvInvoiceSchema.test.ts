@@ -47,17 +47,17 @@ describe("parseRecipients", () => {
 
 describe("validateInvoiceFormFields", () => {
   it("rejects null input", () => {
-    expect(validateInvoiceFormFields(null)).toEqual({
-      valid: false,
-      error: "Invalid data format",
-    });
+    const result = validateInvoiceFormFields(null);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toBe("Invalid data format");
   });
 
   it("rejects non-object input", () => {
-    expect(validateInvoiceFormFields("not an object")).toEqual({
-      valid: false,
-      error: "Invalid data format",
-    });
+    const result = validateInvoiceFormFields("not an object");
+    expect(result.valid).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toBe("Invalid data format");
   });
 
   it("accepts an empty object and returns empty parsed data", () => {
