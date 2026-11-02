@@ -1,4 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import * as freighter from "../freighter";
+
+vi.mock("../freighter");
+vi.mock("../ledger", () => ({
+  getLedgerStatus: vi.fn().mockResolvedValue({ connected: false, publicKey: null }),
+  LedgerError: Error,
+}));
+
 import {
   startWalletPolling,
   stopWalletPolling,
@@ -6,9 +14,6 @@ import {
   setLastKnownAddress,
   getLastKnownAddress,
 } from "../walletMonitor";
-import * as freighter from "../freighter";
-
-vi.mock("../freighter");
 
 describe("walletMonitor", () => {
   beforeEach(() => {
