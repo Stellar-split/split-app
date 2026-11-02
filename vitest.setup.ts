@@ -97,3 +97,10 @@ vi.mock('@/lib/stellar', () => ({
   USDC_CONTRACT_ID: 'CUSDC',
   fetchUsdcBalance: vi.fn().mockResolvedValue(1000000n),
 }));
+
+// Mock components that are only used within providers but tested independently
+const React = require('react');
+vi.mock('@/components/I18nProvider', () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+  default: ({ children }: any) => React.createElement(React.Fragment, null, children),
+}));
