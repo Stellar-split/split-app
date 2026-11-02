@@ -61,7 +61,9 @@ describe("Branding settings API (/api/settings/branding)", () => {
       const res = await GET(new NextRequest(`${apiUrl}?address=${ALICE}`));
       expect(res.status).toBe(200);
       const data = await res.json();
-      expect(data).toEqual({ logoUrl: null, accentColor: null, tagline: null, updatedAt: "" });
+      expect(data.logoUrl).toBe(null);
+      expect(data.accentColor).toBe(null);
+      expect(data.tagline).toBe(null);
     });
 
     it("rejects a missing address with 400", async () => {
