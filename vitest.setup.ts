@@ -87,7 +87,7 @@ vi.mock('@ledgerhq/hw-app-str', () => ({ default: {} }), { external: true });
 // Mock missing UI components
 const React = require('react');
 vi.mock('@/components/ArbitratorPicker', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'arbitrator-picker' }),
+  default: () => null,
 }));
 
 vi.mock('@/components/FocusTrap', () => ({
@@ -109,11 +109,11 @@ vi.mock('@/components/I18nProvider', () => ({
 }));
 
 vi.mock('@/components/ToastContainer', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'toast-container' }),
+  default: () => null,
 }));
 
 vi.mock('@/components/TxConfirmModal', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'tx-confirm' }),
+  default: () => null,
 }));
 
 // Mock stellar functions
