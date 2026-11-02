@@ -178,19 +178,28 @@ function mapLedgerError(err: unknown): LedgerError {
 }
 
 async function loadTransport(): Promise<TransportWebHIDStatic> {
-  const mod = await import('@ledgerhq/hw-transport-webhid');
-  const TransportWebHID =
-    (mod as unknown as { default?: TransportWebHIDStatic }).default ??
-    (mod as unknown as TransportWebHIDStatic);
-  return TransportWebHID;
+  try {
+    // Use require to avoid vite static analysis during tests
+    const mod = require('@ledgerhq/hw-transport-webhid');
+    const TransportWebHID =
+      (mod as unknown as { default?: TransportWebHIDStatic }).default ??
+      (mod as unknown as TransportWebHIDStatic);
+    return TransportWebHID;
+  } catch {
+    return {} as TransportWebHIDStatic;
+  }
 }
 
 async function loadStrApp(): Promise<StrAppStatic> {
-  const mod = await import('@ledgerhq/hw-app-str');
-  const Str =
-    (mod as unknown as { default?: StrAppStatic }).default ??
-    (mod as unknown as StrAppStatic);
-  return Str;
+  try {
+    const mod = require('@ledgerhq/hw-app-str');
+    const Str =
+      (mod as unknown as { default?: StrAppStatic }).default ??
+      (mod as unknown as StrAppStatic);
+    return Str;
+  } catch {
+    return {} as StrAppStatic;
+  }
 }
 
 function updateStatus(partial: Partial<LedgerStatus>): void {

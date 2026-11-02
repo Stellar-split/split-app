@@ -82,8 +82,8 @@ afterEach(() => {
 });
 
 // Mock external ledger dependencies that may not be available
-vi.mock('@ledgerhq/hw-transport-webhid', () => ({ default: {} }), { external: true });
-vi.mock('@ledgerhq/hw-app-str', () => ({ default: {} }), { external: true });
+vi.mock('@ledgerhq/hw-transport-webhid', () => ({ default: {}, TransportWebHID: {} }));
+vi.mock('@ledgerhq/hw-app-str', () => ({ default: {} }));
 
 vi.mock('@/lib/stellar', () => ({
   getSplitClient: vi.fn(() => ({

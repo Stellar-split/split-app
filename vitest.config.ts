@@ -17,6 +17,7 @@ export default defineConfig({
     server: {
       deps: {
         inline: ['@stellar/freighter-api', '@stellar-split/sdk'],
+        external: ['@ledgerhq/hw-transport-webhid', '@ledgerhq/hw-app-str'],
       },
     },
     coverage: {
