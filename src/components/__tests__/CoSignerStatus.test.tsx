@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { CoSignerStatus } from '../CoSignerStatus';
+import CoSignerStatus from '../CoSignerStatus';
 
 describe('CoSignerStatus', () => {
   const defaultProps = {
