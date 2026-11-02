@@ -10,6 +10,9 @@ const mockAddDisputeEvidence = vi.hoisted(() => vi.fn().mockResolvedValue({ txHa
 
 vi.mock("@/lib/ipfs", () => ({
   uploadToIpfs: vi.fn().mockResolvedValue("QmMockCID123456789abcdefghijklmnopqrstuvwxyz"),
+  getIpfsUrl: (cid: string) => `https://ipfs.io/ipfs/${cid}`,
+  isValidCid: (cid: string) => /^Qm[a-zA-Z0-9]{44}$/.test(cid),
+  mockIpfsUpload: vi.fn().mockResolvedValue("QmMockCID123456789abcdefghijklmnopqrstuvwxyz"),
 }));
 
 vi.mock("@/lib/stellar", () => ({
