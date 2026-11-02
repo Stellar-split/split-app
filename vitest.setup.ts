@@ -101,3 +101,27 @@ vi.mock('@/components/Modal', () => ({
 vi.mock('@/lib/ipfs', () => ({
   uploadToIpfs: vi.fn().mockResolvedValue('QmMockCID'),
 }));
+
+// Mock additional components
+vi.mock('@/components/I18nProvider', () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+  default: ({ children }: any) => React.createElement(React.Fragment, null, children),
+}));
+
+vi.mock('@/components/ToastContainer', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'toast-container' }),
+}));
+
+vi.mock('@/components/TxConfirmModal', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'tx-confirm' }),
+}));
+
+// Mock stellar functions
+vi.mock('@/lib/stellar', () => ({
+  getSplitClient: vi.fn(() => ({
+    voteDispute: vi.fn().mockResolvedValue({ txHash: 'mock' }),
+    addDisputeEvidence: vi.fn().mockResolvedValue({ txHash: 'mock' }),
+  })),
+  USDC_CONTRACT_ID: 'CUSDC',
+  fetchUsdcBalance: vi.fn().mockResolvedValue(1000000n),
+}));

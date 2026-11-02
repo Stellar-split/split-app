@@ -6,7 +6,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/invoice/123",
 }));
 
-describe.skip("Breadcrumb", () => {
+describe("Breadcrumb", () => {
   it("should render breadcrumb items", () => {
     const items: BreadcrumbItem[] = [
       { label: "Invoices", href: "/dashboard" },

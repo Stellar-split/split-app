@@ -77,7 +77,7 @@ describe("PaymentExport PDF option", () => {
     expect(screen.getByRole("button", { name: "CSV" })).toBeInTheDocument();
   });
 
-  it.skip("opens the printable payment summary when PDF export is triggered", () => {
+  it("opens the printable payment summary when PDF export is triggered", () => {
     const openSpy = vi.spyOn(window, "open").mockReturnValue(null);
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock-url");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});

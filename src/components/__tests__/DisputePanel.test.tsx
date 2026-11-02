@@ -52,7 +52,7 @@ const mockInvoice: Invoice & { disputeStatus?: any } = {
   },
 };
 
-describe.skip("DisputePanel", () => {
+describe("DisputePanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (window as any).__toastContainer = { addToast: vi.fn() };
