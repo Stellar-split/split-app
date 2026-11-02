@@ -85,10 +85,6 @@ afterEach(() => {
 vi.mock('@ledgerhq/hw-transport-webhid', () => ({ default: {} }), { external: true });
 vi.mock('@ledgerhq/hw-app-str', () => ({ default: {} }), { external: true });
 
-vi.mock('@/lib/ipfs', () => ({
-  uploadToIpfs: vi.fn().mockResolvedValue('QmMockCID'),
-}));
-
 vi.mock('@/lib/stellar', () => ({
   getSplitClient: vi.fn(() => ({
     voteDispute: vi.fn().mockResolvedValue({ txHash: 'mock' }),
