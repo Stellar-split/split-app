@@ -7,7 +7,7 @@ import {
   cancelSchedule,
   type RecurringSchedule,
   type ScheduleStatus,
-} from '../recurring';
+} from '../recurringPaymentPlan/scheduleEngine';
 
 import {
   convertAmount,
@@ -17,7 +17,7 @@ import {
   type ExchangeRate,
   type RateLock,
   type CurrencyHistoryEntry,
-} from '../currency';
+} from '../currencyService';
 
 import {
   validateBundle,
@@ -26,7 +26,7 @@ import {
   type InvoiceBundle,
   type BundleStatus,
   type BundleItem,
-} from '../bundle';
+} from '../bundleService';
 
 describe('Recurring schedule validation', () => {
   const baseSchedule: RecurringSchedule = {

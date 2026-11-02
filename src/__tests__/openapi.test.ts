@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -16,7 +16,7 @@ import * as path from 'path';
  */
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const OPENAPI_PATH = path.join(ROOT, 'openapi.json');
+const OPENAPI_PATH = path.join(ROOT, 'public', 'openapi.json');
 const SRC_DIR = path.join(ROOT, 'src');
 
 const HTTP_METHODS = [

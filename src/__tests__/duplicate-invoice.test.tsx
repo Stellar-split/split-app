@@ -9,6 +9,7 @@
 
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
+import { vi } from "vitest";
 import { validateDeadline } from "@/components/DuplicateModal";
 import NewInvoicePage from "@/app/invoice/new/page";
 
