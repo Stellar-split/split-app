@@ -3,8 +3,13 @@ import { EscrowService } from "../escrowService";
 import { EscrowDisputeHoldError } from "../stateMachine";
 
 describe("EscrowService End-to-End Integration", () => {
+  let service: EscrowService;
+
+  beforeEach(() => {
+    service = new EscrowService([]);
+  });
+
   it("creates an escrow and funds it", () => {
-    const service = new EscrowService([]);
     const escrow = service.createEscrow({
       depositor: "alice",
       beneficiary: "bob",
