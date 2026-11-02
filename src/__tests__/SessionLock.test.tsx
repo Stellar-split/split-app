@@ -18,11 +18,11 @@ function TestConsumer() {
 
 beforeEach(() => {
   localStorage.clear();
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 });
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 test("starts unlocked", () => {
@@ -51,7 +51,7 @@ test("locks after inactivity timeout", () => {
   );
 
   act(() => {
-    jest.advanceTimersByTime(15 * 60 * 1000 + 15_000);
+    vi.advanceTimersByTime(15 * 60 * 1000 + 15_000);
   });
 
   expect(screen.getByTestId("locked").textContent).toBe("true");
@@ -65,14 +65,14 @@ test("interaction resets the timer", () => {
   );
 
   act(() => {
-    jest.advanceTimersByTime(14 * 60 * 1000);
+    vi.advanceTimersByTime(14 * 60 * 1000);
   });
   expect(screen.getByTestId("locked").textContent).toBe("false");
 
   fireEvent.mouseDown(document);
 
   act(() => {
-    jest.advanceTimersByTime(14 * 60 * 1000);
+    vi.advanceTimersByTime(14 * 60 * 1000);
   });
   expect(screen.getByTestId("locked").textContent).toBe("false");
 });
@@ -85,7 +85,7 @@ test("resume unlocks the session", () => {
   );
 
   act(() => {
-    jest.advanceTimersByTime(16 * 60 * 1000);
+    vi.advanceTimersByTime(16 * 60 * 1000);
   });
   expect(screen.getByTestId("locked").textContent).toBe("true");
 
@@ -103,7 +103,7 @@ test("disabled state (null timeout) skips locking entirely", () => {
   fireEvent.click(screen.getByTestId("set-null"));
 
   act(() => {
-    jest.advanceTimersByTime(120 * 60 * 1000);
+    vi.advanceTimersByTime(120 * 60 * 1000);
   });
 
   expect(screen.getByTestId("locked").textContent).toBe("false");
@@ -128,7 +128,7 @@ test("lock overlay shows Resume button", () => {
   );
 
   act(() => {
-    jest.advanceTimersByTime(16 * 60 * 1000);
+    vi.advanceTimersByTime(16 * 60 * 1000);
   });
 
   expect(screen.getByText("Session Locked")).toBeInTheDocument();
@@ -143,7 +143,7 @@ test("warns during the last minute before locking", () => {
   );
 
   act(() => {
-    jest.advanceTimersByTime(14 * 60 * 1000 + 30_000);
+    vi.advanceTimersByTime(14 * 60 * 1000 + 30_000);
   });
 
   expect(screen.getByText(/Your session will lock in \d+s/)).toBeInTheDocument();
@@ -161,7 +161,7 @@ test("locking clears the cached wallet session", () => {
   );
 
   act(() => {
-    jest.advanceTimersByTime(16 * 60 * 1000);
+    vi.advanceTimersByTime(16 * 60 * 1000);
   });
 
   expect(screen.getByTestId("locked").textContent).toBe("true");
@@ -177,7 +177,7 @@ test("requires biometrics to unlock when enabled", () => {
   );
 
   act(() => {
-    jest.advanceTimersByTime(16 * 60 * 1000);
+    vi.advanceTimersByTime(16 * 60 * 1000);
   });
 
   expect(screen.getByText("Unlock with biometrics")).toBeInTheDocument();

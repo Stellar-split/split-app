@@ -96,7 +96,7 @@ const mockLogs = [
 
 describe("ApiLogsPage - Request Log Viewer", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     localStorage.clear();
     localStorage.setItem("apiKeys", JSON.stringify(mockKeys));
     localStorage.setItem("apiLogs", JSON.stringify(mockLogs));

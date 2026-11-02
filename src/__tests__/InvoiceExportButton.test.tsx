@@ -46,7 +46,7 @@ describe('InvoiceExportButton', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render the export button', () => {

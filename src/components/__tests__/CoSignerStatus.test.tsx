@@ -1,4 +1,5 @@
 import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CoSignerStatus from '../CoSignerStatus';
@@ -12,11 +13,11 @@ describe('CoSignerStatus', () => {
     ],
     threshold: 2,
     connectedAddress: null as string | null,
-    onApprove: jest.fn(),
+    onApprove: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders all co-signers with pending and approved states', () => {
@@ -110,7 +111,7 @@ describe('CoSignerStatus', () => {
   });
 
   it('calls onApprove with the connected address when Approve is clicked', () => {
-    const onApprove = jest.fn();
+    const onApprove = vi.fn();
     render(
       <CoSignerStatus
         {...defaultProps}
@@ -127,7 +128,7 @@ describe('CoSignerStatus', () => {
   });
 
   it('does not call onApprove when Approve button is disabled', () => {
-    const onApprove = jest.fn();
+    const onApprove = vi.fn();
     render(
       <CoSignerStatus
         {...defaultProps}

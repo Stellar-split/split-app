@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi, describe, it, test, beforeEach, afterEach, expect } from "vitest";
 /**
  * Unit tests for QRModal polling (#211).
  *
@@ -38,13 +38,13 @@ const baseProps = {
 };
 
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
   mockIsWalletConnected.mockResolvedValue(false);
 });
 
 afterEach(() => {
-  jest.useRealTimers();
-  jest.clearAllMocks();
+  vi.useRealTimers();
+  vi.clearAllMocks();
 });
 
 test("onConnected fires exactly once when wallet connects", async () => {

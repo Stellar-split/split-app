@@ -10,11 +10,11 @@ vi.mock("qrcode.react", () => ({
 }));
 
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 });
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 describe("clampAmount", () => {
@@ -78,7 +78,7 @@ describe("InvoiceQR component", () => {
     fireEvent.change(input, { target: { value: "25" } });
 
     act(() => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
     const qr = screen.getByTestId("qr-canvas");

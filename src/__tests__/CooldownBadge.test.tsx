@@ -15,11 +15,11 @@ import { render, screen, act } from "@testing-library/react";
 import CooldownBadge from "@/components/CooldownBadge";
 
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 });
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 const futureExpiry = () => Math.floor(Date.now() / 1000) + 16_212; // ~4h 30m 12s
@@ -55,7 +55,7 @@ test("countdown text updates after 1 second tick", () => {
   const before = screen.getByRole("status").textContent ?? "";
 
   act(() => {
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
   });
 
   const after = screen.getByRole("status").textContent ?? "";
@@ -69,7 +69,7 @@ test("clears (renders nothing) once the expiry timestamp passes", () => {
   expect(container.firstChild).not.toBeNull();
 
   act(() => {
-    jest.advanceTimersByTime(3000); // advance past expiry
+    vi.advanceTimersByTime(3000); // advance past expiry
   });
 
   expect(container.firstChild).toBeNull();
