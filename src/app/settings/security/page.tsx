@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/apiClient';
+import { WalletSecuritySettings } from '@/components/WalletSecuritySettings';
 import {
   clearWalletConnection,
   getWalletConnection,

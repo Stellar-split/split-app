@@ -65,7 +65,6 @@ export default function QRModal({
   const isError = status === "error";
   const canShowQR = !!uri && !isTimeout && !isError;
   const statusText = isError && errorMessage ? errorMessage : STATUS_TEXT[status];
-======
 
   const handleCopy = async () => {
     try {

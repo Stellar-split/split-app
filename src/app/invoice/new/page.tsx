@@ -1503,8 +1503,6 @@ function NewInvoiceForm() {
           </div>
         </div>
       </form>
-      </>
-      )}
 
       <UnsavedChangesModal
         isOpen={showUnsavedModal}

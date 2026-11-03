@@ -304,6 +304,7 @@ export default function DashboardClient() {
   // Fetch splitMeta for overdue detection
   useEffect(() => {
     if (!publicKey) return;
+    let cancelled = false;
     const fetchInvoices = async () => {
       setLoading(true);
       const results: Invoice[] = [];
@@ -317,14 +318,16 @@ export default function DashboardClient() {
             results.push(inv);
             setInvoices([...results]);
           }
-        })
-      );
-      if (!cancelled) setSplitMetaMap(map);
-    })();
+        } catch (err) {
+          // Silently skip missing invoices
+        }
+      }
+      if (!cancelled) setInvoices(results);
+    };
+    fetchInvoices().catch((e) => { setError(String(e)); setLoading(false); });
     return () => {
       cancelled = true;
     };
-    fetchInvoices().catch((e) => { setError(String(e)); setLoading(false); });
   }, [publicKey]);
 
   // Numeric search debounce
