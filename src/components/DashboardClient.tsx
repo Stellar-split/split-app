@@ -78,35 +78,6 @@ export default function DashboardClient() {
   // Mobile filter drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // ── URL mutation helpers ────────────────────────────────────────────────────
-
-  const pushParams = useCallback(
-    (updates: Record<string, string>) => {
-      const sp = new URLSearchParams(searchParams.toString());
-      for (const [k, v] of Object.entries(updates)) {
-        if (v) sp.set(k, v);
-        else sp.delete(k);
-      }
-      router.replace(`?${sp.toString()}`, { scroll: false });
-    },
-    [router, searchParams],
-  );
-
-  const toggleStatus = (preset: DashboardPresetId) => {
-    const next = statuses.includes(preset)
-      ? statuses.filter((s) => s !== preset)
-      : [...statuses, preset];
-    pushParams({ status: next.join(",") });
-  };
-
-  const clearFilters = () => {
-    router.replace("?", { scroll: false });
-    setSearchValue("");
-  };
-
-  const isFiltered =
-    statuses.length > 0 || dateFrom || dateTo || sort !== "newest";
-
   // ── Data fetching ───────────────────────────────────────────────────────────
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
