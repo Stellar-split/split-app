@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useWalletBalance } from "../hooks/useWalletBalance";
 import { useWalletConnect } from "../hooks/useWalletConnect";
+import { getActiveNetwork } from "../lib/networks";
 
 const POLL_MS = 60_000;
 
@@ -168,22 +169,23 @@ export default function NetworkStatus() {
 
   // ── Network badge styles ─────────────────────────────────────────────────────
 
+  const activeNetwork = getActiveNetwork();
   const networkBadgeClasses =
-    NETWORK === "Mainnet"
+    activeNetwork.label === "Mainnet"
       ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
-      : NETWORK === "Testnet"
+      : activeNetwork.label === "Testnet"
       ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
       : "bg-gray-500/15 border-gray-500/40 text-gray-400";
 
   const networkIcon =
-    NETWORK === "Mainnet" ? "🌐" : NETWORK === "Testnet" ? "🧪" : "❓";
+    activeNetwork.label === "Mainnet" ? "🌐" : activeNetwork.label === "Testnet" ? "🧪" : "❓";
 
   const networkTooltip =
-    NETWORK === "Mainnet"
+    activeNetwork.label === "Mainnet"
       ? "Connected to Stellar Mainnet — real assets"
-      : NETWORK === "Testnet"
+      : activeNetwork.label === "Testnet"
       ? "Connected to Stellar Testnet — test assets only"
-      : "Network unknown — check NEXT_PUBLIC_STELLAR_NETWORK";
+      : `Connected to ${activeNetwork.label}`;
 
   return (
     <>
@@ -247,10 +249,10 @@ export default function NetworkStatus() {
         <div className="group relative">
           <span
             className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold tracking-wide select-none ${networkBadgeClasses}`}
-            aria-label={`Network: ${NETWORK}`}
+            aria-label={`Network: ${activeNetwork.label}`}
           >
             <span aria-hidden="true">{networkIcon}</span>
-            <span className="hidden sm:inline">{NETWORK}</span>
+            <span className="hidden sm:inline">{activeNetwork.label}</span>
           </span>
           {/* Tooltip */}
           <span
