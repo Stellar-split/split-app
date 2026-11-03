@@ -64,7 +64,7 @@ describe('AccessibilityContext', () => {
         </AccessibilityProvider>
       );
 
-      expect(screen.getByTestId('font-scale')).toHaveTextContent('100');
+      expect(screen.getByTestId('font-scale').textContent).toBe('100');
       expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe(
         '1'
       );
@@ -81,7 +81,7 @@ describe('AccessibilityContext', () => {
       await user.click(screen.getByTestId('set-font-115'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('font-scale')).toHaveTextContent('115');
+        expect(screen.getByTestId('font-scale').textContent).toBe('115');
         expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe(
           '1.15'
         );
@@ -99,7 +99,7 @@ describe('AccessibilityContext', () => {
       await user.click(screen.getByTestId('set-font-130'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('font-scale')).toHaveTextContent('130');
+        expect(screen.getByTestId('font-scale')).textContent).toBe('130');
         expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe(
           '1.3'
         );
@@ -136,7 +136,7 @@ describe('AccessibilityContext', () => {
         </AccessibilityProvider>
       );
 
-      expect(screen.getByTestId('font-scale')).toHaveTextContent('130');
+      expect(screen.getByTestId('font-scale')).textContent).toBe('130');
       expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe(
         '1.3'
       );
@@ -151,7 +151,7 @@ describe('AccessibilityContext', () => {
         </AccessibilityProvider>
       );
 
-      expect(screen.getByTestId('reduced-motion')).toHaveTextContent('false');
+      expect(screen.getByTestId('reduced-motion')).textContent).toBe('false');
       expect(
         document.documentElement.getAttribute('data-reduced-motion')
       ).toBeNull();
@@ -168,7 +168,7 @@ describe('AccessibilityContext', () => {
       await user.click(screen.getByTestId('toggle-reduced-motion'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('reduced-motion')).toHaveTextContent('true');
+        expect(screen.getByTestId('reduced-motion')).textContent).toBe('true');
         expect(
           document.documentElement.getAttribute('data-reduced-motion')
         ).toBe('true');
@@ -191,7 +191,7 @@ describe('AccessibilityContext', () => {
       await user.click(screen.getByTestId('toggle-reduced-motion'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('reduced-motion')).toHaveTextContent('false');
+        expect(screen.getByTestId('reduced-motion')).textContent).toBe('false');
         expect(
           document.documentElement.getAttribute('data-reduced-motion')
         ).toBeNull();
@@ -228,7 +228,7 @@ describe('AccessibilityContext', () => {
         </AccessibilityProvider>
       );
 
-      expect(screen.getByTestId('reduced-motion')).toHaveTextContent('true');
+      expect(screen.getByTestId('reduced-motion')).textContent).toBe('true');
       expect(
         document.documentElement.getAttribute('data-reduced-motion')
       ).toBe('true');
@@ -243,7 +243,7 @@ describe('AccessibilityContext', () => {
         </AccessibilityProvider>
       );
 
-      expect(screen.getByTestId('high-contrast')).toHaveTextContent('normal');
+      expect(screen.getByTestId('high-contrast')).textContent).toBe('normal');
       expect(document.documentElement.getAttribute('data-contrast')).toBe(
         'normal'
       );
@@ -260,7 +260,7 @@ describe('AccessibilityContext', () => {
       await user.click(screen.getByTestId('set-contrast-high'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('high-contrast')).toHaveTextContent('high');
+        expect(screen.getByTestId('high-contrast')).textContent).toBe('high');
         expect(document.documentElement.getAttribute('data-contrast')).toBe('high');
       });
     });
@@ -281,7 +281,7 @@ describe('AccessibilityContext', () => {
       await user.click(screen.getByTestId('set-contrast-normal'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('high-contrast')).toHaveTextContent('normal');
+        expect(screen.getByTestId('high-contrast')).textContent).toBe('normal');
         expect(document.documentElement.getAttribute('data-contrast')).toBe(
           'normal'
         );
@@ -318,7 +318,7 @@ describe('AccessibilityContext', () => {
         </AccessibilityProvider>
       );
 
-      expect(screen.getByTestId('high-contrast')).toHaveTextContent('high');
+      expect(screen.getByTestId('high-contrast')).textContent).toBe('high');
       expect(document.documentElement.getAttribute('data-contrast')).toBe('high');
     });
   });
@@ -338,9 +338,9 @@ describe('AccessibilityContext', () => {
         </AccessibilityProvider>
       );
 
-      expect(screen.getByTestId('font-scale')).toHaveTextContent('115');
-      expect(screen.getByTestId('reduced-motion')).toHaveTextContent('true');
-      expect(screen.getByTestId('high-contrast')).toHaveTextContent('high');
+      expect(screen.getByTestId('font-scale')).textContent).toBe('115');
+      expect(screen.getByTestId('reduced-motion')).textContent).toBe('true');
+      expect(screen.getByTestId('high-contrast')).textContent).toBe('high');
 
       expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe(
         '1.15'
@@ -358,9 +358,9 @@ describe('AccessibilityContext', () => {
         </AccessibilityProvider>
       );
 
-      expect(screen.getByTestId('font-scale')).toHaveTextContent('100');
-      expect(screen.getByTestId('reduced-motion')).toHaveTextContent('false');
-      expect(screen.getByTestId('high-contrast')).toHaveTextContent('normal');
+      expect(screen.getByTestId('font-scale')).textContent).toBe('100');
+      expect(screen.getByTestId('reduced-motion')).textContent).toBe('false');
+      expect(screen.getByTestId('high-contrast')).textContent).toBe('normal');
     });
 
     it('should sync multiple setting changes to localStorage', async () => {
