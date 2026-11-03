@@ -22,6 +22,11 @@ export function buildCSP(nonce: string, { allowFraming = false, frameOrigin }: B
   const frameAncestors = frameOrigin === null
     ? "'none'"
     : frameOrigin ?? (allowFraming ? "*" : "'none'");
+  const uniqueConnectSrc = [
+    "'self'",
+    process.env.NEXT_PUBLIC_RPC_URL || "https://soroban-testnet.stellar.org",
+    process.env.NEXT_PUBLIC_IPFS_GATEWAY || "https://ipfs.io",
+  ].filter(Boolean);
   const directives = [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
@@ -35,10 +40,6 @@ export function buildCSP(nonce: string, { allowFraming = false, frameOrigin }: B
     `frame-ancestors ${frameAncestors}`,
     `upgrade-insecure-requests`,
   ];
-
-  if (reportUri) {
-    directives.push(`report-uri ${reportUri}`);
-  }
 
   return directives.join("; ");
 }
