@@ -34,6 +34,13 @@ const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { 
 const TxImportPanel = dynamic(() => import("@/components/invoice/TxImportPanel"), { ssr: false });
 const DraftRecoveryBanner = dynamic(() => import("@/components/invoice/DraftRecoveryBanner"), { ssr: false });
 const CloneBanner = dynamic(() => import("@/components/invoice/CloneBanner"), { ssr: false });
+const CursorOverlay = dynamic(() => import("@/components/CursorOverlay"), { ssr: false });
+const SplitCalculator = dynamic(() => import("@/components/SplitCalculator"), { ssr: false });
+const TagInput = dynamic(() => import("@/components/TagInput"), { ssr: false });
+const InstallmentPlanBuilder = dynamic(() => import("@/components/InstallmentPlanBuilder"), { ssr: false });
+const CoSignerSection = dynamic(() => import("@/components/CoSignerSection"), { ssr: false });
+import { PresencePill } from "@/components/PresencePill";
+import { ReconnectionBanner } from "@/components/ReconnectionBanner";
 
 interface RecipientRow {
   address: string;

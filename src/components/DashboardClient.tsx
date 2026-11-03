@@ -646,6 +646,8 @@ export default function DashboardClient() {
             </>
           )}
           <Link href="/invoice/new" className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors">
+            Create Invoice
+          </Link>
           {compareMode && (
             <>
               <button

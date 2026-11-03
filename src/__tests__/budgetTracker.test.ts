@@ -5,8 +5,8 @@
  * - No warning when no limit is configured
  */
 
-import {
 import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
+import {
   setBudgetLimit,
   clearBudgetLimit,
   recordPayment,

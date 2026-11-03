@@ -5,8 +5,8 @@
  * - Write key allowed on write endpoints
  */
 
-import {
 import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
+import {
   STORAGE_KEY,
   checkWriteScope,
   generateKeyValue,
