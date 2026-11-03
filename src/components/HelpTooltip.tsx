@@ -163,10 +163,6 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
 };
 
 export default HelpTooltip;
-```
-
-```ts
-export interface HelpEntry {
   /** Unique identifier used to look up the entry. */
   id: string;
   /** Short title shown in the tooltip header. */
