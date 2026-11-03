@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { searchArbitrators } from "@/lib/arbitrators";
 import type { Arbitrator } from "@/lib/arbitrators";
 
 export default function ArbitratorsPage() {
   const [query, setQuery] = useState("");
-  const results: Arbitrator[] = searchArbitrators(query);
+  const [results, setResults] = useState<Arbitrator[]>([]);
+
+  useEffect(() => {
+    const search = async () => {
+      const data = await searchArbitrators(query);
+      setResults(data);
+    };
+    search();
+  }, [query]);
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-10">

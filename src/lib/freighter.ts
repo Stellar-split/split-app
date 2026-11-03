@@ -161,6 +161,18 @@ export async function isWalletConnected(): Promise<boolean> {
   }
 }
 
+/** Sign a blob with Freighter. */
+export async function signBlob(blob: string, options: { accountToSign?: string }): Promise<{ signedBlob: string; error?: string }> {
+  if (typeof window === "undefined") throw new Error("Browser only");
+  try {
+    const { signBlob: sign } = await import("@stellar/freighter-api");
+    const result = await sign(blob, options.accountToSign);
+    return { signedBlob: result };
+  } catch (error) {
+    return { signedBlob: "", error: String(error) };
+  }
+}
+
 /** Sign a transaction with the currently connected wallet adapter. */
 export async function signTransaction(xdr: string): Promise<string> {
   if (typeof window === "undefined") throw new Error("Browser only");

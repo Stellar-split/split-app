@@ -1,19 +1,20 @@
-'use client';
-
-export interface CursorOverlayProps {
-  presences?: Array<{ address: string; x: number; y: number; name?: string }>;
+interface CursorOverlayProps {
+  cursors: any[];
+  fieldName: string;
 }
 
-export function CursorOverlay({ presences }: CursorOverlayProps) {
+export default function CursorOverlay({ cursors, fieldName }: CursorOverlayProps) {
   return (
-    <div className="pointer-events-none fixed inset-0 z-50">
-      {presences?.map((p) => (
-        <div key={p.address} style={{ left: p.x, top: p.y }} className="absolute text-xs bg-gray-800 text-gray-200 px-2 py-1 rounded">
-          {p.name || p.address}
+    <div className="cursor-overlay">
+      {cursors.map((cursor: any) => (
+        <div
+          key={cursor.userId || cursor.id}
+          className="absolute pointer-events-none"
+          style={{ color: cursor.color || "gray" }}
+        >
+          cursor: {cursor.position}
         </div>
       ))}
     </div>
   );
 }
-
-export default CursorOverlay;

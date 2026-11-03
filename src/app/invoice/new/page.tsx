@@ -18,6 +18,12 @@ import { recordInvoiceHistory } from "@/lib/invoiceHistory";
 import { useI18n } from "@/components/I18nProvider";
 import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
+import type { SplitMeta } from "@/lib/api/invoices";
+
+interface PlanMilestone {
+  date: number;
+  amount: string;
+}
 import { decodeTemplate } from "@/lib/templateSharing";
 import DraftCollaborationPanel from "@/components/DraftCollaborationPanel";
 import {
@@ -70,6 +76,12 @@ function useToasts() {
   }, []);
   return { toasts, addToast };
 }
+
+const WIZARD_STEPS = [
+  { label: "Details", value: "details" },
+  { label: "Recipients", value: "recipients" },
+  { label: "Review", value: "review" },
+];
 
 const STEPS = WIZARD_STEPS.map((s) => s.label);
 

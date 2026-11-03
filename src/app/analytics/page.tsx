@@ -166,13 +166,17 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (!publicKey) return;
-    try {
-      setSubscriptions(loadSubscriptions(publicKey));
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load subscriptions"
-      );
-    }
+    const loadData = async () => {
+      try {
+        const data = await loadSubscriptions(publicKey);
+        setSubscriptions(data);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load subscriptions"
+        );
+      }
+    };
+    loadData();
   }, [publicKey]);
 
   const filtered = useMemo(() => {

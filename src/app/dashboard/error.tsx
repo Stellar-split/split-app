@@ -44,7 +44,7 @@ export default function DashboardError({ error, reset }: Props) {
             What you can try:
           </p>
           <ul className="list-disc list-inside text-sm text-gray-400 space-y-1">
-            {template.suggestions.map((suggestion) => (
+            {template.suggestions.map((suggestion: string) => (
               <li key={suggestion}>{suggestion}</li>
             ))}
           </ul>

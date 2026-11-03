@@ -42,13 +42,17 @@ export default function ApprovalsPage() {
   const requestedId = searchParams.get("request");
   const { saveTags } = useInvoiceTags();
 
-  const refresh = useCallback(() => setRequests(getApprovalRequests()), []);
+  const refresh = useCallback(async () => {
+    const data = await getApprovalRequests();
+    setRequests(data);
+  }, []);
 
   useEffect(() => {
     getFreighterPublicKey()
-      .then((address) => {
+      .then(async (address) => {
         setWallet(address);
-        setPolicy(getApprovalPolicy(address) ?? emptyPolicy);
+        const policy = await getApprovalPolicy();
+        setPolicy(policy ?? emptyPolicy);
       })
       .catch(() => setError("Connect your wallet to manage approval workflows."));
     refresh();
@@ -58,16 +62,16 @@ export default function ApprovalsPage() {
 
   const visibleRequests = useMemo(
     () => requests.filter((request) =>
-      request.owner === wallet || request.levels.some((level) => level.approvers.includes(wallet ?? "")),
-    ).sort((a, b) => b.updatedAt - a.updatedAt),
+      request.owner === wallet || request.levels?.some((level) => level.approvers.includes(wallet ?? "")),
+    ).sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0)),
     [requests, wallet],
   );
   const selectedRequest = visibleRequests.find((request) => request.id === requestedId) ?? visibleRequests[0];
   const analytics = summarizeApprovalAnalytics(visibleRequests);
   const mayDecide = Boolean(
     wallet && selectedRequest?.status === "pending" &&
-    selectedRequest.levels[selectedRequest.currentLevel]?.approvers.includes(wallet) &&
-    !selectedRequest.levels[selectedRequest.currentLevel]?.decisions.some((item) => item.approver === wallet),
+    selectedRequest?.levels?.[selectedRequest.currentLevel ?? 0]?.approvers?.includes(wallet) &&
+    !selectedRequest?.levels?.[selectedRequest.currentLevel ?? 0]?.decisions?.some((item) => item.approver === wallet),
   );
 
   const updateLevel = (index: number, value: string) => {
@@ -107,11 +111,11 @@ export default function ApprovalsPage() {
       if (updated.status === "pending" && updated.currentLevel !== selectedRequest.currentLevel) {
         notifyApprovalUsers(
           updated,
-          updated.levels[updated.currentLevel]?.approvers ?? [],
-          `Approval requested for ${updated.title} (level ${updated.currentLevel + 1})`,
+          updated.levels?.[updated.currentLevel ?? 0]?.approvers ?? [],
+          `Approval requested for ${updated.title} (level ${(updated.currentLevel ?? 0) + 1})`,
         );
       } else if (updated.status === "approved" || updated.status === "rejected") {
-        notifyApprovalUsers(updated, [updated.owner], `Invoice approval ${updated.status}: ${updated.title}`);
+        notifyApprovalUsers(updated, updated.owner ? [updated.owner] : [], `Invoice approval ${updated.status}: ${updated.title || "Unknown"}`);
       }
       setComment("");
       setError("");

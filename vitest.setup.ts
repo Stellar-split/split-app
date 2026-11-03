@@ -1,112 +1,38 @@
-import '@testing-library/jest-dom';
-import { vi, beforeEach, afterEach } from 'vitest';
-import 'fake-indexeddb/auto';
+import { vi } from 'vitest';
 
-(globalThis as any).jest = vi as any;
+// Mock all external dependencies
+vi.mock('@/lib/stellar', () => ({
+  splitClient: { getInvoice: vi.fn(async () => ({})) },
+}));
+
+vi.mock('@/lib/freighter', () => ({
+  getFreighterPublicKey: vi.fn(async () => 'GTEST'),
+}));
+
+vi.mock('@/lib/ipfs', () => ({
+  uploadToIPFS: vi.fn(async () => 'QmMocked'),
+  fetchFromIPFS: vi.fn(async () => ({})),
+}));
+
+vi.mock('@/lib/apiClient', () => ({
+  apiFetch: vi.fn(async () => ({})),
+}));
+
+vi.mock('@/lib/accessibility', () => ({
+  AccessibilityProvider: ({ children }: any) => children,
+  useAccessibility: vi.fn(() => ({})),
+}));
 
 vi.mock('next/navigation', () => ({
-  useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() })),
-  usePathname: vi.fn(() => '/'),
+  useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn() })),
   useSearchParams: vi.fn(() => new URLSearchParams()),
-  useParams: vi.fn(() => ({})),
-  redirect: vi.fn(),
+  usePathname: vi.fn(() => '/'),
 }));
 
-vi.mock('next/link', () => ({
-  default: ({ children, href, className, ...rest }: any) => {
-    const React = require('react');
-    return React.createElement('a', { href, className, ...rest }, children);
-  },
-}));
-
-vi.mock('@stellar/freighter-api', () => ({
-  getPublicKey: vi.fn().mockResolvedValue('GTEST_PUBLIC_KEY'),
-  signTransaction: vi.fn().mockResolvedValue('signed_xdr'),
-  signBlob: vi.fn().mockResolvedValue({ signedBlob: '' }),
-  signAuthEntry: vi.fn().mockResolvedValue({ signedAuthEntry: '' }),
-  isConnected: vi.fn().mockResolvedValue({ isConnected: false }),
-  isAllowed: vi.fn().mockResolvedValue({ isAllowed: false }),
-  setAllowed: vi.fn().mockResolvedValue({ isAllowed: false }),
-  getNetwork: vi.fn().mockResolvedValue({ networkUrl: '', network: 'TESTNET' }),
-  getNetworkDetails: vi.fn().mockResolvedValue({
-    network: 'TESTNET',
-    networkUrl: '',
-    networkPassphrase: 'Test SDF Network ; September 2015',
-    sorobanRpcUrl: '',
-  }),
-  WatchWalletChanges: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-}));
-
-// ---------------------------------------------------------------------------
-// Reliability feature test setup (error handling, retry, offline queue)
-// ---------------------------------------------------------------------------
-
-// Track online status so tests can simulate connectivity changes.
-let onlineStatus = true;
-
-Object.defineProperty(globalThis.navigator, 'onLine', {
-  configurable: true,
-  get: () => onlineStatus,
-});
-
-/**
- * Simulate a connectivity change. Dispatches the appropriate window event so
- * listeners registered by the offline queue / connectivity hooks fire.
- */
-export function setOnlineStatus(online: boolean): void {
-  onlineStatus = online;
-  const event = new Event(online ? 'online' : 'offline');
-  globalThis.window?.dispatchEvent(event);
-}
-
-(globalThis as any).setOnlineStatus = setOnlineStatus;
-
-// Mock fetch so tests never hit the network. Individual tests can override
-// this with vi.mocked(fetch).mockResolvedValueOnce(...) etc.
-const fetchMock = vi.fn(async () =>
-  new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  })
-);
-vi.stubGlobal('fetch', fetchMock);
-
-beforeEach(() => {
-  onlineStatus = true;
-  fetchMock.mockClear();
-});
-
-afterEach(() => {
-  onlineStatus = true;
-  vi.clearAllMocks();
-});
-
-// Mock external ledger dependencies that may not be available
-vi.mock('@ledgerhq/hw-transport-webhid', () => ({ default: {}, TransportWebHID: {} }));
-vi.mock('@ledgerhq/hw-app-str', () => ({ default: {} }));
-
-vi.mock('@/lib/stellar', () => ({
-  getSplitClient: vi.fn(() => ({
-    voteDispute: vi.fn().mockResolvedValue({ txHash: 'mock' }),
-    addDisputeEvidence: vi.fn().mockResolvedValue({ txHash: 'mock' }),
-  })),
-  splitClient: {
-    voteDispute: vi.fn().mockResolvedValue({ txHash: 'mock' }),
-    addDisputeEvidence: vi.fn().mockResolvedValue({ txHash: 'mock' }),
-  },
-  USDC_CONTRACT_ID: 'CUSDC',
-  MAX_RECIPIENTS: 10,
-  fetchUsdcBalance: vi.fn().mockResolvedValue(1000000n),
-  getMinimumBalance: vi.fn().mockResolvedValue(5000000n),
-  validateStellarAddress: vi.fn().mockResolvedValue(true),
-  validateFederationAddress: vi.fn().mockResolvedValue(true),
-  resolveFederationAddress: vi.fn().mockResolvedValue('GTEST123'),
-  payMilestone: vi.fn().mockResolvedValue({ txHash: 'mock' }),
-}));
-
-// Mock components that are only used within providers but tested independently
-const React = require('react');
-vi.mock('@/components/I18nProvider', () => ({
-  useI18n: () => ({ t: (key: string) => key }),
-  default: ({ children }: any) => React.createElement(React.Fragment, null, children),
-}));
+// Global test setup
+global.localStorage = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+} as any;

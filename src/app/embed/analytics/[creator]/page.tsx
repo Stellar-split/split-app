@@ -60,9 +60,9 @@ export default function EmbedAnalyticsPage({ params }: Props) {
     if (!token) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({ creator: params.creator, status, range });
+      const queryParams = new URLSearchParams({ creator: params.creator, status, range });
       const parentOrigin = document.referrer ? new URL(document.referrer).origin : "";
-      const response = await fetch(`/api/embed/analytics?${params}`, {
+      const response = await fetch(`/api/embed/analytics?${queryParams}`, {
         headers: {
           "x-embed-token": token,
           ...(parentOrigin ? { "x-embed-parent-origin": parentOrigin } : {}),

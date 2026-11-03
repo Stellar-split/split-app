@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
@@ -18,6 +18,8 @@ interface MemberRow {
   pct: number;
   paid: boolean;
 }
+
+const POLL_MS = 5000;
 
 export default function GroupDetailPage() {
   const params = useParams();

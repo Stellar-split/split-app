@@ -105,10 +105,10 @@ export default function CoSignersPage() {
 
     try {
       // Sign the approval payload with Freighter
-      const freighter = await import("@stellar/freighter-api");
+      const { signBlob } = await import("@/lib/freighter");
       const message = `Approve invoice ${id} as co-signer ${connectedAddress}`;
       const encoded = Buffer.from(message, "utf8").toString("base64");
-      const signed = await freighter.signBlob(encoded, {
+      const signed = await signBlob(encoded, {
         accountToSign: connectedAddress,
       });
       if (!signed || signed.error || !signed.signedBlob) {

@@ -17,7 +17,7 @@ interface Props {
 /** Route-level error boundary for invoice detail pages. */
 export default function InvoiceError({ error, reset }: Props) {
   const [sentryEventId, setSentryEventId] = useState<string | null>(null);
-  const [kind] = useState<ErrorKind>(() => classifyError(error));
+  const [kind] = useState<ErrorKind>(() => classifyError(error) as ErrorKind);
 
   useEffect(() => {
     const capture = async () => {
@@ -46,7 +46,7 @@ export default function InvoiceError({ error, reset }: Props) {
       <p className="text-gray-400 text-sm mb-6">{template.message}</p>
       {template.suggestions.length > 0 && (
         <ul className="text-sm text-gray-400 text-left mb-6 space-y-1 list-disc list-inside">
-          {template.suggestions.map((suggestion) => (
+          {template.suggestions.map((suggestion: string) => (
             <li key={suggestion}>{suggestion}</li>
           ))}
         </ul>

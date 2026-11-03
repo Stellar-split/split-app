@@ -194,7 +194,7 @@ export default function InvoiceDetailPage({ params }: Props) {
   const [showPayModal, setShowPayModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"freighter" | "walletconnect">("freighter");
+  const [paymentMethod, setPaymentMethod] = useState<"freighter" | "walletconnect" | "ledger">("freighter");
   const [amountLocked, setAmountLocked] = useState(false);
   const prevPayAmountRef = useRef("");
   const [cooldownExpiresAt, setCooldownExpiresAt] = useState<number | null>(null);

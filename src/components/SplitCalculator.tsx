@@ -1,12 +1,21 @@
-'use client';
+import type { SplitMeta } from "@/lib/api/invoices";
 
-export function SplitCalculator() {
+interface SplitCalculatorProps {
+  splitMeta?: SplitMeta;
+  readOnly?: boolean;
+}
+
+export default function SplitCalculator({ splitMeta, readOnly }: SplitCalculatorProps) {
   return (
-    <div className="p-4 border border-gray-800 rounded-lg bg-gray-900">
-      <h3 className="text-sm font-semibold mb-2">Split Calculator</h3>
-      <p className="text-xs text-gray-400">Calculate split amounts and percentages.</p>
+    <div className="split-calculator">
+      <h3>Split Calculator</h3>
+      {splitMeta && (
+        <div>
+          <p>Total: {splitMeta.totalAmount} {splitMeta.assetCode}</p>
+          <p>Recipients: {splitMeta.recipients.length}</p>
+        </div>
+      )}
+      {readOnly && <p className="text-sm text-gray-400">(Read-only)</p>}
     </div>
   );
 }
-
-export default SplitCalculator;
