@@ -1,2 +1,3 @@
-export async function sendPushNotification(): Promise<void> {}
-export async function subscribeToPushNotifications(): Promise<void> {}
+export function sendPushNotification(title: string, options: any): void {}
+
+export function pushNotification(notification: any): void {}

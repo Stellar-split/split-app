@@ -1,10 +1,16 @@
 export interface WalletConnection {
-  address: string;
-  connected: boolean;
+  publicKey: string;
+  timestamp: number;
 }
 
-export function connectWallet(): Promise<WalletConnection> {
-  return Promise.resolve({ address: '', connected: false });
+export function getWalletConnection(): WalletConnection | null {
+  return null;
 }
 
-export function disconnectWallet(): void {}
+export function getWalletPersistencePreference(): boolean {
+  return false;
+}
+
+export function clearWalletConnection(): void {}
+
+export function setWalletPersistencePreference(persist: boolean): void {}
