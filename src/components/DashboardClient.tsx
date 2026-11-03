@@ -882,8 +882,9 @@ export default function DashboardClient() {
               );
             }
             return (
-              <Link key={inv.id} href={`/invoice/${inv.id}`} className="block">{card}</Link>
-              <div key={inv.id}>
+              <>
+                <Link key={inv.id} href={`/invoice/${inv.id}`} className="block">{card}</Link>
+                <div key={inv.id}>
                 {isMultiSelectable ? (
                   <button
                     type="button"
@@ -1017,6 +1018,7 @@ export default function DashboardClient() {
                   </div>
                 )}
               </div>
+              </>
             );
           })}
           {loading && [...Array(3)].map((_, i) => <SkeletonCard key={`sk-${i}`} />)}
