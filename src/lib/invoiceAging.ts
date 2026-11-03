@@ -1,7 +1,13 @@
 export function getAgingBucket(daysOverdue: number): string {
-  return "current";
+  if (daysOverdue <= 0) return "current";
+  if (daysOverdue <= 30) return "1-30";
+  if (daysOverdue <= 60) return "31-60";
+  if (daysOverdue <= 90) return "61-90";
+  return "90+";
 }
 
 export function getDaysOverdue(deadline: number): number {
-  return 0;
+  const now = Math.floor(Date.now() / 1000);
+  const overdue = now - deadline;
+  return Math.max(0, Math.ceil(overdue / 86400));
 }
