@@ -143,7 +143,7 @@ function NewInvoiceForm() {
 
   const fromId = searchParams.get("from");
   const deadlineParam = searchParams.get("deadline");
-  const draftId =
+  const initialDraftId =
     searchParams.get("draft") ?? fromId ?? "new-invoice-draft";
   const [cloneSourceId, setCloneSourceId] = useState<string | null>(null);
   const [originalToken, setOriginalToken] = useState<string | null>(null);
@@ -157,7 +157,7 @@ function NewInvoiceForm() {
   const [retroError, setRetroError] = useState<string | null>(null);
 
   const [draftUserId, setDraftUserId] = useState<string | null>(null);
-  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(initialDraftId);
   const [recoveredDraft, setRecoveredDraft] = useState<StoredDraft | null>(null);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
 

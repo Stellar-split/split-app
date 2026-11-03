@@ -164,14 +164,6 @@ function buildEvents(
   return events;
 }
 
-interface TimelineEvent {
-  key: string;
-  icon: string;
-  label: string;
-  timestamp: number | null;
-  actor?: string;
-}
-
 function relativeTime(ts: number): string {
   const diff = Math.floor((Date.now() / 1000) - ts);
   if (diff < 60) return "just now";
@@ -182,10 +174,6 @@ function relativeTime(ts: number): string {
 
 function absoluteTime(ts: number): string {
   return new Date(ts * 1000).toLocaleString();
-}
-
-function truncate(addr: string) {
-  return addr.length > 12 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr;
 }
 
 interface Props {

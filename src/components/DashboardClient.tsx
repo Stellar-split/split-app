@@ -2,11 +2,9 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
-import { splitClient } from "@/lib/stellar";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
 import ActivityFeed from "@/components/ActivityFeed";
@@ -41,19 +39,6 @@ import InvoiceTable from "@/components/InvoiceTable";
 import FilterPresetDropdown from "@/components/invoices/FilterPresetDropdown";
 import AdvancedSortSelect from "@/components/invoices/AdvancedSortSelect";
 import { apiFetch } from "@/lib/apiClient";
-
-// ── URL helpers ──────────────────────────────────────────────────────────────
-
-function readParams(sp: URLSearchParams) {
-  const presetFilters = (sp.get("preset") ?? "").split(",").filter(Boolean) as DashboardPresetId[];
-  const sort = (sp.get("sort") ?? "newest") as DashboardSortId;
-  const dateFrom = sp.get("from") ?? "";
-  const dateTo = sp.get("to") ?? "";
-  const tag = sp.get("tag") ?? "";
-  return { presetFilters, sort, dateFrom, dateTo, tag };
-}
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 // ── URL helpers ──────────────────────────────────────────────────────────────
 
@@ -123,10 +108,8 @@ export default function DashboardClient() {
     statuses.length > 0 || dateFrom || dateTo || sort !== "newest";
 
   // ── Data fetching ───────────────────────────────────────────────────────────
-  const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
-  const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   // Multi-select state management (bulk archive/delete toolbar)
@@ -191,7 +174,6 @@ export default function DashboardClient() {
     router.replace(pathname, { scroll: false });
     setSearchValue("");
     setNumericResult(null);
-    router.replace(pathname, { scroll: false });
   };
 
 
