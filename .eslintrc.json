@@ -4,6 +4,8 @@
     "react-hooks/exhaustive-deps": "off",
     "no-unexpected-multiline": "off",
     "@next/next/no-img-element": "off",
-    "jsx-a11y/alt-text": "off"
+    "jsx-a11y/alt-text": "off",
+    "@typescript-eslint/no-require-imports": "off",
+    "@typescript-eslint/no-explicit-any": "off"
   }
 }
