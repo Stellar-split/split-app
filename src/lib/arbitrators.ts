@@ -33,10 +33,10 @@ export function canEnforceResolution(data: any): boolean {
   return false;
 }
 
-export async function searchArbitrators(query: string): Promise<any[]> {
+export function searchArbitrators(query: string): any[] {
   return [];
 }
 
-export async function getArbitrators(): Promise<Arbitrator[]> {
+export function getArbitrators(): Arbitrator[] {
   return [];
 }
