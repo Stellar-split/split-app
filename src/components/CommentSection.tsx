@@ -190,7 +190,7 @@ export default function CommentSection({ invoiceId, walletAddress }: Props) {
 
     // Fire notifications for each unique mentioned address (skip self).
     for (const addr of parseMentions(trimmed)) {
-      notifyMention(addr, walletAddress, invoiceId);
+      notifyMention(addr, `mentioned in invoice ${invoiceId} by ${walletAddress}`);
     }
 
     setText("");
