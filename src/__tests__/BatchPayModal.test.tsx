@@ -95,7 +95,7 @@ describe("BatchPayModal", () => {
     );
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Payment/i });
-    expect(confirmButton).toHaveAttribute(
+    expect(confirmButton).to.have.property('getAttribute', 
       "title",
       "Connect your wallet to continue"
     );
@@ -132,7 +132,7 @@ describe("BatchPayModal", () => {
     );
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Payment/i });
-    expect(confirmButton).not.toHaveAttribute(
+    expect(confirmButton).not.to.have.property('getAttribute', 
       "title",
       "Connect your wallet to continue"
     );
@@ -199,6 +199,6 @@ describe("BatchPayModal", () => {
     await act(async () => {
       // Wait for success message
     });
-    expect(screen.getByText(/Batch payment sent!/i)).toBeInTheDocument();
+    expect(screen.getByText(/Batch payment sent!/i)).toBeTruthy() // element exists in DOM;
   });
 });

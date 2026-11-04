@@ -39,17 +39,17 @@ describe("ResourceLibrary", () => {
   it("searches, and bookmarks persist", () => {
     render(<ResourceLibrary />);
     fireEvent.change(screen.getByLabelText("Search resources"), { target: { value: "rate" } });
-    expect(screen.getByText("Rate card builder")).toBeInTheDocument();
-    expect(screen.queryByText("Tax export")).not.toBeInTheDocument();
+    expect(screen.getByText("Rate card builder")).toBeTruthy() // element exists in DOM;
+    expect(screen.queryByText("Tax export")).not.toBeTruthy() // element exists in DOM;
 
     fireEvent.click(screen.getByLabelText("Bookmark Rate card builder"));
-    expect(screen.getByText("Bookmarked")).toBeInTheDocument();
+    expect(screen.getByText("Bookmarked")).toBeTruthy() // element exists in DOM;
     expect([...loadBookmarks()]).toEqual(["rate-card"]);
   });
 
   it("shows an empty state", () => {
     render(<ResourceLibrary />);
     fireEvent.change(screen.getByLabelText("Search resources"), { target: { value: "zzz-nothing" } });
-    expect(screen.getByText("No resources match.")).toBeInTheDocument();
+    expect(screen.getByText("No resources match.")).toBeTruthy() // element exists in DOM;
   });
 });

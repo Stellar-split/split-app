@@ -15,9 +15,9 @@ describe("SocialProofWidget", () => {
         payments={[{ id: "1", payer: ADDR, amount: 25, asset: "XLM", paidAt: NOW - 5 * MIN }]}
       />,
     );
-    expect(screen.getByText("1 person paid in the last 24 hours")).toBeInTheDocument();
-    expect(screen.getByText("5m ago")).toBeInTheDocument();
-    expect(screen.getByText(/paid 25 XLM/)).toBeInTheDocument();
+    expect(screen.getByText("1 person paid in the last 24 hours")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("5m ago")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/paid 25 XLM/)).toBeTruthy() // element exists in DOM;
     expect(screen.queryByText(ADDR)).toBeNull();
   });
 

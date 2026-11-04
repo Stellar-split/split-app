@@ -395,7 +395,7 @@ describe('AccessibilityContext', () => {
         return null;
       };
 
-      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       expect(() => render(<ThrowingComponent />)).toThrow(
         'useAccessibility must be used within AccessibilityProvider'

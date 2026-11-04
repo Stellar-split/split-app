@@ -30,14 +30,14 @@ describe("PayPreviewButton", () => {
     render(
       <PayPreviewButton invoiceId="inv-1" status="Pending" />
     );
-    expect(screen.getByRole("button", { name: /Pay This Invoice/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Pay This Invoice/ })).toBeTruthy() // element exists in DOM;
   });
 
   test("shows message when invoice is not Pending", () => {
     render(
       <PayPreviewButton invoiceId="inv-1" status="Released" />
     );
-    expect(screen.getByText(/This invoice is released/i)).toBeInTheDocument();
+    expect(screen.getByText(/This invoice is released/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("navigates to pay page when button clicked and wallet connected", async () => {
@@ -65,7 +65,7 @@ describe("PayPreviewButton", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Requires Freighter wallet extension/i)).toBeInTheDocument();
+      expect(screen.getByText(/Requires Freighter wallet extension/i)).toBeTruthy() // element exists in DOM;
     });
 
     const button = screen.getByRole("button", { name: /Pay This Invoice/ });
@@ -109,7 +109,7 @@ describe("PayPreviewButton", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Est\. fee:/i)).toBeInTheDocument();
+      expect(screen.getByText(/Est\. fee:/i)).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -127,7 +127,7 @@ describe("PayPreviewButton", () => {
 
     await waitFor(() => {
       const skeleton = container.querySelector("[data-testid='fee-skeleton']");
-      expect(skeleton).toBeInTheDocument();
+      expect(skeleton).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -144,7 +144,7 @@ describe("PayPreviewButton", () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByText(/Est\. fee:/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Est\. fee:/i)).not.toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -161,7 +161,7 @@ describe("PayPreviewButton", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/0\.00001 XLM ≈ \$0\.00/)).toBeInTheDocument();
+      expect(screen.getByText(/0\.00001 XLM ≈ \$0\.00/)).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -178,14 +178,14 @@ describe("PayPreviewButton", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Requires Freighter wallet extension/i)).toBeInTheDocument();
+      expect(screen.getByText(/Requires Freighter wallet extension/i)).toBeTruthy() // element exists in DOM;
     });
 
     const button = screen.getByRole("button", { name: /Pay This Invoice/ });
     user.click(button);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Connecting wallet/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Connecting wallet/i })).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -211,7 +211,7 @@ describe("PayPreviewButton", () => {
     await waitFor(() => {
       expect(
         screen.queryByText(/Requires Freighter wallet extension/i)
-      ).not.toBeInTheDocument();
+      ).not.toBeTruthy() // element exists in DOM;
     });
   });
 });

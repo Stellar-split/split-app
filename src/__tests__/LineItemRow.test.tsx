@@ -65,19 +65,19 @@ describe('LineItemRow', () => {
   it('should render address input', () => {
     render(<LineItemRow {...mockProps} />);
     const addressInput = screen.getByDisplayValue('GTEST123');
-    expect(addressInput).toBeInTheDocument();
+    expect(addressInput).toBeTruthy() // element exists in DOM;
   });
 
   it('should render amount input', () => {
     render(<LineItemRow {...mockProps} />);
     const amountInput = screen.getByDisplayValue('100');
-    expect(amountInput).toBeInTheDocument();
+    expect(amountInput).toBeTruthy() // element exists in DOM;
   });
 
   it('should render email input', () => {
     render(<LineItemRow {...mockProps} />);
     const emailInput = screen.getByDisplayValue('test@example.com');
-    expect(emailInput).toBeInTheDocument();
+    expect(emailInput).toBeTruthy() // element exists in DOM;
   });
 
   it('should render avatar with address', () => {
@@ -88,13 +88,13 @@ describe('LineItemRow', () => {
   it('should render remove button when canRemove is true', () => {
     render(<LineItemRow {...mockProps} canRemove={true} />);
     const removeButton = screen.getByRole('button', { name: /remove recipient 1/i });
-    expect(removeButton).toBeInTheDocument();
+    expect(removeButton).toBeTruthy() // element exists in DOM;
   });
 
   it('should not render remove button when canRemove is false', () => {
     render(<LineItemRow {...mockProps} canRemove={false} />);
     const removeButton = screen.queryByRole('button', { name: /remove recipient 1/i });
-    expect(removeButton).not.toBeInTheDocument();
+    expect(removeButton).not.toBeTruthy() // element exists in DOM;
   });
 
   it('should call onRemove when remove button is clicked', () => {
@@ -152,8 +152,8 @@ describe('LineItemRow', () => {
         activeIndex={0}
       />
     );
-    expect(screen.getByText('50 USDC')).toBeInTheDocument();
-    expect(screen.getByText('150 USDC')).toBeInTheDocument();
+    expect(screen.getByText('50 USDC')).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText('150 USDC')).toBeTruthy() // element exists in DOM;
   });
 
   it('should call onAmountSuggestionSelect when suggestion is clicked', () => {

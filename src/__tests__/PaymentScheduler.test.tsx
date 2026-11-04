@@ -26,60 +26,60 @@ describe("PaymentScheduler (#800)", () => {
 
   it("renders setup view by default", () => {
     render(<PaymentScheduler {...defaultProps} />);
-    expect(screen.getByText(/pay over time/i)).toBeInTheDocument();
+    expect(screen.getByText(/pay over time/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("renders amount, frequency and start date inputs", () => {
     render(<PaymentScheduler {...defaultProps} />);
-    expect(screen.getByLabelText(/total amount/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/payment frequency/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/first payment date/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/total amount/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByLabelText(/payment frequency/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByLabelText(/first payment date/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("shows instalment count input when frequency is not one-time", () => {
     render(<PaymentScheduler {...defaultProps} />);
     // Default is monthly
-    expect(screen.getByLabelText(/number of instalments/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/number of instalments/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("hides instalment count when frequency is one-time", () => {
     render(<PaymentScheduler {...defaultProps} />);
     const freqSelect = screen.getByLabelText(/payment frequency/i) as HTMLSelectElement;
     fireEvent.change(freqSelect, { target: { value: "one-time" } });
-    expect(screen.queryByLabelText(/number of instalments/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/number of instalments/i)).not.toBeTruthy() // element exists in DOM;
   });
 
   it("shows schedule preview with correct number of rows", () => {
     render(<PaymentScheduler {...defaultProps} />);
     // Default: 3 monthly instalments
-    expect(screen.getByText("Instalment 1 of 3")).toBeInTheDocument();
-    expect(screen.getByText("Instalment 3 of 3")).toBeInTheDocument();
+    expect(screen.getByText("Instalment 1 of 3")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Instalment 3 of 3")).toBeTruthy() // element exists in DOM;
   });
 
   it("shows 'Full Payment' label for one-time schedule", () => {
     render(<PaymentScheduler {...defaultProps} />);
     const freqSelect = screen.getByLabelText(/payment frequency/i) as HTMLSelectElement;
     fireEvent.change(freqSelect, { target: { value: "one-time" } });
-    expect(screen.getByText("Full Payment")).toBeInTheDocument();
+    expect(screen.getByText("Full Payment")).toBeTruthy() // element exists in DOM;
   });
 
   it("shows Create Schedule button", () => {
     render(<PaymentScheduler {...defaultProps} />);
-    expect(screen.getByRole("button", { name: /create schedule/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /create schedule/i })).toBeTruthy() // element exists in DOM;
   });
 
   it("switches to active view after creating schedule", () => {
     render(<PaymentScheduler {...defaultProps} />);
     fireEvent.click(screen.getByRole("button", { name: /create schedule/i }));
-    expect(screen.getByText(/payment schedule/i)).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+    expect(screen.getByText(/payment schedule/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("progressbar")).toBeTruthy() // element exists in DOM;
   });
 
   it("shows progress bar at 0% initially", () => {
     render(<PaymentScheduler {...defaultProps} />);
     fireEvent.click(screen.getByRole("button", { name: /create schedule/i }));
     const bar = screen.getByRole("progressbar");
-    expect(bar).toHaveAttribute("aria-valuenow", "0");
+    expect(bar).to.have.property('getAttribute', "aria-valuenow", "0");
   });
 
   it("marks instalment as paid and updates progress", () => {
@@ -89,7 +89,7 @@ describe("PaymentScheduler (#800)", () => {
     fireEvent.click(payBtns[0]);
     // 1 of 3 = 33%
     const bar = screen.getByRole("progressbar");
-    expect(bar).toHaveAttribute("aria-valuenow", "33");
+    expect(bar).to.have.property('getAttribute', "aria-valuenow", "33");
   });
 
   it("shows completion message when all instalments paid", () => {
@@ -100,7 +100,7 @@ describe("PaymentScheduler (#800)", () => {
     fireEvent.click(screen.getByRole("button", { name: /create schedule/i }));
     const payBtns = screen.getAllByRole("button", { name: /^pay$/i });
     fireEvent.click(payBtns[0]);
-    expect(screen.getByText(/all instalments paid/i)).toBeInTheDocument();
+    expect(screen.getByText(/all instalments paid/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("calls onPayInstalment callback when paying", () => {
@@ -118,7 +118,7 @@ describe("PaymentScheduler (#800)", () => {
     render(<PaymentScheduler {...defaultProps} />);
     fireEvent.click(screen.getByRole("button", { name: /create schedule/i }));
     fireEvent.click(screen.getByRole("button", { name: /reset/i }));
-    expect(screen.getByText(/pay over time/i)).toBeInTheDocument();
+    expect(screen.getByText(/pay over time/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("shows error when amount is 0", () => {
@@ -126,7 +126,7 @@ describe("PaymentScheduler (#800)", () => {
     const amountInput = screen.getByLabelText(/total amount/i) as HTMLInputElement;
     fireEvent.change(amountInput, { target: { value: "0" } });
     fireEvent.click(screen.getByRole("button", { name: /create schedule/i }));
-    expect(screen.getByText(/amount must be greater than 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/amount must be greater than 0/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("distributes total correctly across instalments", () => {

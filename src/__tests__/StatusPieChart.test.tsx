@@ -27,7 +27,7 @@ describe("StatusPieChart", () => {
     );
     expect(
       screen.getByRole("figure", { name: "Invoice status breakdown chart" })
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("renders pie chart with data", () => {
@@ -40,8 +40,8 @@ describe("StatusPieChart", () => {
         ]}
       />
     );
-    expect(screen.getByTestId("pie-chart")).toBeInTheDocument();
-    expect(screen.getByTestId("responsive-container")).toBeInTheDocument();
+    expect(screen.getByTestId("pie-chart")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByTestId("responsive-container")).toBeTruthy() // element exists in DOM;
   });
 
   it("shows 'No data available' when all values are zero", () => {
@@ -53,11 +53,11 @@ describe("StatusPieChart", () => {
         ]}
       />
     );
-    expect(screen.getByText("No data available")).toBeInTheDocument();
+    expect(screen.getByText("No data available")).toBeTruthy() // element exists in DOM;
   });
 
   it("shows 'No data available' when data is empty array", () => {
     render(<StatusPieChart data={[]} />);
-    expect(screen.getByText("No data available")).toBeInTheDocument();
+    expect(screen.getByText("No data available")).toBeTruthy() // element exists in DOM;
   });
 });

@@ -162,7 +162,7 @@ describe("PaymentConfirmationOverlay", () => {
           prefersReducedMotion={false}
         />
       );
-      expect(screen.getByText("Payment Confirmed")).toBeInTheDocument();
+      expect(screen.getByText("Payment Confirmed")).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -178,7 +178,7 @@ describe("PaymentConfirmationOverlay", () => {
           prefersReducedMotion={false}
         />
       );
-      expect(screen.getByText("250.50 USDC")).toBeInTheDocument();
+      expect(screen.getByText("250.50 USDC")).toBeTruthy() // element exists in DOM;
     });
 
     it("displays the recipient address", () => {
@@ -193,7 +193,7 @@ describe("PaymentConfirmationOverlay", () => {
           prefersReducedMotion={false}
         />
       );
-      expect(screen.getByText(recipientAddr)).toBeInTheDocument();
+      expect(screen.getByText(recipientAddr)).toBeTruthy() // element exists in DOM;
     });
 
     it("displays transaction hash with explorer link", () => {
@@ -209,11 +209,11 @@ describe("PaymentConfirmationOverlay", () => {
         />
       );
       const link = screen.getByRole("link");
-      expect(link).toHaveAttribute(
+      expect(link).to.have.property('getAttribute', 
         "href",
         expect.stringContaining(txHash)
       );
-      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).to.have.property('getAttribute', "target", "_blank");
     });
   });
 
@@ -302,11 +302,11 @@ describe("PaymentConfirmationOverlay", () => {
       );
 
       const dialog = container.querySelector('[role="alertdialog"]');
-      expect(dialog).toHaveAttribute(
+      expect(dialog).to.have.property('getAttribute', 
         "aria-labelledby",
         "payment-confirmation-title"
       );
-      expect(dialog).toHaveAttribute(
+      expect(dialog).to.have.property('getAttribute', 
         "aria-describedby",
         "payment-confirmation-details"
       );
@@ -325,7 +325,7 @@ describe("PaymentConfirmationOverlay", () => {
       );
 
       const closeButton = screen.getByRole("button", { name: /close/i });
-      expect(closeButton).toBeInTheDocument();
+      expect(closeButton).toBeTruthy() // element exists in DOM;
     });
   });
 

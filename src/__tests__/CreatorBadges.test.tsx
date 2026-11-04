@@ -135,30 +135,30 @@ describe("CreatorBadges component (#801)", () => {
 
   it("renders the section heading", () => {
     render(<CreatorBadges stats={emptyStats} />);
-    expect(screen.getByRole("heading", { name: /badges & achievements/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /badges & achievements/i })).toBeTruthy() // element exists in DOM;
   });
 
   it("shows 0 earned message when no badges earned", () => {
     render(<CreatorBadges stats={emptyStats} />);
-    expect(screen.getByText(/0 of/i)).toBeInTheDocument();
-    expect(screen.getByText(/no badges earned yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/0 of/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/no badges earned yet/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("renders Earned section when badges are earned", () => {
     const stats: CreatorStats = { ...emptyStats, totalInvoices: 1 };
     render(<CreatorBadges stats={stats} />);
-    expect(screen.getByText("Earned")).toBeInTheDocument();
-    expect(screen.getByText("First Invoice")).toBeInTheDocument();
+    expect(screen.getByText("Earned")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("First Invoice")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders Locked section by default", () => {
     render(<CreatorBadges stats={emptyStats} />);
-    expect(screen.getByText("Locked")).toBeInTheDocument();
+    expect(screen.getByText("Locked")).toBeTruthy() // element exists in DOM;
   });
 
   it("hides locked section when showLocked=false", () => {
     render(<CreatorBadges stats={emptyStats} showLocked={false} />);
-    expect(screen.queryByText("Locked")).not.toBeInTheDocument();
+    expect(screen.queryByText("Locked")).not.toBeTruthy() // element exists in DOM;
   });
 
   it("shows tier summary pills for earned badges", () => {
@@ -175,7 +175,7 @@ describe("CreatorBadges component (#801)", () => {
 
   it("shows next badge hint", () => {
     render(<CreatorBadges stats={emptyStats} />);
-    expect(screen.getByText(/next up/i)).toBeInTheDocument();
+    expect(screen.getByText(/next up/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("shows correct earned count", () => {
@@ -189,11 +189,11 @@ describe("CreatorBadges component (#801)", () => {
   it("earned badge has aria-label with '— earned'", () => {
     const stats: CreatorStats = { ...emptyStats, totalInvoices: 1 };
     render(<CreatorBadges stats={stats} />);
-    expect(screen.getByLabelText(/first invoice — earned/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/first invoice — earned/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("locked badge has aria-label with '— locked'", () => {
     render(<CreatorBadges stats={emptyStats} />);
-    expect(screen.getByLabelText(/invoice veteran — locked/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/invoice veteran — locked/i)).toBeTruthy() // element exists in DOM;
   });
 });

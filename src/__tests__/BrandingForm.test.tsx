@@ -68,9 +68,9 @@ describe("BrandingForm", () => {
     await renderLoadedForm();
 
     expect(mockFetchBrandSettings).toHaveBeenCalledWith(ADDRESS);
-    expect(screen.getByLabelText("Accent color hex value")).toHaveValue("#4f46e5");
-    expect(screen.getByLabelText("Invoice tagline")).toHaveValue("Existing tagline");
-    expect(screen.getByAltText("Your logo")).toHaveAttribute("src", "https://cdn.example.com/logo.png");
+    expect(screen.getByLabelText("Accent color hex value")).to.have.property('value', "#4f46e5");
+    expect(screen.getByLabelText("Invoice tagline")).to.have.property('value', "Existing tagline");
+    expect(screen.getByAltText("Your logo")).to.have.property('getAttribute', "src", "https://cdn.example.com/logo.png");
   });
 
   it("rejects an unsupported file type with a specific error BEFORE any upload request", async () => {
@@ -80,7 +80,7 @@ describe("BrandingForm", () => {
     const gif = new File([new Uint8Array(16)], "logo.gif", { type: "image/gif" });
     fireEvent.change(input, { target: { files: [gif] } });
 
-    expect(await screen.findByText(LOGO_TYPE_ERROR)).toBeInTheDocument();
+    expect(await screen.findByText(LOGO_TYPE_ERROR)).toBeTruthy() // element exists in DOM;
     expect(mockUploadBrandLogo).not.toHaveBeenCalled();
   });
 
@@ -91,7 +91,7 @@ describe("BrandingForm", () => {
     const huge = new File([new Uint8Array(MAX_LOGO_BYTES + 1)], "logo.png", { type: "image/png" });
     fireEvent.change(input, { target: { files: [huge] } });
 
-    expect(await screen.findByText(LOGO_SIZE_ERROR)).toBeInTheDocument();
+    expect(await screen.findByText(LOGO_SIZE_ERROR)).toBeTruthy() // element exists in DOM;
     expect(mockUploadBrandLogo).not.toHaveBeenCalled();
   });
 
@@ -116,7 +116,7 @@ describe("BrandingForm", () => {
     });
 
     const warning = await screen.findByText(/fails WCAG AA contrast against white/i);
-    expect(warning).toBeInTheDocument();
+    expect(warning).toBeTruthy() // element exists in DOM;
   });
 
   it("blocks saving when the accent color fails WCAG AA (zod validation)", async () => {
@@ -130,7 +130,7 @@ describe("BrandingForm", () => {
     // Give the async zod resolver a chance to (incorrectly) pass — it must not.
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(mockSaveBrandSettingsRemote).not.toHaveBeenCalled();
-    expect(screen.queryByText(/branding saved/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/branding saved/i)).not.toBeTruthy() // element exists in DOM;
   });
 
   it("saves accent color and tagline for the connected account", async () => {
@@ -148,7 +148,7 @@ describe("BrandingForm", () => {
     const [addressArg, settingsArg] = mockSaveBrandSettingsRemote.mock.calls[0];
     expect(addressArg).toBe(ADDRESS);
     expect(settingsArg).toMatchObject({ accentColor: "#4f46e5", tagline: "Fast splits" });
-    expect(await screen.findByText(/branding saved/i)).toBeInTheDocument();
+    expect(await screen.findByText(/branding saved/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("updates the live invoice preview as the accent color changes", async () => {
@@ -171,7 +171,7 @@ describe("BrandingForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /remove branding/i }));
 
     await waitFor(() => expect(mockClearBrandSettingsRemote).toHaveBeenCalledWith(ADDRESS));
-    expect(await screen.findByText(/revert to platform-default styling/i)).toBeInTheDocument();
-    expect(screen.getByLabelText("Invoice tagline")).toHaveValue("");
+    expect(await screen.findByText(/revert to platform-default styling/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByLabelText("Invoice tagline")).to.have.property('value', "");
   });
 });

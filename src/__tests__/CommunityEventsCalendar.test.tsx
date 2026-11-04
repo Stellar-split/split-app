@@ -52,15 +52,15 @@ describe("creatorEvents", () => {
 describe("CommunityEventsCalendar", () => {
   it("shows the month's events, filters by type and navigates months", () => {
     render(<CommunityEventsCalendar events={events} initialDate={new Date(2026, 2, 1)} />);
-    expect(screen.getByRole("heading", { name: "March 2026" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "March 2026" })).toBeTruthy() // element exists in DOM;
     expect(screen.getAllByText("Splits workshop").length).toBeGreaterThan(0);
 
     fireEvent.change(screen.getByLabelText("Event type"), { target: { value: "meetup" } });
-    expect(screen.queryByText(/Splits workshop/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Splits workshop/)).not.toBeTruthy() // element exists in DOM;
 
     fireEvent.click(screen.getByLabelText("Next month"));
-    expect(screen.getByRole("heading", { name: "April 2026" })).toBeInTheDocument();
-    expect(screen.getByText("No events this month.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "April 2026" })).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("No events this month.")).toBeTruthy() // element exists in DOM;
   });
 
   it("toggles RSVP and reports it", () => {
@@ -68,6 +68,6 @@ describe("CommunityEventsCalendar", () => {
     render(<CommunityEventsCalendar events={events} initialDate={new Date(2026, 2, 1)} onRsvpChange={onRsvpChange} />);
     fireEvent.click(screen.getAllByText("RSVP")[0]);
     expect(onRsvpChange).toHaveBeenLastCalledWith(["a"]);
-    expect(screen.getByText("Going")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Going")).to.have.property('getAttribute', "aria-pressed", "true");
   });
 });

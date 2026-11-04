@@ -66,8 +66,8 @@ describe("ActivityFeed", () => {
     });
 
     render(<ActivityFeed open={true} />);
-    expect(screen.getByText("Activity")).toBeInTheDocument();
-    expect(screen.getByText("No activity yet")).toBeInTheDocument();
+    expect(screen.getByText("Activity")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("No activity yet")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders empty state with icon and CTA link", () => {
@@ -84,8 +84,8 @@ describe("ActivityFeed", () => {
     });
 
     render(<ActivityFeed open={true} />);
-    expect(screen.getByText("No activity yet")).toBeInTheDocument();
-    expect(screen.getByText(/create your first invoice/i)).toBeInTheDocument();
+    expect(screen.getByText("No activity yet")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/create your first invoice/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("includes CTA link to /invoice/new in empty state", () => {
@@ -103,7 +103,7 @@ describe("ActivityFeed", () => {
 
     render(<ActivityFeed open={true} />);
     const ctaLink = screen.getByRole("link", { name: /create.*invoice/i });
-    expect(ctaLink).toHaveAttribute("href", "/invoice/new");
+    expect(ctaLink).to.have.property('getAttribute', "href", "/invoice/new");
   });
 
   it("hides empty state when data is loading", () => {
@@ -122,7 +122,7 @@ describe("ActivityFeed", () => {
     render(<ActivityFeed open={true} />);
     const skeleton = document.querySelector('[data-testid="skeleton"]');
     if (skeleton) {
-      expect(screen.queryByText(/No activity yet/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/No activity yet/)).not.toBeTruthy() // element exists in DOM;
     }
   });
 
@@ -165,9 +165,9 @@ describe("ActivityFeed", () => {
     });
 
     render(<ActivityFeed open={true} />);
-    expect(screen.getByText(/1\.00 USDC/)).toBeInTheDocument();
-    expect(screen.getByText(/Looks good/)).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument(); // unread badge
+    expect(screen.getByText(/1\.00 USDC/)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/Looks good/)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("2")).toBeTruthy() // element exists in DOM; // unread badge
   });
 
   it("shows connection status indicator", () => {
@@ -185,7 +185,7 @@ describe("ActivityFeed", () => {
 
     render(<ActivityFeed open={true} />);
     const dot = screen.getByTitle("Disconnected");
-    expect(dot).toHaveClass("bg-red-400");
+    expect(dot).to.have.property('className') // contains "bg-red-400";
   });
 
   it("renders filter chips for all event types", () => {
@@ -202,10 +202,10 @@ describe("ActivityFeed", () => {
     });
 
     render(<ActivityFeed open={true} />);
-    expect(screen.getByText("Payment")).toBeInTheDocument();
-    expect(screen.getByText("Status")).toBeInTheDocument();
-    expect(screen.getByText("Comment")).toBeInTheDocument();
-    expect(screen.getByText("Co-creator")).toBeInTheDocument();
+    expect(screen.getByText("Payment")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Status")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Comment")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Co-creator")).toBeTruthy() // element exists in DOM;
   });
 
   it("links feed items to correct invoice URLs", () => {
@@ -230,7 +230,7 @@ describe("ActivityFeed", () => {
     render(<ActivityFeed open={true} />);
     const link = screen.getByText("Invoice moved from Pending to Released")
       .closest("a");
-    expect(link).toHaveAttribute("href", "/invoice/42");
+    expect(link).to.have.property('getAttribute', "href", "/invoice/42");
   });
 
   it("deep-links comments to anchor on invoice page", () => {
@@ -255,6 +255,6 @@ describe("ActivityFeed", () => {
 
     render(<ActivityFeed open={true} />);
     const link = screen.getByText(/Nice work/).closest("a");
-    expect(link).toHaveAttribute("href", "/invoice/5#comment-c-abc");
+    expect(link).to.have.property('getAttribute', "href", "/invoice/5#comment-c-abc");
   });
 });

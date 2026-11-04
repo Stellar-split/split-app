@@ -7,7 +7,7 @@ describe("AdvancedPaymentMethodPicker", () => {
   it("selects a method on click", () => {
     const onChange = vi.fn();
     render(<AdvancedPaymentMethodPicker value="freighter" onChange={onChange} />);
-    expect(screen.getByRole("radio", { name: /Freighter wallet/ })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: /Freighter wallet/ })).to.have.property('getAttribute', "aria-checked", "true");
     fireEvent.click(screen.getByRole("radio", { name: /Batch payment/ }));
     expect(onChange).toHaveBeenCalledWith("batch");
   });
@@ -18,7 +18,7 @@ describe("AdvancedPaymentMethodPicker", () => {
       m.id === "batch" ? { ...m, disabled: true, disabledReason: "Unavailable" } : m
     );
     render(<AdvancedPaymentMethodPicker value="freighter" onChange={onChange} methods={methods} />);
-    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Unavailable")).toBeTruthy() // element exists in DOM;
     fireEvent.keyDown(screen.getByRole("radio", { name: /Freighter wallet/ }), { key: "ArrowDown" });
     expect(onChange).toHaveBeenCalledWith("crossChain");
   });

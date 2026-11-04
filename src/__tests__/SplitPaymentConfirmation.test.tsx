@@ -58,12 +58,12 @@ describe('SplitPaymentConfirmationModal', () => {
       />
     );
 
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Confirm Split Payment')).toBeInTheDocument();
-    expect(screen.getByText('Min amount check')).toBeInTheDocument();
-    expect(screen.getByText('Unique addresses check')).toBeInTheDocument();
-    expect(screen.getByText('60.0000000 USDC')).toBeInTheDocument();
-    expect(screen.getByText('40.0000000 USDC')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText('Confirm Split Payment')).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText('Min amount check')).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText('Unique addresses check')).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText('60.0000000 USDC')).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText('40.0000000 USDC')).toBeTruthy() // element exists in DOM;
 
     const confirmBtn = screen.getByRole('button', { name: /confirm & execute/i });
     expect(confirmBtn).toBeEnabled();
@@ -138,7 +138,7 @@ describe('SplitPaymentConfirmationModal', () => {
 
     expect(
       screen.getByText(/All 1 recipient payments distributed successfully!/i)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
     const closeBtn = screen.getByRole('button', { name: /close/i });
     fireEvent.click(closeBtn);
     expect(onCancel).toHaveBeenCalled();

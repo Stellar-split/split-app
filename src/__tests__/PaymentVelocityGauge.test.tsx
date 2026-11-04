@@ -44,9 +44,9 @@ describe("Payment Velocity Gauge (#408)", () => {
         </svg>
       );
 
-      expect(screen.getByTestId("gauge-1h")).toBeInTheDocument();
-      expect(screen.getByTestId("gauge-24h")).toBeInTheDocument();
-      expect(screen.getByTestId("gauge-7d")).toBeInTheDocument();
+      expect(screen.getByTestId("gauge-1h")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByTestId("gauge-24h")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByTestId("gauge-7d")).toBeTruthy() // element exists in DOM;
     });
 
     it("fills gauge arcs proportionally to volume vs threshold ratio", () => {
@@ -67,7 +67,7 @@ describe("Payment Velocity Gauge (#408)", () => {
       );
 
       const svg = container.querySelector("svg");
-      expect(svg).toBeInTheDocument();
+      expect(svg).toBeTruthy() // element exists in DOM;
       expect(svg?.tagName).toBe("svg");
     });
 
@@ -122,7 +122,7 @@ describe("Payment Velocity Gauge (#408)", () => {
       );
 
       fireEvent.click(screen.getByTestId("threshold-popover-trigger"));
-      expect(screen.getByTestId("threshold-popover-trigger")).toBeInTheDocument();
+      expect(screen.getByTestId("threshold-popover-trigger")).toBeTruthy() // element exists in DOM;
     });
 
     it("updates gauge fill immediately when threshold value changes", async () => {
@@ -255,7 +255,7 @@ describe("Payment Velocity Gauge (#408)", () => {
       vi.advanceTimersByTime(30000);
 
       await waitFor(() => {
-        expect(screen.getByTestId("last-updated")).toBeInTheDocument();
+        expect(screen.getByTestId("last-updated")).toBeTruthy() // element exists in DOM;
       });
     });
 
@@ -282,7 +282,7 @@ describe("Payment Velocity Gauge (#408)", () => {
       unmount();
 
       // Verify cleanup would be called in useEffect
-      expect(screen.queryByTestId("gauge")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("gauge")).not.toBeTruthy() // element exists in DOM;
     });
 
     it("fetches horizon payment history for the connected account", async () => {
@@ -371,7 +371,7 @@ describe("Payment Velocity Gauge (#408)", () => {
 
       expect(
         screen.getByText("Unable to load velocity data")
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
 
     it("displays loading state while fetching initial data", async () => {
@@ -389,7 +389,7 @@ describe("Payment Velocity Gauge (#408)", () => {
         </div>
       );
 
-      expect(screen.getByText("Loading velocity data...")).toBeInTheDocument();
+      expect(screen.getByText("Loading velocity data...")).toBeTruthy() // element exists in DOM;
     });
   });
 });

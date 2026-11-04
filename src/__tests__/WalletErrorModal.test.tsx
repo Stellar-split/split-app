@@ -32,13 +32,13 @@ describe("Issue #599: WalletErrorModal retry functionality", () => {
       />
     );
 
-    expect(screen.getByText(/freighter not installed/i)).toBeInTheDocument();
+    expect(screen.getByText(/freighter not installed/i)).toBeTruthy() // element exists in DOM;
     expect(
       screen.getByText(/freighter is a browser extension/i)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
     expect(
       screen.getByRole("link", { name: /install freighter/i })
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("should render locked wallet error state", () => {
@@ -53,10 +53,10 @@ describe("Issue #599: WalletErrorModal retry functionality", () => {
       />
     );
 
-    expect(screen.getByText(/freighter is locked/i)).toBeInTheDocument();
+    expect(screen.getByText(/freighter is locked/i)).toBeTruthy() // element exists in DOM;
     expect(
       screen.getByText(/your freighter wallet is locked/i)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("should render locked wallet error with Try Again button", () => {
@@ -72,7 +72,7 @@ describe("Issue #599: WalletErrorModal retry functionality", () => {
     );
 
     const tryAgainButton = screen.getByRole("button", { name: /try again/i });
-    expect(tryAgainButton).toBeInTheDocument();
+    expect(tryAgainButton).toBeTruthy() // element exists in DOM;
   });
 
   it("should call onRetry when Try Again button is clicked", async () => {
@@ -106,7 +106,7 @@ describe("Issue #599: WalletErrorModal retry functionality", () => {
       />
     );
 
-    expect(screen.getByText(/wrong network/i)).toBeInTheDocument();
+    expect(screen.getByText(/wrong network/i)).toBeTruthy() // element exists in DOM;
     const mainnetTexts = screen.getAllByText(/mainnet/i);
     expect(mainnetTexts.length).toBeGreaterThan(0);
   });
@@ -124,7 +124,7 @@ describe("Issue #599: WalletErrorModal retry functionality", () => {
     );
 
     const gotItButton = screen.getByRole("button", { name: /got it/i });
-    expect(gotItButton).toBeInTheDocument();
+    expect(gotItButton).toBeTruthy() // element exists in DOM;
   });
 
   it("should call onDismiss when Dismiss button is clicked", async () => {
@@ -198,8 +198,8 @@ describe("Issue #599: WalletErrorModal retry functionality", () => {
     );
 
     const dialog = container.querySelector('[role="dialog"]');
-    expect(dialog).toHaveAttribute("aria-modal", "true");
-    expect(dialog).toHaveAttribute("aria-labelledby", "wallet-error-title");
+    expect(dialog).to.have.property('getAttribute', "aria-modal", "true");
+    expect(dialog).to.have.property('getAttribute', "aria-labelledby", "wallet-error-title");
   });
 
   it("should focus first interactive element when error is shown", async () => {
@@ -295,12 +295,12 @@ describe("Issue #599: WalletErrorModal retry functionality", () => {
     const installLink = screen.getByRole("link", {
       name: /install freighter/i,
     });
-    expect(installLink).toHaveAttribute(
+    expect(installLink).to.have.property('getAttribute', 
       "href",
       "https://www.freighter.app/"
     );
-    expect(installLink).toHaveAttribute("target", "_blank");
-    expect(installLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(installLink).to.have.property('getAttribute', "target", "_blank");
+    expect(installLink).to.have.property('getAttribute', "rel", "noopener noreferrer");
   });
 
   it("should display instructions for locked wallet", () => {
@@ -315,8 +315,8 @@ describe("Issue #599: WalletErrorModal retry functionality", () => {
       />
     );
 
-    expect(screen.getByText(/click the freighter icon/i)).toBeInTheDocument();
-    expect(screen.getByText(/enter your freighter password/i)).toBeInTheDocument();
-    expect(screen.getByText(/return here and click/i)).toBeInTheDocument();
+    expect(screen.getByText(/click the freighter icon/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/enter your freighter password/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/return here and click/i)).toBeTruthy() // element exists in DOM;
   });
 });

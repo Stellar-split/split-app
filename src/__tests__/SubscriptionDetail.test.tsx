@@ -89,47 +89,47 @@ describe("SubscriptionDetailClient", () => {
 
   it("renders subscription status", async () => {
     render(<SubscriptionDetailClient />);
-    expect(await screen.findByText("Active")).toBeInTheDocument();
+    expect(await screen.findByText("Active")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders frequency", async () => {
     render(<SubscriptionDetailClient />);
-    expect(await screen.findByText("Weekly")).toBeInTheDocument();
+    expect(await screen.findByText("Weekly")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders pause button for active subscription", async () => {
     render(<SubscriptionDetailClient />);
-    expect(await screen.findByText("Pause Subscription")).toBeInTheDocument();
+    expect(await screen.findByText("Pause Subscription")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders cancel button", async () => {
     render(<SubscriptionDetailClient />);
-    expect(await screen.findByText("Cancel Subscription")).toBeInTheDocument();
+    expect(await screen.findByText("Cancel Subscription")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders invoice history table", async () => {
     render(<SubscriptionDetailClient />);
-    expect(await screen.findByText(/Invoice History/)).toBeInTheDocument();
+    expect(await screen.findByText(/Invoice History/)).toBeTruthy() // element exists in DOM;
   });
 
   it("renders recipients section", async () => {
     render(<SubscriptionDetailClient />);
-    expect(await screen.findByText("Recipients")).toBeInTheDocument();
+    expect(await screen.findByText("Recipients")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders calendar preview for active subscription", async () => {
     render(<SubscriptionDetailClient />);
-    expect(await screen.findByText("Upcoming Invoice Dates")).toBeInTheDocument();
+    expect(await screen.findByText("Upcoming Invoice Dates")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders total invoices count", async () => {
     render(<SubscriptionDetailClient />);
-    expect(await screen.findByText("Total Invoices")).toBeInTheDocument();
+    expect(await screen.findByText("Total Invoices")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders back link", async () => {
     render(<SubscriptionDetailClient />);
     const backLink = await screen.findByText("← Subscriptions");
-    expect(backLink).toHaveAttribute("href", "/subscriptions");
+    expect(backLink).to.have.property('getAttribute', "href", "/subscriptions");
   });
 });

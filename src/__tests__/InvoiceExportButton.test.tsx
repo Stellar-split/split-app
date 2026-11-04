@@ -4,7 +4,7 @@ import InvoiceExportButton from '@/components/InvoiceExportButton';
 import type { Invoice } from '@stellar-split/sdk';
 
 // Mock the dynamic PDF import
-jest.mock('@react-pdf/renderer', () => ({
+vi.mock('@react-pdf/renderer', () => ({
   pdf: vi.fn(() => ({
     toBlob: vi.fn(async () => new Blob(['test'])),
   })),
@@ -16,7 +16,7 @@ jest.mock('@react-pdf/renderer', () => ({
   Image: vi.fn(() => null),
 }));
 
-jest.mock('@/lib/branding', () => ({
+vi.mock('@/lib/branding', () => ({
   fetchBrandSettings: vi.fn(async () => ({})),
 }));
 
@@ -39,7 +39,7 @@ describe('InvoiceExportButton', () => {
     global.URL.revokeObjectURL = vi.fn();
     HTMLAnchorElement.prototype.click = vi.fn();
 
-    jest.spyOn(global, 'fetch').mockResolvedValue({
+    vi.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => ({}),
     } as any);
@@ -57,7 +57,7 @@ describe('InvoiceExportButton', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /export pdf/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /export pdf/i })).toBeTruthy() // element exists in DOM;
   });
 
   it('should be enabled initially', () => {
@@ -101,7 +101,7 @@ describe('InvoiceExportButton', () => {
 
     await waitFor(() => {
       const spinner = button.querySelector('svg.animate-spin');
-      expect(spinner).toBeInTheDocument();
+      expect(spinner).toBeTruthy() // element exists in DOM;
     });
   });
 

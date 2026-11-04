@@ -24,14 +24,14 @@ describe("invoice collaboration workspace", () => {
     render(<InvoiceCollaborationWorkspace initial={initial} currentUserId="o" />);
     fireEvent.change(screen.getByLabelText("New note"), { target: { value: "Looks good" } });
     fireEvent.click(screen.getByText("Add note"));
-    expect(screen.getByText("Looks good")).toBeInTheDocument();
+    expect(screen.getByText("Looks good")).toBeTruthy() // element exists in DOM;
     fireEvent.click(screen.getByLabelText("Confirm amounts"));
-    expect(screen.getByText("100% done")).toBeInTheDocument();
+    expect(screen.getByText("100% done")).toBeTruthy() // element exists in DOM;
   });
 
   it("is read-only for viewers", () => {
     render(<InvoiceCollaborationWorkspace initial={initial} currentUserId="v" />);
-    expect(screen.queryByLabelText("New note")).not.toBeInTheDocument();
-    expect(screen.getByText("You have view-only access.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("New note")).not.toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("You have view-only access.")).toBeTruthy() // element exists in DOM;
   });
 });

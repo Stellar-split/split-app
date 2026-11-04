@@ -73,8 +73,8 @@ describe("PaymentExport PDF option", () => {
     render(
       <PaymentExport invoiceId={INVOICE_ID} payments={payments as Payment[]} />
     );
-    expect(screen.getByRole("button", { name: "PDF" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "CSV" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "PDF" })).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("button", { name: "CSV" })).toBeTruthy() // element exists in DOM;
   });
 
   it.skip("opens the printable payment summary when PDF export is triggered", () => {

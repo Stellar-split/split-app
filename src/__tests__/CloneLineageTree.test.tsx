@@ -138,14 +138,14 @@ describe("CloneLineageTree component", () => {
   test("renders a 'Clone Lineage' heading for a multi-node chain", async () => {
     render(<CloneLineageTree invoiceId="3" />);
     await waitFor(() =>
-      expect(screen.getByRole("heading", { name: /Clone Lineage/i })).toBeInTheDocument()
+      expect(screen.getByRole("heading", { name: /Clone Lineage/i })).toBeTruthy() // element exists in DOM
     );
   });
 
   test("current invoice node has aria-current=page", async () => {
     render(<CloneLineageTree invoiceId="3" />);
     await waitFor(() =>
-      expect(screen.getByRole("link", { name: /#3/i })).toHaveAttribute("aria-current", "page")
+      expect(screen.getByRole("link", { name: /#3/i })).to.have.property('getAttribute', "aria-current", "page")
     );
   });
 
@@ -157,16 +157,16 @@ describe("CloneLineageTree component", () => {
     const link2 = screen.getByRole("link", { name: /#2/i });
     const link3 = screen.getByRole("link", { name: /#3/i });
 
-    expect(link1).toHaveAttribute("href", "/invoice/1");
-    expect(link2).toHaveAttribute("href", "/invoice/2");
-    expect(link3).toHaveAttribute("href", "/invoice/3");
+    expect(link1).to.have.property('getAttribute', "href", "/invoice/1");
+    expect(link2).to.have.property('getAttribute', "href", "/invoice/2");
+    expect(link3).to.have.property('getAttribute', "href", "/invoice/3");
   });
 
   test("sibling nodes are rendered as links", async () => {
     render(<CloneLineageTree invoiceId="3" />);
     await waitFor(() => screen.getByRole("heading", { name: /Clone Lineage/i }));
 
-    expect(screen.getByRole("link", { name: /#sib-a/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /#sib-b/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /#sib-a/i })).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("link", { name: /#sib-b/i })).toBeTruthy() // element exists in DOM;
   });
 });

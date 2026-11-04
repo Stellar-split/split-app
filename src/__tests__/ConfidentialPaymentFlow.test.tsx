@@ -57,13 +57,13 @@ describe("ConfidentialPaymentFlow", () => {
       );
       expect(
         await screen.findByLabelText(/amount \(usdc\)/i)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
       expect(
         screen.getByRole("button", { name: /commit payment/i })
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
       expect(
         screen.queryByRole("button", { name: /reveal payment/i })
-      ).not.toBeInTheDocument();
+      ).not.toBeTruthy() // element exists in DOM;
     });
 
     it("shows the reveal step when a blinding factor exists", async () => {
@@ -78,7 +78,7 @@ describe("ConfidentialPaymentFlow", () => {
       );
       expect(
         await screen.findByRole("button", { name: /reveal payment/i })
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
       const input = screen.getByLabelText(/amount \(usdc\)/i) as HTMLInputElement;
       expect(input.value).toBe("10.5");
       expect(input).toBeDisabled();
@@ -95,7 +95,7 @@ describe("ConfidentialPaymentFlow", () => {
       );
       expect(
         await screen.findByText(/payment revealed successfully/i)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
 
     it("shows missing blinding factor warning when reveal attempted without stored factor", async () => {
@@ -114,7 +114,7 @@ describe("ConfidentialPaymentFlow", () => {
       fireEvent.click(revealButton);
       expect(
         await screen.findByText(/recovery secret not found/i)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -136,7 +136,7 @@ describe("ConfidentialPaymentFlow", () => {
 
       expect(
         await screen.findByText(/commitment submitted successfully/i)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
       expect(mockGenerateBlindingFactor).toHaveBeenCalledTimes(1);
       expect(mockCreatePedersenCommitment).toHaveBeenCalledWith(
         500_000_000n,
@@ -179,13 +179,13 @@ describe("ConfidentialPaymentFlow", () => {
 
       expect(
         screen.getByRole("button", { name: /submitting commitment/i })
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
 
       resolveCommit!({ txHash: "tx" });
       await waitFor(() =>
         expect(
           screen.queryByRole("button", { name: /submitting commitment/i })
-        ).not.toBeInTheDocument()
+        ).not.toBeTruthy() // element exists in DOM
       );
     });
 
@@ -202,16 +202,16 @@ describe("ConfidentialPaymentFlow", () => {
       fireEvent.change(input, { target: { value: "30" } });
       fireEvent.click(screen.getByRole("button", { name: /commit payment/i }));
 
-      expect(await screen.findByText(/network error/i)).toBeInTheDocument();
+      expect(await screen.findByText(/network error/i)).toBeTruthy() // element exists in DOM;
       expect(
         screen.getByRole("button", { name: /commit payment/i })
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
 
       mockSubmitCommitment.mockResolvedValue({ txHash: "tx_456" });
       fireEvent.click(screen.getByRole("button", { name: /commit payment/i }));
       expect(
         await screen.findByText(/commitment submitted successfully/i)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -235,7 +235,7 @@ describe("ConfidentialPaymentFlow", () => {
 
       expect(
         await screen.findByText(/payment revealed successfully/i)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
       expect(mockLoadBlindingFactor).toHaveBeenCalledWith(
         mockInvoiceId,
         mockPublicKey
@@ -269,10 +269,10 @@ describe("ConfidentialPaymentFlow", () => {
       });
       fireEvent.click(revealButton);
 
-      expect(await screen.findByText(/reveal failed/i)).toBeInTheDocument();
+      expect(await screen.findByText(/reveal failed/i)).toBeTruthy() // element exists in DOM;
       expect(
         screen.getByRole("button", { name: /reveal payment/i })
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -286,13 +286,13 @@ describe("ConfidentialPaymentFlow", () => {
       );
       expect(
         await screen.findByText(/cryptographic commitment is stored/i)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
       expect(
         screen.getByText(/recovery secret.*is stored in your browser/i)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
       expect(
         screen.getByText(/two steps are needed/i)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
   });
 });

@@ -31,7 +31,7 @@ let fetchMock: jest.Mock;
 
 beforeEach(() => {
   localStorageMock.clear();
-  fetchMock = jest.fn();
+  fetchMock = vi.fn();
   global.fetch = fetchMock;
 });
 
@@ -54,7 +54,7 @@ describe("processQueue — dead-letter transition", () => {
     // Each run we need to wind the clock so nextAttemptAt <= now
     const realDateNow = Date.now;
     let fakeNow = realDateNow();
-    jest.spyOn(Date, "now").mockImplementation(() => fakeNow);
+    vi.spyOn(Date, "now").mockImplementation(() => fakeNow);
 
     // Attempt 1 (retryCount 0 → schedule retry at +1m)
     await processQueue();
@@ -78,7 +78,7 @@ describe("processQueue — dead-letter transition", () => {
     expect(dlq[0].url).toBe(URL);
     expect(dlq[0].lastError).toBe("HTTP 500");
 
-    jest.spyOn(Date, "now").mockRestore();
+    vi.spyOn(Date, "now").mockRestore();
   });
 });
 
@@ -103,7 +103,7 @@ describe("retryDeadLettered — success path", () => {
 
     const realDateNow = Date.now;
     let fakeNow = realDateNow();
-    jest.spyOn(Date, "now").mockImplementation(() => fakeNow);
+    vi.spyOn(Date, "now").mockImplementation(() => fakeNow);
 
     await processQueue();
     fakeNow += BACKOFF_DELAYS[0];
@@ -113,7 +113,7 @@ describe("retryDeadLettered — success path", () => {
     fakeNow += BACKOFF_DELAYS[2];
     await processQueue();
 
-    jest.spyOn(Date, "now").mockRestore();
+    vi.spyOn(Date, "now").mockRestore();
 
     expect(getDeadLettered()).toHaveLength(1);
     const { id } = getDeadLettered()[0];
@@ -131,7 +131,7 @@ describe("retryDeadLettered — success path", () => {
 
     const realDateNow = Date.now;
     let fakeNow = realDateNow();
-    jest.spyOn(Date, "now").mockImplementation(() => fakeNow);
+    vi.spyOn(Date, "now").mockImplementation(() => fakeNow);
 
     await processQueue();
     fakeNow += BACKOFF_DELAYS[0];
@@ -141,7 +141,7 @@ describe("retryDeadLettered — success path", () => {
     fakeNow += BACKOFF_DELAYS[2];
     await processQueue();
 
-    jest.spyOn(Date, "now").mockRestore();
+    vi.spyOn(Date, "now").mockRestore();
 
     const { id } = getDeadLettered()[0];
     fetchMock.mockResolvedValueOnce({ ok: false, status: 502 });

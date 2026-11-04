@@ -26,6 +26,6 @@ describe("creator network", () => {
   it("shows a pending request after clicking Connect", () => {
     render(<CreatorNetwork me={me} creators={creators} />);
     fireEvent.click(screen.getAllByText("Connect")[0]);
-    expect(screen.getByText("Pending (1)")).toBeInTheDocument();
+    expect(screen.getByText("Pending (1)")).toBeTruthy() // element exists in DOM;
   });
 });

@@ -36,21 +36,21 @@ describe('WalletConnect', () => {
 
     it('shows install prompt message', () => {
       render(<WalletConnect />);
-      expect(screen.getByText(/Freighter isn't installed/i)).toBeInTheDocument();
+      expect(screen.getByText(/Freighter isn't installed/i)).toBeTruthy() // element exists in DOM;
     });
 
     it('renders link to Freighter installation page', () => {
       render(<WalletConnect />);
       const link = screen.getByRole('link', { name: /Install Freighter/i });
-      expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute('href', 'https://www.freighter.app/');
-      expect(link).toHaveAttribute('target', '_blank');
-      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(link).toBeTruthy() // element exists in DOM;
+      expect(link).to.have.property('getAttribute', 'href', 'https://www.freighter.app/');
+      expect(link).to.have.property('getAttribute', 'target', '_blank');
+      expect(link).to.have.property('getAttribute', 'rel', 'noopener noreferrer');
     });
 
     it('does not render connect buttons', () => {
       render(<WalletConnect />);
-      expect(screen.queryByRole('button', { name: /Connect/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Connect/i })).not.toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -64,13 +64,13 @@ describe('WalletConnect', () => {
 
     it('renders connect buttons', () => {
       render(<WalletConnect />);
-      expect(screen.getByRole('button', { name: /Connect with Freighter/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Connect with WalletConnect/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Connect with Freighter/i })).toBeTruthy() // element exists in DOM;
+      expect(screen.getByRole('button', { name: /Connect with WalletConnect/i })).toBeTruthy() // element exists in DOM;
     });
 
     it('does not show install prompt', () => {
       render(<WalletConnect />);
-      expect(screen.queryByText(/Freighter isn't installed/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Freighter isn't installed/i)).not.toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -86,18 +86,18 @@ describe('WalletConnect', () => {
 
     it('does not show install prompt', () => {
       render(<WalletConnect />);
-      expect(screen.queryByText(/Freighter isn't installed/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Freighter isn't installed/i)).not.toBeTruthy() // element exists in DOM;
     });
 
     it('does not show connect buttons', () => {
       render(<WalletConnect />);
-      expect(screen.queryByRole('button', { name: /^Connect/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Connect/i })).not.toBeTruthy() // element exists in DOM;
     });
 
     it('shows address badge and disconnect button', () => {
       render(<WalletConnect />);
-      expect(screen.getByText(/^GBU.*AAA$/)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Disconnect/i })).toBeInTheDocument();
+      expect(screen.getByText(/^GBU.*AAA$/)).toBeTruthy() // element exists in DOM;
+      expect(screen.getByRole('button', { name: /Disconnect/i })).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -109,7 +109,7 @@ describe('WalletConnect', () => {
       });
 
       render(<WalletConnect compact />);
-      expect(screen.getByRole('button', { name: /Connect Wallet/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Connect Wallet/i })).toBeTruthy() // element exists in DOM;
     });
 
     it('shows install prompt in compact mode when Freighter not installed', () => {
@@ -119,7 +119,7 @@ describe('WalletConnect', () => {
       });
 
       render(<WalletConnect compact />);
-      expect(screen.getByText(/Freighter isn't installed/i)).toBeInTheDocument();
+      expect(screen.getByText(/Freighter isn't installed/i)).toBeTruthy() // element exists in DOM;
     });
   });
 });

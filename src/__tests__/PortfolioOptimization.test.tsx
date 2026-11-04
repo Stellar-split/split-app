@@ -16,12 +16,12 @@ describe("PortfolioOptimization", () => {
         ]}
       />,
     );
-    expect(screen.getByRole("list", { name: "Portfolio optimization recommendations" })).toBeInTheDocument();
-    expect(screen.getByText(/1 open invoice past due/)).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Portfolio optimization recommendations" })).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/1 open invoice past due/)).toBeTruthy() // element exists in DOM;
   });
 
   it("shows a healthy state when there is nothing to recommend", () => {
     render(<PortfolioOptimization invoices={[]} now={NOW} />);
-    expect(screen.getByText(/looks healthy/)).toBeInTheDocument();
+    expect(screen.getByText(/looks healthy/)).toBeTruthy() // element exists in DOM;
   });
 });

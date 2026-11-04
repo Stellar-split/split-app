@@ -125,12 +125,12 @@ describe('InvoiceTimeline', () => {
 
     const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
     const button = showDetailsButtons[0].closest('button')!;
-    expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(button).to.have.property('getAttribute', 'aria-expanded', 'false');
 
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(button).toHaveAttribute('aria-expanded', 'true');
+      expect(button).to.have.property('getAttribute', 'aria-expanded', 'true');
     });
   });
 
@@ -170,7 +170,7 @@ describe('InvoiceTimeline', () => {
 
     await waitFor(() => {
       const styleTag = container.querySelector('style');
-      expect(styleTag).toBeInTheDocument();
+      expect(styleTag).toBeTruthy() // element exists in DOM;
       expect(styleTag?.textContent).toContain('timeline-details');
       expect(styleTag?.textContent).toContain('max-height');
       expect(styleTag?.textContent).toContain('transition');

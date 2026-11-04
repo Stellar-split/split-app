@@ -87,18 +87,18 @@ describe("PaymentGamificationPanel", () => {
         events={[ev("2026-01-01", { onTime: true }), ev("2026-01-02", { onTime: true })]}
       />,
     );
-    expect(screen.getByText("Level 1: Starter")).toBeInTheDocument();
-    expect(screen.getByText("32 points")).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "64");
-    expect(screen.getByText("18 points to Contributor")).toBeInTheDocument();
+    expect(screen.getByText("Level 1: Starter")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("32 points")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("progressbar")).to.have.property('getAttribute', "aria-valuenow", "64");
+    expect(screen.getByText("18 points to Contributor")).toBeTruthy() // element exists in DOM;
     const badge = screen.getByText("First payment").closest("li");
-    expect(badge).toHaveAttribute("data-earned", "true");
-    expect(screen.getByText("Regular").closest("li")).toHaveAttribute("data-earned", "false");
+    expect(badge).to.have.property('getAttribute', "data-earned", "true");
+    expect(screen.getByText("Regular").closest("li")).to.have.property('getAttribute', "data-earned", "false");
   });
 
   it("shows the empty state for no payments", () => {
     render(<PaymentGamificationPanel events={[]} />);
-    expect(screen.getByText("0 points")).toBeInTheDocument();
-    expect(screen.getByText("50 points to Contributor")).toBeInTheDocument();
+    expect(screen.getByText("0 points")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("50 points to Contributor")).toBeTruthy() // element exists in DOM;
   });
 });

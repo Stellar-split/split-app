@@ -23,7 +23,7 @@ describe("FundingTimeHistogram", () => {
     );
     expect(
       screen.getByRole("figure", { name: "Average funding time histogram" })
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("renders bar chart with histogram data", () => {
@@ -36,12 +36,12 @@ describe("FundingTimeHistogram", () => {
         ]}
       />
     );
-    expect(screen.getByTestId("bar-chart")).toBeInTheDocument();
-    expect(screen.getByTestId("responsive-container")).toBeInTheDocument();
+    expect(screen.getByTestId("bar-chart")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByTestId("responsive-container")).toBeTruthy() // element exists in DOM;
   });
 
   it("shows 'No data available' when data is empty", () => {
     render(<FundingTimeHistogram data={[]} />);
-    expect(screen.getByText("No data available")).toBeInTheDocument();
+    expect(screen.getByText("No data available")).toBeTruthy() // element exists in DOM;
   });
 });

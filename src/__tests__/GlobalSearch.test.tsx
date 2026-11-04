@@ -82,7 +82,7 @@ describe("GlobalSearch — query highlighting", () => {
       vi.advanceTimersByTime(300);
     });
 
-    expect(screen.getByText(/office/i)).toBeInTheDocument();
+    expect(screen.getByText(/office/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("highlights matched substring in creator address", async () => {
@@ -135,7 +135,7 @@ describe("GlobalSearch — query highlighting", () => {
 
     expect(
       screen.getByText(/start typing to search invoices and addresses/i)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   test("case-insensitive matching highlights correctly", async () => {
@@ -154,6 +154,6 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     // Should find the result even with uppercase query
-    expect(screen.queryByText(/no results for/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no results for/i)).not.toBeTruthy() // element exists in DOM;
   });
 });

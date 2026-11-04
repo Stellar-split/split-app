@@ -15,10 +15,10 @@ const base = {
 describe("CreatorCertification", () => {
   it("shows the uncertified state and bronze requirements", () => {
     render(<CreatorCertification profile={base} />);
-    expect(screen.getByText("Not certified")).toBeInTheDocument();
-    expect(screen.getByText("Requirements for bronze certification")).toBeInTheDocument();
-    expect(screen.getByText(/Verify your wallet/)).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "33");
+    expect(screen.getByText("Not certified")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Requirements for bronze certification")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/Verify your wallet/)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("progressbar")).to.have.property('getAttribute', "aria-valuenow", "33");
   });
 
   it("shows the top tier when gold is reached", () => {
@@ -34,8 +34,8 @@ describe("CreatorCertification", () => {
         }}
       />,
     );
-    expect(screen.getByText("gold")).toBeInTheDocument();
-    expect(screen.getByText("Top certification reached")).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
+    expect(screen.getByText("gold")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Top certification reached")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("progressbar")).to.have.property('getAttribute', "aria-valuenow", "100");
   });
 });

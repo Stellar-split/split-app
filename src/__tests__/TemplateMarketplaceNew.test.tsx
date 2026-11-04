@@ -11,27 +11,27 @@ describe("TemplateMarketplace (#799)", () => {
 
   it("renders the marketplace heading", () => {
     render(<TemplateMarketplace onImport={noop} importedIds={new Set()} />);
-    expect(screen.getByText("Template Marketplace")).toBeInTheDocument();
+    expect(screen.getByText("Template Marketplace")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders featured templates", () => {
     render(<TemplateMarketplace onImport={noop} importedIds={new Set()} />);
-    expect(screen.getByText(/featured/i)).toBeInTheDocument();
+    expect(screen.getByText(/featured/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("renders search input", () => {
     render(<TemplateMarketplace onImport={noop} importedIds={new Set()} />);
-    expect(screen.getByPlaceholderText(/search templates/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/search templates/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("renders category filter", () => {
     render(<TemplateMarketplace onImport={noop} importedIds={new Set()} />);
-    expect(screen.getByLabelText(/filter by category/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/filter by category/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("renders sort selector", () => {
     render(<TemplateMarketplace onImport={noop} importedIds={new Set()} />);
-    expect(screen.getByLabelText(/sort by/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/sort by/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("shows templates in a list", () => {
@@ -56,14 +56,14 @@ describe("TemplateMarketplace (#799)", () => {
     fireEvent.change(select, { target: { value: "Consulting" } });
     // Should show consulting templates
     const text = screen.getByText((content) => /consulting day rate/i.test(content));
-    expect(text).toBeInTheDocument();
+    expect(text).toBeTruthy() // element exists in DOM;
   });
 
   it("shows empty state when no results", () => {
     render(<TemplateMarketplace onImport={noop} importedIds={new Set()} />);
     const search = screen.getByPlaceholderText(/search templates/i);
     fireEvent.change(search, { target: { value: "zzznomatch999" } });
-    expect(screen.getByText(/no templates match/i)).toBeInTheDocument();
+    expect(screen.getByText(/no templates match/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("calls onImport with correct UserTemplate when Import is clicked", () => {
@@ -97,7 +97,7 @@ describe("TemplateMarketplace (#799)", () => {
     render(<TemplateMarketplace onImport={noop} importedIds={new Set()} />);
     const previewButtons = screen.getAllByRole("button", { name: /preview/i });
     fireEvent.click(previewButtons[0]);
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
   });
 
   it("closes preview modal on Close click", () => {
@@ -105,7 +105,7 @@ describe("TemplateMarketplace (#799)", () => {
     const previewButtons = screen.getAllByRole("button", { name: /preview/i });
     fireEvent.click(previewButtons[0]);
     fireEvent.click(screen.getByRole("button", { name: /close/i }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeTruthy() // element exists in DOM;
   });
 
   it("preview modal shows recipient breakdown", () => {
@@ -113,7 +113,7 @@ describe("TemplateMarketplace (#799)", () => {
     const previewButtons = screen.getAllByRole("button", { name: /preview/i });
     fireEvent.click(previewButtons[0]);
     const modal = screen.getByRole("dialog");
-    expect(within(modal).getByText(/recipients/i)).toBeInTheDocument();
-    expect(within(modal).getByText(/total/i)).toBeInTheDocument();
+    expect(within(modal).getByText(/recipients/i)).toBeTruthy() // element exists in DOM;
+    expect(within(modal).getByText(/total/i)).toBeTruthy() // element exists in DOM;
   });
 });

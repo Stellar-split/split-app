@@ -97,11 +97,11 @@ describe("HistoryLog & Filter Logic", () => {
     it("renders all entries initially with All filter active", () => {
       render(<HistoryLog invoiceId="test-1" initialEntries={mockEntries} />);
 
-      expect(screen.getByText("On-Chain History Log")).toBeInTheDocument();
-      expect(screen.getByText("Payment")).toBeInTheDocument();
-      expect(screen.getByText("Release")).toBeInTheDocument();
-      expect(screen.getByText("Note")).toBeInTheDocument();
-      expect(screen.getByText("Status Change")).toBeInTheDocument();
+      expect(screen.getByText("On-Chain History Log")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByText("Payment")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByText("Release")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByText("Note")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByText("Status Change")).toBeTruthy() // element exists in DOM;
     });
 
     it("filters list when a filter chip is clicked", () => {
@@ -110,9 +110,9 @@ describe("HistoryLog & Filter Logic", () => {
       const paymentsChip = screen.getByRole("tab", { name: "Payments" });
       fireEvent.click(paymentsChip);
 
-      expect(screen.getByText("Payment")).toBeInTheDocument();
-      expect(screen.queryByText("Release")).not.toBeInTheDocument();
-      expect(screen.queryByText("Note")).not.toBeInTheDocument();
+      expect(screen.getByText("Payment")).toBeTruthy() // element exists in DOM;
+      expect(screen.queryByText("Release")).not.toBeTruthy() // element exists in DOM;
+      expect(screen.queryByText("Note")).not.toBeTruthy() // element exists in DOM;
     });
 
     it("shows empty state when filter matches no entries", () => {
@@ -122,7 +122,7 @@ describe("HistoryLog & Filter Logic", () => {
       const notesChip = screen.getByRole("tab", { name: "Notes" });
       fireEvent.click(notesChip);
 
-      expect(screen.getByText("No history yet")).toBeInTheDocument();
+      expect(screen.getByText("No history yet")).toBeTruthy() // element exists in DOM;
     });
 
     it("toggles compact timeline view", () => {
@@ -131,14 +131,14 @@ describe("HistoryLog & Filter Logic", () => {
       const toggleButton = screen.getByRole("button", { name: /compact timeline/i });
       fireEvent.click(toggleButton);
 
-      expect(screen.getByRole("button", { name: /detailed view/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /detailed view/i })).toBeTruthy() // element exists in DOM;
     });
 
     it("provides JSON export button", () => {
       render(<HistoryLog invoiceId="test-1" initialEntries={mockEntries} />);
 
       const exportButton = screen.getByRole("button", { name: /export history as json/i });
-      expect(exportButton).toBeInTheDocument();
+      expect(exportButton).toBeTruthy() // element exists in DOM;
     });
   });
 });

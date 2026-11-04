@@ -44,8 +44,8 @@ describe('ToastContainer', () => {
       addToast('Error!', 'error');
     });
 
-    expect(screen.getByText('Saved!')).toBeInTheDocument();
-    expect(screen.getByText('Error!')).toBeInTheDocument();
+    expect(screen.getByText('Saved!')).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText('Error!')).toBeTruthy() // element exists in DOM;
   });
 
   it('does not deduplicate toasts with different types', () => {
@@ -70,17 +70,17 @@ describe('ToastContainer', () => {
     if (!addToast) throw new Error('addToast not exposed');
 
     act(() => { addToast('Saving...', 'info'); });
-    expect(screen.getByText('Saving...')).toBeInTheDocument();
+    expect(screen.getByText('Saving...')).toBeTruthy() // element exists in DOM;
 
     act(() => { vi.advanceTimersByTime(4000); });
-    expect(screen.getByText('Saving...')).toBeInTheDocument();
+    expect(screen.getByText('Saving...')).toBeTruthy() // element exists in DOM;
 
     act(() => { addToast('Saving...', 'info'); });
     act(() => { vi.advanceTimersByTime(4000); });
-    expect(screen.getByText('Saving...')).toBeInTheDocument();
+    expect(screen.getByText('Saving...')).toBeTruthy() // element exists in DOM;
 
     act(() => { vi.advanceTimersByTime(1001); });
-    expect(screen.queryByText('Saving...')).not.toBeInTheDocument();
+    expect(screen.queryByText('Saving...')).not.toBeTruthy() // element exists in DOM;
   });
 
   it('auto-dismisses toasts after 5 seconds', () => {
@@ -90,9 +90,9 @@ describe('ToastContainer', () => {
     if (!addToast) throw new Error('addToast not exposed');
 
     act(() => { addToast('Processed', 'success'); });
-    expect(screen.getByText('Processed')).toBeInTheDocument();
+    expect(screen.getByText('Processed')).toBeTruthy() // element exists in DOM;
 
     act(() => { vi.advanceTimersByTime(5001); });
-    expect(screen.queryByText('Processed')).not.toBeInTheDocument();
+    expect(screen.queryByText('Processed')).not.toBeTruthy() // element exists in DOM;
   });
 });

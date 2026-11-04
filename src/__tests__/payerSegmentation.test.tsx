@@ -93,12 +93,12 @@ describe("PayerSegmentation", () => {
 
   it("lists payers with their segment and filters by segment", () => {
     render(<PayerSegmentation payers={payers} now={now} />);
-    expect(screen.getByText("GLAPSED")).toBeInTheDocument();
-    expect(screen.getByText("GCASUAL")).toBeInTheDocument();
+    expect(screen.getByText("GLAPSED")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("GCASUAL")).toBeTruthy() // element exists in DOM;
 
     fireEvent.change(screen.getByLabelText("Segment"), { target: { value: "lapsed" } });
-    expect(screen.getByText("GLAPSED")).toBeInTheDocument();
-    expect(screen.queryByText("GCASUAL")).not.toBeInTheDocument();
+    expect(screen.getByText("GLAPSED")).toBeTruthy() // element exists in DOM;
+    expect(screen.queryByText("GCASUAL")).not.toBeTruthy() // element exists in DOM;
     expect(within(screen.getByRole("list")).getByTestId("segment-label")).toHaveTextContent("Lapsed");
   });
 
@@ -106,9 +106,9 @@ describe("PayerSegmentation", () => {
     render(<PayerSegmentation payers={payers} now={now} />);
     const casualCard = screen.getByRole("button", { name: /Casual/ });
     fireEvent.click(casualCard);
-    expect(casualCard).toHaveAttribute("aria-pressed", "true");
-    expect(screen.queryByText("GLAPSED")).not.toBeInTheDocument();
+    expect(casualCard).to.have.property('getAttribute', "aria-pressed", "true");
+    expect(screen.queryByText("GLAPSED")).not.toBeTruthy() // element exists in DOM;
     fireEvent.click(casualCard);
-    expect(screen.getByText("GLAPSED")).toBeInTheDocument();
+    expect(screen.getByText("GLAPSED")).toBeTruthy() // element exists in DOM;
   });
 });

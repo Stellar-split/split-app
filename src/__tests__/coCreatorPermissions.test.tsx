@@ -49,8 +49,8 @@ describe("CoCreatorPanel — permission levels", () => {
         onUpdate={async () => {}}
       />
     );
-    expect(screen.getByLabelText(/add co-creator/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/permission level/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/add co-creator/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByLabelText(/permission level/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("view-level co-creator cannot see add form or remove buttons", () => {
@@ -62,9 +62,9 @@ describe("CoCreatorPanel — permission levels", () => {
         onUpdate={async () => {}}
       />
     );
-    expect(screen.queryByLabelText(/add co-creator/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("Remove")).not.toBeInTheDocument();
-    expect(screen.getByText(/view-only access/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/add co-creator/i)).not.toBeTruthy() // element exists in DOM;
+    expect(screen.queryByText("Remove")).not.toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/view-only access/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("edit-level co-creator cannot manage co-creators", () => {
@@ -80,8 +80,8 @@ describe("CoCreatorPanel — permission levels", () => {
         onUpdate={async () => {}}
       />
     );
-    expect(screen.queryByLabelText(/add co-creator/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("Remove")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/add co-creator/i)).not.toBeTruthy() // element exists in DOM;
+    expect(screen.queryByText("Remove")).not.toBeTruthy() // element exists in DOM;
   });
 
   test("admin-level co-creator can see add form and remove buttons", () => {
@@ -97,8 +97,8 @@ describe("CoCreatorPanel — permission levels", () => {
         onUpdate={async () => {}}
       />
     );
-    expect(screen.getByLabelText(/add co-creator/i)).toBeInTheDocument();
-    expect(screen.getByText("Remove")).toBeInTheDocument();
+    expect(screen.getByLabelText(/add co-creator/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Remove")).toBeTruthy() // element exists in DOM;
   });
 
   test("adding a co-creator stores the selected permission level", async () => {
@@ -154,6 +154,6 @@ describe("CoCreatorPanel — permission levels", () => {
         onUpdate={async () => {}}
       />
     );
-    expect(screen.getByText(/client-side only/i)).toBeInTheDocument();
+    expect(screen.getByText(/client-side only/i)).toBeTruthy() // element exists in DOM;
   });
 });

@@ -67,9 +67,9 @@ describe("Invoice Template Marketplace (#410)", () => {
         </div>
       );
 
-      expect(screen.getByText("Simple Invoice")).toBeInTheDocument();
-      expect(screen.getByText("Detailed Invoice")).toBeInTheDocument();
-      expect(screen.queryByText("Pending Template")).not.toBeInTheDocument();
+      expect(screen.getByText("Simple Invoice")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByText("Detailed Invoice")).toBeTruthy() // element exists in DOM;
+      expect(screen.queryByText("Pending Template")).not.toBeTruthy() // element exists in DOM;
     });
 
     it("renders templates with preview thumbnail, creator alias, clone count, and category badge", () => {
@@ -310,7 +310,7 @@ describe("Invoice Template Marketplace (#410)", () => {
       );
 
       expect(screen.getByTestId("status")).toHaveTextContent("Pending");
-      expect(screen.getByTestId("submitted-at")).toBeInTheDocument();
+      expect(screen.getByTestId("submitted-at")).toBeTruthy() // element exists in DOM;
     });
 
     it("notifies submitter via activity feed when approval status changes", async () => {
@@ -357,8 +357,8 @@ describe("Invoice Template Marketplace (#410)", () => {
         </div>
       );
 
-      expect(screen.getByTestId("pending-tpl1")).toBeInTheDocument();
-      expect(screen.getByTestId("pending-tpl2")).toBeInTheDocument();
+      expect(screen.getByTestId("pending-tpl1")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByTestId("pending-tpl2")).toBeTruthy() // element exists in DOM;
     });
 
     it("admin can approve or reject templates", async () => {
@@ -400,8 +400,8 @@ describe("Invoice Template Marketplace (#410)", () => {
         )
       );
 
-      expect(screen.getByTestId("access-denied")).toBeInTheDocument();
-      expect(screen.queryByTestId("review-page")).not.toBeInTheDocument();
+      expect(screen.getByTestId("access-denied")).toBeTruthy() // element exists in DOM;
+      expect(screen.queryByTestId("review-page")).not.toBeTruthy() // element exists in DOM;
     });
   });
 });

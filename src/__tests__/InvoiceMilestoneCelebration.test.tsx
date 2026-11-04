@@ -15,11 +15,11 @@ describe("invoice milestones", () => {
     render(<InvoiceMilestoneCelebration raised={80} target={100} />);
     expect(screen.getByRole("status")).toHaveTextContent("75% funded");
     fireEvent.click(screen.getByText("Dismiss"));
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeTruthy() // element exists in DOM;
   });
 
   it("shows no banner before the first milestone", () => {
     render(<InvoiceMilestoneCelebration raised={10} target={100} />);
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeTruthy() // element exists in DOM;
   });
 });

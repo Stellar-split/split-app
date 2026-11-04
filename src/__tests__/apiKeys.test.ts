@@ -35,7 +35,7 @@ let fetchMock: jest.Mock;
 
 beforeEach(() => {
   localStorageMock.clear();
-  fetchMock = jest.fn().mockResolvedValue({
+  fetchMock = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
     text: async () => "ok",

@@ -241,7 +241,7 @@ describe("EmbedThemeProvider component", () => {
       </EmbedThemeProvider>
     );
 
-    expect(getByText("Test content")).toBeInTheDocument();
+    expect(getByText("Test content")).toBeTruthy() // element exists in DOM;
   });
 
   test("updates CSS variables when config changes", () => {

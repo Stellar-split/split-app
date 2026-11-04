@@ -50,45 +50,45 @@ const mockSubscription: Subscription = {
 describe("SubscriptionCard", () => {
   it("renders template name", () => {
     render(<SubscriptionCard subscription={mockSubscription} />);
-    expect(screen.getByText("Monthly Hosting")).toBeInTheDocument();
+    expect(screen.getByText("Monthly Hosting")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders status", () => {
     render(<SubscriptionCard subscription={mockSubscription} />);
-    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders frequency", () => {
     render(<SubscriptionCard subscription={mockSubscription} />);
-    expect(screen.getByText("Monthly")).toBeInTheDocument();
+    expect(screen.getByText("Monthly")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders total invoices", () => {
     render(<SubscriptionCard subscription={mockSubscription} />);
-    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders USDC collected", () => {
     render(<SubscriptionCard subscription={mockSubscription} />);
-    expect(screen.getByText("150")).toBeInTheDocument();
+    expect(screen.getByText("150")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders paused status", () => {
     const paused = { ...mockSubscription, status: "paused" as const };
     render(<SubscriptionCard subscription={paused} />);
-    expect(screen.getByText("Paused")).toBeInTheDocument();
+    expect(screen.getByText("Paused")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders cancelled status", () => {
     const cancelled = { ...mockSubscription, status: "cancelled" as const };
     render(<SubscriptionCard subscription={cancelled} />);
-    expect(screen.getByText("Cancelled")).toBeInTheDocument();
+    expect(screen.getByText("Cancelled")).toBeTruthy() // element exists in DOM;
   });
 
   it("links to detail page", () => {
     render(<SubscriptionCard subscription={mockSubscription} />);
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/subscriptions/sub-1");
+    expect(link).to.have.property('getAttribute', "href", "/subscriptions/sub-1");
   });
 
   it("shows dash for next run when paused", () => {

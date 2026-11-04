@@ -31,6 +31,6 @@ describe("AuditLogViewer", () => {
     fireEvent.change(screen.getByLabelText("Search audit log"), { target: { value: "signed" } });
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
     fireEvent.change(screen.getByLabelText("Filter by category"), { target: { value: "payment" } });
-    expect(screen.getByText(/No audit entries/)).toBeInTheDocument();
+    expect(screen.getByText(/No audit entries/)).toBeTruthy() // element exists in DOM;
   });
 });

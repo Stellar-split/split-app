@@ -43,13 +43,13 @@ describe("clampAmount", () => {
 describe("InvoiceQR component", () => {
   test("renders without amount input when no remainingBalance", () => {
     render(<InvoiceQR invoiceId="test-123" />);
-    expect(screen.queryByLabelText(/payment amount/i)).not.toBeInTheDocument();
-    expect(screen.getByTestId("qr-canvas")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/payment amount/i)).not.toBeTruthy() // element exists in DOM;
+    expect(screen.getByTestId("qr-canvas")).toBeTruthy() // element exists in DOM;
   });
 
   test("shows amount input when remainingBalance is provided", () => {
     render(<InvoiceQR invoiceId="test-123" remainingBalance={100} />);
-    expect(screen.getByLabelText(/payment amount/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/payment amount/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("defaults amount to remaining balance", () => {
@@ -62,14 +62,14 @@ describe("InvoiceQR component", () => {
     render(<InvoiceQR invoiceId="test-123" remainingBalance={100} />);
     const input = screen.getByLabelText(/payment amount/i);
     fireEvent.change(input, { target: { value: "200" } });
-    expect(screen.getByText(/maximum is 100/i)).toBeInTheDocument();
+    expect(screen.getByText(/maximum is 100/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("shows validation error for amount below minimum", () => {
     render(<InvoiceQR invoiceId="test-123" remainingBalance={100} />);
     const input = screen.getByLabelText(/payment amount/i);
     fireEvent.change(input, { target: { value: "0" } });
-    expect(screen.getByText(/minimum amount/i)).toBeInTheDocument();
+    expect(screen.getByText(/minimum amount/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("QR regenerates with debounced amount", () => {

@@ -106,37 +106,37 @@ describe("ApiLogsPage - Request Log Viewer", () => {
     render(<ApiLogsPage />);
 
     // Check that header is rendered
-    expect(screen.getByText("API Logs")).toBeInTheDocument();
+    expect(screen.getByText("API Logs")).toBeTruthy() // element exists in DOM;
 
     // Total logs is 11, items per page is 10.
     // So on page 1 we show logs 11 to 2 in descending timestamp order (10 logs)
-    expect(screen.getByText("Showing 1–10 of 11 request logs")).toBeInTheDocument();
+    expect(screen.getByText("Showing 1–10 of 11 request logs")).toBeTruthy() // element exists in DOM;
 
     // Check key select box has correct options
     const keySelect = screen.getByLabelText("Filter by API Key");
-    expect(within(keySelect).getByText("All Keys")).toBeInTheDocument();
-    expect(within(keySelect).getByText("Gateway Alpha")).toBeInTheDocument();
-    expect(within(keySelect).getByText("Client Beta")).toBeInTheDocument();
+    expect(within(keySelect).getByText("All Keys")).toBeTruthy() // element exists in DOM;
+    expect(within(keySelect).getByText("Gateway Alpha")).toBeTruthy() // element exists in DOM;
+    expect(within(keySelect).getByText("Client Beta")).toBeTruthy() // element exists in DOM;
   });
 
   test("paginates logs correctly", () => {
     render(<ApiLogsPage />);
 
     // Page 1 should be active initially
-    expect(screen.getByText("Page 1 of 2")).toBeInTheDocument();
+    expect(screen.getByText("Page 1 of 2")).toBeTruthy() // element exists in DOM;
 
     // Click Next
     const nextButton = screen.getByRole("button", { name: "Next" });
     fireEvent.click(nextButton);
 
-    expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
-    expect(screen.getByText("Showing 11–11 of 11 request logs")).toBeInTheDocument();
+    expect(screen.getByText("Page 2 of 2")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Showing 11–11 of 11 request logs")).toBeTruthy() // element exists in DOM;
 
     // Click Previous
     const prevButton = screen.getByRole("button", { name: "Previous" });
     fireEvent.click(prevButton);
 
-    expect(screen.getByText("Page 1 of 2")).toBeInTheDocument();
+    expect(screen.getByText("Page 1 of 2")).toBeTruthy() // element exists in DOM;
   });
 
   test("filters logs by key, endpoint, and date range simultaneously", () => {
@@ -157,7 +157,7 @@ describe("ApiLogsPage - Request Log Viewer", () => {
     // log-5 (24th), log-6 (25th).
     // log-1 is 20th (excluded by startDate), log-2 is /api/pay (excluded by endpoint),
     // log-7, 8, 9, 10, 11 are 26th (excluded by endDate).
-    expect(screen.getByText("Showing 1–2 of 2 request logs")).toBeInTheDocument();
+    expect(screen.getByText("Showing 1–2 of 2 request logs")).toBeTruthy() // element exists in DOM;
   });
 
   test("CSV export respects the currently applied filters", () => {
@@ -171,7 +171,7 @@ describe("ApiLogsPage - Request Log Viewer", () => {
     fireEvent.change(endpointSelect, { target: { value: "/api/invoices" } });
 
     // Only log-3 matches
-    expect(screen.getByText("Showing 1–1 of 1 request logs")).toBeInTheDocument();
+    expect(screen.getByText("Showing 1–1 of 1 request logs")).toBeTruthy() // element exists in DOM;
 
     // Click Export CSV
     const exportButton = screen.getByRole("button", { name: "Export CSV" });

@@ -140,7 +140,7 @@ describe("PaymentSummaryCard", () => {
     // Never resolves during this test
     mockGetInvoice.mockReturnValue(new Promise(() => {}));
     render(<PaymentSummaryCard invoiceId="inv-1" />);
-    expect(screen.getByTestId("skeleton-progress")).toBeInTheDocument();
+    expect(screen.getByTestId("skeleton-progress")).toBeTruthy() // element exists in DOM;
   });
 
   test("renders payment data after initial fetch", async () => {
@@ -149,11 +149,11 @@ describe("PaymentSummaryCard", () => {
     );
     render(<PaymentSummaryCard invoiceId="inv-1" />);
     await waitFor(() =>
-      expect(screen.queryByTestId("skeleton-progress")).not.toBeInTheDocument(),
+      expect(screen.queryByTestId("skeleton-progress")).not.toBeTruthy() // element exists in DOM,
     );
-    expect(screen.getByText(/Payment Summary/i)).toBeInTheDocument();
-    expect(screen.getByText(/1 payment/i)).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
+    expect(screen.getByText(/Payment Summary/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/1 payment/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("progressbar")).to.have.property('getAttribute', "aria-valuenow", "50");
   });
 
   test("aggregator subscription wired — new payments applied on poll", async () => {
@@ -172,9 +172,9 @@ describe("PaymentSummaryCard", () => {
     render(<PaymentSummaryCard invoiceId="inv-1" />);
 
     await waitFor(() =>
-      expect(screen.queryByTestId("skeleton-progress")).not.toBeInTheDocument(),
+      expect(screen.queryByTestId("skeleton-progress")).not.toBeTruthy() // element exists in DOM,
     );
-    expect(screen.getByText(/1 payment/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 payment/i)).toBeTruthy() // element exists in DOM;
 
     // Fire the polling interval manually
     await act(async () => {
@@ -182,10 +182,10 @@ describe("PaymentSummaryCard", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByText(/2 payments/i)).toBeInTheDocument(),
+      expect(screen.getByText(/2 payments/i)).toBeTruthy() // element exists in DOM,
     );
     // Progress should reflect 70/100 USDC = 70%
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "70");
+    expect(screen.getByRole("progressbar")).to.have.property('getAttribute', "aria-valuenow", "70");
   });
 
   test("top-payer list shows highest payer first", async () => {
@@ -197,7 +197,7 @@ describe("PaymentSummaryCard", () => {
     );
     render(<PaymentSummaryCard invoiceId="inv-1" />);
     await waitFor(() =>
-      expect(screen.queryByTestId("skeleton-progress")).not.toBeInTheDocument(),
+      expect(screen.queryByTestId("skeleton-progress")).not.toBeTruthy() // element exists in DOM,
     );
     const listItems = screen.getAllByRole("listitem");
     // First list item should contain the big spender's truncated address
@@ -219,11 +219,11 @@ describe("PaymentSummaryCard", () => {
 
     render(<PaymentSummaryCard invoiceId={testRef} />);
     await waitFor(() =>
-      expect(screen.queryByTestId("skeleton-progress")).not.toBeInTheDocument(),
+      expect(screen.queryByTestId("skeleton-progress")).not.toBeTruthy() // element exists in DOM,
     );
 
     const copyButton = screen.getByRole("button", { name: /copy.*reference/i });
-    expect(copyButton).toBeInTheDocument();
+    expect(copyButton).toBeTruthy() // element exists in DOM;
 
     // Click the copy button
     await act(async () => {
@@ -235,7 +235,7 @@ describe("PaymentSummaryCard", () => {
 
     // Verify "Copied!" message appears
     await waitFor(() => {
-      expect(screen.getByText(/Copied!/i)).toBeInTheDocument();
+      expect(screen.getByText(/Copied!/i)).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -254,7 +254,7 @@ describe("PaymentSummaryCard", () => {
 
     render(<PaymentSummaryCard invoiceId={testRef} />);
     await waitFor(() =>
-      expect(screen.queryByTestId("skeleton-progress")).not.toBeInTheDocument(),
+      expect(screen.queryByTestId("skeleton-progress")).not.toBeTruthy() // element exists in DOM,
     );
 
     const copyButton = screen.getByRole("button", { name: /copy.*reference/i });
@@ -265,7 +265,7 @@ describe("PaymentSummaryCard", () => {
 
     // Confirm message appears
     await waitFor(() => {
-      expect(screen.getByText(/Copied!/i)).toBeInTheDocument();
+      expect(screen.getByText(/Copied!/i)).toBeTruthy() // element exists in DOM;
     });
 
     // Advance time by 2 seconds
@@ -274,7 +274,7 @@ describe("PaymentSummaryCard", () => {
     });
 
     // Message should disappear
-    expect(screen.queryByText(/Copied!/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Copied!/i)).not.toBeTruthy() // element exists in DOM;
     vi.useRealTimers();
   });
 
@@ -286,7 +286,7 @@ describe("PaymentSummaryCard", () => {
     mockGetInvoice.mockResolvedValue(releasedInvoice);
     render(<PaymentSummaryCard invoiceId="inv-1" />);
     await waitFor(() =>
-      expect(screen.queryByTestId("skeleton-progress")).not.toBeInTheDocument(),
+      expect(screen.queryByTestId("skeleton-progress")).not.toBeTruthy() // element exists in DOM,
     );
     // After a Released invoice, intervalRef.current should be cleared (delay=null)
     await act(async () => {

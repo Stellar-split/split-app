@@ -16,8 +16,8 @@ describe("CoSignerSection & Co-Signer Status Logic", () => {
     const onChange = vi.fn();
     render(<CoSignerSection cosigners={[]} threshold={1} onChange={onChange} />);
 
-    expect(screen.getByText(/Co-Signer Approvals \(N-of-M\)/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/Add Co-Signer Stellar Address/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Co-Signer Approvals \(N-of-M\)/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.queryByLabelText(/Add Co-Signer Stellar Address/i)).not.toBeTruthy() // element exists in DOM;
   });
 
   it("enables section when checkbox toggle is clicked", () => {
@@ -27,7 +27,7 @@ describe("CoSignerSection & Co-Signer Status Logic", () => {
     const checkbox = screen.getByLabelText(/Enable co-signer approvals/i);
     fireEvent.click(checkbox);
 
-    expect(screen.getByLabelText(/Add Co-Signer Stellar Address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Add Co-Signer Stellar Address/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("adds a valid Stellar address to co-signers", async () => {
@@ -68,7 +68,7 @@ describe("CoSignerSection & Co-Signer Status Logic", () => {
     const addButton = screen.getByRole("button", { name: /\+ Add/i });
     fireEvent.click(addButton);
 
-    expect(screen.getByText(/Invalid Stellar public key/i)).toBeInTheDocument();
+    expect(screen.getByText(/Invalid Stellar public key/i)).toBeTruthy() // element exists in DOM;
     expect(onChange).toHaveBeenCalledTimes(0); // No call on invalid add
   });
 

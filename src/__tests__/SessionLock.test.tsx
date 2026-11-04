@@ -131,7 +131,7 @@ test("lock overlay shows Resume button", () => {
     vi.advanceTimersByTime(16 * 60 * 1000);
   });
 
-  expect(screen.getByText("Session Locked")).toBeInTheDocument();
+  expect(screen.getByText("Session Locked")).toBeTruthy() // element exists in DOM;
   expect(screen.getAllByText("Resume").length).toBeGreaterThanOrEqual(1);
 });
 
@@ -146,9 +146,9 @@ test("warns during the last minute before locking", () => {
     vi.advanceTimersByTime(14 * 60 * 1000 + 30_000);
   });
 
-  expect(screen.getByText(/Your session will lock in \d+s/)).toBeInTheDocument();
+  expect(screen.getByText(/Your session will lock in \d+s/)).toBeTruthy() // element exists in DOM;
   fireEvent.click(screen.getByText("Stay signed in"));
-  expect(screen.queryByText(/Your session will lock in/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Your session will lock in/)).not.toBeTruthy() // element exists in DOM;
   expect(screen.getByTestId("locked").textContent).toBe("false");
 });
 
@@ -180,6 +180,6 @@ test("requires biometrics to unlock when enabled", () => {
     vi.advanceTimersByTime(16 * 60 * 1000);
   });
 
-  expect(screen.getByText("Unlock with biometrics")).toBeInTheDocument();
-  expect(screen.getByText("Disconnect wallet")).toBeInTheDocument();
+  expect(screen.getByText("Unlock with biometrics")).toBeTruthy() // element exists in DOM;
+  expect(screen.getByText("Disconnect wallet")).toBeTruthy() // element exists in DOM;
 });

@@ -29,10 +29,10 @@ describe("invoiceCalendar lib", () => {
 describe("InvoiceCalendar", () => {
   it("shows invoices for a selected day and navigates months", () => {
     render(<InvoiceCalendar invoices={invoices} initialDate={new Date(2026, 8, 1)} />);
-    expect(screen.getByText(/September 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/September 2026/)).toBeTruthy() // element exists in DOM;
     fireEvent.click(screen.getByLabelText(/Sep 15 2026, 2 invoices due/));
     expect(screen.getByTestId("calendar-day-detail")).toHaveTextContent("Invoice #1");
     fireEvent.click(screen.getByLabelText("Next month"));
-    expect(screen.getByText(/October 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/October 2026/)).toBeTruthy() // element exists in DOM;
   });
 });

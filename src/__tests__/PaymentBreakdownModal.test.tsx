@@ -34,7 +34,7 @@ describe("PaymentBreakdownModal", () => {
       />
     );
     const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).to.have.property('getAttribute', "aria-modal", "true");
   });
 
   test("displays breakdown title", () => {
@@ -47,7 +47,7 @@ describe("PaymentBreakdownModal", () => {
         onBack={mockOnBack}
       />
     );
-    expect(screen.getByText("Payment Breakdown")).toBeInTheDocument();
+    expect(screen.getByText("Payment Breakdown")).toBeTruthy() // element exists in DOM;
   });
 
   test("displays gross amount, protocol fee, net to recipients, and stellar fee", () => {
@@ -60,10 +60,10 @@ describe("PaymentBreakdownModal", () => {
         onBack={mockOnBack}
       />
     );
-    expect(screen.getByText("Gross Amount")).toBeInTheDocument();
-    expect(screen.getByText("Protocol Fee")).toBeInTheDocument();
-    expect(screen.getByText("Net to Recipients")).toBeInTheDocument();
-    expect(screen.getByText("Stellar Tx Fee")).toBeInTheDocument();
+    expect(screen.getByText("Gross Amount")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Protocol Fee")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Net to Recipients")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Stellar Tx Fee")).toBeTruthy() // element exists in DOM;
   });
 
   test("displays formatted amounts correctly", () => {
@@ -76,8 +76,8 @@ describe("PaymentBreakdownModal", () => {
         onBack={mockOnBack}
       />
     );
-    expect(screen.getByText(/10\.00 USDC/)).toBeInTheDocument();
-    expect(screen.getByText(/-0\.10 USDC/)).toBeInTheDocument();
+    expect(screen.getByText(/10\.00 USDC/)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/-0\.10 USDC/)).toBeTruthy() // element exists in DOM;
   });
 
   test("calls onConfirm when Confirm & Pay button clicked", async () => {
@@ -140,7 +140,7 @@ describe("PaymentBreakdownModal", () => {
         confirming={true}
       />
     );
-    expect(screen.getByText("Waiting for signature…")).toBeInTheDocument();
+    expect(screen.getByText("Waiting for signature…")).toBeTruthy() // element exists in DOM;
   });
 
   test("displays fee explanation text", () => {
@@ -153,7 +153,7 @@ describe("PaymentBreakdownModal", () => {
         onBack={mockOnBack}
       />
     );
-    expect(screen.getByText(/protocol fee is deducted/i)).toBeInTheDocument();
+    expect(screen.getByText(/protocol fee is deducted/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("calls onBack when clicking outside dialog", async () => {
@@ -203,6 +203,6 @@ describe("PaymentBreakdownModal", () => {
       />
     );
     const table = container.querySelector("table");
-    expect(table).toBeInTheDocument();
+    expect(table).toBeTruthy() // element exists in DOM;
   });
 });

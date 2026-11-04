@@ -35,6 +35,6 @@ describe("InvoiceRecommendations", () => {
 
   it("shows empty state", () => {
     render(<InvoiceRecommendations history={[]} />);
-    expect(screen.getByText(/Create a few invoices/)).toBeInTheDocument();
+    expect(screen.getByText(/Create a few invoices/)).toBeTruthy() // element exists in DOM;
   });
 });

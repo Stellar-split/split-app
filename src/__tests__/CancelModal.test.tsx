@@ -34,11 +34,11 @@ describe("CancelModal multi-step confirmation flow and gate", () => {
       />
     );
 
-    expect(screen.getByTestId("step-warn")).toBeInTheDocument();
-    expect(screen.getByText(/Are you sure you want to cancel this invoice\?/i)).toBeInTheDocument();
-    expect(screen.getByText(/Zero payments received:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Keep Invoice/i)).toBeInTheDocument();
-    expect(screen.getByText(/Continue/i)).toBeInTheDocument();
+    expect(screen.getByTestId("step-warn")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/Are you sure you want to cancel this invoice\?/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/Zero payments received:/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/Keep Invoice/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/Continue/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("navigates to Step 2 (title confirmation gate) on Continue click", () => {
@@ -56,8 +56,8 @@ describe("CancelModal multi-step confirmation flow and gate", () => {
 
     fireEvent.click(screen.getByText(/Continue/i));
 
-    expect(screen.getByTestId("step-confirm-gate")).toBeInTheDocument();
-    expect(screen.getByText("Design Work Q3")).toBeInTheDocument();
+    expect(screen.getByTestId("step-confirm-gate")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Design Work Q3")).toBeTruthy() // element exists in DOM;
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Cancel/i });
     expect(confirmButton).toBeDisabled();
@@ -123,8 +123,8 @@ describe("CancelModal multi-step confirmation flow and gate", () => {
     fireEvent.click(confirmButton);
 
     // Step 3: loading state
-    expect(screen.getByTestId("step-loading")).toBeInTheDocument();
-    expect(screen.getByText(/Cancelling invoice on-chain\.\.\./i)).toBeInTheDocument();
+    expect(screen.getByTestId("step-loading")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/Cancelling invoice on-chain\.\.\./i)).toBeTruthy() // element exists in DOM;
 
     // Resolve the onConfirm promise
     resolvePromise();
@@ -132,7 +132,7 @@ describe("CancelModal multi-step confirmation flow and gate", () => {
     // Step 4: success state
     await waitFor(() => {
       const successStep = screen.getByTestId("step-success");
-      expect(successStep).toBeInTheDocument();
+      expect(successStep).toBeTruthy() // element exists in DOM;
     });
   });
 });

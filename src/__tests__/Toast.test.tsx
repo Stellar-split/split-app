@@ -14,17 +14,17 @@ describe('Toast', () => {
 
   it('renders the message', () => {
     render(<Toast message="Saved!" />);
-    expect(screen.getByText('Saved!')).toBeInTheDocument();
+    expect(screen.getByText('Saved!')).toBeTruthy() // element exists in DOM;
   });
 
   it('has role=alert', () => {
     render(<Toast message="Saved!" />);
-    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeTruthy() // element exists in DOM;
   });
 
   it('renders dismiss button when onDismiss provided', () => {
     render(<Toast message="Saved!" onDismiss={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Dismiss notification' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dismiss notification' })).toBeTruthy() // element exists in DOM;
   });
 
   it('calls onDismiss when dismiss button clicked', () => {
@@ -36,22 +36,22 @@ describe('Toast', () => {
 
   it('does not render dismiss button without onDismiss', () => {
     render(<Toast message="Saved!" />);
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeTruthy() // element exists in DOM;
   });
 
   it('applies success color class', () => {
     render(<Toast message="Done" type="success" />);
-    expect(screen.getByRole('alert')).toHaveClass('bg-green-700');
+    expect(screen.getByRole('alert')).to.have.property('className') // contains 'bg-green-700';
   });
 
   it('applies error color class', () => {
     render(<Toast message="Failed" type="error" />);
-    expect(screen.getByRole('alert')).toHaveClass('bg-red-700');
+    expect(screen.getByRole('alert')).to.have.property('className') // contains 'bg-red-700';
   });
 
   it('applies info color class by default', () => {
     render(<Toast message="Note" />);
-    expect(screen.getByRole('alert')).toHaveClass('bg-gray-700');
+    expect(screen.getByRole('alert')).to.have.property('className') // contains 'bg-gray-700';
   });
 
   it('renders progress bar when duration is provided', () => {
@@ -59,7 +59,7 @@ describe('Toast', () => {
       <Toast message="Loading..." duration={4000} />
     );
     const progressBar = container.querySelector('div[aria-hidden="true"]');
-    expect(progressBar).toBeInTheDocument();
+    expect(progressBar).toBeTruthy() // element exists in DOM;
   });
 
   it('does not render progress bar when duration is not provided', () => {

@@ -16,7 +16,7 @@ describe("PaymentProgress", () => {
       />
     );
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).toHaveAttribute("aria-valuenow", "50");
+    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "50");
   });
 
   test("caps progress bar width at 100% when overpaid", () => {
@@ -27,7 +27,7 @@ describe("PaymentProgress", () => {
       />
     );
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).toHaveAttribute("aria-valuenow", "100");
+    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "100");
 
     const fillDiv = progressBar.querySelector("div");
     expect(fillDiv).toHaveStyle({ width: "100%" });
@@ -41,7 +41,7 @@ describe("PaymentProgress", () => {
       />
     );
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).toHaveAttribute("aria-valuenow", "0");
+    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "0");
   });
 
   test("displays funded and total amounts in USDC", () => {
@@ -56,7 +56,7 @@ describe("PaymentProgress", () => {
       payments: [],
     };
     render(<PaymentProgress invoice={mockInvoice} />);
-    expect(screen.getByText(/5\.00 \/ 10\.00 USDC funded/)).toBeInTheDocument();
+    expect(screen.getByText(/5\.00 \/ 10\.00 USDC funded/)).toBeTruthy() // element exists in DOM;
   });
 
   test("uses invoice prop when provided", () => {
@@ -73,8 +73,8 @@ describe("PaymentProgress", () => {
 
     render(<PaymentProgress invoice={mockInvoice} />);
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).toHaveAttribute("aria-valuenow", "75");
-    expect(screen.getByText(/7\.50 \/ 10\.00 USDC funded/)).toBeInTheDocument();
+    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "75");
+    expect(screen.getByText(/7\.50 \/ 10\.00 USDC funded/)).toBeTruthy() // element exists in DOM;
   });
 
   test("aria-label describes funding percentage", () => {
@@ -85,7 +85,7 @@ describe("PaymentProgress", () => {
       />
     );
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).toHaveAttribute("aria-label", "50% funded");
+    expect(progressBar).to.have.property('getAttribute', "aria-label", "50% funded");
   });
 
   test("does not display amount text without invoice prop", () => {
@@ -95,7 +95,7 @@ describe("PaymentProgress", () => {
         total={100_000_000n}
       />
     );
-    expect(screen.queryByText(/USDC funded/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/USDC funded/)).not.toBeTruthy() // element exists in DOM;
   });
 
   test("handles edge case: total is zero", () => {
@@ -106,7 +106,7 @@ describe("PaymentProgress", () => {
       />
     );
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).toHaveAttribute("aria-valuenow", "0");
+    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "0");
   });
 
   test("correctly displays overpayment scenario", () => {
@@ -123,7 +123,7 @@ describe("PaymentProgress", () => {
 
     render(<PaymentProgress invoice={mockInvoice} />);
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).toHaveAttribute("aria-valuenow", "100");
-    expect(progressBar).toHaveAttribute("aria-label", "100% funded");
+    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "100");
+    expect(progressBar).to.have.property('getAttribute', "aria-label", "100% funded");
   });
 });

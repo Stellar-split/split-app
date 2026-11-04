@@ -68,7 +68,7 @@ describe("renderCommentText", () => {
   test("renders a chip for a valid address mention", () => {
     render(<>{renderCommentText(`Pay @${ADDR_A} please`)}</>);
     const chip = screen.getByLabelText(`Mentioned address ${ADDR_A}`);
-    expect(chip).toBeInTheDocument();
+    expect(chip).toBeTruthy() // element exists in DOM;
     // Chip shows truncated form, not full raw address
     expect(chip.textContent).toMatch(/^@/);
     expect(chip.textContent).not.toBe(`@${ADDR_A}`);
@@ -76,8 +76,8 @@ describe("renderCommentText", () => {
 
   test("renders chips for each valid address in multi-mention text", () => {
     render(<>{renderCommentText(`@${ADDR_A} and @${ADDR_B}`)}</>);
-    expect(screen.getByLabelText(`Mentioned address ${ADDR_A}`)).toBeInTheDocument();
-    expect(screen.getByLabelText(`Mentioned address ${ADDR_B}`)).toBeInTheDocument();
+    expect(screen.getByLabelText(`Mentioned address ${ADDR_A}`)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByLabelText(`Mentioned address ${ADDR_B}`)).toBeTruthy() // element exists in DOM;
   });
 
   test("malformed @G pattern renders as plain text, not a chip", () => {

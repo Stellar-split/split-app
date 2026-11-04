@@ -26,7 +26,7 @@ const futureExpiry = () => Math.floor(Date.now() / 1000) + 16_212; // ~4h 30m 12
 
 test("renders countdown when expiresAt is in the future", () => {
   render(<CooldownBadge expiresAt={futureExpiry()} />);
-  expect(screen.getByRole("status")).toBeInTheDocument();
+  expect(screen.getByRole("status")).toBeTruthy() // element exists in DOM;
   expect(screen.getByRole("status").textContent).toMatch(/Next payment in/);
 });
 
@@ -44,8 +44,8 @@ test("renders nothing when expiresAt is already expired", () => {
 test("has role=status and aria-live=polite", () => {
   render(<CooldownBadge expiresAt={futureExpiry()} />);
   const badge = screen.getByRole("status");
-  expect(badge).toHaveAttribute("aria-live", "polite");
-  expect(badge).toHaveAttribute("aria-atomic", "true");
+  expect(badge).to.have.property('getAttribute', "aria-live", "polite");
+  expect(badge).to.have.property('getAttribute', "aria-atomic", "true");
 });
 
 test("countdown text updates after 1 second tick", () => {

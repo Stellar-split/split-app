@@ -54,7 +54,7 @@ describe("VerifiedCreatorBadge", () => {
     expect(tooltip).toHaveTextContent(
       "Verified via on-chain proof on January 15, 2024"
     );
-    expect(badge).toHaveAttribute("aria-describedby", tooltip.id);
+    expect(badge).to.have.property('getAttribute', "aria-describedby", tooltip.id);
   });
 
   it("falls back to a generic method when none is recorded", () => {
@@ -78,9 +78,9 @@ describe("VerifiedCreatorBadge", () => {
 
     render(<VerifiedCreatorBadge address={ADDRESS} />);
 
-    expect(screen.getByText(/Verified Creator/i)).toBeInTheDocument();
+    expect(screen.getByText(/Verified Creator/i)).toBeTruthy() // element exists in DOM;
     expect(screen.queryByRole("tooltip")).toBeNull();
-    expect(screen.getByText(/Verified Creator/i)).not.toHaveAttribute(
+    expect(screen.getByText(/Verified Creator/i)).not.to.have.property('getAttribute', 
       "aria-describedby"
     );
   });

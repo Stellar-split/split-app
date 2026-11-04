@@ -28,7 +28,7 @@ describe("Stepper", () => {
   test("exposes the step labels on the enclosing nav element", () => {
     render(<Stepper steps={steps} />);
 
-    expect(screen.getByRole("navigation")).toHaveAttribute(
+    expect(screen.getByRole("navigation")).to.have.property('getAttribute', 
       "aria-label",
       "Progress: Details, Recipients, Deadline, Review"
     );
@@ -45,7 +45,7 @@ describe("Stepper", () => {
   test("collapses to a 'Step N of M — Label' summary for small viewports", () => {
     render(<Stepper steps={steps} />);
 
-    expect(screen.getByText("Step 2 of 4 — Recipients")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 of 4 — Recipients")).toBeTruthy() // element exists in DOM;
   });
 
   test("completed steps are clickable and report their index", async () => {
@@ -78,6 +78,6 @@ describe("Stepper", () => {
   test("falls back to the last step when every step is complete", () => {
     render(<Stepper steps={steps.map((s) => ({ ...s, status: "complete" as const }))} />);
 
-    expect(screen.getByText("Step 4 of 4 — Review")).toBeInTheDocument();
+    expect(screen.getByText("Step 4 of 4 — Review")).toBeTruthy() // element exists in DOM;
   });
 });

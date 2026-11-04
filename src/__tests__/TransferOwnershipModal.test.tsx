@@ -9,7 +9,7 @@ import { vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 
-jest.mock("@/components/FocusTrap", () => ({
+vi.mock("@/components/FocusTrap", () => ({
   __esModule: true,
   default: function FocusTrap({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
@@ -51,7 +51,7 @@ describe("TransferOwnershipModal — double-entry validation", () => {
       target: { value: "GDIFFERENT" },
     });
     expect(screen.getByRole("button", { name: /transfer ownership/i })).toBeDisabled();
-    expect(screen.getByText(/addresses do not match/i)).toBeInTheDocument();
+    expect(screen.getByText(/addresses do not match/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("enables submit when both addresses match", () => {

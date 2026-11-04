@@ -39,13 +39,13 @@ describe("getRollingSpending — rolling 30-day window", () => {
 
   it("counts payments within the last 30 days", () => {
     const now = Date.now();
-    jest.spyOn(Date, "now").mockImplementation(() => now);
+    vi.spyOn(Date, "now").mockImplementation(() => now);
 
     recordPayment(ADDRESS, USDC(100));
     recordPayment(ADDRESS, USDC(50));
     expect(getRollingSpending(ADDRESS)).toBe(USDC(150));
 
-    jest.spyOn(Date, "now").mockRestore();
+    vi.spyOn(Date, "now").mockRestore();
   });
 
   it("excludes payments older than 30 days", () => {
@@ -58,12 +58,12 @@ describe("getRollingSpending — rolling 30-day window", () => {
     ]);
     localStorage.setItem(`stellarsplit_budget_spending_${ADDRESS}`, oldRecord);
 
-    jest.spyOn(Date, "now").mockImplementation(() => now);
+    vi.spyOn(Date, "now").mockImplementation(() => now);
     // Add a recent payment
     recordPayment(ADDRESS, USDC(30));
 
     expect(getRollingSpending(ADDRESS)).toBe(USDC(30));
-    jest.spyOn(Date, "now").mockRestore();
+    vi.spyOn(Date, "now").mockRestore();
   });
 
   it("includes a payment made exactly at the 30-day boundary", () => {
@@ -75,9 +75,9 @@ describe("getRollingSpending — rolling 30-day window", () => {
     ]);
     localStorage.setItem(`stellarsplit_budget_spending_${ADDRESS}`, record);
 
-    jest.spyOn(Date, "now").mockImplementation(() => now);
+    vi.spyOn(Date, "now").mockImplementation(() => now);
     expect(getRollingSpending(ADDRESS)).toBe(USDC(100));
-    jest.spyOn(Date, "now").mockRestore();
+    vi.spyOn(Date, "now").mockRestore();
   });
 });
 

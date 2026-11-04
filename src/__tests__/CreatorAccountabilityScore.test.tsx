@@ -17,9 +17,9 @@ describe("CreatorAccountabilityScore", () => {
         }}
       />,
     );
-    expect(screen.getByLabelText("Grade A")).toBeInTheDocument();
-    expect(screen.getByRole("meter")).toHaveAttribute("aria-valuenow", "100");
-    expect(screen.getByText("50 / 50")).toBeInTheDocument();
+    expect(screen.getByLabelText("Grade A")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("meter")).to.have.property('getAttribute', "aria-valuenow", "100");
+    expect(screen.getByText("50 / 50")).toBeTruthy() // element exists in DOM;
   });
 
   it("explains when there is not enough history", () => {
@@ -35,7 +35,7 @@ describe("CreatorAccountabilityScore", () => {
         }}
       />,
     );
-    expect(screen.getByText(/Not enough invoice history/)).toBeInTheDocument();
+    expect(screen.getByText(/Not enough invoice history/)).toBeTruthy() // element exists in DOM;
     expect(screen.queryByRole("meter")).toBeNull();
   });
 });

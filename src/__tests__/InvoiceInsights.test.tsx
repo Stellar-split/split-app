@@ -83,7 +83,7 @@ describe("computePayerHealth", () => {
   });
   it("renders an empty state", () => {
     render(<PayerWalletHealth payments={[]} />);
-    expect(screen.getByText("No payer wallets yet.")).toBeInTheDocument();
+    expect(screen.getByText("No payer wallets yet.")).toBeTruthy() // element exists in DOM;
   });
 });
 

@@ -56,7 +56,7 @@ describe("Navbar Mobile Menu", () => {
     render(<Navbar />);
 
     const hamburgerButton = screen.getByRole("button", { name: /menu/i });
-    expect(hamburgerButton).toBeInTheDocument();
+    expect(hamburgerButton).toBeTruthy() // element exists in DOM;
   });
 
   it("hides hamburger icon above sm breakpoint", () => {
@@ -64,16 +64,16 @@ describe("Navbar Mobile Menu", () => {
     render(<Navbar />);
 
     const hamburgerButton = screen.queryByRole("button", { name: /menu/i });
-    expect(hamburgerButton).not.toBeInTheDocument();
+    expect(hamburgerButton).not.toBeTruthy() // element exists in DOM;
   });
 
   it("shows horizontal navigation links above sm breakpoint", () => {
     global.innerWidth = 768;
     render(<Navbar />);
 
-    expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Subscriptions")).toBeInTheDocument();
-    expect(screen.getByText("Groups")).toBeInTheDocument();
+    expect(screen.getByText("Dashboard")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Subscriptions")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Groups")).toBeTruthy() // element exists in DOM;
   });
 
   it("opens mobile menu when hamburger is clicked", async () => {
@@ -85,7 +85,7 @@ describe("Navbar Mobile Menu", () => {
     await user.click(hamburgerButton);
 
     await waitFor(() => {
-      expect(screen.getByTestId("mobile-sidebar")).toBeInTheDocument();
+      expect(screen.getByTestId("mobile-sidebar")).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -100,7 +100,7 @@ describe("Navbar Mobile Menu", () => {
     fireEvent.click(container);
 
     await waitFor(() => {
-      expect(screen.queryByTestId("mobile-sidebar")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("mobile-sidebar")).not.toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -113,13 +113,13 @@ describe("Navbar Mobile Menu", () => {
     await user.click(hamburgerButton);
 
     await waitFor(() => {
-      expect(screen.getByTestId("mobile-sidebar")).toBeInTheDocument();
+      expect(screen.getByTestId("mobile-sidebar")).toBeTruthy() // element exists in DOM;
     });
 
     await user.keyboard("{Escape}");
 
     await waitFor(() => {
-      expect(screen.queryByTestId("mobile-sidebar")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("mobile-sidebar")).not.toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -132,12 +132,12 @@ describe("Navbar Mobile Menu", () => {
     await user.click(hamburgerButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Dashboard")).toBeInTheDocument();
-      expect(screen.getByText("Subscriptions")).toBeInTheDocument();
-      expect(screen.getByText("Groups")).toBeInTheDocument();
-      expect(screen.getByText("Contacts")).toBeInTheDocument();
-      expect(screen.getByText("Recipients")).toBeInTheDocument();
-      expect(screen.getByText("Leaderboard")).toBeInTheDocument();
+      expect(screen.getByText("Dashboard")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByText("Subscriptions")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByText("Groups")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByText("Contacts")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByText("Recipients")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByText("Leaderboard")).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -153,7 +153,7 @@ describe("Navbar Mobile Menu", () => {
     await user.click(dashboardLink);
 
     await waitFor(() => {
-      expect(screen.queryByTestId("mobile-sidebar")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("mobile-sidebar")).not.toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -168,7 +168,7 @@ describe("Navbar Mobile Menu", () => {
     fireEvent.resize(window);
 
     const horizontalLinks = screen.getByText("Dashboard");
-    expect(horizontalLinks).toBeInTheDocument();
+    expect(horizontalLinks).toBeTruthy() // element exists in DOM;
   });
 
   it("hamburger button is accessible with keyboard navigation", async () => {
@@ -183,7 +183,7 @@ describe("Navbar Mobile Menu", () => {
     await user.keyboard("{Enter}");
 
     await waitFor(() => {
-      expect(screen.getByTestId("mobile-sidebar")).toBeInTheDocument();
+      expect(screen.getByTestId("mobile-sidebar")).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -192,7 +192,7 @@ describe("Navbar Mobile Menu", () => {
     render(<Navbar />);
 
     const logoLink = screen.getByRole("link", { name: /StellarSplit home/i });
-    expect(logoLink).toHaveAttribute("href", "/");
+    expect(logoLink).to.have.property('getAttribute', "href", "/");
   });
 
   it("mobile menu is full width on small screens", async () => {
@@ -205,7 +205,7 @@ describe("Navbar Mobile Menu", () => {
 
     await waitFor(() => {
       const sidebar = screen.getByTestId("mobile-sidebar");
-      expect(sidebar).toBeInTheDocument();
+      expect(sidebar).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -218,13 +218,13 @@ describe("Navbar Mobile Menu", () => {
     await user.click(hamburgerButton);
 
     await waitFor(() => {
-      expect(screen.getByTestId("mobile-sidebar")).toBeInTheDocument();
+      expect(screen.getByTestId("mobile-sidebar")).toBeTruthy() // element exists in DOM;
     });
 
     await user.click(hamburgerButton);
 
     await waitFor(() => {
-      expect(screen.queryByTestId("mobile-sidebar")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("mobile-sidebar")).not.toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -232,8 +232,8 @@ describe("Navbar Mobile Menu", () => {
     global.innerWidth = 500;
     render(<Navbar />);
 
-    expect(screen.getByTestId("theme-toggle")).toBeInTheDocument();
-    expect(screen.getByTestId("notification-center")).toBeInTheDocument();
-    expect(screen.getByTestId("network-status")).toBeInTheDocument();
+    expect(screen.getByTestId("theme-toggle")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByTestId("notification-center")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByTestId("network-status")).toBeTruthy() // element exists in DOM;
   });
 });

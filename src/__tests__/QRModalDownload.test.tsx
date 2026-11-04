@@ -40,7 +40,7 @@ describe("Issue #600: QRModal Download QR Code", () => {
       />
     );
 
-    expect(screen.getByText(/scan to connect/i)).toBeInTheDocument();
+    expect(screen.getByText(/scan to connect/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("should render QR code canvas", () => {
@@ -55,7 +55,7 @@ describe("Issue #600: QRModal Download QR Code", () => {
       />
     );
 
-    expect(screen.getByTestId(`qr-code-${testUri}`)).toBeInTheDocument();
+    expect(screen.getByTestId(`qr-code-${testUri}`)).toBeTruthy() // element exists in DOM;
   });
 
   it("should display the URI as plain text", () => {
@@ -70,7 +70,7 @@ describe("Issue #600: QRModal Download QR Code", () => {
       />
     );
 
-    expect(screen.getByText(testUri)).toBeInTheDocument();
+    expect(screen.getByText(testUri)).toBeTruthy() // element exists in DOM;
   });
 
   it("should render Copy URI button", () => {
@@ -84,7 +84,7 @@ describe("Issue #600: QRModal Download QR Code", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: /copy uri/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /copy uri/i })).toBeTruthy() // element exists in DOM;
   });
 
   it("should allow copying URI to clipboard", async () => {
@@ -224,7 +224,7 @@ describe("Issue #600: QRModal Download QR Code", () => {
     );
 
     const dialog = container.querySelector('[role="dialog"]');
-    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).to.have.property('getAttribute', "aria-modal", "true");
   });
 
   it("should poll wallet connection status", async () => {
@@ -347,7 +347,7 @@ describe("Issue #600: QRModal Download QR Code", () => {
       />
     );
 
-    expect(screen.getByText(/scan to connect/i)).toBeInTheDocument();
+    expect(screen.getByText(/scan to connect/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("should have visual styling for draggable QR container", () => {
@@ -362,6 +362,6 @@ describe("Issue #600: QRModal Download QR Code", () => {
     );
 
     const qrContainer = container.querySelector(".bg-white.rounded-xl");
-    expect(qrContainer).toBeInTheDocument();
+    expect(qrContainer).toBeTruthy() // element exists in DOM;
   });
 });

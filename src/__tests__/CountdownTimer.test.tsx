@@ -17,13 +17,13 @@ describe("CountdownTimer", () => {
 
     render(<CountdownTimer deadline={deadline} />);
 
-    expect(screen.getByText("1d 1h 0m 0s remaining")).toBeInTheDocument();
+    expect(screen.getByText("1d 1h 0m 0s remaining")).toBeTruthy() // element exists in DOM;
 
     act(() => {
       vi.advanceTimersByTime(1000);
     });
 
-    expect(screen.getByText("1d 0h 59m 59s remaining")).toBeInTheDocument();
+    expect(screen.getByText("1d 0h 59m 59s remaining")).toBeTruthy() // element exists in DOM;
   });
 
   it("shows the absolute expiration date in the tooltip", () => {
@@ -32,6 +32,6 @@ describe("CountdownTimer", () => {
     render(<CountdownTimer deadline={deadline} />);
 
     const timer = screen.getByText("1d 1h 0m 0s remaining");
-    expect(timer).toHaveAttribute("title", "Expires July 1, 2026 at 15:00 UTC");
+    expect(timer).to.have.property('getAttribute', "title", "Expires July 1, 2026 at 15:00 UTC");
   });
 });

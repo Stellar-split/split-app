@@ -21,9 +21,9 @@ describe("FeeEstimateBar Component (#411)", () => {
   it("displays three fee tiers: economy, standard, and priority", () => {
     render(<FeeEstimateBar operationCount={1} />);
 
-    expect(screen.getByText(/economy/i)).toBeInTheDocument();
-    expect(screen.getByText(/standard/i)).toBeInTheDocument();
-    expect(screen.getByText(/priority/i)).toBeInTheDocument();
+    expect(screen.getByText(/economy/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/standard/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/priority/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("calculates total fee correctly by multiplying fee per stroop by operation count", () => {
@@ -43,9 +43,9 @@ describe("FeeEstimateBar Component (#411)", () => {
     render(<FeeEstimateBar operationCount={1} />);
 
     // Should display stroops value
-    expect(screen.getByText(/stroops/i)).toBeInTheDocument();
+    expect(screen.getByText(/stroops/i)).toBeTruthy() // element exists in DOM;
     // Should display XLM value (rounded to 7 decimal places)
-    expect(screen.getByText(/xlm/i)).toBeInTheDocument();
+    expect(screen.getByText(/xlm/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("shows loading state when fee data is loading", async () => {
@@ -60,7 +60,7 @@ describe("FeeEstimateBar Component (#411)", () => {
 
     render(<FeeEstimateBar operationCount={1} />);
 
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(screen.getByText(/loading/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("shows error state when fee stats returns an error", async () => {
@@ -75,7 +75,7 @@ describe("FeeEstimateBar Component (#411)", () => {
 
     render(<FeeEstimateBar operationCount={1} />);
 
-    expect(screen.getByText(/error/i)).toBeInTheDocument();
+    expect(screen.getByText(/error/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("displays tooltips for each fee tier explaining the difference", () => {
@@ -83,7 +83,7 @@ describe("FeeEstimateBar Component (#411)", () => {
 
     // Check for tooltip elements or hover descriptions
     const economyTier = screen.getByText(/economy/i);
-    expect(economyTier).toBeInTheDocument();
+    expect(economyTier).toBeTruthy() // element exists in DOM;
   });
 
   it("displays segmented bar visualization of three tiers", () => {

@@ -26,8 +26,8 @@ describe("CopyLinkButton", () => {
 
     expect(
       screen.getByRole("button", { name: /copy verification link/i })
-    ).toBeInTheDocument();
-    expect(screen.getByText("Copy Link")).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Copy Link")).toBeTruthy() // element exists in DOM;
   });
 
   it("switches to the success state and announces after a successful copy", async () => {
@@ -39,7 +39,7 @@ describe("CopyLinkButton", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByText("Copied!")).toBeInTheDocument()
+      expect(screen.getByText("Copied!")).toBeTruthy() // element exists in DOM
     );
 
     expect(writeText).toHaveBeenCalledWith(URL);
@@ -52,7 +52,7 @@ describe("CopyLinkButton", () => {
     expect(button.className).toContain("bg-green-600");
 
     // Screen-reader announcement.
-    expect(screen.getByText("Link copied")).toBeInTheDocument();
+    expect(screen.getByText("Link copied")).toBeTruthy() // element exists in DOM;
   });
 
   it("exposes a polite live region for the announcement", () => {

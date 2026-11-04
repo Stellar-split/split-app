@@ -54,12 +54,12 @@ describe("InvoiceSecurityDashboard", () => {
   it("renders the score, counts and riskiest invoices", () => {
     render(<InvoiceSecurityDashboard events={events} />);
     expect(screen.getByRole("status")).toHaveTextContent("84");
-    expect(screen.getByText("Failed sign-ins")).toBeInTheDocument();
-    expect(screen.getByText("INV-1")).toBeInTheDocument();
+    expect(screen.getByText("Failed sign-ins")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("INV-1")).toBeTruthy() // element exists in DOM;
   });
 
   it("shows an empty state", () => {
     render(<InvoiceSecurityDashboard events={[]} />);
-    expect(screen.getByText("No security events recorded.")).toBeInTheDocument();
+    expect(screen.getByText("No security events recorded.")).toBeTruthy() // element exists in DOM;
   });
 });

@@ -8,7 +8,7 @@ describe("RateCardBuilder", () => {
     render(<RateCardBuilder />);
     fireEvent.change(screen.getByLabelText("Rate"), { target: { value: "25" } });
     fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "4" } });
-    expect(screen.getByText("Total: 100.00")).toBeInTheDocument();
+    expect(screen.getByText("Total: 100.00")).toBeTruthy() // element exists in DOM;
     fireEvent.click(screen.getByText("Add service"));
     expect(screen.getAllByLabelText("Service")).toHaveLength(2);
   });
@@ -24,7 +24,7 @@ describe("RecipientEarningsPanel", () => {
         ]}
       />,
     );
-    expect(screen.getByText("40.00")).toBeInTheDocument();
+    expect(screen.getByText("40.00")).toBeTruthy() // element exists in DOM;
     fireEvent.change(screen.getByLabelText("Asset"), { target: { value: "USDC" } });
     expect(screen.getAllByText("30.00").length).toBeGreaterThan(0);
   });

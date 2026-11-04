@@ -44,8 +44,8 @@ describe("AccessCodeGate & Hash Verification", () => {
         </AccessCodeGate>
       );
 
-      expect(screen.getByTestId("invoice-content")).toBeInTheDocument();
-      expect(screen.queryByLabelText(/access code/i)).not.toBeInTheDocument();
+      expect(screen.getByTestId("invoice-content")).toBeTruthy() // element exists in DOM;
+      expect(screen.queryByLabelText(/access code/i)).not.toBeTruthy() // element exists in DOM;
     });
 
     it("renders access code entry screen if invoice is private and locked", () => {
@@ -55,10 +55,10 @@ describe("AccessCodeGate & Hash Verification", () => {
         </AccessCodeGate>
       );
 
-      expect(screen.queryByTestId("invoice-content")).not.toBeInTheDocument();
-      expect(screen.getByRole("region", { name: /private invoice access code entry/i })).toBeInTheDocument();
-      expect(document.getElementById("access-code-input")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /unlock invoice/i })).toBeInTheDocument();
+      expect(screen.queryByTestId("invoice-content")).not.toBeTruthy() // element exists in DOM;
+      expect(screen.getByRole("region", { name: /private invoice access code entry/i })).toBeTruthy() // element exists in DOM;
+      expect(document.getElementById("access-code-input")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByRole("button", { name: /unlock invoice/i })).toBeTruthy() // element exists in DOM;
     });
 
     it("toggles password visibility with show/hide toggle", () => {
@@ -69,13 +69,13 @@ describe("AccessCodeGate & Hash Verification", () => {
       );
 
       const input = document.getElementById("access-code-input") as HTMLInputElement;
-      expect(input).toHaveAttribute("type", "password");
+      expect(input).to.have.property('getAttribute', "type", "password");
 
       const toggleButton = screen.getByRole("button", { name: /show access code/i });
       fireEvent.click(toggleButton);
 
-      expect(input).toHaveAttribute("type", "text");
-      expect(screen.getByRole("button", { name: /hide access code/i })).toBeInTheDocument();
+      expect(input).to.have.property('getAttribute', "type", "text");
+      expect(screen.getByRole("button", { name: /hide access code/i })).toBeTruthy() // element exists in DOM;
     });
 
     it("displays error message on incorrect access code", async () => {
@@ -95,9 +95,9 @@ describe("AccessCodeGate & Hash Verification", () => {
       fireEvent.click(unlockButton);
 
       await waitFor(() => {
-        expect(screen.getByText("Incorrect access code")).toBeInTheDocument();
+        expect(screen.getByText("Incorrect access code")).toBeTruthy() // element exists in DOM;
       });
-      expect(screen.queryByTestId("invoice-content")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("invoice-content")).not.toBeTruthy() // element exists in DOM;
     });
 
     it("unlocks and persists to sessionStorage on correct code", async () => {
@@ -123,7 +123,7 @@ describe("AccessCodeGate & Hash Verification", () => {
       fireEvent.click(unlockButton);
 
       await waitFor(() => {
-        expect(screen.getByTestId("invoice-content")).toBeInTheDocument();
+        expect(screen.getByTestId("invoice-content")).toBeTruthy() // element exists in DOM;
       });
 
       expect(onUnlock).toHaveBeenCalledTimes(1);
@@ -139,8 +139,8 @@ describe("AccessCodeGate & Hash Verification", () => {
         </AccessCodeGate>
       );
 
-      expect(screen.getByTestId("invoice-content")).toBeInTheDocument();
-      expect(screen.queryByLabelText(/access code/i)).not.toBeInTheDocument();
+      expect(screen.getByTestId("invoice-content")).toBeTruthy() // element exists in DOM;
+      expect(screen.queryByLabelText(/access code/i)).not.toBeTruthy() // element exists in DOM;
     });
   });
 });
