@@ -215,7 +215,7 @@ export default function InvoiceTimeline({ invoiceId }: Props) {
                 )}
                 {evt.actor && (
                   <div className="mt-2">
-                    <WalletAddress address={evt.actor} truncate showCopy />
+                    <WalletAddress address={evt.actor} short showCopy />
                   </div>
                 )}
                 {evt.txHash && (

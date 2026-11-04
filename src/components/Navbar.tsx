@@ -120,8 +120,7 @@ export default function Navbar() {
               <NotificationCenter />
               <HeaderShortcutsButton />
               <HelpTooltip
-                content="Open the user guide to learn about invoices, subscriptions, groups, and more."
-                href="/help"
+                helpKey="getting_started"
                 label="Help and user guide"
               />
             </div>

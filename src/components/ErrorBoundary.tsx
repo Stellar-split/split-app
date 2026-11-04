@@ -30,7 +30,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       // Sentry is only initialised when NEXT_PUBLIC_SENTRY_DSN is set.
       // Dynamic import keeps it out of the production bundle when unconfigured.
       const Sentry = await import("@sentry/nextjs");
-      const { kind } = classifyError(error);
+      const kind = classifyError(error) || "unknown";
 
       Sentry.withScope((scope) => {
         // Stable grouping: fingerprint by error kind so identical failure
@@ -83,7 +83,8 @@ export default class ErrorBoundary extends Component<Props, State> {
       return this.props.children;
     }
 
-    const { kind, message } = classifyError(error);
+    const kind = classifyError(error) || "unknown";
+    const message = error.message || "An unexpected error occurred";
 
     return (
       <main className="max-w-xl mx-auto w-full px-4 sm:px-6 py-20 overflow-x-hidden">

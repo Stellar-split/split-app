@@ -1,3 +1,5 @@
+export type AgingBucketKey = "current" | "1-30" | "31-60" | "61-90" | "90+";
+
 export const AGING_BUCKETS = {
   current: { label: "Current", color: "green" },
   "1-30": { label: "1-30 days", color: "yellow" },

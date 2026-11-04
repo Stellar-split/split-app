@@ -48,8 +48,8 @@ export default function NetworkStatus() {
   const [browserOffline, setBrowserOffline] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { lowBalance, lowBalanceAssets } = useWalletBalance();
-  const { status: wcStatus } = useWalletConnect();
+  const { session, status: wcStatus } = useWalletConnect();
+  const { lowBalance, lowBalanceAssets } = useWalletBalance(session?.accounts?.[0] || null);
 
   const poll = useCallback(async () => {
     const s = await checkHealth(getActiveNetwork().rpcUrl);
@@ -140,13 +140,13 @@ export default function NetworkStatus() {
   // ── WalletConnect connection indicator styles ───────────────────────────────
 
   const wcConnected = wcStatus === "connected";
-  const wcPending = wcStatus === "connecting" || wcStatus === "pairing";
+  const wcPending = wcStatus === "connecting" || wcStatus === "awaiting_scan";
 
   const wcDotColor = wcConnected
     ? "bg-blue-400"
     : wcPending
     ? "bg-blue-400 animate-pulse"
-    : wcStatus === "error" || wcStatus === "disconnected"
+    : wcStatus === "error" || wcStatus === "idle"
     ? "bg-gray-500"
     : "bg-gray-400";
 

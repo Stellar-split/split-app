@@ -256,6 +256,13 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [releasingFor, setReleasingFor] = useState<string | null>(null);
 
+  const lockedRate = null;
+  const xlmRate = null;
+  const rateLoading = false;
+  const rateError: string | null = null;
+  const rateLockedUntil: string | null = null;
+  const currencyHistory: Array<{ currency: string; timestamp: string }> = [];
+
   const notify = useCallback(
     (message: string, type: 'success' | 'error' | 'info') => {
       onNotify?.(message, type);

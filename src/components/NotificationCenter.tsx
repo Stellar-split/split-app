@@ -73,7 +73,7 @@ export default function NotificationCenter() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const firstItemRef = useRef<HTMLButtonElement>(null);
+  const firstItemRef = useRef<HTMLAnchorElement>(null);
 
   const syncFromStorage = useCallback(() => {
     setNotifications(loadNotifications());

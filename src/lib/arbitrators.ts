@@ -1,9 +1,9 @@
 export interface Arbitrator {
   id: string;
   name: string;
+  address: string;
   email?: string;
   rating?: number;
-  address?: string;
   resolvedDisputeCount?: number | null;
 }
 
