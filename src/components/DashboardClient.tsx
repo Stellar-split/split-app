@@ -26,6 +26,7 @@ import BulkActionToolbar from "@/components/invoice/BulkActionToolbar";
 import {
   DASHBOARD_PRESETS,
   SORT_OPTIONS,
+  INVOICE_STATUS_FILTERS,
   filterDashboardInvoices,
   getDashboardPresetCounts,
   sortInvoices,
