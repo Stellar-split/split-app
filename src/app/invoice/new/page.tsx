@@ -11,6 +11,7 @@ import FeeTooltip from "@/components/ui/FeeTooltip";
 import { useNetworkFeeBreakdown } from "@/hooks/useNetworkFeeBreakdown";
 import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import { useOfflineDraftAutosave } from "@/hooks/useOfflineDraftAutosave";
+import { useXlmUsdcRate } from "@/hooks/useXlmUsdcRate";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { apiFetch } from "@/lib/apiClient";
