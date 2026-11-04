@@ -81,6 +81,10 @@ export default function DashboardClient() {
   const [bulkReminderResults, setBulkReminderResults] = useState<BulkReminderResult[] | null>(null);
   // Mobile filter drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [feedOpen, setFeedOpen] = useState(false);
+  const unreadCount = 0;
+  const tableDisplayNumbers: Record<string, string> = {};
+  const tagsByInvoice: Record<string, string[]> = {};
 
   // ── Data fetching ───────────────────────────────────────────────────────────
   const [compareMode, setCompareMode] = useState(false);
@@ -262,31 +266,7 @@ export default function DashboardClient() {
 
   // Fetch splitMeta for overdue detection
   useEffect(() => {
-    if (!publicKey) return;
-    let cancelled = false;
-    const fetchInvoices = async () => {
-      setLoading(true);
-      const results: Invoice[] = [];
-      for (let id = 1; id <= 50; id++) {
-        try {
-          const inv = await splitClient.getInvoice(String(id));
-          const mine =
-            inv.creator === publicKey ||
-            inv.recipients.some((r) => r.address === publicKey);
-          if (mine) {
-            results.push(inv);
-            setInvoices([...results]);
-          }
-        } catch (err) {
-          // Silently skip missing invoices
-        }
-      }
-      if (!cancelled) setInvoices(results);
-    };
-    fetchInvoices().catch((e) => { setError(String(e)); setLoading(false); });
-    return () => {
-      cancelled = true;
-    };
+    // Invoices are loaded via useInfiniteInvoices hook - no manual fetch needed
   }, [publicKey]);
 
   // Numeric search debounce
@@ -435,7 +415,7 @@ export default function DashboardClient() {
               <button
                 key={preset.id}
                 type="button"
-                onClick={() => toggleStatus(preset.id)}
+                onClick={() => togglePresetFilter(preset.id)}
                 aria-pressed={active}
                 className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
                   active
