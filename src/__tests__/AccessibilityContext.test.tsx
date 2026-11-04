@@ -401,9 +401,12 @@ describe('AccessibilityContext', () => {
 
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      expect(() => render(<ThrowingComponent />)).toThrow(
-        'useAccessibility must be used within AccessibilityProvider'
-      );
+      try {
+        render(<ThrowingComponent />);
+        expect(true).toBe(false); // Should not reach here
+      } catch (e: any) {
+        expect(e.message).toContain('useAccessibility must be used within AccessibilityProvider');
+      }
 
       consoleError.mockRestore();
     });
