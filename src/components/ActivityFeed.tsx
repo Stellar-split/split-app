@@ -14,6 +14,12 @@ const EVENT_TYPE_LABELS: Record<ActivityEventType, string> = {
   status_change: "Status",
   comment: "Comment",
   co_creator_action: "Co-creator",
+  milestone_condition_met: "Milestone",
+  milestone_released: "Release",
+  dispute_opened: "Dispute",
+  dispute_evidence_submitted: "Evidence",
+  dispute_resolved: "Resolved",
+  dispute_enforced: "Enforced",
 };
 
 const EVENT_TYPE_COLORS: Record<ActivityEventType, string> = {
@@ -21,6 +27,12 @@ const EVENT_TYPE_COLORS: Record<ActivityEventType, string> = {
   status_change: "bg-blue-500/20 text-blue-400",
   comment: "bg-purple-500/20 text-purple-400",
   co_creator_action: "bg-amber-500/20 text-amber-400",
+  milestone_condition_met: "bg-cyan-500/20 text-cyan-400",
+  milestone_released: "bg-lime-500/20 text-lime-400",
+  dispute_opened: "bg-red-500/20 text-red-400",
+  dispute_evidence_submitted: "bg-orange-500/20 text-orange-400",
+  dispute_resolved: "bg-indigo-500/20 text-indigo-400",
+  dispute_enforced: "bg-gray-500/20 text-gray-400",
 };
 
 const EVENT_TYPE_ICONS: Record<ActivityEventType, string> = {
@@ -28,6 +40,12 @@ const EVENT_TYPE_ICONS: Record<ActivityEventType, string> = {
   status_change: "\u21bb",
   comment: "\u2709",
   co_creator_action: "\u2731",
+  milestone_condition_met: "\u2714",
+  milestone_released: "\u2705",
+  dispute_opened: "\u26a0",
+  dispute_evidence_submitted: "\u2710",
+  dispute_resolved: "\u2713",
+  dispute_enforced: "\u270f",
 };
 
 function truncateAddress(address: string): string {
