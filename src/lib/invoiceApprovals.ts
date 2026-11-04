@@ -36,8 +36,15 @@ export function recordApprovalDecision(request: InvoiceApprovalRequest, wallet: 
   return { ...request, status: decision as any };
 }
 
-export async function summarizeApprovalAnalytics(requests?: InvoiceApprovalRequest[]): Promise<any> {
-  return {};
+export function summarizeApprovalAnalytics(requests?: InvoiceApprovalRequest[]): any {
+  return {
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    averageDecisionHours: 0,
+    approvalRate: 0,
+  };
 }
 
 export function completeApprovalRequest(request: InvoiceApprovalRequest, wallet: any, invoiceId: string, txHash: string): InvoiceApprovalRequest {

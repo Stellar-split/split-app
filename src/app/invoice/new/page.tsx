@@ -9,12 +9,16 @@ import FormField from "@/components/ui/FormField";
 import UnsavedChangesModal from "@/components/ui/UnsavedChangesModal";
 import FeeTooltip from "@/components/ui/FeeTooltip";
 import { useNetworkFeeBreakdown } from "@/hooks/useNetworkFeeBreakdown";
+import { useInvoiceTags } from "@/hooks/useInvoiceTags";
+import { useOfflineDraftAutosave } from "@/hooks/useOfflineDraftAutosave";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { apiFetch } from "@/lib/apiClient";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
+import { REVIEW_STEP, validateWizardStep, type WizardState } from "@/lib/invoiceWizard";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
+import { generateRetroactiveInvoiceId, saveRetroactiveInvoice, type RetroactiveInvoice } from "@/lib/retroactiveInvoices";
 import { useI18n } from "@/components/I18nProvider";
 import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
@@ -25,6 +29,9 @@ interface PlanMilestone {
   amount: string;
 }
 import { decodeTemplate } from "@/lib/templateSharing";
+import type { ImportedTxData } from "@/lib/txImport";
+import type { StoredDraft, DraftFormData } from "@/lib/offlineDraftDB";
+import { getOrCreateLocalUserId, listDraftsForUser } from "@/lib/offlineDraftDB";
 import DraftCollaborationPanel from "@/components/DraftCollaborationPanel";
 import {
   createApprovalRequest,
@@ -147,11 +154,11 @@ function NewInvoiceForm() {
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
   const [splitMeta, setSplitMeta] = useState<SplitMeta | null>(null);
-  const [installments, setInstallments] = useState<PlanMilestone[]>([]);
+  const [installments, setInstallments] = useState<any[]>([]);
   const [cosigners, setCosigners] = useState<string[]>([]);
   const [cosignerThreshold, setCosignerThreshold] = useState<number>(1);
   const [tags, setTags] = useState<string[]>([]);
-  const { allTags, saveTags } = useInvoiceTags();
+  const { tags: allTags, saveTags } = useInvoiceTags();
 
   const fromId = searchParams.get("from");
   const deadlineParam = searchParams.get("deadline");

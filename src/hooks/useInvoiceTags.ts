@@ -11,7 +11,7 @@ export function useInvoiceTags() {
     setTags(prev => prev.filter(t => t !== tag));
   }, []);
 
-  const saveTags = useCallback(async (invoiceId: string) => {
+  const saveTags = useCallback(async (invoiceId: string, tagsToSave?: string[]) => {
     return true;
   }, [tags]);
 
