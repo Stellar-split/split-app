@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function ReputationBadge({ address, reputation }: Props) {
-  const { data: fetchedReputation, loading } = useCreatorReputation(address);
+  const { reputation: fetchedReputation, loading } = useCreatorReputation(address);
   const result = reputation ?? fetchedReputation;
 
   if (loading && !result) {

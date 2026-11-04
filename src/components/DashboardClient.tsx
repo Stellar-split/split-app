@@ -32,6 +32,7 @@ import {
   filterByDateRange,
   type DashboardPresetId,
   type DashboardSortId,
+  type InvoiceStatusFilter,
 } from "@/lib/dashboardFilters";
 import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import { invoiceHasTag } from "@/lib/invoiceTags";
@@ -54,6 +55,7 @@ function readParams(sp: URLSearchParams) {
 
 export default function DashboardClient() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   // URL-derived filter state
@@ -111,20 +113,13 @@ export default function DashboardClient() {
   );
 
   const togglePresetFilter = (preset: DashboardPresetId) => {
-    const next = presetFilters.includes(preset)
-      ? presetFilters.filter((s) => s !== preset)
-      : [...presetFilters, preset];
-    pushParams({ preset: next.join(",") });
-  };
-
-  const toggleStatus = (status: InvoiceStatusFilter) => {
-    const next = selectedStatuses.includes(status)
-      ? selectedStatuses.filter((s) => s !== status)
-      : [...selectedStatuses, status];
+    const next = statuses.includes(preset)
+      ? statuses.filter((s) => s !== preset)
+      : [...statuses, preset];
     pushParams({ status: next.join(",") });
   };
 
-  const displayStatuses = useMemo<InvoiceStatusFilter[]>(() => {
+  const selectedStatuses = useMemo<InvoiceStatusFilter[]>(() => {
     const raw = searchParams.get("display");
     if (!raw) return [];
     return raw
@@ -133,6 +128,15 @@ export default function DashboardClient() {
         INVOICE_STATUS_FILTERS.includes(s as InvoiceStatusFilter),
       );
   }, [searchParams]);
+
+  const toggleStatus = (status: InvoiceStatusFilter) => {
+    const next = selectedStatuses.includes(status)
+      ? selectedStatuses.filter((s) => s !== status)
+      : [...selectedStatuses, status];
+    pushParams({ display: next.join(",") });
+  };
+
+  const displayStatuses = selectedStatuses;
 
   const toggleDisplayStatus = (status: InvoiceStatusFilter) => {
     const next = displayStatuses.includes(status)
@@ -152,7 +156,7 @@ export default function DashboardClient() {
   // with the preset `status` param above).
 
   const isFiltered =
-    presetFilters.length > 0 ||
+    statuses.length > 0 ||
     selectedStatuses.length > 0 ||
     displayStatuses.length > 0 ||
     !!dateFrom ||
@@ -164,14 +168,14 @@ export default function DashboardClient() {
 
   const currentFilterState = useMemo<Record<string, string>>(
     () => ({
-      preset: presetFilters.join(","),
-      status: selectedStatuses.join(","),
+      status: statuses.join(","),
+      display: selectedStatuses.join(","),
       sort: sort !== "newest" ? sort : "",
       from: dateFrom,
       to: dateTo,
       tag,
     }),
-    [presetFilters, selectedStatuses, sort, dateFrom, dateTo, tag],
+    [statuses, selectedStatuses, sort, dateFrom, dateTo, tag],
   );
 
   const applyFilterPreset = (filters: Record<string, string>) => {

@@ -115,11 +115,7 @@ const BreakdownRow: React.FC<{ label: string; value?: number; invert?: boolean }
 };
 
 const CreatorReputationProfile: React.FC<CreatorReputationProfileProps> = ({ address, className }) => {
-  const { reputation, isLoading, error } = useCreatorReputation(address) as {
-    reputation: CreatorReputation | null | undefined;
-    isLoading: boolean;
-    error?: Error | null;
-  };
+  const { reputation, loading: isLoading, error } = useCreatorReputation(address);
   const [isAppealOpen, setIsAppealOpen] = useState(false);
 
   if (isLoading) {
@@ -184,7 +180,16 @@ const CreatorReputationProfile: React.FC<CreatorReputationProfileProps> = ({ add
         <div style={{ fontSize: '1rem', fontWeight: 600, color: '#111827', marginBottom: '0.75rem' }}>
           {reputation.trustTier ?? 'Unranked'}
         </div>
-        <CreatorBadges badges={reputation.badges ?? []} />
+        <CreatorBadges stats={{
+          totalInvoices: reputation.totalInvoices ?? 0,
+          releasedInvoices: reputation.fulfilledInvoices ?? 0,
+          totalVolumeUsdc: 0,
+          completionRate: reputation.onTimeRate ?? 0,
+          reputationScore: reputation.score ?? 0,
+          uniquePayers: 0,
+          streakWeeks: 0,
+          trustTier: reputation.trustTier,
+        }} />
       </div>
 
       <div className="creator-reputation-breakdown" style={{ marginBottom: '1.5rem' }}>
@@ -216,8 +221,7 @@ const CreatorReputationProfile: React.FC<CreatorReputationProfileProps> = ({ add
 
       {isAppealOpen && (
         <ReputationAppealForm
-          address={address}
-          currentScore={reputation.score}
+          creatorId={address}
           onClose={() => setIsAppealOpen(false)}
         />
       )}
