@@ -49,3 +49,7 @@ export function formatFrequency(frequency: string): string {
 export function computeUpcomingDates(frequency: string, startDate: number, count: number): number[] {
   return [];
 }
+
+export function aggregateSubscriptionAnalytics(subscriptions: Subscription[] | undefined, from: number, to: number): any {
+  return {};
+}
