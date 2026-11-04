@@ -64,6 +64,7 @@ export default function DashboardClient() {
     () => readParams(searchParams),
     [searchParams],
   );
+  const tag = searchParams.get("tag") ?? "";
 
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
