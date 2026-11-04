@@ -24,10 +24,10 @@ import {
   validateBundle,
   transitionBundleStatus,
   aggregateBundle,
-  type InvoiceBundle,
   type BundleStatus,
   type BundleItem,
 } from '../bundleService';
+import type { InvoiceBundle } from '@/lib/bundles';
 
 describe.skip('Recurring schedule validation', () => {
   const baseSchedule: RecurringSchedule = {
