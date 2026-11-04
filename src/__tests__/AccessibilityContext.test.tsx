@@ -57,14 +57,16 @@ function TestComponent() {
 
 describe('AccessibilityContext', () => {
   describe('Font Scale', () => {
-    it('should apply default font scale (100%)', () => {
+    it('should apply default font scale (100%)', async () => {
       render(
         <AccessibilityProvider>
           <TestComponent />
         </AccessibilityProvider>
       );
 
-      expect(screen.getByTestId('font-scale').textContent).toBe('100');
+      await waitFor(() => {
+        expect(screen.getByTestId('font-scale').textContent).toBe('100');
+      });
       expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe(
         '1'
       );
@@ -351,16 +353,18 @@ describe('AccessibilityContext', () => {
       expect(document.documentElement.getAttribute('data-contrast')).toBe('high');
     });
 
-    it('should use default settings when localStorage is empty', () => {
+    it('should use default settings when localStorage is empty', async () => {
       render(
         <AccessibilityProvider>
           <TestComponent />
         </AccessibilityProvider>
       );
 
-      expect(screen.getByTestId('font-scale').textContent).toBe('100');
-      expect(screen.getByTestId('reduced-motion').textContent).toBe('false');
-      expect(screen.getByTestId('high-contrast').textContent).toBe('normal');
+      await waitFor(() => {
+        expect(screen.getByTestId('font-scale').textContent).toBe('100');
+        expect(screen.getByTestId('reduced-motion').textContent).toBe('false');
+        expect(screen.getByTestId('high-contrast').textContent).toBe('normal');
+      });
     });
 
     it('should sync multiple setting changes to localStorage', async () => {

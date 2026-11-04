@@ -82,9 +82,10 @@ export function AccessibilityProvider({
 }) {
   const initialSettings = getStoredAccessibilitySettings();
   const [settings, setSettingsState] = useState<AccessibilitySettings>(initialSettings);
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(typeof window !== "undefined");
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const storedSettings = getStoredAccessibilitySettings();
     setSettingsState(storedSettings);
     applyAccessibilitySettings(storedSettings);
