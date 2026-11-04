@@ -55,12 +55,6 @@ const InstallmentPlanBuilder = dynamic(() => import("@/components/InstallmentPla
 const CoSignerSection = dynamic(() => import("@/components/CoSignerSection"), { ssr: false });
 import { PresencePill } from "@/components/PresencePill";
 import { ReconnectionBanner } from "@/components/ReconnectionBanner";
-import { useI18n } from '@/components/I18nProvider';
-import { useInvoiceTags } from '@/hooks/useInvoiceTags';
-import { useNetworkFeeBreakdown } from '@/hooks/useNetworkFeeBreakdown';
-import { useOfflineDraftAutosave } from '@/hooks/useOfflineDraftAutosave';
-import { useXlmUsdcRate } from '@/hooks/useXlmUsdcRate';
-import { RetroactiveInvoice } from '@/lib/retroactiveInvoices';
 
 interface RecipientRow {
   address: string;
