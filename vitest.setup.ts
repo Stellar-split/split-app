@@ -10,15 +10,15 @@ vi.mock('@/lib/freighter', () => ({
   getFreighterPublicKey: vi.fn(async () => 'GTEST'),
 }));
 
-vi.mock('@/lib/ipfs', () => ({
-  uploadToIPFS: vi.fn(async () => 'QmMocked'),
-  uploadToIpfs: vi.fn(async () => 'QmMocked'),
-  fetchFromIPFS: vi.fn(async () => ({})),
-  getIpfsUrl: vi.fn((cid: string) => `https://ipfs.io/ipfs/${cid}`),
-  isValidCid: vi.fn((cid: string) => /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(cid)),
-  mockIpfsUpload: vi.fn(async () => 'QmMocked'),
-  IPFS_GATEWAY: 'https://ipfs.io',
-}));
+vi.mock('@/lib/ipfs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ipfs')>();
+  return {
+    ...actual,
+    uploadToIPFS: vi.fn(async () => 'QmMocked'),
+    uploadToIpfs: vi.fn(async () => 'QmMocked'),
+    fetchFromIPFS: vi.fn(async () => ({})),
+  };
+});
 
 vi.mock('@/lib/apiClient', () => ({
   apiFetch: vi.fn(async () => ({})),
