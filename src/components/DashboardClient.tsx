@@ -233,7 +233,7 @@ export default function DashboardClient() {
   useEffect(() => {
     getFreighterPublicKey()
       .then(setPublicKey)
-      .catch(() => setError("Connect your Freighter wallet to view your dashboard."));
+      .catch(() => setWalletError("Connect your Freighter wallet to view your dashboard."));
   }, []);
 
   // Infinite-scroll invoice list
