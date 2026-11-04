@@ -82,6 +82,7 @@ export default function DashboardClient() {
   // Mobile filter drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [feedOpen, setFeedOpen] = useState(false);
+  const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
   const unreadCount = 0;
   const tableDisplayNumbers: Record<string, string> = {};
   const tagsByInvoice: Record<string, string[]> = {};

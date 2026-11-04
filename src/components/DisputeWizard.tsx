@@ -4,7 +4,7 @@ import { useState } from "react";
 import { searchArbitrators, getArbitrators } from "@/lib/arbitrators";
 import type { Arbitrator } from "@/lib/arbitrators";
 import { createDispute } from "@/lib/disputes";
-import type { DisputeRecord } from "@/lib/disputes";
+import type { DisputeRecord } from "@/lib/arbitrators";
 import { notifyDisputeOpened } from "@/lib/disputeNotifications";
 
 const DISPUTE_REASONS = [
