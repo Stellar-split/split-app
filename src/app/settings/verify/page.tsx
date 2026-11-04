@@ -230,13 +230,13 @@ export default function VerifyIdentityPage() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  void validateAddress();
+                  void validateAddress(walletInput);
                 }
               }}
             />
             <button
               type="button"
-              onClick={() => void validateAddress()}
+              onClick={() => void validateAddress(walletInput)}
               disabled={validating || !validatedInput.trim()}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg transition-colors text-sm font-medium"
             >
