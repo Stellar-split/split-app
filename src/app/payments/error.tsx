@@ -15,7 +15,7 @@ export default function PaymentsError({ error, reset }: Props) {
   const [sentryEventId, setSentryEventId] = useState<string | null>(null);
 
   const kind = classifyError(error);
-  const copy = getErrorCopy(kind, "payments");
+  const copy = getErrorCopy(kind);
 
   useEffect(() => {
     const capture = async () => {
@@ -39,15 +39,8 @@ export default function PaymentsError({ error, reset }: Props) {
 
   return (
     <main className="max-w-xl mx-auto px-4 py-20 text-center">
-      <h1 className="text-2xl font-bold mb-2">{copy.title}</h1>
-      <p className="text-gray-400 text-sm mb-6">{copy.message}</p>
-      {copy.suggestions.length > 0 && (
-        <ul className="text-left text-sm text-gray-400 mb-6 space-y-2 list-disc list-inside">
-          {copy.suggestions.map((suggestion) => (
-            <li key={suggestion}>{suggestion}</li>
-          ))}
-        </ul>
-      )}
+      <h1 className="text-2xl font-bold mb-2">Oops, an error occurred</h1>
+      <p className="text-gray-400 text-sm mb-6">{copy}</p>
       {sentryEventId && (
         <p className="text-xs text-gray-500 font-mono mb-4">
           Error ID: {sentryEventId}

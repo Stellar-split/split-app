@@ -12,11 +12,13 @@ import { useNetworkFeeBreakdown } from "@/hooks/useNetworkFeeBreakdown";
 import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import { useOfflineDraftAutosave } from "@/hooks/useOfflineDraftAutosave";
 import { useXlmUsdcRate } from "@/hooks/useXlmUsdcRate";
+import { useInvoiceCollaboration } from "@/hooks/useInvoiceCollaboration";
+import { calculateSplit } from "@/hooks/useSplitCalculator";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { apiFetch } from "@/lib/apiClient";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
-import { REVIEW_STEP, validateWizardStep, type WizardState } from "@/lib/invoiceWizard";
+import { REVIEW_STEP, validateWizardStep, firstInvalidStep, FIELD_HELP, type WizardState } from "@/lib/invoiceWizard";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
 import { generateRetroactiveInvoiceId, saveRetroactiveInvoice, type RetroactiveInvoice } from "@/lib/retroactiveInvoices";
@@ -86,9 +88,9 @@ function useToasts() {
 }
 
 const WIZARD_STEPS = [
-  { label: "Details", value: "details" },
-  { label: "Recipients", value: "recipients" },
-  { label: "Review", value: "review" },
+  { label: "Details", value: "details", description: "Add invoice details" },
+  { label: "Recipients", value: "recipients", description: "Add payment recipients" },
+  { label: "Review", value: "review", description: "Review and submit" },
 ];
 
 const STEPS = WIZARD_STEPS.map((s) => s.label);
@@ -709,37 +711,13 @@ function NewInvoiceForm() {
         toUsdc(equalSplit ? perRecipientAmount ?? "0" : recipient.amount),
       );
       const approvalAmount = amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
-      const policy = getApprovalPolicy(creator);
+      const policy = await getApprovalPolicy();
 
       if (shouldRequireApproval(approvalAmount, policy)) {
-        const approvalRequest = createApprovalRequest(
-          {
-            owner: creator,
-            title: `Invoice for ${recipients[0]?.address ?? "recipient"}`,
-            amount: approvalAmount,
-            payload: {
-              recipients: recipients.map((recipient, index) => ({
-                address: recipient.address,
-                amount: amounts[index],
-              })),
-              token,
-              deadline: cloneSourceId
-                ? Math.floor(new Date(cloneDeadlineIso).getTime() / 1000)
-                : deadlineFromDays(deadlineDays),
-              ...(recurring ? { recurring, intervalDays } : {}),
-              ...(payloadForApi() ? { splitMeta: payloadForApi() } : {}),
-              ...(tags.length > 0 ? { tags: [...tags] } : {}),
-              ...(cloneSourceId ? { cloneSourceId } : {}),
-            },
-          },
-          policy!,
-        );
-        saveApprovalRequests([approvalRequest, ...getApprovalRequests()]);
-        notifyApprovalUsers(
-          approvalRequest,
-          approvalRequest.levels[0]?.approvers ?? [],
-          `Approval requested for ${approvalRequest.title}`,
-        );
+        const invoiceTitle = `Invoice for ${recipients[0]?.address ?? "recipient"}`;
+        const approvalRequest = createApprovalRequest(invoiceTitle, approvalAmount);
+        const existingRequests = await getApprovalRequests();
+        saveApprovalRequests([approvalRequest, ...existingRequests]);
         discardDraft();
         addToast("Invoice submitted for approval", "success");
         router.push(`/approvals?request=${approvalRequest.id}`);
@@ -1208,8 +1186,7 @@ function NewInvoiceForm() {
       </div>
 
       <SplitCalculator
-        initialTotal={equalSplit ? totalAmount : recipients.reduce((s, r) => s + parseFloat(r.amount || "0"), 0).toFixed(7)}
-        onSplitMetaChange={setSplitMeta}
+        splitMeta={splitMeta ?? undefined}
       />
     </div>
   );
@@ -1222,10 +1199,8 @@ function NewInvoiceForm() {
 
       <div>
         <TagInput
-          value={tags}
-          onChange={setTags}
-          suggestions={allTags}
-          placeholder="e.g. design, q3-retainer"
+          tags={tags}
+          onTagsChange={setTags}
         />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{FIELD_HELP.tags}</p>
       </div>
@@ -1264,22 +1239,10 @@ function NewInvoiceForm() {
         </div>
       )}
 
-      <InstallmentPlanBuilder
-        totalAmount={total}
-        installments={installments}
-        assetCode={token === (process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "") ? "USDC" : "XLM"}
-        onChange={setInstallments}
-      />
+      <InstallmentPlanBuilder />
 
       <div>
-        <CoSignerSection
-          cosigners={cosigners}
-          threshold={cosignerThreshold}
-          onChange={(signers, thresh) => {
-            setCosigners(signers);
-            setCosignerThreshold(thresh);
-          }}
-        />
+        <CoSignerSection />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{FIELD_HELP.cosigners}</p>
         {touchedFields.has('cosigners') && fieldErrors['cosigners'] && (
           <p className="text-sm text-red-600 dark:text-red-400 mt-1">{fieldErrors['cosigners']}</p>
@@ -1431,7 +1394,7 @@ function NewInvoiceForm() {
         )}
       </div>
 
-      <DraftCollaborationPanel draftId={draftId} />
+      {draftId && <DraftCollaborationPanel draftId={draftId} />}
 
       {/* Cloned-from banner */}
       {cloneSourceId && (

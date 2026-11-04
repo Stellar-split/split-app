@@ -74,6 +74,7 @@ export default function ApiDashboardPage() {
   const [usage, setUsage] = useState<ApiCall[]>([]);
   const [branding, setBranding] = useState<EmbedBrandingConfig>({
     primaryColor: "",
+    backgroundColor: "",
     logoUrl: "",
     borderRadius: "",
   });

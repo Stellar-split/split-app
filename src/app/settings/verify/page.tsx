@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getFreighterPublicKey } from '@/lib/freighter';
+import { getActiveNetwork } from '@/lib/networks';
 import {
   generateChallenge,
   storeAttestation,
@@ -23,13 +24,12 @@ export default function VerifyIdentityPage() {
   const [address, setAddress] = useState<string | null>(null);
   const [walletInput, setWalletInput] = useState('');
   const {
-    input: validatedInput,
-    setInput: setValidatedInput,
-    result: validationResult,
-    loading: validating,
+    isValid,
+    isLoading: validating,
     error: validationError,
-    validate: validateAddress,
-    reset: resetValidation,
+    validateAddress,
+    onAddressChange,
+    resolvedAddress,
   } = useAddressValidation();
   const [attestation, setAttestation] = useState<CreatorAttestation | null>(null);
   const [loading, setLoading] = useState(false);
@@ -219,8 +219,11 @@ export default function VerifyIdentityPage() {
           <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
-              value={validatedInput}
-              onChange={(e) => setValidatedInput(e.target.value)}
+              value={walletInput}
+              onChange={(e) => {
+                setWalletInput(e.target.value);
+                onAddressChange(e.target.value);
+              }}
               placeholder="G... or name*domain.com"
               aria-label="Wallet address or federation address"
               className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-mono"

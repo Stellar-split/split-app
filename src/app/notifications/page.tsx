@@ -6,29 +6,29 @@ import type { AppNotification } from "@/components/NotificationCenter";
 
 const STORAGE_KEY = "stellarsplit_notifications";
 
-type Tab = "all" | "payments" | "status" | "reminders";
+type Tab = "all" | "payments" | "status" | "approvals";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "all", label: "All" },
   { key: "payments", label: "Payments" },
   { key: "status", label: "Status Changes" },
-  { key: "reminders", label: "Reminders" },
+  { key: "approvals", label: "Approvals" },
 ];
 
 const TYPE_LABELS: Record<AppNotification["type"], string> = {
   payment: "Payment",
   funded: "Funded",
   released: "Released",
-  reminder: "Reminder",
   expired: "Expired",
+  approval: "Approval",
 };
 
 const TYPE_COLORS: Record<AppNotification["type"], string> = {
   payment: "bg-indigo-500/20 text-indigo-300",
   funded: "bg-yellow-500/20 text-yellow-300",
   released: "bg-green-500/20 text-green-300",
-  reminder: "bg-purple-500/20 text-purple-300",
   expired: "bg-red-500/20 text-red-300",
+  approval: "bg-purple-500/20 text-purple-300",
 };
 
 function load(): AppNotification[] {
@@ -70,7 +70,7 @@ export default function NotificationsPage() {
   const filtered = sorted.filter((n) => {
     if (tab === "payments") return n.type === "payment";
     if (tab === "status") return n.type === "funded" || n.type === "released";
-    if (tab === "reminders") return n.type === "reminder";
+    if (tab === "approvals") return n.type === "approval";
     return true;
   });
 
