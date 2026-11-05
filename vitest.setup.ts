@@ -1,14 +1,13 @@
 import { vi, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
-// Setup fake timers for all tests
+// Setup for each test
 beforeEach(() => {
-  vi.useFakeTimers();
+  vi.clearAllMocks();
 });
 
 afterEach(() => {
-  vi.runOnlyPendingTimers();
-  vi.useRealTimers();
+  vi.clearAllTimers();
 });
 
 // Mock all external dependencies
