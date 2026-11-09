@@ -135,11 +135,11 @@ export function filterPayments<T extends ExportablePayment>(
   const { startDate, endDate, statuses } = filters;
 
   if (startDate || endDate) {
-    result = filterPaymentsByDateRange(
-      result as unknown as PaymentItem[],
+    result = (filterPaymentsByDateRange(
+      result as unknown,
       startDate,
       endDate,
-    ) as unknown as T[];
+    ) as unknown) as T[];
   }
 
   if (Array.isArray(statuses) && statuses.length > 0) {
