@@ -136,10 +136,10 @@ export function filterPayments<T extends ExportablePayment>(
 
   if (startDate || endDate) {
     result = filterPaymentsByDateRange(
-      result as PaymentWithMeta[],
+      result as unknown as PaymentWithMeta[],
       startDate,
       endDate,
-    ) as T[];
+    ) as unknown as T[];
   }
 
   if (Array.isArray(statuses) && statuses.length > 0) {
