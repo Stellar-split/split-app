@@ -64,7 +64,7 @@ export default function SubscriptionsClient() {
 
     try {
       // Load locally-stored subscriptions and enrich with on-chain data
-      const stored = loadSubscriptions();
+      const stored = await loadSubscriptions();
       const creatorSubs = stored.filter((s) => s.creator === publicKey);
 
       // Enrich each subscription with latest invoice data from chain
@@ -108,23 +108,21 @@ export default function SubscriptionsClient() {
   }, [publicKey, fetchSubscriptions]);
 
   const handlePause = async (id: string) => {
-    setSubscriptions((prev) => {
-      const updated = prev.map((s) => (s.id === id ? pauseSubscription(s) : s));
-      saveSubscriptions(updated);
-      const paused = updated.find((s) => s.id === id);
-      if (paused) notifySubscriptionPaused(paused);
-      return updated;
-    });
+    await pauseSubscription(id);
+    setSubscriptions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: 'paused' as const } : s))
+    );
+    notifySubscriptionPaused(id);
+    saveSubscriptions(subscriptions.map((s) => (s.id === id ? { ...s, status: 'paused' as const } : s)));
   };
 
   const handleResume = async (id: string) => {
-    setSubscriptions((prev) => {
-      const updated = prev.map((s) => (s.id === id ? resumeSubscription(s) : s));
-      saveSubscriptions(updated);
-      const resumed = updated.find((s) => s.id === id);
-      if (resumed) notifySubscriptionResumed(resumed);
-      return updated;
-    });
+    await resumeSubscription(id);
+    setSubscriptions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: 'active' as const } : s))
+    );
+    notifySubscriptionResumed(id);
+    saveSubscriptions(subscriptions.map((s) => (s.id === id ? { ...s, status: 'active' as const } : s)));
   };
 
   const handleCancel = (id: string) => {
@@ -132,18 +130,15 @@ export default function SubscriptionsClient() {
     setCancelTarget(target);
   };
 
-  const handleCancelConfirm = (reason: string, note?: string) => {
+  const handleCancelConfirm = async (reason?: string, note?: string) => {
     if (!cancelTarget) return;
     const id = cancelTarget.id;
-    setSubscriptions((prev) => {
-      const updated = prev.map((s) =>
-        s.id === id ? cancelSubscription(s, reason, note) : s
-      );
-      saveSubscriptions(updated);
-      const cancelled = updated.find((s) => s.id === id);
-      if (cancelled) notifySubscriptionCancelled(cancelled, reason);
-      return updated;
-    });
+    await cancelSubscription(id);
+    setSubscriptions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: 'cancelled' as const, cancelledAt: Date.now(), cancellationReason: reason as any } : s))
+    );
+    notifySubscriptionCancelled(id);
+    saveSubscriptions(subscriptions.map((s) => (s.id === id ? { ...s, status: 'cancelled' as const, cancelledAt: Date.now() } : s)));
     setCancelTarget(null);
   };
 
@@ -152,18 +147,23 @@ export default function SubscriptionsClient() {
     setModifyTarget(target);
   };
 
-  const handleModifyConfirm = (changes: Partial<Subscription>) => {
+  const handleModifyConfirm = async (changes: { frequency: string; intervalDays: number; recipients: Array<{ id: string; name: string; amount: number }> }) => {
     if (!modifyTarget) return;
     const id = modifyTarget.id;
-    setSubscriptions((prev) => {
-      const updated = prev.map((s) =>
-        s.id === id ? modifySubscription(s, changes) : s
-      );
-      saveSubscriptions(updated);
-      const modified = updated.find((s) => s.id === id);
-      if (modified) notifySubscriptionModified(modified);
-      return updated;
-    });
+    const subscriptionChanges: Partial<Subscription> = {
+      frequency: changes.frequency as any,
+      intervalDays: changes.intervalDays,
+      recipients: changes.recipients.map((r) => ({
+        address: r.id,
+        amount: BigInt(Math.floor(r.amount * 1_000_000)),
+      })),
+    };
+    await modifySubscription(id, subscriptionChanges);
+    setSubscriptions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...subscriptionChanges } : s))
+    );
+    notifySubscriptionModified(id);
+    saveSubscriptions(subscriptions.map((s) => (s.id === id ? { ...s, ...subscriptionChanges } : s)));
     setModifyTarget(null);
   };
 
@@ -294,7 +294,8 @@ export default function SubscriptionsClient() {
 
       {cancelTarget && (
         <CancelModal
-          subscription={cancelTarget}
+          invoiceId={cancelTarget.id}
+          invoiceTitle={`Subscription: ${cancelTarget.templateName}`}
           onConfirm={handleCancelConfirm}
           onClose={() => setCancelTarget(null)}
         />
@@ -302,9 +303,16 @@ export default function SubscriptionsClient() {
 
       {modifyTarget && (
         <SubscriptionModifyModal
-          subscription={modifyTarget}
+          isOpen={true}
           onConfirm={handleModifyConfirm}
           onClose={() => setModifyTarget(null)}
+          initialFrequency={modifyTarget.frequency}
+          initialIntervalDays={modifyTarget.intervalDays}
+          initialRecipients={modifyTarget.recipients.map((r) => ({
+            id: r.address,
+            name: r.address,
+            amount: Number(r.amount) / 1_000_000,
+          }))}
         />
       )}
     </main>

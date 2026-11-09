@@ -170,7 +170,7 @@ const CreatorReputationProfile: React.FC<CreatorReputationProfileProps> = ({ add
       </div>
 
       <div className="creator-reputation-score" style={{ marginBottom: '1.5rem' }}>
-        <ScoreGauge score={reputation.score ?? 0} grade={reputation.grade} />
+        <ScoreGauge score={reputation.score ?? 0} grade={reputation.grade ?? undefined} />
       </div>
 
       <div className="creator-reputation-trust" style={{ marginBottom: '1.5rem' }}>

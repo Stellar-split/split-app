@@ -150,21 +150,19 @@ function buildDiff(entry: any): FieldDiff[] {
 
 /** Map a stored invoice version into the timeline entry shape. */
 function mapVersionToEntry(version: InvoiceVersion): HistoryEntry {
-  const diff: FieldDiff[] = (version.diff ?? []).map((d: InvoiceVersionDiff) => ({
+  const diff: FieldDiff[] = (version.diff?.fields ?? []).map((d) => ({
     field: d.field,
-    before: d.before,
-    after: d.after,
+    before: String(d.before ?? ''),
+    after: String(d.after ?? ''),
   }));
 
   return {
-    action: version.action
-      ? version.action.replace(/_/g, " ").charAt(0).toUpperCase() + version.action.slice(1)
-      : "Amendment",
-    timestamp: version.timestamp,
+    action: version.amendment.reason.label,
+    timestamp: new Date(version.createdAt).getTime(),
     diff,
-    reason: version.reason,
-    comment: version.comment,
-    author: version.author,
+    reason: version.amendment.reason.code,
+    comment: version.amendment.comment,
+    author: version.amendment.amendedBy,
   };
 }
 

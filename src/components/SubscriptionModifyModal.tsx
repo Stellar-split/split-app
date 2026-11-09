@@ -219,7 +219,7 @@ const SubscriptionModifyModal: React.FC<SubscriptionModifyModalProps> = ({
   const displayErrors: FormErrors = showErrors ? { ...validationErrors, ...errors } : errors;
 
   return (
-    <FocusTrap active={isOpen} onEscape={handleClose}>
+    <FocusTrap active={isOpen} onClose={handleClose}>
       <div
         className="subscription-modify-modal__overlay"
         role="presentation"

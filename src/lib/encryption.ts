@@ -132,15 +132,15 @@ export class KeyRotationManager {
 export class EncryptionValidator {
   static validateEncryptedData(data: EncryptedData): boolean {
     return (
-      data.iv && data.iv.length === IV_SIZE * 2 &&
-      data.encryptedData && data.encryptedData.length > 0 &&
-      data.authTag && data.authTag.length === TAG_SIZE * 2 &&
-      data.salt && data.salt.length === SALT_SIZE * 2
+      !!data.iv && data.iv.length === IV_SIZE * 2 &&
+      !!data.encryptedData && data.encryptedData.length > 0 &&
+      !!data.authTag && data.authTag.length === TAG_SIZE * 2 &&
+      !!data.salt && data.salt.length === SALT_SIZE * 2
     );
   }
 
   static validatePassword(password: string): boolean {
-    return password && password.length >= 12;
+    return !!password && password.length >= 12;
   }
 
   static validateEncryptionConfig(config: EncryptionConfig): boolean {

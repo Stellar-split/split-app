@@ -4,10 +4,15 @@
 
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  options?: { maxAttempts?: number; initialDelayMs?: number }
+  options?: {
+    maxAttempts?: number;
+    initialDelayMs?: number;
+    onRetry?: (attempt: number, error: Error) => void;
+  }
 ): Promise<T> {
   const maxAttempts = options?.maxAttempts ?? 3;
   const initialDelayMs = options?.initialDelayMs ?? 100;
+  const onRetry = options?.onRetry;
 
   let lastError: Error | null = null;
 
@@ -17,6 +22,7 @@ export async function retryWithBackoff<T>(
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       if (attempt < maxAttempts - 1) {
+        onRetry?.(attempt + 1, lastError);
         const delayMs = initialDelayMs * Math.pow(2, attempt);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }

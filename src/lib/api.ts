@@ -11,7 +11,7 @@
  *    are recorded.
  */
 
-import { AppError } from "./errors";
+import { AppError } from "./appError";
 import {
   retryWithBackoff,
   parseRetryAfter,

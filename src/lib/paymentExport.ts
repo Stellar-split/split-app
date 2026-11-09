@@ -12,6 +12,7 @@ import {
  * Supported export formats for payment data.
  */
 export type PaymentExportFormat = 'csv' | 'json' | 'pdf';
+export type ExportFormat = PaymentExportFormat;
 
 /**
  * Filter object accepted by the export helpers.
@@ -314,4 +315,26 @@ export function generateReconciliationReport(
 
 function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+export interface ExportHistoryRecord {
+  invoiceId: string;
+  format: PaymentExportFormat;
+  paymentCount: number;
+  startDate: string | null;
+  endDate: string | null;
+  columns?: string[];
+}
+
+export function recordExportHistory(record: ExportHistoryRecord): void {
+  try {
+    const history = JSON.parse(localStorage.getItem('exportHistory') || '[]');
+    history.push({
+      ...record,
+      timestamp: new Date().toISOString(),
+    });
+    localStorage.setItem('exportHistory', JSON.stringify(history.slice(-100)));
+  } catch (error) {
+    console.error('Failed to record export history:', error);
+  }
 }

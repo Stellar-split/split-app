@@ -268,6 +268,12 @@ export interface AmendmentNotification {
   recipients: InvoiceRecipient[];
 }
 
+export interface InvoiceVersionDiff {
+  field: InvoiceField;
+  before: unknown;
+  after: unknown;
+}
+
 /**
  * Build notifications for parties affected by an amendment.
  */
@@ -287,4 +293,40 @@ export function buildAmendmentNotifications(
     changedFields: version.diff.fields.map((f) => f.field),
     recipients: [recipient],
   }));
+}
+
+/**
+ * Fetch all versions for an invoice.
+ */
+export async function getInvoiceVersions(
+  invoiceId: string,
+): Promise<InvoiceVersion[]> {
+  // This is a stub - in a real implementation, this would fetch from a store or API
+  return [];
+}
+
+/**
+ * Get versions from a local history array.
+ */
+export function getInvoiceVersionsSync(
+  history: InvoiceVersion[],
+  invoiceId: string,
+): InvoiceVersion[] {
+  return getVersionHistory(history, invoiceId);
+}
+
+/**
+ * Send notifications for parties affected by an amendment.
+ */
+export async function notifyAffectedParties(
+  invoiceId: string,
+  details: {
+    action: string;
+    versionNumber?: number;
+    reason?: string;
+    comment?: string;
+    diff?: unknown;
+  },
+): Promise<void> {
+  // This is a stub - in a real implementation, this would send notifications
 }

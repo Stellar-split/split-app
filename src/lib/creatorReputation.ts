@@ -10,7 +10,7 @@
 import {
   gradeForScore,
   MIN_INVOICES_FOR_SCORE,
-  type Grade,
+  type AccountabilityGrade,
 } from './creatorAccountability';
 import {
   getTrustBadges,
@@ -20,7 +20,9 @@ import {
 } from './creatorVerification';
 
 export { MIN_INVOICES_FOR_SCORE };
-export type { Grade, TrustBadge, TrustTier };
+export type { AccountabilityGrade as Grade, TrustBadge, TrustTier };
+
+type Grade = AccountabilityGrade;
 
 /** Raw metrics used to compute a creator's reputation. */
 export interface CreatorReputationInput {
@@ -48,16 +50,22 @@ export interface CreatorReputationInput {
 export interface CreatorReputationBreakdown {
   /** On-time payment rate component (weight 35). */
   onTime: number;
+  /** On-time payment rate (alias). */
+  onTimeRate?: number;
   /** Completion rate component (weight 25). */
   completion: number;
+  /** Completion rate (alias). */
+  completionRate?: number;
   /** Dispute rate component (weight 25). */
   disputes: number;
+  /** Dispute rate (alias). */
+  disputeRate?: number;
   /** Responsiveness component (weight 15). */
   responsiveness: number;
 }
 
 /** Result of computing a creator's reputation. */
-export interface CreatorReputationResult {
+export interface CreatorReputationResult extends CreatorReputationInput {
   /** Overall score 0-100, or null when there is insufficient history. */
   score: number | null;
   /** Letter grade derived from the score, or null when unscored. */
@@ -66,9 +74,21 @@ export interface CreatorReputationResult {
   breakdown: CreatorReputationBreakdown;
   /** Trust tier derived from the creator's verification state. */
   trustTier: TrustTier;
+  /** Trust tier (alias). */
+  tier?: TrustTier;
   /** Trust badges derived from the creator's verification state. */
   badges: TrustBadge[];
+  /** Whether the creator has been rated/scored. */
+  rated?: boolean;
+  /** On-time rate. */
+  onTimeRate?: number;
 }
+
+/** Alias for CreatorReputationResult. */
+export type CreatorReputation = CreatorReputationResult;
+
+/** Alias for CreatorReputationBreakdown. */
+export type CreatorReputationMetrics = CreatorReputationBreakdown;
 
 /** Weights for each score component. Must sum to 100. */
 export const REPUTATION_WEIGHTS = {
@@ -164,16 +184,26 @@ export function computeCreatorReputation(
     responsiveness: computeResponsivenessScore(input),
   };
 
-  const trustTier = getTrustTier(input);
-  const badges = getTrustBadges(input);
+  const profile = {
+    emailVerified: false,
+    walletVerified: false,
+    kycVerified: false,
+    accountAgeDays: 0,
+    completedInvoices: input.fulfilledInvoices,
+    disputeRate: input.totalInvoices > 0 ? input.disputesLost / input.totalInvoices : 0,
+  };
+  const trustTier = getTrustTier(profile);
+  const badges = getTrustBadges(profile);
 
   if (input.totalInvoices < MIN_INVOICES_FOR_SCORE) {
     return {
+      ...input,
       score: null,
       grade: null,
       breakdown,
       trustTier,
       badges,
+      rated: false,
     };
   }
 
@@ -187,16 +217,18 @@ export function computeCreatorReputation(
   const score = Math.round(clamp(weighted, 0, 100));
 
   return {
+    ...input,
     score,
     grade: gradeForScore(score),
     breakdown,
     trustTier,
     badges,
+    rated: true,
   };
 }
 
 /** Status of a reputation appeal. */
-export type ReputationAppealStatus = 'pending' | 'approved' | 'rejected';
+export type ReputationAppealStatus = 'pending' | 'under_review' | 'approved' | 'rejected';
 
 /** A creator's appeal against their reputation score. */
 export interface ReputationAppeal {
@@ -207,6 +239,7 @@ export interface ReputationAppeal {
   submittedAt: string;
   resolvedAt: string | null;
   resolutionNote: string | null;
+  evidenceUrl?: string;
 }
 
 const APPEAL_STORAGE_KEY = 'creatorReputation.appeals.v1';
@@ -264,18 +297,41 @@ function generateAppealId(): string {
  * Submit a new reputation appeal for a creator.
  * Returns the created appeal record.
  */
+export interface SubmitAppealOptions {
+  creatorId?: string;
+  creatorAddress?: string;
+  reason: string;
+  evidenceUrl?: string;
+}
+
 export function submitReputationAppeal(
-  creatorAddress: string,
-  reason: string,
+  optionsOrAddress: SubmitAppealOptions | string,
+  reason?: string,
 ): ReputationAppeal {
+  let creatorAddress: string;
+  let appealReason: string;
+  let evidenceUrl: string | undefined;
+
+  if (typeof optionsOrAddress === 'string') {
+    // Legacy API: (creatorAddress, reason)
+    creatorAddress = optionsOrAddress;
+    appealReason = reason || '';
+  } else {
+    // New API: (options)
+    creatorAddress = optionsOrAddress.creatorAddress || optionsOrAddress.creatorId || '';
+    appealReason = optionsOrAddress.reason;
+    evidenceUrl = optionsOrAddress.evidenceUrl;
+  }
+
   const appeal: ReputationAppeal = {
     id: generateAppealId(),
     creatorAddress,
-    reason,
+    reason: appealReason,
     status: 'pending',
     submittedAt: new Date().toISOString(),
     resolvedAt: null,
     resolutionNote: null,
+    evidenceUrl,
   };
   appealStore = [...appealStore, appeal];
   persistAppeals();
@@ -316,3 +372,7 @@ export function resolveAppeal(
   persistAppeals();
   return updated;
 }
+
+// Aliases for backward compatibility
+export const getCreatorAppeals = listAppealsForCreator;
+export type AppealStatus = ReputationAppealStatus;

@@ -52,14 +52,19 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
         endDate || null
       );
 
-      exportPayments({
-        invoiceId,
-        payments: filteredPayments,
-        format: exportFormat,
-        columns: selectedColumns,
-        startDate: startDate || null,
-        endDate: endDate || null,
-      });
+      const exportablePayments = filteredPayments.map(p => ({
+        ...p,
+        amount: typeof p.amount === 'bigint' ? Number(p.amount) : p.amount,
+      }));
+
+      exportPayments(
+        exportablePayments,
+        exportFormat,
+        {
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+        }
+      );
 
       recordExportHistory({
         invoiceId,

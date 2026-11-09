@@ -1,15 +1,46 @@
-export function getDueSchedules(): any[] {
+export interface RecurringSchedule {
+  id: string;
+  invoiceId: string;
+  frequency: 'weekly' | 'biweekly' | 'monthly';
+  nextRun: string;
+  lastRun?: string;
+  status: 'active' | 'paused' | 'cancelled';
+  totalAmount: number;
+  amountPerRun: number;
+  amount: number;
+  token?: string;
+  templateName?: string;
+}
+
+export interface ScheduleHistoryEntry {
+  id: string;
+  scheduleId: string;
+  timestamp: number;
+  success: boolean;
+  status: 'success' | 'failed';
+  amount: number;
+  txHash?: string;
+}
+
+export function getDueSchedules(invoiceId?: string): RecurringSchedule[] {
   return [];
 }
 
-export function getScheduleHistory(id: string): any[] {
+export function getScheduleHistory(invoiceId: string): ScheduleHistoryEntry[] {
   return [];
 }
 
-export function recordPaymentAttempt(id: string, success: boolean): void {}
+export interface PaymentAttemptRecord {
+  status: 'success' | 'failed';
+  amount: number;
+  nextRun: string | number;
+  note: string;
+}
 
-export function computeNextRun(schedule: any): number {
-  return 0;
+export function recordPaymentAttempt(id: string, record: PaymentAttemptRecord): void {}
+
+export function computeNextRun(schedule: RecurringSchedule): string {
+  return new Date().toISOString().split('T')[0];
 }
 
 export function pauseSchedule(id: string): void {}

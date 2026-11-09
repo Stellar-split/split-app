@@ -54,7 +54,7 @@ export default function ReminderSender({
 
   const handleToggleSuppression = () => {
     const next = !suppressed;
-    setSuppressed(next);
+    setSuppressed(invoiceId, next);
     setSuppressedState(next);
   };
 
@@ -150,7 +150,7 @@ export default function ReminderSender({
       {/* Escalation status */}
       <div className="flex flex-wrap items-center gap-2 mb-3 text-xs">
         <span className="px-2 py-1 rounded-full bg-amber-900/60 text-amber-200 font-semibold">
-          Escalation: {escalation.label}
+          Escalation: {escalation.charAt(0).toUpperCase() + escalation.slice(1)}
         </span>
         {nextReminder && (
           <span className="text-gray-400">
@@ -215,7 +215,7 @@ export default function ReminderSender({
         <button
           type="button"
           onClick={() => {
-            handleDispatch("copy");
+            recordEngagement(invoiceId, "copied");
             void handleCopy();
           }}
           disabled={isScheduling}
@@ -235,7 +235,7 @@ export default function ReminderSender({
               e.preventDefault();
               return;
             }
-            handleDispatch("whatsapp");
+            recordEngagement(invoiceId, "shared");
           }}
           className={`min-h-11 flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-sm font-semibold transition-colors ${
             isScheduling ? "opacity-40 cursor-not-allowed pointer-events-none" : ""
@@ -264,7 +264,7 @@ export default function ReminderSender({
               e.preventDefault();
               return;
             }
-            handleDispatch("telegram");
+            recordEngagement(invoiceId, "shared");
           }}
           className={`min-h-11 flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-sm font-semibold transition-colors ${
             isScheduling ? "opacity-40 cursor-not-allowed pointer-events-none" : ""

@@ -40,8 +40,8 @@ export default function SubscriptionDetailClient() {
     setError(null);
 
     try {
-      const stored = loadSubscriptions();
-      const sub = stored.find((s) => s.id === id);
+      const stored = await loadSubscriptions();
+      const sub = stored.find((s) => s.id === id) as Subscription | undefined;
 
       if (!sub) {
         setError("Subscription not found.");
@@ -82,10 +82,6 @@ export default function SubscriptionDetailClient() {
     setSubscription((prev) => {
       if (!prev) return prev;
       const updated = updater(prev);
-      const all = loadSubscriptions();
-      const idx = all.findIndex((s) => s.id === id);
-      if (idx !== -1) all[idx] = updated;
-      saveSubscriptions(all);
       return updated;
     });
   };
@@ -93,7 +89,8 @@ export default function SubscriptionDetailClient() {
   const handlePause = async () => {
     setActionLoading(true);
     try {
-      updateSub(pauseSubscription);
+      await pauseSubscription(id);
+      setSubscription((prev) => prev ? { ...prev, status: 'paused' } : prev);
     } finally {
       setActionLoading(false);
     }
@@ -102,26 +99,37 @@ export default function SubscriptionDetailClient() {
   const handleResume = async () => {
     setActionLoading(true);
     try {
-      updateSub(resumeSubscription);
+      await resumeSubscription(id);
+      setSubscription((prev) => prev ? { ...prev, status: 'active' } : prev);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleCancel = async (reason: string) => {
+  const handleCancel = async (reason?: string, note?: string) => {
     setActionLoading(true);
     try {
-      updateSub((sub) => cancelSubscription(sub, reason));
+      await cancelSubscription(id);
+      setSubscription((prev) => prev ? { ...prev, status: 'cancelled' } : prev);
       setShowCancelModal(false);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleModify = async (changes: Partial<Subscription>) => {
+  const handleModify = async (changes: { frequency: string; intervalDays: number; recipients: Array<{ id: string; name: string; amount: number }> }) => {
     setActionLoading(true);
     try {
-      updateSub((sub) => modifySubscription(sub, changes));
+      const subscriptionChanges: Partial<Subscription> = {
+        frequency: changes.frequency as any,
+        intervalDays: changes.intervalDays,
+        recipients: changes.recipients.map((r) => ({
+          address: r.id,
+          amount: BigInt(Math.floor(r.amount * 1_000_000)),
+        })),
+      };
+      await modifySubscription(id, subscriptionChanges);
+      setSubscription((prev) => prev ? { ...prev, ...subscriptionChanges } : prev);
       setShowModifyModal(false);
     } finally {
       setActionLoading(false);
@@ -150,7 +158,11 @@ export default function SubscriptionDetailClient() {
     );
   }
 
-  const display = formatSubscriptionForDisplay(subscription);
+  const subscriptionForDisplay = {
+    ...subscription,
+    name: subscription.templateName
+  } as any;
+  const display = formatSubscriptionForDisplay(subscriptionForDisplay);
 
   return (
     <main className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-16 overflow-x-hidden">
@@ -312,18 +324,25 @@ export default function SubscriptionDetailClient() {
 
       {showCancelModal && (
         <CancelModal
+          invoiceId={id}
+          invoiceTitle={`Subscription: ${subscription?.templateName || id}`}
           onConfirm={handleCancel}
           onClose={() => setShowCancelModal(false)}
-          loading={actionLoading}
         />
       )}
 
-      {showModifyModal && (
+      {showModifyModal && subscription && (
         <SubscriptionModifyModal
-          subscription={subscription}
-          onSave={handleModify}
+          isOpen={showModifyModal}
+          onConfirm={handleModify}
           onClose={() => setShowModifyModal(false)}
-          loading={actionLoading}
+          initialFrequency={subscription.frequency}
+          initialIntervalDays={subscription.intervalDays}
+          initialRecipients={subscription.recipients.map((r) => ({
+            id: r.address,
+            name: r.address,
+            amount: Number(r.amount) / 1_000_000,
+          }))}
         />
       )}
 

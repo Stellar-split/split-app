@@ -16,6 +16,7 @@ import { saveReceipt } from "@/lib/receiptStore";
 import { apiFetch } from "@/lib/apiClient";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import type { RateLock } from "@/lib/currency";
+import { getActiveNetwork } from "@/lib/networks";
 
 const STELLAR_EXPERT_BASE =
   getActiveNetwork().explorerTxBase;
@@ -145,7 +146,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
       setLockExpired(false);
       return;
     }
-    const check = () => setLockExpired(Date.now() >= rateLock.expiresAt);
+    const check = () => setLockExpired(Date.now() >= rateLock.expiresAt.getTime());
     check();
     const timer = setInterval(check, 1000);
     return () => clearInterval(timer);
@@ -251,11 +252,12 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
     }
     setError(null);
     if (!rateLock && xlmRate) {
+      const now = new Date();
       setRateLock({
         currency: invoiceCurrency,
-        rate: xlmRate.rate,
-        lockedAt: Date.now(),
-        expiresAt: Date.now() + 5 * 60 * 1000,
+        rate: xlmRate,
+        lockedAt: now,
+        expiresAt: new Date(now.getTime() + 5 * 60 * 1000),
       });
     }
     setShowBreakdown(true);
@@ -608,7 +610,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
                 : ratesError
                   ? "Unavailable"
                   : xlmRate
-                    ? `1 ${invoiceCurrency} ≈ ${xlmRate.rate.toFixed(6)} XLM`
+                    ? `1 ${invoiceCurrency} ≈ ${xlmRate.toFixed(6)} XLM`
                     : "Unavailable"}
             </span>
           </div>
@@ -616,7 +618,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
             <div className="flex items-center justify-between mt-1">
               <span className="text-gray-400">Converted total</span>
               <span className="font-mono text-indigo-300">
-                ≈ {(Number(formatAmount(paymentTotal)) * xlmRate.rate).toFixed(6)} XLM
+                ≈ {(Number(formatAmount(paymentTotal)) * xlmRate).toFixed(6)} XLM
               </span>
             </div>
           )}

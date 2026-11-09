@@ -358,7 +358,7 @@ export default function ReputationAppealForm({
                       {STATUS_LABELS[appeal.status] ?? appeal.status}
                     </span>
                     <span className="text-xs text-gray-500">
-                      {formatDate(appeal.createdAt)}
+                      {formatDate(appeal.submittedAt)}
                     </span>
                   </div>
                   <p className="mt-2 whitespace-pre-wrap break-words text-gray-700">

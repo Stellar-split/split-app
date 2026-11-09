@@ -193,8 +193,8 @@ async function fetchRemoteFlags(): Promise<FeatureFlagMap> {
     });
     if (!response.ok) return {};
     const data = (await response.json()) as { flags?: FeatureFlagMap } | FeatureFlagMap;
-    if (data && typeof data === 'object' && 'flags' in data && data.flags) {
-      return data.flags;
+    if (data && typeof data === 'object' && 'flags' in data && data.flags && typeof data.flags === 'object') {
+      return data.flags as FeatureFlagMap;
     }
     return (data as FeatureFlagMap) ?? {};
   } catch {

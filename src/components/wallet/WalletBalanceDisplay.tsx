@@ -15,7 +15,7 @@ function SkeletonText() {
 export default function WalletBalanceDisplay({ address, isOpen = true }: Props) {
   const { xlmBalance, usdcBalance, isLoading, isRetrying, refetch } = useWalletBalance(
     address,
-    isOpen && !!address
+    { enabled: isOpen && !!address }
   );
 
   if (!address) {

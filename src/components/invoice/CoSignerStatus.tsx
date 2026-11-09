@@ -16,7 +16,7 @@ export default function CoSignerStatus({ cosigners, threshold, connectedAddress 
             <span className={cosigner.address === connectedAddress ? "font-bold" : ""}>
               {cosigner.address}
             </span>
-            {cosigner.signed && <span className="ml-2">✓</span>}
+            {cosigner.approved && <span className="ml-2">✓</span>}
           </li>
         ))}
       </ul>
