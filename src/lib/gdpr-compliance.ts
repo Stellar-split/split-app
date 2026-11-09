@@ -102,6 +102,7 @@ export class GDPRComplianceManager {
       dataCategory: 'DATA_EXPORT',
       details: { format },
       ipAddress,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
     });
 
     return requestId;
@@ -120,6 +121,7 @@ export class GDPRComplianceManager {
       dataCategory: 'DATA_EXPORT',
       details: { requestId },
       ipAddress: '',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
     });
   }
 
@@ -142,6 +144,7 @@ export class GDPRComplianceManager {
       dataCategory: 'DATA_DELETION',
       details: { reason },
       ipAddress,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
     });
 
     return requestId;
@@ -161,6 +164,7 @@ export class GDPRComplianceManager {
       dataCategory: 'DATA_DELETION',
       details: { requestId },
       ipAddress: '',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
     });
 
     return true;
