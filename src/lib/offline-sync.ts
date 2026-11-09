@@ -108,10 +108,7 @@ export class OfflineSyncEngine {
   private mergePayloads(local: SyncPayload, remote: SyncPayload): SyncPayload {
     return {
       ...local,
-      data: {
-        ...remote.data,
-        ...local.data,
-      },
+      data: Object.assign({}, remote.data || {}, local.data || {}),
       timestamp: Math.max(local.timestamp, remote.timestamp),
     };
   }
