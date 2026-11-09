@@ -76,6 +76,7 @@ export class GDPRComplianceManager {
       dataCategory: 'CONSENT',
       details: { consents: Object.fromEntries(consents) },
       ipAddress,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
     });
   }
 
