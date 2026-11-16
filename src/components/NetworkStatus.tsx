@@ -172,10 +172,10 @@ export default function NetworkStatus() {
   const activeNetwork = getActiveNetwork();
   const networkBadgeClasses =
     activeNetwork.label === "Mainnet"
-      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600"
+      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-700"
       : activeNetwork.label === "Testnet"
-      ? "bg-amber-500/15 border-amber-500/40 text-amber-700"
-      : "bg-gray-500/15 border-gray-500/40 text-gray-600";
+      ? "bg-amber-500/15 border-amber-500/40 text-amber-800"
+      : "bg-gray-500/15 border-gray-500/40 text-gray-700";
 
   const networkIcon =
     activeNetwork.label === "Mainnet" ? "🌐" : activeNetwork.label === "Testnet" ? "🧪" : "❓";
