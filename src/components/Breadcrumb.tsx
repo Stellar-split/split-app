@@ -67,7 +67,7 @@ export default function Breadcrumb({ items }: Props) {
 
   return (
     <nav
-      className="flex items-center gap-1 text-sm text-gray-400 px-4 sm:px-6 py-2 border-b border-gray-800 overflow-x-auto"
+      className="flex items-center gap-1 text-sm text-gray-500 px-4 sm:px-6 py-2 border-b border-gray-800 overflow-x-auto"
       aria-label="Breadcrumb"
     >
       <ol className="flex items-center gap-1">
@@ -81,13 +81,13 @@ export default function Breadcrumb({ items }: Props) {
                 </span>
               )}
               {isLast ? (
-                <span className="text-gray-300 font-medium" aria-current="page">
+                <span className="text-gray-200 font-medium" aria-current="page">
                   {item.label}
                 </span>
               ) : (
                 <Link
                   href={item.href || "/"}
-                  className="hover:text-gray-200 transition-colors"
+                  className="hover:text-white transition-colors"
                 >
                   {item.label}
                 </Link>
