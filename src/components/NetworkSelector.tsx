@@ -19,9 +19,9 @@ import {
 } from "@/lib/networks";
 
 const BADGE_STYLES: Record<NetworkId, string> = {
-  mainnet: "bg-emerald-500/15 border-emerald-500/40 text-emerald-300",
-  testnet: "bg-amber-500/15 border-amber-500/40 text-amber-300",
-  custom: "bg-violet-500/15 border-violet-500/40 text-violet-300",
+  mainnet: "bg-emerald-500/15 border-emerald-500/40 text-emerald-700",
+  testnet: "bg-amber-500/15 border-amber-500/40 text-amber-900",
+  custom: "bg-violet-500/15 border-violet-500/40 text-violet-700",
 };
 
 const BADGE_ICONS: Record<NetworkId, string> = { mainnet: "🌐", testnet: "🧪", custom: "🛠" };
@@ -167,7 +167,7 @@ export default function NetworkSelector() {
             type="button"
             onClick={() => setMismatchDismissed(true)}
             aria-label="Dismiss network mismatch warning"
-            className="shrink-0 text-amber-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded"
+            className="shrink-0 text-amber-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded"
           >
             ✕
           </button>
