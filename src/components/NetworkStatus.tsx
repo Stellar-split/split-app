@@ -174,7 +174,7 @@ export default function NetworkStatus() {
     activeNetwork.label === "Mainnet"
       ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-700"
       : activeNetwork.label === "Testnet"
-      ? "bg-amber-500/15 border-amber-500/40 text-amber-800"
+      ? "bg-amber-500/15 border-amber-500/40 text-amber-900"
       : "bg-gray-500/15 border-gray-500/40 text-gray-700";
 
   const networkIcon =
