@@ -2,6 +2,7 @@
 import {
   paymentsToCSV,
   filterPaymentsByDateRange,
+  type PaymentWithMeta,
 } from './csvExport';
 import {
   buildPaymentSummaryHtml,
@@ -136,7 +137,7 @@ export function filterPayments<T extends ExportablePayment>(
 
   if (startDate || endDate) {
     result = (filterPaymentsByDateRange(
-      result as unknown,
+      result as unknown as PaymentWithMeta[],
       startDate,
       endDate,
     ) as unknown) as T[];

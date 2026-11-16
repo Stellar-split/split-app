@@ -5,7 +5,7 @@
 import type { Payment } from "@stellar-split/sdk";
 import { formatAmount } from "@stellar-split/sdk";
 
-type PaymentWithMeta = Payment & { timestamp?: number; txHash?: string };
+export type PaymentWithMeta = Payment & { timestamp?: number; txHash?: string };
 
 export interface PaymentExportRow {
   payer_address: string;

@@ -169,6 +169,17 @@ vi.mock('@/contexts/AccessibilityContext', () => ({
   })),
 }));
 
+vi.mock('@/contexts/WalletContext', () => ({
+  WalletProvider: ({ children }: any) => children,
+  useWalletContext: vi.fn(() => ({
+    address: 'GTEST123456789',
+    isConnected: false,
+    connect: vi.fn(async () => {}),
+    disconnect: vi.fn(),
+    signTransaction: vi.fn(async (xdr) => ({ signedXdr: xdr })),
+  })),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({
     push: vi.fn(async () => {}),
