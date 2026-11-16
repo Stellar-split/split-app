@@ -130,6 +130,7 @@ export default function RootLayout({
               <I18nProvider>
                 <SessionLockProvider>
                   <ToastProvider>
+                    <WalletProvider>
                     {!isEmbed && <SkipNavLink />}
                     {!isEmbed && <Navbar />}
                     {!isEmbed && <SimulationBanner />}
@@ -151,6 +152,7 @@ export default function RootLayout({
                     {!isEmbed && <OnboardingFlow />}
                     {!isEmbed && <RecipientOnboarding />}
                     {!isEmbed && <InstallBanner />}
+                    </WalletProvider>
                   </ToastProvider>
                 </SessionLockProvider>
               </I18nProvider>
