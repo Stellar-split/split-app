@@ -1,5 +1,5 @@
 import React from "react";
-import { vi } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import PayModal, { getPaymentErrorMessage } from "@/components/PayModal";
 import type { Invoice } from "@stellar-split/sdk";

@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { vi } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
 import userEvent from "@testing-library/user-event";
 import CancelModal from "@/components/CancelModal";
 

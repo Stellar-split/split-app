@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
 /**
  * Unit tests for CooldownBadge.
  *

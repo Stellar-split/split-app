@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { vi } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
 import ChartBuilder from "@/components/analytics/ChartBuilder";
 import type { ChartBuilderDataPoint } from "@/components/analytics/ChartBuilder";
 

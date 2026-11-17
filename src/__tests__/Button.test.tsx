@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Button from '@/components/Button';

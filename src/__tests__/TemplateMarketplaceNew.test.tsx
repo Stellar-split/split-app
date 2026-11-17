@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, within } from "@testing-library/react";
-import { vi } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
 import TemplateMarketplace from "@/components/TemplateMarketplace";
 import type { UserTemplate } from "@/components/TemplateManager";
 

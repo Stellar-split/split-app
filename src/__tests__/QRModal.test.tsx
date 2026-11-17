@@ -1,4 +1,4 @@
-import { vi, describe, it, test, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect, describe, it, test, beforeEach, afterEach, expect } from "vitest";
 /**
  * Unit tests for QRModal polling (#211).
  *

@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import CommandPalette, { fuzzyMatch } from "@/components/CommandPalette";

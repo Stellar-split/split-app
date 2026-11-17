@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { vi, describe, test, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect, describe, test, beforeEach, afterEach, expect } from "vitest";
 import GlobalSearch from "@/components/GlobalSearch";
 import type { Invoice } from "@stellar-split/sdk";
 
