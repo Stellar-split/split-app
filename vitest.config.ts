@@ -36,9 +36,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@/contexts/AccessibilityContext': path.resolve(__dirname, './src/__mocks__/contexts/AccessibilityContext.tsx'),
-      '@/contexts/WalletContext': path.resolve(__dirname, './src/__mocks__/contexts/WalletContext.tsx'),
-      '@/context/ToastContext': path.resolve(__dirname, './src/__mocks__/context/ToastContext.tsx'),
     },
   },
 });
