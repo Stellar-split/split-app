@@ -26,7 +26,7 @@ export default function SettingsPage() {
         <h2 id="currency-heading" className="text-lg font-semibold mb-1">
           Display currency
         </h2>
-        <p className="text-sm text-gray-400 mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Invoice amounts show a fiat equivalent in this currency. The rate refreshes
           every 60 seconds.
         </p>
