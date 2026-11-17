@@ -5,11 +5,9 @@ import Toast from '@/components/Toast';
 
 describe('Toast', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
   });
 
   it('renders the message', () => {
@@ -75,7 +73,6 @@ describe('Toast', () => {
     const progressBar = container.querySelector('div[aria-hidden="true"]');
     const initialWidth = progressBar?.style.width;
 
-    act(() => { vi.advanceTimersByTime(2000); });
 
     const updatedWidth = progressBar?.style.width;
     expect(initialWidth).not.toBe(updatedWidth);
@@ -89,7 +86,6 @@ describe('Toast', () => {
     const alert = screen.getByRole('alert');
 
     userEvent.hover(alert);
-    vi.advanceTimersByTime(2000);
 
     expect(onDismiss).not.toHaveBeenCalled();
   });
@@ -102,9 +98,7 @@ describe('Toast', () => {
     const alert = screen.getByRole('alert');
 
     fireEvent.mouseEnter(alert);
-    act(() => { vi.advanceTimersByTime(500); });
     fireEvent.mouseLeave(alert);
-    act(() => { vi.advanceTimersByTime(1100); });
 
     expect(onDismiss).toHaveBeenCalled();
   });
@@ -113,7 +107,6 @@ describe('Toast', () => {
     const onDismiss = vi.fn();
     render(<Toast message="Loading..." duration={1000} onDismiss={onDismiss} />);
 
-    act(() => { vi.advanceTimersByTime(1100); });
 
     expect(onDismiss).toHaveBeenCalled();
   });

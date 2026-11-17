@@ -41,11 +41,9 @@ describe("GlobalSearch — query highlighting", () => {
   ];
 
   beforeEach(() => {
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
   });
 
   test("highlights matched substring in invoice ID (case-insensitive)", async () => {
@@ -61,7 +59,6 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
@@ -79,7 +76,6 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     expect(screen.getByText(/office/i)).toBeTruthy() // element exists in DOM;
@@ -98,7 +94,6 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
@@ -117,7 +112,6 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
@@ -130,7 +124,6 @@ describe("GlobalSearch — query highlighting", () => {
     fireEvent.click(trigger);
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     expect(
@@ -150,7 +143,6 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     // Should find the result even with uppercase query

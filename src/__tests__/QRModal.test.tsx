@@ -38,12 +38,10 @@ const baseProps = {
 };
 
 beforeEach(() => {
-  vi.useFakeTimers();
   mockIsWalletConnected.mockResolvedValue(false);
 });
 
 afterEach(() => {
-  vi.useRealTimers();
   vi.clearAllMocks();
 });
 

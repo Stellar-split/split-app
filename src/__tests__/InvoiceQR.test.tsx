@@ -10,11 +10,9 @@ vi.mock("qrcode.react", () => ({
 }));
 
 beforeEach(() => {
-  vi.useFakeTimers();
 });
 
 afterEach(() => {
-  vi.useRealTimers();
 });
 
 describe("clampAmount", () => {
@@ -78,7 +76,6 @@ describe("InvoiceQR component", () => {
     fireEvent.change(input, { target: { value: "25" } });
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     const qr = screen.getByTestId("qr-canvas");

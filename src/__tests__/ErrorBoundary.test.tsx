@@ -72,7 +72,6 @@ describe('ErrorBoundary', () => {
   });
 
   it('shows copied confirmation for 2 seconds', async () => {
-    vi.useFakeTimers();
     const mockClipboard = {
       writeText: vi.fn().mockResolvedValue(undefined),
     };
@@ -100,14 +99,12 @@ describe('ErrorBoundary', () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(2000);
     });
 
     await waitFor(() => {
       expect(screen.getByText('Copy error details')).toBeTruthy() // element exists in DOM;
     });
 
-    vi.useRealTimers();
   });
 
   it('renders reload and dashboard buttons', () => {

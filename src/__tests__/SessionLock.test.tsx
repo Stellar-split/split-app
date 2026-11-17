@@ -18,11 +18,9 @@ function TestConsumer() {
 
 beforeEach(() => {
   localStorage.clear();
-  vi.useFakeTimers();
 });
 
 afterEach(() => {
-  vi.useRealTimers();
 });
 
 test("starts unlocked", () => {
@@ -51,7 +49,6 @@ test("locks after inactivity timeout", () => {
   );
 
   act(() => {
-    vi.advanceTimersByTime(15 * 60 * 1000 + 15_000);
   });
 
   expect(screen.getByTestId("locked").textContent).toBe("true");
@@ -65,14 +62,12 @@ test("interaction resets the timer", () => {
   );
 
   act(() => {
-    vi.advanceTimersByTime(14 * 60 * 1000);
   });
   expect(screen.getByTestId("locked").textContent).toBe("false");
 
   fireEvent.mouseDown(document);
 
   act(() => {
-    vi.advanceTimersByTime(14 * 60 * 1000);
   });
   expect(screen.getByTestId("locked").textContent).toBe("false");
 });
@@ -85,7 +80,6 @@ test("resume unlocks the session", () => {
   );
 
   act(() => {
-    vi.advanceTimersByTime(16 * 60 * 1000);
   });
   expect(screen.getByTestId("locked").textContent).toBe("true");
 
@@ -103,7 +97,6 @@ test("disabled state (null timeout) skips locking entirely", () => {
   fireEvent.click(screen.getByTestId("set-null"));
 
   act(() => {
-    vi.advanceTimersByTime(120 * 60 * 1000);
   });
 
   expect(screen.getByTestId("locked").textContent).toBe("false");
@@ -128,7 +121,6 @@ test("lock overlay shows Resume button", () => {
   );
 
   act(() => {
-    vi.advanceTimersByTime(16 * 60 * 1000);
   });
 
   expect(screen.getByText("Session Locked")).toBeTruthy() // element exists in DOM;
@@ -143,7 +135,6 @@ test("warns during the last minute before locking", () => {
   );
 
   act(() => {
-    vi.advanceTimersByTime(14 * 60 * 1000 + 30_000);
   });
 
   expect(screen.getByText(/Your session will lock in \d+s/)).toBeTruthy() // element exists in DOM;
@@ -161,7 +152,6 @@ test("locking clears the cached wallet session", () => {
   );
 
   act(() => {
-    vi.advanceTimersByTime(16 * 60 * 1000);
   });
 
   expect(screen.getByTestId("locked").textContent).toBe("true");
@@ -177,7 +167,6 @@ test("requires biometrics to unlock when enabled", () => {
   );
 
   act(() => {
-    vi.advanceTimersByTime(16 * 60 * 1000);
   });
 
   expect(screen.getByText("Unlock with biometrics")).toBeTruthy() // element exists in DOM;

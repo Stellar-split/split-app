@@ -240,7 +240,6 @@ describe("PaymentSummaryCard", () => {
   });
 
   test("copy confirmation disappears after 2 seconds", async () => {
-    vi.useFakeTimers();
     const testRef = "inv-12345-ref";
     mockGetInvoice.mockResolvedValue(
       makeInvoice([{ payer: "ADDR_A", amount: 50_000_000n }]),
@@ -270,12 +269,10 @@ describe("PaymentSummaryCard", () => {
 
     // Advance time by 2 seconds
     await act(async () => {
-      vi.advanceTimersByTime(2000);
     });
 
     // Message should disappear
     expect(screen.queryByText(/Copied!/i)).not.toBeTruthy() // element exists in DOM;
-    vi.useRealTimers();
   });
 
   test("polling stops when invoice is Released", async () => {

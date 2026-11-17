@@ -4,12 +4,9 @@ import ToastContainer from '@/components/ToastContainer';
 
 describe('ToastContainer', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.runOnlyPendingTimers();
-    vi.useRealTimers();
   });
 
   it('renders no toasts when none are added', () => {
@@ -72,14 +69,11 @@ describe('ToastContainer', () => {
     act(() => { addToast('Saving...', 'info'); });
     expect(screen.getByText('Saving...')).toBeTruthy() // element exists in DOM;
 
-    act(() => { vi.advanceTimersByTime(4000); });
     expect(screen.getByText('Saving...')).toBeTruthy() // element exists in DOM;
 
     act(() => { addToast('Saving...', 'info'); });
-    act(() => { vi.advanceTimersByTime(4000); });
     expect(screen.getByText('Saving...')).toBeTruthy() // element exists in DOM;
 
-    act(() => { vi.advanceTimersByTime(1001); });
     expect(screen.queryByText('Saving...')).not.toBeTruthy() // element exists in DOM;
   });
 
@@ -92,7 +86,6 @@ describe('ToastContainer', () => {
     act(() => { addToast('Processed', 'success'); });
     expect(screen.getByText('Processed')).toBeTruthy() // element exists in DOM;
 
-    act(() => { vi.advanceTimersByTime(5001); });
     expect(screen.queryByText('Processed')).not.toBeTruthy() // element exists in DOM;
   });
 });

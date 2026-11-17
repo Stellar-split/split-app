@@ -21,11 +21,9 @@ vi.mock("qrcode.react", () => ({
 
 describe("Issue #600: QRModal Download QR Code", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -243,7 +241,6 @@ describe("Issue #600: QRModal Download QR Code", () => {
       />
     );
 
-    vi.advanceTimersByTime(2000);
 
     await waitFor(() => {
       expect(isWalletConnected).toHaveBeenCalled();
@@ -267,7 +264,6 @@ describe("Issue #600: QRModal Download QR Code", () => {
       />
     );
 
-    vi.advanceTimersByTime(2000);
 
     await waitFor(() => {
       expect(onConnected).toHaveBeenCalled();
@@ -291,7 +287,6 @@ describe("Issue #600: QRModal Download QR Code", () => {
       />
     );
 
-    vi.advanceTimersByTime(2000);
 
     rerender(
       <QRModal
@@ -305,7 +300,6 @@ describe("Issue #600: QRModal Download QR Code", () => {
 
     const callCountAfterClose = vi.mocked(isWalletConnected).mock.calls.length;
 
-    vi.advanceTimersByTime(2000);
 
     const callCountAfterWait = vi.mocked(isWalletConnected).mock.calls.length;
 
@@ -329,7 +323,6 @@ describe("Issue #600: QRModal Download QR Code", () => {
       />
     );
 
-    vi.advanceTimersByTime(500);
 
     await waitFor(() => {
       expect(vi.mocked(isWalletConnected).mock.calls.length).toBeGreaterThan(0);

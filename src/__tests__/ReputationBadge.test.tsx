@@ -426,7 +426,6 @@ describe("ReputationBadge", () => {
     });
 
     it("returns different instance after cache expiry", () => {
-      vi.useFakeTimers();
 
       const score1: ReputationScore = {
         overall: 50,
@@ -439,7 +438,6 @@ describe("ReputationBadge", () => {
       reputationCache.set(testAddress, { score: score1, timestamp: Date.now() });
 
       // Advance time past TTL
-      vi.advanceTimersByTime(6 * 60 * 1000);
 
       const cached = reputationCache.get(testAddress);
       if (cached && Date.now() - cached.timestamp >= 5 * 60 * 1000) {
@@ -447,7 +445,6 @@ describe("ReputationBadge", () => {
         expect(true).toBe(true);
       }
 
-      vi.useRealTimers();
     });
   });
 

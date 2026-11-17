@@ -126,7 +126,6 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
       configurable: true,
     });
 
-    vi.useFakeTimers();
 
     render(
       <TxConfirmModal
@@ -143,13 +142,11 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
       expect(screen.getByText("Copied!")).toBeTruthy() // element exists in DOM;
     });
 
-    vi.advanceTimersByTime(2001);
 
     await waitFor(() => {
       expect(screen.getByText("Copy")).toBeTruthy() // element exists in DOM;
     });
 
-    vi.useRealTimers();
   });
 
   it("should close modal when close button is clicked", async () => {

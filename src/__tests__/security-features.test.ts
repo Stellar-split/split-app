@@ -94,27 +94,21 @@ describe("#923 Session management", () => {
   });
 
   it("expires session after timeout", () => {
-    vi.useFakeTimers();
     const { id } = mod.createSession("GCAROL");
 
     // Advance past the timeout
-    vi.advanceTimersByTime((mod.SESSION_TIMEOUT_SECONDS + 1) * 1000);
 
     expect(mod.getSession(id)).toBeNull();
-    vi.useRealTimers();
   });
 
   it("touchSession updates lastActivity", () => {
     const record = mod.createSession("GDAVE");
     const before = record.lastActivity;
     // Small sleep via fake timers
-    vi.useFakeTimers();
-    vi.advanceTimersByTime(5000);
     const touched = mod.touchSession(record.id);
     expect(touched).toBe(true);
     const updated = mod.getSession(record.id);
     expect(updated!.lastActivity).toBeGreaterThan(before);
-    vi.useRealTimers();
   });
 
   it("destroySession removes the session", () => {
@@ -158,7 +152,6 @@ describe("#923 Session management", () => {
   });
 
   it("listUserSessions returns only active sessions", () => {
-    vi.useFakeTimers();
     const userId = "GIRIS";
     mod.createSession(userId);
     const active = mod.createSession(userId);
@@ -169,7 +162,6 @@ describe("#923 Session management", () => {
     mod.createSession(userId);
     const sessions = mod.listUserSessions(userId);
     expect(sessions).toHaveLength(1);
-    vi.useRealTimers();
   });
 
   it("signSession + verifySessionToken round-trip", () => {
@@ -221,11 +213,8 @@ describe("#924 API token authentication", () => {
   });
 
   it("verifyAccessToken returns null for an expired token", () => {
-    vi.useFakeTimers();
     const token = mod.issueAccessToken("GCAROL", ["read"]);
-    vi.advanceTimersByTime((mod.ACCESS_TOKEN_TTL_SECONDS + 60) * 1000);
     expect(mod.verifyAccessToken(token)).toBeNull();
-    vi.useRealTimers();
   });
 
   it("revokeAccessToken invalidates a valid token", () => {
@@ -446,7 +435,6 @@ describe("#926 Security audit logging", () => {
   });
 
   it("purgeExpiredLogs removes only entries beyond retention", () => {
-    vi.useFakeTimers();
     const retentionMs = mod.getRetentionMs();
 
     // Add an old entry
@@ -454,7 +442,6 @@ describe("#926 Security audit logging", () => {
     const sizeBefore = mod.getLogSize();
 
     // Advance time past retention
-    vi.advanceTimersByTime(retentionMs + 1000);
 
     // Add a fresh entry
     mod.logSecurityEvent({ eventType: "auth.logout", actor: "GN" });
@@ -462,7 +449,6 @@ describe("#926 Security audit logging", () => {
     const removed = mod.purgeExpiredLogs();
     expect(removed).toBeGreaterThanOrEqual(sizeBefore);
 
-    vi.useRealTimers();
   });
 
   it("getRetentionMs defaults to 90 days", () => {

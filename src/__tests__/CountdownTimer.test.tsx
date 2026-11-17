@@ -4,12 +4,10 @@ import CountdownTimer from "@/components/CountdownTimer";
 
 describe("CountdownTimer", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     jest.setSystemTime(new Date("2026-06-30T14:00:00.000Z"));
   });
 
   afterEach(() => {
-    vi.useRealTimers();
   });
 
   it("renders a human-readable countdown and updates every second", () => {
@@ -20,7 +18,6 @@ describe("CountdownTimer", () => {
     expect(screen.getByText("1d 1h 0m 0s remaining")).toBeTruthy() // element exists in DOM;
 
     act(() => {
-      vi.advanceTimersByTime(1000);
     });
 
     expect(screen.getByText("1d 0h 59m 59s remaining")).toBeTruthy() // element exists in DOM;

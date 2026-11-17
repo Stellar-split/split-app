@@ -25,13 +25,12 @@ const mockInvoice = {
 
 describe('useInvoiceStream', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     vi.clearAllMocks();
     mockGetSplitClient.mockReturnValue({ getInvoice: vi.fn() });
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
   it('should fetch initial invoice data', async () => {

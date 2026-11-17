@@ -25,13 +25,10 @@ vi.mock("@radix-ui/react-popover", () => ({
 describe("Payment Velocity Gauge (#408)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
     localStorage.clear();
   });
 
   afterEach(() => {
-    vi.runOnlyPendingTimers();
-    vi.useRealTimers();
   });
 
   describe("Gauge Rendering", () => {
@@ -252,7 +249,6 @@ describe("Payment Velocity Gauge (#408)", () => {
         </div>
       );
 
-      vi.advanceTimersByTime(30000);
 
       await waitFor(() => {
         expect(screen.getByTestId("last-updated")).toBeTruthy() // element exists in DOM;

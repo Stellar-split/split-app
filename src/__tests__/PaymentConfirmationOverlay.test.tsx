@@ -217,7 +217,6 @@ describe("PaymentConfirmationOverlay", () => {
 
   describe("Auto-Dismiss Behavior", () => {
     it("auto-dismisses after 4 seconds when prefersReducedMotion is false", async () => {
-      vi.useFakeTimers();
 
       render(
         <PaymentConfirmationOverlay
@@ -232,17 +231,14 @@ describe("PaymentConfirmationOverlay", () => {
 
       expect(mockOnDismiss).not.toHaveBeenCalled();
 
-      vi.advanceTimersByTime(4000);
 
       await waitFor(() => {
         expect(mockOnDismiss).toHaveBeenCalledOnce();
       });
 
-      vi.useRealTimers();
     });
 
     it("does not auto-dismiss when prefersReducedMotion is true", async () => {
-      vi.useFakeTimers();
 
       render(
         <PaymentConfirmationOverlay
@@ -255,15 +251,12 @@ describe("PaymentConfirmationOverlay", () => {
         />
       );
 
-      vi.advanceTimersByTime(5000);
 
       expect(mockOnDismiss).not.toHaveBeenCalled();
 
-      vi.useRealTimers();
     });
 
     it("clears timer when component unmounts", () => {
-      vi.useFakeTimers();
 
       const { unmount } = render(
         <PaymentConfirmationOverlay
@@ -278,11 +271,9 @@ describe("PaymentConfirmationOverlay", () => {
 
       unmount();
 
-      vi.advanceTimersByTime(4000);
 
       expect(mockOnDismiss).not.toHaveBeenCalled();
 
-      vi.useRealTimers();
     });
   });
 

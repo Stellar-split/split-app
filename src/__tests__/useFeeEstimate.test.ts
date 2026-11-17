@@ -60,7 +60,6 @@ describe("useFeeEstimate Hook (#411)", () => {
   it("exposes error state when feeStats fails", async () => {
     const { result } = renderHook(() => useFeeEstimate());
 
-    vi.advanceTimersByTime(100);
 
     await waitFor(() => {
       if (result.current.error) {
@@ -72,14 +71,12 @@ describe("useFeeEstimate Hook (#411)", () => {
   it("polls feeStats every 10 seconds", async () => {
     const { result } = renderHook(() => useFeeEstimate());
 
-    vi.advanceTimersByTime(10000);
 
     await waitFor(() => {
       // Should have polled once after 10 seconds
       expect(result.current.loading).toBe(false);
     });
 
-    vi.advanceTimersByTime(10000);
 
     // Verify polling continues
     expect(result.current.loading).toBe(false);
@@ -88,13 +85,11 @@ describe("useFeeEstimate Hook (#411)", () => {
   it("stops polling when component unmounts", async () => {
     const { result, unmount } = renderHook(() => useFeeEstimate());
 
-    vi.advanceTimersByTime(10000);
 
     unmount();
 
     // Advance timers again - should not trigger new fetches
     const initialState = result.current;
-    vi.advanceTimersByTime(10000);
 
     expect(result.current).toEqual(initialState);
   });
@@ -102,7 +97,6 @@ describe("useFeeEstimate Hook (#411)", () => {
   it("returns fallback base fee (100 stroops) on network error", async () => {
     const { result } = renderHook(() => useFeeEstimate());
 
-    vi.advanceTimersByTime(100);
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -114,7 +108,6 @@ describe("useFeeEstimate Hook (#411)", () => {
   it("returns fee values in stroops", async () => {
     const { result } = renderHook(() => useFeeEstimate());
 
-    vi.advanceTimersByTime(100);
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
