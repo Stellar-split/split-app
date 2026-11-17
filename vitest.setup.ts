@@ -120,7 +120,7 @@ Object.defineProperty(global, 'sessionStorage', {
 });
 
 // Mock crypto for tests
-global.crypto = {
+const cryptoMock = {
   subtle: {
     digest: vi.fn(async () => new ArrayBuffer(32)),
   },
@@ -130,7 +130,12 @@ global.crypto = {
     }
     return arr;
   },
-} as any;
+};
+
+Object.defineProperty(global, 'crypto', {
+  value: cryptoMock,
+  writable: true,
+});
 
 // ============ MODULE MOCKS ============
 
