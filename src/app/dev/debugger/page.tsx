@@ -141,7 +141,7 @@ function DebuggerContent() {
         <button
           type="submit"
           disabled={loading}
-          className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50 self-start"
+          className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50 self-start"
         >
           {loading ? "Simulating…" : "Simulate"}
         </button>

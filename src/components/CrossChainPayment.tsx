@@ -564,7 +564,7 @@ export default function CrossChainPayment({ invoiceId, stellarDestination }: Pro
         <button
           type="button"
           onClick={handleProceedToWallet}
-          className="w-full px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           Continue →
         </button>

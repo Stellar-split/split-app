@@ -158,7 +158,7 @@ export default function PaymentsPage() {
           <button
             type="button"
             onClick={() => downloadCsv(sorted)}
-            className="min-h-10 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="min-h-10 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             Download CSV
           </button>
@@ -190,7 +190,7 @@ export default function PaymentsPage() {
           <p className="text-gray-500 text-lg">No payments yet</p>
           <Link
             href="/"
-            className="min-h-11 inline-flex items-center px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="min-h-11 inline-flex items-center px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             Browse Invoices
           </Link>

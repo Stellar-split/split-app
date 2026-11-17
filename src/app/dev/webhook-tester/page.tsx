@@ -181,7 +181,7 @@ export default function WebhookTesterPage() {
         <button
           type="submit"
           disabled={sending}
-          className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+          className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50"
         >
           {sending ? "Sending…" : "Send Test"}
         </button>

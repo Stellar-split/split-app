@@ -217,7 +217,7 @@ export default function ConfidentialPaymentFlow({
         <button
           type="button"
           onClick={handleReveal}
-          className="mt-4 w-full min-h-12 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white transition-colors"
+          className="mt-4 w-full min-h-12 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-white transition-colors"
         >
           Reveal Payment
         </button>
@@ -228,7 +228,7 @@ export default function ConfidentialPaymentFlow({
           type="button"
           onClick={handleCommit}
           disabled={step === "committing" || !amount}
-          className="mt-4 w-full min-h-12 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white transition-colors disabled:opacity-50"
+          className="mt-4 w-full min-h-12 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-white transition-colors disabled:opacity-50"
         >
           {step === "committing" ? "Submitting Commitment…" : "Commit Payment"}
         </button>
@@ -246,7 +246,7 @@ export default function ConfidentialPaymentFlow({
           <button
             type="button"
             onClick={() => setStep("reveal")}
-            className="mt-3 w-full min-h-11 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-sm transition-colors"
+            className="mt-3 w-full min-h-11 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-white text-sm transition-colors"
           >
             Continue to Reveal
           </button>

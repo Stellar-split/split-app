@@ -656,7 +656,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
           type="button"
           onClick={handleReview}
           disabled={paying || !parsed || parsed <= 0n || isCapReached || isCapExceeded || lockExpired}
-          className="w-full px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="w-full px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {paying ? "Waiting for signature..." : "Review & Pay"}
         </button>

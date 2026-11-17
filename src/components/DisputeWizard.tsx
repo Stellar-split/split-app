@@ -327,7 +327,7 @@ export default function DisputeWizard({ invoiceId, onSubmit, onClose, onCreated 
               type="button"
               onClick={handleNext}
               disabled={step === 1 ? !isStep2Valid : step === 2 ? !isStep3Valid : false}
-              className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>

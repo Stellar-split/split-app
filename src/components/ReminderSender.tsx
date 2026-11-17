@@ -219,7 +219,7 @@ export default function ReminderSender({
             void handleCopy();
           }}
           disabled={isScheduling}
-          className="min-h-11 flex-1 sm:flex-none px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
+          className="min-h-11 flex-1 sm:flex-none px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
           aria-live="polite"
         >
           {copied ? "Copied!" : "Copy Reminder"}

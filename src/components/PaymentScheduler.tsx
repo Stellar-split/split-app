@@ -522,7 +522,7 @@ export default function PaymentScheduler({
         <button
           type="button"
           onClick={handleCreate}
-          className="w-full min-h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full min-h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           Create Schedule
         </button>

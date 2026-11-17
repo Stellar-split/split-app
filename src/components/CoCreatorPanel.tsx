@@ -250,7 +250,7 @@ export default function CoCreatorPanel({ invoice, publicKey, onUpdate }: Props) 
           <button
             type="submit"
             disabled={loading}
-            className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+            className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
             {loading ? "Adding…" : "Add Co-Creator"}
           </button>

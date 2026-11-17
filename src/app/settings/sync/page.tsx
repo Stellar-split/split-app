@@ -93,7 +93,7 @@ export default function StateSyncPage() {
           type="button"
           onClick={handleExport}
           disabled={exportStatus.type === "loading"}
-          className="min-h-11 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm transition-colors disabled:opacity-50"
+          className="min-h-11 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors disabled:opacity-50"
         >
           {exportStatus.type === "loading" ? "Exporting…" : "Export State"}
         </button>

@@ -189,7 +189,7 @@ export default function AccessCodeGate({
           <button
             type="submit"
             disabled={isVerifying}
-            className="w-full min-h-11 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-sm transition-colors shadow-lg shadow-indigo-600/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 flex items-center justify-center gap-2"
+            className="w-full min-h-11 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 text-white font-semibold text-sm transition-colors shadow-lg shadow-indigo-600/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 flex items-center justify-center gap-2"
           >
             {isVerifying ? (
               <>

@@ -53,7 +53,7 @@ export default function PaymentChannelPanel({
                 type="button"
                 onClick={onOpen}
                 disabled={loading}
-                className="inline-flex items-center justify-center min-h-11 px-5 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center min-h-11 px-5 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {loading ? "Opening…" : "Open Payment Channel"}
               </button>

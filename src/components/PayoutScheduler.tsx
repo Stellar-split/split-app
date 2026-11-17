@@ -148,7 +148,7 @@ export default function PayoutScheduler({ invoiceId, vestingCliff, publicKey }: 
           />
           <button
             type="submit"
-            className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+            className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
           >
             Schedule
           </button>

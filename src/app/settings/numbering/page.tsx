@@ -74,7 +74,7 @@ export default function NumberingSettingsPage() {
         <div className="flex gap-3">
           <button
             type="submit"
-            className="min-h-11 px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+            className="min-h-11 px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
           >
             Save
           </button>

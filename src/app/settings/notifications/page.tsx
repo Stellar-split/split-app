@@ -141,7 +141,7 @@ export default function NotificationPreferencesPage() {
             <button
               type="button"
               onClick={requestBrowserPermission}
-              className="shrink-0 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+              className="shrink-0 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
             >
               Enable Browser Notifications
             </button>
@@ -203,7 +203,7 @@ export default function NotificationPreferencesPage() {
         <button
           type="button"
           onClick={handleSave}
-          className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-semibold text-sm transition-colors"
+          className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold text-sm transition-colors"
         >
           Save
         </button>

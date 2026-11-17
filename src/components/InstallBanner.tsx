@@ -61,7 +61,7 @@ export default function InstallBanner() {
           <button
             type="button"
             onClick={handleInstall}
-            className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-colors"
+            className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold text-white transition-colors"
           >
             Install App
           </button>

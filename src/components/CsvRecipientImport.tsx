@@ -283,7 +283,7 @@ export default function CsvRecipientImport({ onImport, existingCount = 0 }: Prop
               type="button"
               onClick={handleConfirm}
               disabled={validCount === 0}
-              className="min-h-10 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="min-h-10 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold text-white transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               Import {validCount} recipient{validCount !== 1 ? "s" : ""}
             </button>

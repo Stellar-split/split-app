@@ -107,7 +107,7 @@ export default function InvoiceQR({ invoiceId, remainingBalance }: Props) {
         <button
           type="button"
           onClick={handleDownload}
-          className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+          className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
         >
           Download QR Code
         </button>

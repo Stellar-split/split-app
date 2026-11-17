@@ -106,7 +106,7 @@ export default function TxConfirmModal({
                 href={`${EXPLORER_BASE}/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full text-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="block w-full text-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 View on Stellar Expert ↗
               </a>

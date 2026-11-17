@@ -241,7 +241,7 @@ export default function SubscriptionsClient() {
           </p>
           <Link
             href="/invoice/new"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
           >
             Create Invoice
           </Link>

@@ -133,7 +133,7 @@ export default function ProofViewer({ invoiceId, mode = "payment" }: Props) {
             type="button"
             onClick={handleVerify}
             disabled={verifying || !proofHash.trim()}
-            className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium disabled:opacity-50"
+            className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium disabled:opacity-50"
           >
             {verifying
               ? "Verifying…"

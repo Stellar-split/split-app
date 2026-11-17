@@ -359,7 +359,7 @@ export default function CommentSection({ invoiceId, walletAddress }: Props) {
         <button
           type="submit"
           disabled={!text.trim()}
-          className="self-end min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="self-end min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           Add Note
         </button>

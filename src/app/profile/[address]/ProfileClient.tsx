@@ -84,7 +84,7 @@ export default function ProfileClient({
               <div className="flex gap-2">
                 <button
                   onClick={saveBio}
-                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
                 >
                   Save
                 </button>

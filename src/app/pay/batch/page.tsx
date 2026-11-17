@@ -126,7 +126,7 @@ export default function BatchPayPage() {
         <button
           type="submit"
           disabled={searching || !search.trim()}
-          className="min-h-11 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50 shrink-0"
+          className="min-h-11 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 shrink-0"
         >
           {searching ? "Searching…" : "Add"}
         </button>
@@ -159,7 +159,7 @@ export default function BatchPayPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+            className="w-full min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50"
           >
             {submitting ? "Submitting…" : `Pay ${queue.length} Invoice${queue.length > 1 ? "s" : ""}`}
           </button>

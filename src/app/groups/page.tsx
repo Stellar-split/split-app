@@ -77,14 +77,14 @@ export default function GroupsPage() {
       <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-gray-400">Organize contacts for recurring collaboration.</p>
         <div>
-          <button onClick={openCreate} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold">New Group</button>
+          <button onClick={openCreate} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold">New Group</button>
         </div>
       </div>
 
       {groups.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-400 mb-4">You have no groups yet.</p>
-          <button onClick={openCreate} className="inline-block px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors">New Group</button>
+          <button onClick={openCreate} className="inline-block px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors">New Group</button>
         </div>
       ) : (
         <div className="grid gap-6">

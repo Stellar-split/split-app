@@ -103,7 +103,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               <p className="text-gray-400 text-sm">{message}</p>
               <Link
                 href="/dashboard"
-                className="min-h-11 inline-flex items-center px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="min-h-11 inline-flex items-center px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 Back to Dashboard
               </Link>
@@ -117,7 +117,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleRetry}
-                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 Retry
               </button>
@@ -144,7 +144,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 <button
                   type="button"
                   onClick={this.handleRetry}
-                  className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   Reload Page
                 </button>

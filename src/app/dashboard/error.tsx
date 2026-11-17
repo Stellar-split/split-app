@@ -59,7 +59,7 @@ export default function DashboardError({ error, reset }: Props) {
         <button
           type="button"
           onClick={reset}
-          className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="min-h-11 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           Try Again
         </button>

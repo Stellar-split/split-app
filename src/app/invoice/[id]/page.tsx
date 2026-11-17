@@ -681,7 +681,7 @@ export default function InvoiceDetailPage({ params }: Props) {
               type="button"
               onClick={() => setShowShareQRModal(true)}
               ref={shareQRModalTriggerRef}
-              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold text-white transition-colors"
               aria-label="Share invoice via QR"
             >
               Share via QR
@@ -691,7 +691,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             <button
               type="button"
               onClick={() => setShowConfidentialFlow(true)}
-              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold text-white transition-colors"
               aria-label="Pay confidentially"
             >
               Pay Confidentially
@@ -900,7 +900,7 @@ export default function InvoiceDetailPage({ params }: Props) {
               <button
                 type="submit"
                 disabled={paying}
-                className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50"
+                className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50"
               >
                 {paying ? "Sending…" : "Pay"}
               </button>
@@ -1097,7 +1097,7 @@ export default function InvoiceDetailPage({ params }: Props) {
             <button
               type="submit"
               disabled={paying}
-              className="min-h-12 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white transition-colors disabled:opacity-50"
+              className="min-h-12 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-white transition-colors disabled:opacity-50"
             >
               {paying ? "Sending Payment…" : `Pay ${payAmount || "0"} USDC`}
             </button>

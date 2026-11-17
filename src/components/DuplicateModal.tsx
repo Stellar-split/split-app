@@ -151,7 +151,7 @@ export default function DuplicateModal({ invoiceId, onConfirm, onClose }: Props)
             </button>
             <button
               onClick={handleConfirm}
-              className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               Confirm & Continue
             </button>

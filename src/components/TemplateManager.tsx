@@ -770,7 +770,7 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
               <button
                 type="button"
                 onClick={confirmSaveTemplate}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white"
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold text-white"
               >
                 Save Template
               </button>
@@ -898,7 +898,7 @@ export default function TemplateManager({ recipients, token, onLoad }: Props) {
               <button
                 type="button"
                 onClick={saveSchedule}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white"
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold text-white"
               >
                 Save Schedule
               </button>
