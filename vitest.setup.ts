@@ -195,37 +195,48 @@ vi.mock('@/lib/apiClient', () => ({
   apiFetch: vi.fn(async () => ({})),
 }));
 
-vi.mock('@/contexts/AccessibilityContext', () => ({
-  AccessibilityProvider: ({ children }: any) => children,
-  useAccessibility: vi.fn(() => ({
-    fontScale: 100,
-    setFontScale: vi.fn(),
-    reducedMotion: false,
-    setReducedMotion: vi.fn(),
-    highContrast: 'normal' as const,
-    setHighContrast: vi.fn(),
-  })),
-}));
+vi.mock('@/contexts/AccessibilityContext', () => {
+  let fontScale = 100;
+  let reducedMotion = false;
+  let highContrast = 'normal' as const;
 
-vi.mock('@/contexts/WalletContext', () => ({
-  WalletProvider: ({ children }: any) => children,
-  useWalletContext: vi.fn(() => ({
-    address: 'GTEST123456789',
-    isConnected: false,
-    connect: vi.fn(async () => {}),
-    disconnect: vi.fn(),
-    signTransaction: vi.fn(async (xdr) => ({ signedXdr: xdr })),
-  })),
-}));
+  return {
+    AccessibilityProvider: ({ children }: any) => children,
+    useAccessibility: vi.fn(() => ({
+      fontScale,
+      setFontScale: (scale: number) => { fontScale = scale; },
+      reducedMotion,
+      setReducedMotion: (enabled: boolean) => { reducedMotion = enabled; },
+      highContrast,
+      setHighContrast: (contrast: string) => { highContrast = contrast as any; },
+    })),
+  };
+});
+
+vi.mock('@/contexts/WalletContext', () => {
+  let isConnected = false;
+  let address = 'GTEST123456789';
+
+  return {
+    WalletProvider: ({ children }: any) => children,
+    useWalletContext: vi.fn(() => ({
+      address,
+      isConnected,
+      connect: vi.fn(async () => { isConnected = true; }),
+      disconnect: vi.fn(() => { isConnected = false; }),
+      signTransaction: vi.fn(async (xdr: string) => ({ signedXdr: xdr })),
+    })),
+  };
+});
 
 vi.mock('@/context/ToastContext', () => ({
   ToastProvider: ({ children }: any) => children,
   useToast: vi.fn(() => ({
-    toast: vi.fn(),
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
+    toast: vi.fn((msg: string) => console.log('toast:', msg)),
+    success: vi.fn((msg: string) => console.log('success:', msg)),
+    error: vi.fn((msg: string) => console.log('error:', msg)),
+    warning: vi.fn((msg: string) => console.log('warning:', msg)),
+    info: vi.fn((msg: string) => console.log('info:', msg)),
   })),
 }));
 
