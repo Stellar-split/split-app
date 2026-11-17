@@ -46,7 +46,7 @@ describe('TextInput', () => {
   it('sets aria-describedby pointing to error element', () => {
     render(<TextInput label="Email" error="Required" />);
     const input = screen.getByRole('textbox');
-    expect(input).getAttribute('aria-describedby').toBe('email-error');
+    expect(input.getAttribute('aria-describedby')).toBe('email-error');
     expect(screen.getByText('Required')).getAttribute('id').toBe('email-error');
   });
 

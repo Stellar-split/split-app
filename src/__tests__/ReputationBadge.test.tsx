@@ -465,7 +465,7 @@ describe("ReputationBadge", () => {
 
       await waitFor(() => {
         const badge = screen.getByTestId("reputation-badge");
-        expect(badge).getAttribute("aria-label").toBe(expect.stringContaining("75%"));
+        expect(badge.getAttribute("aria-label")).toBe(expect.stringContaining("75%"));
       });
     });
   });

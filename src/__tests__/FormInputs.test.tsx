@@ -15,14 +15,14 @@ describe('FormInputs - aria-describedby', () => {
     it('sets aria-describedby pointing to error element', () => {
       render(<TextInput id="email" label="Email" error="Required" />);
       const input = screen.getByRole('textbox');
-      expect(input).getAttribute('aria-describedby').toBe('email-error');
+      expect(input.getAttribute('aria-describedby')).toBe('email-error');
       expect(screen.getByText('Required')).getAttribute('id').toBe('email-error');
     });
 
     it('sets aria-describedby pointing to helper text element', () => {
       render(<TextInput id="email" label="Email" helperText="Your email address" />);
       const input = screen.getByRole('textbox');
-      expect(input).getAttribute('aria-describedby').toBe('email-helper');
+      expect(input.getAttribute('aria-describedby')).toBe('email-helper');
       expect(screen.getByText('Your email address')).getAttribute('id').toBe('email-helper');
     });
 
@@ -47,14 +47,14 @@ describe('FormInputs - aria-describedby', () => {
     it('sets aria-describedby pointing to error element', () => {
       render(<NumberInput id="count" label="Count" error="Must be positive" />);
       const input = screen.getByRole('spinbutton');
-      expect(input).getAttribute('aria-describedby').toBe('count-error');
+      expect(input.getAttribute('aria-describedby')).toBe('count-error');
       expect(screen.getByText('Must be positive')).getAttribute('id').toBe('count-error');
     });
 
     it('sets aria-describedby pointing to helper text', () => {
       render(<NumberInput id="count" label="Count" helperText="Minimum 1" />);
       const input = screen.getByRole('spinbutton');
-      expect(input).getAttribute('aria-describedby').toBe('count-helper');
+      expect(input.getAttribute('aria-describedby')).toBe('count-helper');
     });
   });
 
@@ -62,14 +62,14 @@ describe('FormInputs - aria-describedby', () => {
     it('sets aria-describedby pointing to error element', () => {
       render(<Textarea id="notes" label="Notes" error="Too long" />);
       const textarea = screen.getByRole('textbox');
-      expect(textarea).getAttribute('aria-describedby').toBe('notes-error');
+      expect(textarea.getAttribute('aria-describedby')).toBe('notes-error');
       expect(screen.getByText('Too long')).getAttribute('id').toBe('notes-error');
     });
 
     it('sets aria-describedby pointing to helper text', () => {
       render(<Textarea id="notes" label="Notes" helperText="Max 500 characters" />);
       const textarea = screen.getByRole('textbox');
-      expect(textarea).getAttribute('aria-describedby').toBe('notes-helper');
+      expect(textarea.getAttribute('aria-describedby')).toBe('notes-helper');
     });
   });
 
@@ -82,14 +82,14 @@ describe('FormInputs - aria-describedby', () => {
     it('sets aria-describedby pointing to error element', () => {
       render(<Select id="choice" label="Choice" options={options} error="Invalid" />);
       const select = screen.getByRole('combobox');
-      expect(select).getAttribute('aria-describedby').toBe('choice-error');
+      expect(select.getAttribute('aria-describedby')).toBe('choice-error');
       expect(screen.getByText('Invalid')).getAttribute('id').toBe('choice-error');
     });
 
     it('sets aria-describedby pointing to helper text', () => {
       render(<Select id="choice" label="Choice" options={options} helperText="Pick one" />);
       const select = screen.getByRole('combobox');
-      expect(select).getAttribute('aria-describedby').toBe('choice-helper');
+      expect(select.getAttribute('aria-describedby')).toBe('choice-helper');
     });
   });
 
@@ -97,14 +97,14 @@ describe('FormInputs - aria-describedby', () => {
     it('sets aria-describedby pointing to error element', () => {
       render(<DatePicker id="date" label="Date" error="Invalid date" />);
       const input = screen.getByRole('textbox');
-      expect(input).getAttribute('aria-describedby').toBe('date-error');
+      expect(input.getAttribute('aria-describedby')).toBe('date-error');
       expect(screen.getByText('Invalid date')).getAttribute('id').toBe('date-error');
     });
 
     it('sets aria-describedby pointing to helper text', () => {
       render(<DatePicker id="date" label="Date" helperText="YYYY-MM-DD" />);
       const input = screen.getByRole('textbox');
-      expect(input).getAttribute('aria-describedby').toBe('date-helper');
+      expect(input.getAttribute('aria-describedby')).toBe('date-helper');
     });
   });
 
@@ -120,7 +120,7 @@ describe('FormInputs - aria-describedby', () => {
         />
       );
       const button = screen.getByRole('switch');
-      expect(button).getAttribute('aria-describedby').toBe('enabled-error');
+      expect(button.getAttribute('aria-describedby')).toBe('enabled-error');
       expect(screen.getByText('Must be enabled')).getAttribute('id').toBe('enabled-error');
     });
 
@@ -135,7 +135,7 @@ describe('FormInputs - aria-describedby', () => {
         />
       );
       const button = screen.getByRole('switch');
-      expect(button).getAttribute('aria-describedby').toBe('enabled-helper');
+      expect(button.getAttribute('aria-describedby')).toBe('enabled-helper');
     });
   });
 
@@ -151,7 +151,7 @@ describe('FormInputs - aria-describedby', () => {
         />
       );
       const checkbox = screen.getByRole('checkbox');
-      expect(checkbox).getAttribute('aria-describedby').toBe('accept-error');
+      expect(checkbox.getAttribute('aria-describedby')).toBe('accept-error');
       expect(screen.getByText('You must accept')).getAttribute('id').toBe('accept-error');
     });
 
@@ -166,7 +166,7 @@ describe('FormInputs - aria-describedby', () => {
         />
       );
       const checkbox = screen.getByRole('checkbox');
-      expect(checkbox).getAttribute('aria-describedby').toBe('accept-helper');
+      expect(checkbox.getAttribute('aria-describedby')).toBe('accept-helper');
     });
   });
 });

@@ -295,7 +295,7 @@ describe("Issue #599: WalletErrorModal retry functionality", () => {
     const installLink = screen.getByRole("link", {
       name: /install freighter/i,
     });
-    expect(installLink).getAttribute("href").toBe("https://www.freighter.app/"
+    expect(installLink.getAttribute("href")).toBe("https://www.freighter.app/"
     );
     expect(installLink.getAttribute("target")).toBe("_blank");
     expect(installLink.getAttribute("rel")).toBe("noopener noreferrer");

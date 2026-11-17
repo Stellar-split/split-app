@@ -25,7 +25,7 @@ describe("StatusBadge", () => {
   test("includes status and description in aria-label", () => {
     render(<StatusBadge status="Pending" />);
     const badge = screen.getByRole("status");
-    expect(badge).getAttribute("aria-label").toBe(`Status: Pending — ${STATUS_CONFIG.Pending.description}`
+    expect(badge.getAttribute("aria-label")).toBe(`Status: Pending — ${STATUS_CONFIG.Pending.description}`
     );
   });
 

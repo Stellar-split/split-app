@@ -54,7 +54,7 @@ describe("VerifiedCreatorBadge", () => {
     expect(tooltip).toHaveTextContent(
       "Verified via on-chain proof on January 15, 2024"
     );
-    expect(badge).getAttribute("aria-describedby").toBe(tooltip.id);
+    expect(badge.getAttribute("aria-describedby")).toBe(tooltip.id);
   });
 
   it("falls back to a generic method when none is recorded", () => {

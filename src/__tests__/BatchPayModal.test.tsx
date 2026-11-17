@@ -95,7 +95,7 @@ describe("BatchPayModal", () => {
     );
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Payment/i });
-    expect(confirmButton).getAttribute("title").toBe("Connect your wallet to continue"
+    expect(confirmButton.getAttribute("title")).toBe("Connect your wallet to continue"
     );
   });
 

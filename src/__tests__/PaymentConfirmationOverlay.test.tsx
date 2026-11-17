@@ -209,7 +209,7 @@ describe("PaymentConfirmationOverlay", () => {
         />
       );
       const link = screen.getByRole("link");
-      expect(link).getAttribute("href").toBe(expect.stringContaining(txHash)
+      expect(link.getAttribute("href")).toBe(expect.stringContaining(txHash)
       );
       expect(link.getAttribute("target")).toBe("_blank");
     });
@@ -291,9 +291,9 @@ describe("PaymentConfirmationOverlay", () => {
       );
 
       const dialog = container.querySelector('[role="alertdialog"]');
-      expect(dialog).getAttribute("aria-labelledby").toBe("payment-confirmation-title"
+      expect(dialog.getAttribute("aria-labelledby")).toBe("payment-confirmation-title"
       );
-      expect(dialog).getAttribute("aria-describedby").toBe("payment-confirmation-details"
+      expect(dialog.getAttribute("aria-describedby")).toBe("payment-confirmation-details"
       );
     });
 

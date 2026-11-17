@@ -125,12 +125,12 @@ describe('InvoiceTimeline', () => {
 
     const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
     const button = showDetailsButtons[0].closest('button')!;
-    expect(button).getAttribute('aria-expanded').toBe('false');
+    expect(button.getAttribute('aria-expanded')).toBe('false');
 
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(button).getAttribute('aria-expanded').toBe('true');
+      expect(button.getAttribute('aria-expanded')).toBe('true');
     });
   });
 

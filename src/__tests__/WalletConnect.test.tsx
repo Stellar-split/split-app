@@ -43,9 +43,9 @@ describe('WalletConnect', () => {
       render(<WalletConnect />);
       const link = screen.getByRole('link', { name: /Install Freighter/i });
       expect(link).toBeTruthy() // element exists in DOM;
-      expect(link).getAttribute('href').toBe('https://www.freighter.app/');
-      expect(link).getAttribute('target').toBe('_blank');
-      expect(link).getAttribute('rel').toBe('noopener noreferrer');
+      expect(link.getAttribute('href')).toBe('https://www.freighter.app/');
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
     });
 
     it('does not render connect buttons', () => {
