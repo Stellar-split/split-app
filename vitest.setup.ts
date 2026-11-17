@@ -35,15 +35,27 @@ vi.mock('@/context/ToastContext', () => ({
   }),
 }));
 
-vi.mock('next/router', () => ({
-  useRouter: () => ({
-    push: vi.fn().mockResolvedValue(undefined),
-    replace: vi.fn().mockResolvedValue(undefined),
-    prefetch: vi.fn(),
-    pathname: '/',
-    query: {},
-    asPath: '/',
-  }),
+vi.mock('@stellar/stellar-sdk', () => ({
+  Server: class MockServer {
+    constructor() {}
+    feeStats = async () => ({
+      baseFee: '100',
+      modeAcceptanceRate: '99',
+      p10AcceptanceRate: '100',
+      p20AcceptanceRate: '100',
+      p30AcceptanceRate: '100',
+      p40AcceptanceRate: '100',
+      p50AcceptanceRate: '100',
+      p60AcceptanceRate: '100',
+      p70AcceptanceRate: '100',
+      p80AcceptanceRate: '100',
+      p90AcceptanceRate: '100',
+      p99AcceptanceRate: '100',
+    });
+  },
+  Keypair: { random: () => ({ publicKey: () => 'GTEST' }) },
+  TransactionBuilder: class {},
+  Networks: { PUBLIC_NETWORK_PASSPHRASE: 'Public Global Stellar Network ; September 2015' },
 }));
 
 import '@testing-library/jest-dom/vitest';

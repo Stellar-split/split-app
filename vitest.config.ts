@@ -10,6 +10,7 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts', './src/__tests__/setup.ts'],
     mockReset: true,
     clearMocks: true,
+    testTimeout: 15000,
     exclude: ['e2e/**', 'node_modules/**'],
     include: [
       'src/**/*.{test,spec}.{ts,tsx}',

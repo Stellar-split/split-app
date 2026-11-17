@@ -2,26 +2,10 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { useFeeEstimate } from "@/hooks/useFeeEstimate";
 
-// Mock StellarSdk.Server
+// Mock StellarSdk.Server - returns resolved promises
 vi.mock("@stellar/stellar-sdk", () => ({
   Server: class MockServer {
-    feeStats = vi.fn();
-  },
-}));
-
-describe("useFeeEstimate Hook (#411)", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.runOnlyPendingTimers();
-    vi.useRealTimers();
-  });
-
-  it("fetches fee stats and exposes baseFee, medianFee, p90Fee", async () => {
-    const mockFeeStats = {
+    feeStats = async () => ({
       baseFee: "100",
       modeAcceptanceRate: "99",
       p10AcceptanceRate: "100",
@@ -34,21 +18,35 @@ describe("useFeeEstimate Hook (#411)", () => {
       p80AcceptanceRate: "100",
       p90AcceptanceRate: "100",
       p99AcceptanceRate: "100",
-    };
+    });
+  },
+  Keypair: { random: () => ({ publicKey: () => "GTEST" }) },
+  TransactionBuilder: class {},
+  Networks: { PUBLIC_NETWORK_PASSPHRASE: "Public Global Stellar Network ; September 2015" },
+}));
 
+describe("useFeeEstimate Hook (#411)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("fetches fee stats and exposes baseFee, medianFee, p90Fee", async () => {
     const { result } = renderHook(() => useFeeEstimate());
 
     expect(result.current.loading).toBe(true);
 
-    // Simulate fee stats fetch completing
-    vi.advanceTimersByTime(100);
-
+    // Wait for async fetch to complete
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-      expect(result.current.baseFee).toBe(100);
-      expect(result.current.medianFee).toBeDefined();
-      expect(result.current.p90Fee).toBeDefined();
     });
+
+    expect(result.current.baseFee).toBe(100);
+    expect(result.current.medianFee).toBeDefined();
+    expect(result.current.p90Fee).toBeDefined();
   });
 
   it("returns loading state on initial mount", () => {
