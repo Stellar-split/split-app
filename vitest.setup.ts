@@ -218,7 +218,7 @@ vi.mock('@/contexts/WalletContext', () => ({
   })),
 }));
 
-vi.mock('@/contexts/ToastContext', () => ({
+vi.mock('@/context/ToastContext', () => ({
   ToastProvider: ({ children }: any) => children,
   useToast: vi.fn(() => ({
     toast: vi.fn(),
