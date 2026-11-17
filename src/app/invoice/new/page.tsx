@@ -863,7 +863,7 @@ function NewInvoiceForm() {
   /** Heading plus one-line explanation of what the current step is for. */
   const renderStepHeader = (s: number) => (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-white dark:text-white">{WIZARD_STEPS[s].label}</h2>
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{WIZARD_STEPS[s].label}</h2>
       <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{WIZARD_STEPS[s].description}</p>
     </div>
   );

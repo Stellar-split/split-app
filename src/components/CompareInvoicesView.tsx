@@ -94,8 +94,8 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
       label: "Total Amount",
       rawA: formatAmount(totalA),
       rawB: formatAmount(totalB),
-      valA: <span className="font-semibold text-gray-900 dark:text-white dark:text-white">{formatAmount(totalA)} {tokenA}</span>,
-      valB: <span className="font-semibold text-gray-900 dark:text-white dark:text-white">{formatAmount(totalB)} {tokenB}</span>,
+      valA: <span className="font-semibold text-gray-900 dark:text-white">{formatAmount(totalA)} {tokenA}</span>,
+      valB: <span className="font-semibold text-gray-900 dark:text-white">{formatAmount(totalB)} {tokenB}</span>,
     },
     {
       label: "Funded",
@@ -234,7 +234,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white dark:text-white mb-1">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
           Compare Invoices
         </h1>
         <p className="text-gray-500 dark:text-gray-400">

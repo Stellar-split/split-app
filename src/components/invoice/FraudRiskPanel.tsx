@@ -45,7 +45,7 @@ export default function FraudRiskPanel({
     <div className={`border rounded-lg p-4 ${className}`}>
       {/* Header with score gauge */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-gray-100">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
           Heuristic Risk Assessment
         </h3>
 
@@ -123,7 +123,7 @@ export default function FraudRiskPanel({
       <div className="mt-4">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:text-white dark:hover:text-gray-100"
+          className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-700 dark:text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:text-white dark:hover:text-gray-100"
         >
           <span className="text-lg">
             {expanded ? "▼" : "▶"}
@@ -156,13 +156,13 @@ export default function FraudRiskPanel({
                     key={idx}
                     className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   >
-                    <td className="py-2 px-2 text-gray-900 dark:text-white dark:text-gray-100 font-mono">
+                    <td className="py-2 px-2 text-gray-900 dark:text-white font-mono">
                       {sig.signal.replace(/_/g, " ")}
                     </td>
                     <td className="text-right py-2 px-2 text-gray-600 dark:text-gray-400">
                       {sig.weight}
                     </td>
-                    <td className="text-right py-2 px-2 font-semibold text-gray-900 dark:text-white dark:text-gray-100">
+                    <td className="text-right py-2 px-2 font-semibold text-gray-900 dark:text-white">
                       +{sig.contribution.toFixed(1)}
                     </td>
                     <td className="text-left py-2 px-2 text-gray-600 dark:text-gray-400">

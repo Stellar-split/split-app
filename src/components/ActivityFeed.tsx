@@ -202,7 +202,7 @@ export default function ActivityFeed({ open }: ActivityFeedProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-        <h2 className="text-sm font-bold text-gray-900 dark:text-white dark:text-gray-100">
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white">
           Activity
           {unreadCount > 0 && (
             <span className="ml-2 inline-flex items-center justify-center rounded-full bg-indigo-600 text-white text-xs font-bold px-1.5 py-0.5 min-w-[1.25rem]">

@@ -68,7 +68,7 @@ export default function Modal({
           <div className="flex items-center justify-between gap-4">
             <h2
               id={titleId}
-              className={hideTitle ? "sr-only" : "text-lg font-semibold text-gray-900 dark:text-white dark:text-gray-100"}
+              className={hideTitle ? "sr-only" : "text-lg font-semibold text-gray-900 dark:text-white"}
             >
               {title}
             </h2>

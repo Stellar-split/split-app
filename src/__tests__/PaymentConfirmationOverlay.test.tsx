@@ -76,7 +76,7 @@ const PaymentConfirmationOverlay = ({
         {/* Title */}
         <h2
           id="payment-confirmation-title"
-          className="text-2xl font-bold text-center text-gray-900 dark:text-white dark:text-white mb-2"
+          className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-2"
         >
           Payment Confirmed
         </h2>
@@ -88,7 +88,7 @@ const PaymentConfirmationOverlay = ({
         >
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">
               {amount}
             </p>
           </div>
@@ -120,7 +120,7 @@ const PaymentConfirmationOverlay = ({
         {/* Close button */}
         <button
           onClick={onDismiss}
-          className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
         >
           Close
         </button>

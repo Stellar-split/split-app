@@ -286,7 +286,7 @@ export default function ApiLogsPage() {
               aria-label="Filter by API Key"
               value={selectedKeyId}
               onChange={(e) => setSelectedKeyId(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-neutral-850 border border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-white dark:text-gray-100 rounded px-2.5 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full bg-gray-50 dark:bg-neutral-850 border border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="all">All Keys</option>
               {keyFilterOptions.map((opt) => (
@@ -303,7 +303,7 @@ export default function ApiLogsPage() {
               aria-label="Filter by Endpoint"
               value={selectedEndpoint}
               onChange={(e) => setSelectedEndpoint(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-neutral-850 border border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-white dark:text-gray-100 rounded px-2.5 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full bg-gray-50 dark:bg-neutral-850 border border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="all">All Endpoints</option>
               {endpointFilterOptions.map((end) => (
@@ -321,7 +321,7 @@ export default function ApiLogsPage() {
               aria-label="Start Date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-neutral-850 border border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-white dark:text-gray-100 rounded px-2.5 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full bg-gray-50 dark:bg-neutral-850 border border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
@@ -332,7 +332,7 @@ export default function ApiLogsPage() {
               aria-label="End Date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-neutral-850 border border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-white dark:text-gray-100 rounded px-2.5 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full bg-gray-50 dark:bg-neutral-850 border border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
         </div>
@@ -374,7 +374,7 @@ export default function ApiLogsPage() {
       {/* Logs Table */}
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
         <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 dark:bg-neutral-850 text-gray-700 dark:text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-neutral-800 font-medium">
+          <thead className="bg-gray-50 dark:bg-neutral-850 text-gray-700 dark:text-gray-700 dark:text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-neutral-800 font-medium">
             <tr>
               <th className="px-4 py-3">Timestamp</th>
               <th className="px-4 py-3">Endpoint</th>
@@ -382,7 +382,7 @@ export default function ApiLogsPage() {
               <th className="px-4 py-3">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-neutral-800 text-gray-900 dark:text-white dark:text-gray-100">
+          <tbody className="divide-y divide-gray-200 dark:divide-neutral-800 text-gray-900 dark:text-white">
             {paginatedLogs.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
