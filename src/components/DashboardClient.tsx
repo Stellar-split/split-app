@@ -654,11 +654,11 @@ export default function DashboardClient() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 mt-4">
           <div className="rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Active</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalActive}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-gray-100">{totalActive}</p>
           </div>
           <div className="rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Value Locked</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-gray-100">
               {formatAmount(totalValueLocked)} USDC
             </p>
           </div>

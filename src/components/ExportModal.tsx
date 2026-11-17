@@ -153,7 +153,7 @@ export default function ExportModal({
         {/* Header */}
         <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Export Invoices</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-gray-100">Export Invoices</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {invoices.length} invoice{invoices.length !== 1 ? 's' : ''} available
             </p>

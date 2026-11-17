@@ -123,7 +123,7 @@ export default function RootLayout({
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: accessibilityBootstrap }} />
       </head>
-      <body suppressHydrationWarning className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased overflow-x-hidden">
+      <body suppressHydrationWarning className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white dark:text-gray-100 antialiased overflow-x-hidden">
         <QueryProvider>
           <ThemeProvider>
             <AccessibilityProvider>

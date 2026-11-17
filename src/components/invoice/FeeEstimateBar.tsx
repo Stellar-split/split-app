@@ -111,7 +111,7 @@ export default function FeeEstimateBar({ operationCount = 1 }: Props) {
               <span className="block text-xs font-semibold text-gray-700 dark:text-gray-200">
                 {tier.label}
               </span>
-              <span className="block text-sm font-mono text-gray-900 dark:text-gray-100">
+              <span className="block text-sm font-mono text-gray-900 dark:text-white dark:text-gray-100">
                 {totalStroops}
               </span>
               <span className="block text-xs font-mono text-gray-500 dark:text-gray-400">
