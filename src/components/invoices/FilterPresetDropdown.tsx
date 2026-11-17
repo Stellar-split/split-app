@@ -168,7 +168,7 @@ export default function FilterPresetDropdown({ currentFilters, onApply }: Props)
                       setRenameInput(preset.name);
                       setError(null);
                     }}
-                    className="p-1 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="p-1 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Pencil size={13} />
                   </button>
@@ -176,7 +176,7 @@ export default function FilterPresetDropdown({ currentFilters, onApply }: Props)
                     type="button"
                     aria-label={`Delete ${preset.name}`}
                     onClick={() => deletePreset(preset.id)}
-                    className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="p-1 rounded-md text-gray-600 dark:text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 size={13} />
                   </button>

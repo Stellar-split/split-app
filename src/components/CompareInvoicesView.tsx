@@ -312,7 +312,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               diffMode === "all"
                 ? "bg-indigo-600 text-white"
-                : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
+                : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
             }`}
             aria-pressed={diffMode === "all"}
           >
@@ -324,7 +324,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               diffMode === "diffs-only"
                 ? "bg-indigo-600 text-white"
-                : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
+                : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
             }`}
             aria-pressed={diffMode === "diffs-only"}
           >

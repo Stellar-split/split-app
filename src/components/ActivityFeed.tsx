@@ -231,7 +231,7 @@ export default function ActivityFeed({ open }: ActivityFeedProps) {
               className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
                 active
                   ? "bg-indigo-600 text-white"
-                  : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
+                  : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
               }`}
             >
               {EVENT_TYPE_LABELS[type]}

@@ -161,7 +161,7 @@ export default function ExportModal({
           <button
             onClick={onClose}
             disabled={isExporting}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none disabled:opacity-50"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none disabled:opacity-50"
           >
             <svg
               className="w-6 h-6"
