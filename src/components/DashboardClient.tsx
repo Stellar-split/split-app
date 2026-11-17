@@ -759,7 +759,7 @@ export default function DashboardClient() {
       ) : invoices.length === 0 ? (
         <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-12 text-center">
           <h2 className="text-xl font-semibold text-white mb-2">No invoices yet</h2>
-          <p className="text-gray-600 dark:text-gray-500 mb-6 max-w-sm mx-auto">Create your first invoice to start receiving payments on-chain.</p>
+          <p className="text-gray-100 dark:text-gray-400 mb-6 max-w-sm mx-auto">Create your first invoice to start receiving payments on-chain.</p>
           <Link href="/invoice/new" className="inline-flex items-center px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors">
             + Create your first invoice
           </Link>
