@@ -8,6 +8,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts', './src/__tests__/setup.ts'],
+    mockReset: true,
+    clearMocks: true,
     exclude: ['e2e/**', 'node_modules/**'],
     include: [
       'src/**/*.{test,spec}.{ts,tsx}',
@@ -34,6 +36,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@/contexts/AccessibilityContext': path.resolve(__dirname, './src/__mocks__/contexts/AccessibilityContext.tsx'),
+      '@/contexts/WalletContext': path.resolve(__dirname, './src/__mocks__/contexts/WalletContext.tsx'),
+      '@/context/ToastContext': path.resolve(__dirname, './src/__mocks__/context/ToastContext.tsx'),
     },
   },
 });
