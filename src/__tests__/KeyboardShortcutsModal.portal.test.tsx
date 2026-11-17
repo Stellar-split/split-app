@@ -17,7 +17,7 @@
 
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 import KeyboardShortcutsModal from "@/components/KeyboardShortcutsModal";
 import {

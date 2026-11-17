@@ -1,4 +1,4 @@
-import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 /**
  * Unit tests for TransferOwnershipModal:
  * - Double-entry address validation (submit disabled until both fields match)

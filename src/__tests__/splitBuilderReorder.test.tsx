@@ -2,7 +2,7 @@
  * Issue #471 — drag-to-reorder recipients in the split builder.
  */
 import { render, screen, fireEvent } from "@testing-library/react";
-import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import SplitCalculator from "@/components/SplitCalculator";
 import { moveItem } from "@/lib/reorder";
 import type { RecipientLine, SplitMeta } from "@/hooks/useSplitCalculator";

@@ -2,7 +2,7 @@
  * Issue #468 — split ratio sliders with real-time sum validation.
  */
 import { render, screen, fireEvent, within } from "@testing-library/react";
-import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import SplitCalculator from "@/components/SplitCalculator";
 import SplitSumIndicator from "@/components/invoice/SplitSumIndicator";
 import type { RecipientLine, SplitMeta } from "@/hooks/useSplitCalculator";

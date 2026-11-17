@@ -1,4 +1,4 @@
-import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 /**
  * Tests for the multi-step form progress indicator (#475).
  */

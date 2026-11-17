@@ -12,7 +12,7 @@
 
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
-import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 
 // Mock component that represents PaymentConfirmationOverlay
 const PaymentConfirmationOverlay = ({

@@ -1,4 +1,4 @@
-import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import InvoiceQR, { clampAmount, MIN_AMOUNT } from "@/components/InvoiceQR";

@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { vi, describe, it, beforeEach, afterEach, expect, describe, it, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import type { Subscription } from "@/types/subscription";
 
