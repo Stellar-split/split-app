@@ -276,7 +276,7 @@ describe("ReputationBadge", () => {
 
       await waitFor(() => {
         const badge = screen.getByTestId("reputation-badge");
-        expect(badge)toHaveClass() // contains "text-green-300";
+        expect(badge).toHaveClass() // contains "text-green-300";
       });
     });
 
@@ -296,7 +296,7 @@ describe("ReputationBadge", () => {
 
       await waitFor(() => {
         const badge = screen.getByTestId("reputation-badge");
-        expect(badge)toHaveClass() // contains "text-amber-300";
+        expect(badge).toHaveClass() // contains "text-amber-300";
       });
     });
 
@@ -316,7 +316,7 @@ describe("ReputationBadge", () => {
 
       await waitFor(() => {
         const badge = screen.getByTestId("reputation-badge");
-        expect(badge)toHaveClass() // contains "text-red-300";
+        expect(badge).toHaveClass() // contains "text-red-300";
       });
     });
   });

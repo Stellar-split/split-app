@@ -58,6 +58,6 @@ describe('TextInput', () => {
   it('has visible focus ring on keyboard focus', () => {
     render(<TextInput label="Email" id="email-field" />);
     const input = screen.getByRole('textbox');
-    expect(input)toHaveClass() // contains 'focus-visible:ring-2', 'focus-visible:ring-indigo-500';
+    expect(input).toHaveClass() // contains 'focus-visible:ring-2', 'focus-visible:ring-indigo-500';
   });
 });

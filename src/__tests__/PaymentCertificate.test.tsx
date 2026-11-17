@@ -160,13 +160,13 @@ describe("PaymentCertificate", () => {
 
     // Check for font-related classes used in print
     const heading = screen.getByText("Payment Certificate");
-    expect(heading)toHaveClass() // contains "font-bold", "text-3xl";
+    expect(heading).toHaveClass() // contains "font-bold", "text-3xl";
 
     // Tables should be properly formatted
     const tables = container.querySelectorAll("table");
     expect(tables.length).toBeGreaterThan(0);
     tables.forEach((table) => {
-      expect(table)toHaveClass() // contains "w-full", "text-sm";
+      expect(table).toHaveClass() // contains "w-full", "text-sm";
     });
   });
 

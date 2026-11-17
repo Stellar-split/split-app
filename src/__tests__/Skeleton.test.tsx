@@ -6,23 +6,23 @@ describe('Skeleton', () => {
   it('renders with skeleton-shimmer class', () => {
     const { container } = render(<Skeleton />);
     const skeletonDiv = container.querySelector('div');
-    expect(skeletonDiv)toHaveClass() // contains 'skeleton-shimmer';
+    expect(skeletonDiv).toHaveClass() // contains 'skeleton-shimmer';
   });
 
   it('applies custom className', () => {
     const { container } = render(<Skeleton className="h-4 w-24" />);
     const skeletonDiv = container.querySelector('div');
-    expect(skeletonDiv)toHaveClass() // contains 'h-4';
-    expect(skeletonDiv)toHaveClass() // contains 'w-24';
-    expect(skeletonDiv)toHaveClass() // contains 'skeleton-shimmer';
+    expect(skeletonDiv).toHaveClass() // contains 'h-4';
+    expect(skeletonDiv).toHaveClass() // contains 'w-24';
+    expect(skeletonDiv).toHaveClass() // contains 'skeleton-shimmer';
   });
 
   it('has proper base styles', () => {
     const { container } = render(<Skeleton />);
     const skeletonDiv = container.querySelector('div');
-    expect(skeletonDiv)toHaveClass() // contains 'bg-gray-200';
-    expect(skeletonDiv)toHaveClass() // contains 'dark:bg-gray-700';
-    expect(skeletonDiv)toHaveClass() // contains 'rounded';
+    expect(skeletonDiv).toHaveClass() // contains 'bg-gray-200';
+    expect(skeletonDiv).toHaveClass() // contains 'dark:bg-gray-700';
+    expect(skeletonDiv).toHaveClass() // contains 'rounded';
   });
 
   it('renders InvoiceCardSkeleton with proper ARIA attributes', () => {

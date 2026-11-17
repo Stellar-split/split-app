@@ -185,7 +185,7 @@ describe("ActivityFeed", () => {
 
     render(<ActivityFeed open={true} />);
     const dot = screen.getByTitle("Disconnected");
-    expect(dot)toHaveClass() // contains "bg-red-400";
+    expect(dot).toHaveClass() // contains "bg-red-400";
   });
 
   it("renders filter chips for all event types", () => {
