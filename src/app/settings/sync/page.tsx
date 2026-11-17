@@ -120,7 +120,7 @@ export default function StateSyncPage() {
             accept="application/json,.json"
             onChange={handleImportFile}
             disabled={importStatus.type === "loading"}
-            className="block w-full text-sm text-gray-300
+            className="block w-full text-sm text-gray-700 dark:text-gray-300
               file:mr-4 file:py-2 file:px-4
               file:rounded-lg file:border-0
               file:text-sm file:font-semibold

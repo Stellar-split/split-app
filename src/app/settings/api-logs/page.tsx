@@ -374,7 +374,7 @@ export default function ApiLogsPage() {
       {/* Logs Table */}
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
         <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 dark:bg-neutral-850 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-neutral-800 font-medium">
+          <thead className="bg-gray-50 dark:bg-neutral-850 text-gray-700 dark:text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-neutral-800 font-medium">
             <tr>
               <th className="px-4 py-3">Timestamp</th>
               <th className="px-4 py-3">Endpoint</th>

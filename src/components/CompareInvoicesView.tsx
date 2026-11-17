@@ -368,10 +368,10 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
                 <div className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 self-start pt-3.5">
                   {row.label}
                 </div>
-                <div className={`px-4 py-3 text-sm text-gray-900 dark:text-gray-200 border-l border-gray-100 dark:border-gray-800 ${differs ? diffClass(row.rawA, row.rawB) : ""}`}>
+                <div className={`px-4 py-3 text-sm text-gray-900 dark:text-gray-800 dark:text-gray-200 border-l border-gray-100 dark:border-gray-800 ${differs ? diffClass(row.rawA, row.rawB) : ""}`}>
                   {row.valA}
                 </div>
-                <div className={`px-4 py-3 text-sm text-gray-900 dark:text-gray-200 border-l border-gray-100 dark:border-gray-800 ${differs ? diffClass(row.rawA, row.rawB) : ""}`}>
+                <div className={`px-4 py-3 text-sm text-gray-900 dark:text-gray-800 dark:text-gray-200 border-l border-gray-100 dark:border-gray-800 ${differs ? diffClass(row.rawA, row.rawB) : ""}`}>
                   {row.valB}
                 </div>
               </div>

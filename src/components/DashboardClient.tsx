@@ -421,7 +421,7 @@ export default function DashboardClient() {
                 className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
                   active
                     ? "bg-indigo-600 text-white"
-                    : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"
+                    : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"
                 }`}
               >
                 {preset.label}
@@ -476,7 +476,7 @@ export default function DashboardClient() {
         <button
           type="button"
           onClick={clearFilters}
-          className="self-start rounded-full border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="self-start rounded-full border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm font-semibold text-gray-600 dark:text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
           Clear filters
         </button>
@@ -535,7 +535,7 @@ export default function DashboardClient() {
                 className={`min-h-9 px-3 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                   viewMode === "cards"
                     ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -551,7 +551,7 @@ export default function DashboardClient() {
                 className={`min-h-9 px-3 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5 border-l border-gray-300 dark:border-gray-700 ${
                   viewMode === "table"
                     ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
