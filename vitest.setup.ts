@@ -35,6 +35,17 @@ vi.mock('@/context/ToastContext', () => ({
   }),
 }));
 
+vi.mock('next/router', () => ({
+  useRouter: () => ({
+    push: vi.fn().mockResolvedValue(undefined),
+    replace: vi.fn().mockResolvedValue(undefined),
+    prefetch: vi.fn(),
+    pathname: '/',
+    query: {},
+    asPath: '/',
+  }),
+}));
+
 import '@testing-library/jest-dom/vitest';
 
 // ============ GLOBAL TEST CONFIGURATION ============
