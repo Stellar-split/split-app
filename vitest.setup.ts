@@ -195,29 +195,7 @@ vi.mock('@/lib/apiClient', () => ({
   apiFetch: vi.fn(async () => ({})),
 }));
 
-vi.mock('@/contexts/AccessibilityContext', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/contexts/AccessibilityContext')>();
-  return {
-    ...actual,
-    AccessibilityProvider: ({ children }: any) => children,
-  };
-});
-
-vi.mock('@/contexts/WalletContext', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/contexts/WalletContext')>();
-  return {
-    ...actual,
-    WalletProvider: ({ children }: any) => children,
-  };
-});
-
-vi.mock('@/context/ToastContext', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/context/ToastContext')>();
-  return {
-    ...actual,
-    ToastProvider: ({ children }: any) => children,
-  };
-});
+// Context providers: Use real implementations with proper setup
 
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({
