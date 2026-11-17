@@ -88,7 +88,10 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
-global.localStorage = localStorageMock as any;
+Object.defineProperty(global, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
 
 // sessionStorage mock
 const sessionStorageMock = (() => {
@@ -111,7 +114,10 @@ Object.defineProperty(window, 'sessionStorage', {
   value: sessionStorageMock,
 });
 
-global.sessionStorage = sessionStorageMock as any;
+Object.defineProperty(global, 'sessionStorage', {
+  value: sessionStorageMock,
+  writable: true,
+});
 
 // Mock crypto for tests
 global.crypto = {
