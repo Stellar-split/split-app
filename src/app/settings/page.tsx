@@ -31,7 +31,7 @@ export default function SettingsPage() {
           every 60 seconds.
         </p>
 
-        <label htmlFor="fiat-currency" className="block text-sm font-medium text-gray-300 mb-1">
+        <label htmlFor="fiat-currency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Preferred fiat currency
         </label>
         <select
