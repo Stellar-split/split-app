@@ -51,7 +51,12 @@ export function getIpfsUrl(cid: string): string {
 }
 
 export function isValidCid(cid: string): boolean {
-  return /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(cid);
+  if (!cid || typeof cid !== 'string') return false;
+  // CIDv0: starts with Qm followed by 44 valid base58 characters
+  if (/^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(cid)) return true;
+  // CIDv1: starts with bafy (base32) or bz (base58btc) and is 59+ chars
+  if (/^bafy[a-z2-7]{55,}$/.test(cid)) return true;
+  return false;
 }
 
 export async function mockIpfsUpload(file: File): Promise<string> {
