@@ -195,7 +195,53 @@ vi.mock('@/lib/apiClient', () => ({
   apiFetch: vi.fn(async () => ({})),
 }));
 
-// Context providers: Use real implementations with proper setup
+vi.mock('@/contexts/AccessibilityContext', () => {
+  const React = require('react');
+
+  const mockContext = {
+    fontScale: 100 as const,
+    setFontScale: () => {},
+    reducedMotion: false,
+    setReducedMotion: () => {},
+    highContrast: 'normal' as const,
+    setHighContrast: () => {},
+  };
+
+  return {
+    AccessibilityProvider: ({ children }: any) => React.createElement(React.Fragment, {}, children),
+    useAccessibility: () => mockContext,
+  };
+});
+
+vi.mock('@/contexts/WalletContext', () => {
+  const React = require('react');
+
+  return {
+    WalletProvider: ({ children }: any) => React.createElement(React.Fragment, {}, children),
+    useWalletContext: () => ({
+      address: 'GTEST123456789',
+      isConnected: false,
+      connect: async () => {},
+      disconnect: () => {},
+      signTransaction: async (xdr: string) => ({ signedXdr: xdr }),
+    }),
+  };
+});
+
+vi.mock('@/context/ToastContext', () => {
+  const React = require('react');
+
+  return {
+    ToastProvider: ({ children }: any) => React.createElement(React.Fragment, {}, children),
+    useToast: () => ({
+      toast: () => {},
+      success: () => {},
+      error: () => {},
+      warning: () => {},
+      info: () => {},
+    }),
+  };
+});
 
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({
