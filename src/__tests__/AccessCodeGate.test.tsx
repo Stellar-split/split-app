@@ -69,12 +69,12 @@ describe("AccessCodeGate & Hash Verification", () => {
       );
 
       const input = document.getElementById("access-code-input") as HTMLInputElement;
-      expect(input).to.have.property('getAttribute', "type", "password");
+      expect(input.getAttribute("type")).toBe("password");
 
       const toggleButton = screen.getByRole("button", { name: /show access code/i });
       fireEvent.click(toggleButton);
 
-      expect(input).to.have.property('getAttribute', "type", "text");
+      expect(input.getAttribute("type")).toBe("text");
       expect(screen.getByRole("button", { name: /hide access code/i })).toBeTruthy() // element exists in DOM;
     });
 

@@ -122,7 +122,26 @@ Object.defineProperty(global, 'sessionStorage', {
 // Mock crypto for tests
 const cryptoMock = {
   subtle: {
-    digest: vi.fn(async () => new ArrayBuffer(32)),
+    digest: vi.fn(async (algorithm: string, data: BufferSource) => {
+      // Deterministic hash using Node.js crypto for testing
+      try {
+        const nodeCrypto = await import('crypto');
+        const bytes = new Uint8Array(data as ArrayBuffer);
+        const hash = nodeCrypto.createHash('sha256');
+        hash.update(Buffer.from(bytes));
+        const digest = hash.digest();
+        return digest.buffer.slice(digest.byteOffset, digest.byteOffset + digest.byteLength);
+      } catch {
+        // Fallback: return a consistent but different hash based on data
+        const buffer = new ArrayBuffer(32);
+        const view = new Uint8Array(buffer);
+        const bytes = new Uint8Array(data as ArrayBuffer);
+        for (let i = 0; i < 32; i++) {
+          view[i] = (bytes[i % bytes.length] * 7 + i * 13) & 0xFF;
+        }
+        return buffer;
+      }
+    }),
   },
   getRandomValues: (arr: any) => {
     for (let i = 0; i < arr.length; i++) {
