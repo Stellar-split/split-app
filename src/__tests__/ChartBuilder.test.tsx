@@ -58,7 +58,7 @@ describe("ChartBuilder (#798)", () => {
     const lineBtn = screen.getByRole("button", { name: /line/i });
     fireEvent.click(lineBtn);
     expect(lineBtn.getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByRole("button", { name: /bar/i })).to.have.property('getAttribute', "aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /bar/i })).getAttribute("aria-pressed").toBe("false");
   });
 
   it("changing metric updates the footer label", () => {

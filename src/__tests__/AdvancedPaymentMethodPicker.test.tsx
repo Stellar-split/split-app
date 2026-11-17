@@ -7,7 +7,7 @@ describe("AdvancedPaymentMethodPicker", () => {
   it("selects a method on click", () => {
     const onChange = vi.fn();
     render(<AdvancedPaymentMethodPicker value="freighter" onChange={onChange} />);
-    expect(screen.getByRole("radio", { name: /Freighter wallet/ })).to.have.property('getAttribute', "aria-checked", "true");
+    expect(screen.getByRole("radio", { name: /Freighter wallet/ })).getAttribute("aria-checked").toBe("true");
     fireEvent.click(screen.getByRole("radio", { name: /Batch payment/ }));
     expect(onChange).toHaveBeenCalledWith("batch");
   });

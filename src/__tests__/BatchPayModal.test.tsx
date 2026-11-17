@@ -95,9 +95,7 @@ describe("BatchPayModal", () => {
     );
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Payment/i });
-    expect(confirmButton).to.have.property('getAttribute', 
-      "title",
-      "Connect your wallet to continue"
+    expect(confirmButton).getAttribute("title").toBe("Connect your wallet to continue"
     );
   });
 
@@ -132,9 +130,7 @@ describe("BatchPayModal", () => {
     );
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Payment/i });
-    expect(confirmButton).not.to.have.property('getAttribute', 
-      "title",
-      "Connect your wallet to continue"
+    expect(confirmButton).not.getAttribute("title").toBe("Connect your wallet to continue"
     );
   });
 

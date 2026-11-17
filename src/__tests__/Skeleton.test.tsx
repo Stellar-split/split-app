@@ -28,7 +28,7 @@ describe('Skeleton', () => {
   it('renders InvoiceCardSkeleton with proper ARIA attributes', () => {
     const { container } = render(<InvoiceCardSkeleton />);
     const skeleton = container.querySelector('[role="status"]');
-    expect(skeleton).to.have.property('getAttribute', 'aria-busy', 'true');
-    expect(skeleton).to.have.property('getAttribute', 'aria-label', 'Loading invoice data');
+    expect(skeleton).getAttribute('aria-busy').toBe('true');
+    expect(skeleton).getAttribute('aria-label').toBe('Loading invoice data');
   });
 });

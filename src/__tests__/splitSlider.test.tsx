@@ -33,15 +33,15 @@ function sliders(): HTMLInputElement[] {
 describe("SplitSumIndicator", () => {
   it("turns green only at exactly 100%", () => {
     const { rerender } = render(<SplitSumIndicator sum={100} isValid />);
-    expect(screen.getByTestId("split-sum-bar")).to.have.property('getAttribute', "data-state", "valid");
+    expect(screen.getByTestId("split-sum-bar")).getAttribute("data-state").toBe("valid");
     expect(screen.getByTestId("split-sum-bar").className).toMatch(/bg-emerald-500/);
 
     rerender(<SplitSumIndicator sum={99.9} isValid={false} />);
-    expect(screen.getByTestId("split-sum-bar")).to.have.property('getAttribute', "data-state", "under");
+    expect(screen.getByTestId("split-sum-bar")).getAttribute("data-state").toBe("under");
     expect(screen.getByTestId("split-sum-bar").className).toMatch(/bg-red-500/);
 
     rerender(<SplitSumIndicator sum={120} isValid={false} />);
-    expect(screen.getByTestId("split-sum-bar")).to.have.property('getAttribute', "data-state", "over");
+    expect(screen.getByTestId("split-sum-bar")).getAttribute("data-state").toBe("over");
     expect(screen.getByTestId("split-sum-bar").className).toMatch(/bg-red-500/);
   });
 
@@ -68,8 +68,8 @@ describe("SplitCalculator sliders", () => {
     const all = sliders();
     expect(all).toHaveLength(2);
     expect(all[0].getAttribute("type")).toBe("range");
-    expect(all[0]).to.have.property('value', "60");
-    expect(all[1]).to.have.property('value', "40");
+    expect(all[0]).toHaveValue("60");
+    expect(all[1]).toHaveValue("40");
   });
 
   it("updates that recipient's percentage in real time", () => {
@@ -77,7 +77,7 @@ describe("SplitCalculator sliders", () => {
 
     fireEvent.change(sliders()[0], { target: { value: "75" } });
 
-    expect(sliders()[0]).to.have.property('value', "75");
+    expect(sliders()[0]).toHaveValue("75");
     const indicator = screen.getByTestId("split-sum-indicator");
     expect(within(indicator).getByText("115% / 100%")).toBeTruthy() // element exists in DOM;
   });
@@ -94,9 +94,9 @@ describe("SplitCalculator sliders", () => {
 
   it("steps by 1% so arrow keys give whole-percent increments", () => {
     renderBuilder([line("GAAA1", 100)]);
-    expect(sliders()[0]).to.have.property('getAttribute', "step", "1");
-    expect(sliders()[0]).to.have.property('getAttribute', "min", "0");
-    expect(sliders()[0]).to.have.property('getAttribute', "max", "100");
+    expect(sliders()[0]).getAttribute("step").toBe("1");
+    expect(sliders()[0]).getAttribute("min").toBe("0");
+    expect(sliders()[0]).getAttribute("max").toBe("100");
   });
 
   it("keeps a paired exact-value field for sub-1% precision", () => {
@@ -105,20 +105,20 @@ describe("SplitCalculator sliders", () => {
     const exact = screen.getAllByLabelText(
       /share percentage, exact value/i
     ) as HTMLInputElement[];
-    expect(exact[0]).to.have.property('value', 33.3333);
+    expect(exact[0]).toHaveValue(33.3333);
 
     fireEvent.change(exact[0], { target: { value: "33.5" } });
-    expect(exact[0]).to.have.property('value', 33.5);
+    expect(exact[0]).toHaveValue(33.5);
   });
 
   it("marks the split valid only when the shares total exactly 100", () => {
     const onChange = vi.fn();
     renderBuilder([line("GAAA1", 50), line("GBBB2", 50)], onChange);
 
-    expect(screen.getByTestId("split-sum-bar")).to.have.property('getAttribute', "data-state", "valid");
+    expect(screen.getByTestId("split-sum-bar")).getAttribute("data-state").toBe("valid");
 
     fireEvent.change(sliders()[0], { target: { value: "51" } });
-    expect(screen.getByTestId("split-sum-bar")).to.have.property('getAttribute', "data-state", "over");
+    expect(screen.getByTestId("split-sum-bar")).getAttribute("data-state").toBe("over");
     expect(
       screen.getByText(/share percentages must sum to 100%/i)
     ).toBeTruthy() // element exists in DOM;

@@ -89,11 +89,11 @@ describe("PaymentGamificationPanel", () => {
     );
     expect(screen.getByText("Level 1: Starter")).toBeTruthy() // element exists in DOM;
     expect(screen.getByText("32 points")).toBeTruthy() // element exists in DOM;
-    expect(screen.getByRole("progressbar")).to.have.property('getAttribute', "aria-valuenow", "64");
+    expect(screen.getByRole("progressbar")).getAttribute("aria-valuenow").toBe("64");
     expect(screen.getByText("18 points to Contributor")).toBeTruthy() // element exists in DOM;
     const badge = screen.getByText("First payment").closest("li");
     expect(badge.getAttribute("data-earned")).toBe("true");
-    expect(screen.getByText("Regular").closest("li")).to.have.property('getAttribute', "data-earned", "false");
+    expect(screen.getByText("Regular").closest("li")).getAttribute("data-earned").toBe("false");
   });
 
   it("shows the empty state for no payments", () => {

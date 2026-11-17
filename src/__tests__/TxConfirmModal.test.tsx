@@ -59,7 +59,7 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
     const link = screen.getByRole("link", {
       name: /view on stellar expert/i,
     });
-    expect(link).to.have.property('getAttribute', "href");
+    expect(link).getAttribute("href");
     const href = link.getAttribute("href");
     expect(href).toContain("stellar.expert/explorer");
     expect(href).toContain(`tx/${txHash}`);

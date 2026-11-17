@@ -68,9 +68,9 @@ describe("BrandingForm", () => {
     await renderLoadedForm();
 
     expect(mockFetchBrandSettings).toHaveBeenCalledWith(ADDRESS);
-    expect(screen.getByLabelText("Accent color hex value")).to.have.property('value', "#4f46e5");
-    expect(screen.getByLabelText("Invoice tagline")).to.have.property('value', "Existing tagline");
-    expect(screen.getByAltText("Your logo")).to.have.property('getAttribute', "src", "https://cdn.example.com/logo.png");
+    expect(screen.getByLabelText("Accent color hex value")).toHaveValue("#4f46e5");
+    expect(screen.getByLabelText("Invoice tagline")).toHaveValue("Existing tagline");
+    expect(screen.getByAltText("Your logo")).getAttribute("src").toBe("https://cdn.example.com/logo.png");
   });
 
   it("rejects an unsupported file type with a specific error BEFORE any upload request", async () => {
@@ -172,6 +172,6 @@ describe("BrandingForm", () => {
 
     await waitFor(() => expect(mockClearBrandSettingsRemote).toHaveBeenCalledWith(ADDRESS));
     expect(await screen.findByText(/revert to platform-default styling/i)).toBeTruthy() // element exists in DOM;
-    expect(screen.getByLabelText("Invoice tagline")).to.have.property('value', "");
+    expect(screen.getByLabelText("Invoice tagline")).toHaveValue("");
   });
 });

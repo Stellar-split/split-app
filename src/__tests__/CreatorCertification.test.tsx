@@ -18,7 +18,7 @@ describe("CreatorCertification", () => {
     expect(screen.getByText("Not certified")).toBeTruthy() // element exists in DOM;
     expect(screen.getByText("Requirements for bronze certification")).toBeTruthy() // element exists in DOM;
     expect(screen.getByText(/Verify your wallet/)).toBeTruthy() // element exists in DOM;
-    expect(screen.getByRole("progressbar")).to.have.property('getAttribute', "aria-valuenow", "33");
+    expect(screen.getByRole("progressbar")).getAttribute("aria-valuenow").toBe("33");
   });
 
   it("shows the top tier when gold is reached", () => {
@@ -36,6 +36,6 @@ describe("CreatorCertification", () => {
     );
     expect(screen.getByText("gold")).toBeTruthy() // element exists in DOM;
     expect(screen.getByText("Top certification reached")).toBeTruthy() // element exists in DOM;
-    expect(screen.getByRole("progressbar")).to.have.property('getAttribute', "aria-valuenow", "100");
+    expect(screen.getByRole("progressbar")).getAttribute("aria-valuenow").toBe("100");
   });
 });

@@ -55,7 +55,7 @@ describe("PayModal", () => {
     );
 
     const amountInput = await screen.findByLabelText(/amount \(usdc\)/i);
-    expect(amountInput).to.have.property('value', 40);
+    expect(amountInput).toHaveValue(40);
     expect(await screen.findByText(/100.00 USDC available/i)).toBeTruthy() // element exists in DOM;
 
     fireEvent.change(screen.getByLabelText(/tip \(optional\)/i), {
@@ -73,9 +73,7 @@ describe("PayModal", () => {
       )
     );
     expect(await screen.findByText(/payment confirmed/i)).toBeTruthy() // element exists in DOM;
-    expect(screen.getByRole("link", { name: /view on stellar expert/i })).to.have.property('getAttribute', 
-      "href",
-      expect.stringContaining("/abc123hash")
+    expect(screen.getByRole("link", { name: /view on stellar expert/i })).getAttribute("href").toBe(expect.stringContaining("/abc123hash")
     );
   });
 

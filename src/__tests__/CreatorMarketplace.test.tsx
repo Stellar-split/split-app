@@ -24,7 +24,7 @@ describe("creatorMarketplace", () => {
 describe("CreatorMarketplace", () => {
   it("renders creators with profile links and supports filtering", () => {
     render(<CreatorMarketplace creators={creators} />);
-    expect(screen.getByRole("link", { name: "Ada" })).to.have.property('getAttribute', "href", "/creator/GA");
+    expect(screen.getByRole("link", { name: "Ada" })).getAttribute("href").toBe("/creator/GA");
     fireEvent.click(screen.getByLabelText("Verified only"));
     expect(screen.queryByText("Bo")).not.toBeTruthy() // element exists in DOM;
     fireEvent.change(screen.getByLabelText("Search creators"), { target: { value: "zzz" } });
