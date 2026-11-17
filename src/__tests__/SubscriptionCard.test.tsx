@@ -88,7 +88,7 @@ describe("SubscriptionCard", () => {
   it("links to detail page", () => {
     render(<SubscriptionCard subscription={mockSubscription} />);
     const link = screen.getByRole("link");
-    expect(link).to.have.property('getAttribute', "href", "/subscriptions/sub-1");
+    expect(link.getAttribute("href")).toBe("/subscriptions/sub-1");
   });
 
   it("shows dash for next run when paused", () => {

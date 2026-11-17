@@ -213,7 +213,7 @@ describe("PaymentConfirmationOverlay", () => {
         "href",
         expect.stringContaining(txHash)
       );
-      expect(link).to.have.property('getAttribute', "target", "_blank");
+      expect(link.getAttribute("target")).toBe("_blank");
     });
   });
 

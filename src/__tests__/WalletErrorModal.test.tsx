@@ -198,8 +198,8 @@ describe("Issue #599: WalletErrorModal retry functionality", () => {
     );
 
     const dialog = container.querySelector('[role="dialog"]');
-    expect(dialog).to.have.property('getAttribute', "aria-modal", "true");
-    expect(dialog).to.have.property('getAttribute', "aria-labelledby", "wallet-error-title");
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-labelledby")).toBe("wallet-error-title");
   });
 
   it("should focus first interactive element when error is shown", async () => {
@@ -299,8 +299,8 @@ describe("Issue #599: WalletErrorModal retry functionality", () => {
       "href",
       "https://www.freighter.app/"
     );
-    expect(installLink).to.have.property('getAttribute', "target", "_blank");
-    expect(installLink).to.have.property('getAttribute', "rel", "noopener noreferrer");
+    expect(installLink.getAttribute("target")).toBe("_blank");
+    expect(installLink.getAttribute("rel")).toBe("noopener noreferrer");
   });
 
   it("should display instructions for locked wallet", () => {

@@ -92,7 +92,7 @@ describe("PaymentGamificationPanel", () => {
     expect(screen.getByRole("progressbar")).to.have.property('getAttribute', "aria-valuenow", "64");
     expect(screen.getByText("18 points to Contributor")).toBeTruthy() // element exists in DOM;
     const badge = screen.getByText("First payment").closest("li");
-    expect(badge).to.have.property('getAttribute', "data-earned", "true");
+    expect(badge.getAttribute("data-earned")).toBe("true");
     expect(screen.getByText("Regular").closest("li")).to.have.property('getAttribute', "data-earned", "false");
   });
 

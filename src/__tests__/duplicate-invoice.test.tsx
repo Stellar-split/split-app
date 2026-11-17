@@ -196,7 +196,7 @@ describe("NewInvoicePage — URL pre-fill (clone mode)", () => {
     );
 
     const link = screen.getByRole("link", { name: /#42/ });
-    expect(link).to.have.property('getAttribute', "href", "/invoice/42");
+    expect(link.getAttribute("href")).toBe("/invoice/42");
   });
 
   test("applies deadline param to the datetime-local input", async () => {

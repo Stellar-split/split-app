@@ -79,7 +79,7 @@ describe("PaymentScheduler (#800)", () => {
     render(<PaymentScheduler {...defaultProps} />);
     fireEvent.click(screen.getByRole("button", { name: /create schedule/i }));
     const bar = screen.getByRole("progressbar");
-    expect(bar).to.have.property('getAttribute', "aria-valuenow", "0");
+    expect(bar.getAttribute("aria-valuenow")).toBe("0");
   });
 
   it("marks instalment as paid and updates progress", () => {
@@ -89,7 +89,7 @@ describe("PaymentScheduler (#800)", () => {
     fireEvent.click(payBtns[0]);
     // 1 of 3 = 33%
     const bar = screen.getByRole("progressbar");
-    expect(bar).to.have.property('getAttribute', "aria-valuenow", "33");
+    expect(bar.getAttribute("aria-valuenow")).toBe("33");
   });
 
   it("shows completion message when all instalments paid", () => {

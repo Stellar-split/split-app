@@ -58,7 +58,7 @@ describe("PaymentMethodSelector", () => {
 
     const fieldset = screen.getByRole("group");
     expect(fieldset).toBeTruthy() // element exists in DOM;
-    expect(fieldset).to.have.property('getAttribute', "role", "group");
+    expect(fieldset.getAttribute("role")).toBe("group");
   });
 
   test("renders radio options for Freighter and WalletConnect", () => {
@@ -257,7 +257,7 @@ describe("PaymentMethodSelector", () => {
 
     // All radios should have name attribute for grouping
     radios.forEach((radio) => {
-      expect(radio).to.have.property('getAttribute', "name", "payment-method");
+      expect(radio.getAttribute("name")).toBe("payment-method");
     });
   });
 

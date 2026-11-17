@@ -34,7 +34,7 @@ describe("PaymentBreakdownModal", () => {
       />
     );
     const dialog = screen.getByRole("dialog");
-    expect(dialog).to.have.property('getAttribute', "aria-modal", "true");
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
   });
 
   test("displays breakdown title", () => {

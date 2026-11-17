@@ -16,7 +16,7 @@ describe("PaymentProgress", () => {
       />
     );
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "50");
+    expect(progressBar.getAttribute("aria-valuenow")).toBe("50");
   });
 
   test("caps progress bar width at 100% when overpaid", () => {
@@ -27,7 +27,7 @@ describe("PaymentProgress", () => {
       />
     );
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "100");
+    expect(progressBar.getAttribute("aria-valuenow")).toBe("100");
 
     const fillDiv = progressBar.querySelector("div");
     expect(fillDiv).toHaveStyle({ width: "100%" });
@@ -41,7 +41,7 @@ describe("PaymentProgress", () => {
       />
     );
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "0");
+    expect(progressBar.getAttribute("aria-valuenow")).toBe("0");
   });
 
   test("displays funded and total amounts in USDC", () => {
@@ -73,7 +73,7 @@ describe("PaymentProgress", () => {
 
     render(<PaymentProgress invoice={mockInvoice} />);
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "75");
+    expect(progressBar.getAttribute("aria-valuenow")).toBe("75");
     expect(screen.getByText(/7\.50 \/ 10\.00 USDC funded/)).toBeTruthy() // element exists in DOM;
   });
 
@@ -85,7 +85,7 @@ describe("PaymentProgress", () => {
       />
     );
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).to.have.property('getAttribute', "aria-label", "50% funded");
+    expect(progressBar.getAttribute("aria-label")).toBe("50% funded");
   });
 
   test("does not display amount text without invoice prop", () => {
@@ -106,7 +106,7 @@ describe("PaymentProgress", () => {
       />
     );
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "0");
+    expect(progressBar.getAttribute("aria-valuenow")).toBe("0");
   });
 
   test("correctly displays overpayment scenario", () => {
@@ -123,7 +123,7 @@ describe("PaymentProgress", () => {
 
     render(<PaymentProgress invoice={mockInvoice} />);
     const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).to.have.property('getAttribute', "aria-valuenow", "100");
-    expect(progressBar).to.have.property('getAttribute', "aria-label", "100% funded");
+    expect(progressBar.getAttribute("aria-valuenow")).toBe("100");
+    expect(progressBar.getAttribute("aria-label")).toBe("100% funded");
   });
 });

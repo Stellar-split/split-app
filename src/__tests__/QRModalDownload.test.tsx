@@ -224,7 +224,7 @@ describe("Issue #600: QRModal Download QR Code", () => {
     );
 
     const dialog = container.querySelector('[role="dialog"]');
-    expect(dialog).to.have.property('getAttribute', "aria-modal", "true");
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
   });
 
   it("should poll wallet connection status", async () => {

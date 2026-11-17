@@ -80,8 +80,8 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
     const link = screen.getByRole("link", {
       name: /view on stellar expert/i,
     });
-    expect(link).to.have.property('getAttribute', "target", "_blank");
-    expect(link).to.have.property('getAttribute', "rel", "noopener noreferrer");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
   });
 
   it("should allow copying transaction hash", async () => {
@@ -200,7 +200,7 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
     );
 
     const title = screen.getByText(/✓ payment confirmed/i);
-    expect(title).to.have.property('className') // contains "text-green-400";
+    expect(title)toHaveClass() // contains "text-green-400";
   });
 
   it("should display the correct action text in confirmation message", () => {
@@ -229,7 +229,7 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
     );
 
     const dialog = container.querySelector('[role="dialog"]');
-    expect(dialog).to.have.property('getAttribute', "aria-modal", "true");
-    expect(dialog).to.have.property('getAttribute', "aria-labelledby", "tx-modal-title");
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-labelledby")).toBe("tx-modal-title");
   });
 });

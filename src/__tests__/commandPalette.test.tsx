@@ -151,15 +151,15 @@ describe("CommandPalette — keyboard navigation", () => {
 
     const input = screen.getByLabelText(/search pages/i);
     const options = screen.getAllByRole("option");
-    expect(options[0]).to.have.property('getAttribute', "aria-selected", "true");
+    expect(options[0].getAttribute("aria-selected")).toBe("true");
 
     act(() => {
       fireEvent.keyDown(input, { key: "ArrowDown" });
     });
 
     const optionsAfter = screen.getAllByRole("option");
-    expect(optionsAfter[1]).to.have.property('getAttribute', "aria-selected", "true");
-    expect(optionsAfter[0]).to.have.property('getAttribute', "aria-selected", "false");
+    expect(optionsAfter[1].getAttribute("aria-selected")).toBe("true");
+    expect(optionsAfter[0].getAttribute("aria-selected")).toBe("false");
   });
 
   test("ArrowUp from first wraps to last", () => {
@@ -173,7 +173,7 @@ describe("CommandPalette — keyboard navigation", () => {
 
     const options = screen.getAllByRole("option");
     const lastOption = options[options.length - 1];
-    expect(lastOption).to.have.property('getAttribute', "aria-selected", "true");
+    expect(lastOption.getAttribute("aria-selected")).toBe("true");
   });
 });
 
@@ -248,7 +248,7 @@ describe("CommandPalette — keyboard shortcut display", () => {
     expect(options.length > 0).toBe(true);
     // Verify each option has the expected structure with room for shortcuts
     options.forEach((option) => {
-      expect(option).to.have.property('className') // contains "flex", "items-center", "justify-between";
+      expect(option)toHaveClass() // contains "flex", "items-center", "justify-between";
     });
   });
 

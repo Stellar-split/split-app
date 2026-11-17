@@ -103,7 +103,7 @@ describe("ActivityFeed", () => {
 
     render(<ActivityFeed open={true} />);
     const ctaLink = screen.getByRole("link", { name: /create.*invoice/i });
-    expect(ctaLink).to.have.property('getAttribute', "href", "/invoice/new");
+    expect(ctaLink.getAttribute("href")).toBe("/invoice/new");
   });
 
   it("hides empty state when data is loading", () => {
@@ -185,7 +185,7 @@ describe("ActivityFeed", () => {
 
     render(<ActivityFeed open={true} />);
     const dot = screen.getByTitle("Disconnected");
-    expect(dot).to.have.property('className') // contains "bg-red-400";
+    expect(dot)toHaveClass() // contains "bg-red-400";
   });
 
   it("renders filter chips for all event types", () => {
@@ -230,7 +230,7 @@ describe("ActivityFeed", () => {
     render(<ActivityFeed open={true} />);
     const link = screen.getByText("Invoice moved from Pending to Released")
       .closest("a");
-    expect(link).to.have.property('getAttribute', "href", "/invoice/42");
+    expect(link.getAttribute("href")).toBe("/invoice/42");
   });
 
   it("deep-links comments to anchor on invoice page", () => {
@@ -255,6 +255,6 @@ describe("ActivityFeed", () => {
 
     render(<ActivityFeed open={true} />);
     const link = screen.getByText(/Nice work/).closest("a");
-    expect(link).to.have.property('getAttribute', "href", "/invoice/5#comment-c-abc");
+    expect(link.getAttribute("href")).toBe("/invoice/5#comment-c-abc");
   });
 });

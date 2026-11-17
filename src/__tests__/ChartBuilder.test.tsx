@@ -50,14 +50,14 @@ describe("ChartBuilder (#798)", () => {
   it("bar button is pressed by default", () => {
     render(<ChartBuilder data={makeData()} />);
     const bar = screen.getByRole("button", { name: /bar/i });
-    expect(bar).to.have.property('getAttribute', "aria-pressed", "true");
+    expect(bar.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("switches chart type when a type button is clicked", () => {
     render(<ChartBuilder data={makeData()} />);
     const lineBtn = screen.getByRole("button", { name: /line/i });
     fireEvent.click(lineBtn);
-    expect(lineBtn).to.have.property('getAttribute', "aria-pressed", "true");
+    expect(lineBtn.getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("button", { name: /bar/i })).to.have.property('getAttribute', "aria-pressed", "false");
   });
 

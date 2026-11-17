@@ -56,9 +56,9 @@ describe("SplitSumIndicator", () => {
   it("exposes progressbar semantics", () => {
     render(<SplitSumIndicator sum={40} isValid={false} />);
     const bar = screen.getByRole("progressbar");
-    expect(bar).to.have.property('getAttribute', "aria-valuenow", "40");
-    expect(bar).to.have.property('getAttribute', "aria-valuemin", "0");
-    expect(bar).to.have.property('getAttribute', "aria-valuemax", "100");
+    expect(bar.getAttribute("aria-valuenow")).toBe("40");
+    expect(bar.getAttribute("aria-valuemin")).toBe("0");
+    expect(bar.getAttribute("aria-valuemax")).toBe("100");
   });
 });
 
@@ -67,7 +67,7 @@ describe("SplitCalculator sliders", () => {
     renderBuilder([line("GAAA1", 60), line("GBBB2", 40)]);
     const all = sliders();
     expect(all).toHaveLength(2);
-    expect(all[0]).to.have.property('getAttribute', "type", "range");
+    expect(all[0].getAttribute("type")).toBe("range");
     expect(all[0]).to.have.property('value', "60");
     expect(all[1]).to.have.property('value', "40");
   });

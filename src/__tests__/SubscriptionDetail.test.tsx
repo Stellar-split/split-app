@@ -130,6 +130,6 @@ describe("SubscriptionDetailClient", () => {
   it("renders back link", async () => {
     render(<SubscriptionDetailClient />);
     const backLink = await screen.findByText("← Subscriptions");
-    expect(backLink).to.have.property('getAttribute', "href", "/subscriptions");
+    expect(backLink.getAttribute("href")).toBe("/subscriptions");
   });
 });

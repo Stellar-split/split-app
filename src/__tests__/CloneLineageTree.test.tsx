@@ -157,9 +157,9 @@ describe("CloneLineageTree component", () => {
     const link2 = screen.getByRole("link", { name: /#2/i });
     const link3 = screen.getByRole("link", { name: /#3/i });
 
-    expect(link1).to.have.property('getAttribute', "href", "/invoice/1");
-    expect(link2).to.have.property('getAttribute', "href", "/invoice/2");
-    expect(link3).to.have.property('getAttribute', "href", "/invoice/3");
+    expect(link1.getAttribute("href")).toBe("/invoice/1");
+    expect(link2.getAttribute("href")).toBe("/invoice/2");
+    expect(link3.getAttribute("href")).toBe("/invoice/3");
   });
 
   test("sibling nodes are rendered as links", async () => {

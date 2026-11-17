@@ -44,8 +44,8 @@ test("renders nothing when expiresAt is already expired", () => {
 test("has role=status and aria-live=polite", () => {
   render(<CooldownBadge expiresAt={futureExpiry()} />);
   const badge = screen.getByRole("status");
-  expect(badge).to.have.property('getAttribute', "aria-live", "polite");
-  expect(badge).to.have.property('getAttribute', "aria-atomic", "true");
+  expect(badge.getAttribute("aria-live")).toBe("polite");
+  expect(badge.getAttribute("aria-atomic")).toBe("true");
 });
 
 test("countdown text updates after 1 second tick", () => {

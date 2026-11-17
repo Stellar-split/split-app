@@ -32,6 +32,6 @@ describe("CountdownTimer", () => {
     render(<CountdownTimer deadline={deadline} />);
 
     const timer = screen.getByText("1d 1h 0m 0s remaining");
-    expect(timer).to.have.property('getAttribute', "title", "Expires July 1, 2026 at 15:00 UTC");
+    expect(timer.getAttribute("title")).toBe("Expires July 1, 2026 at 15:00 UTC");
   });
 });

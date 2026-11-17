@@ -106,7 +106,7 @@ describe("PayerSegmentation", () => {
     render(<PayerSegmentation payers={payers} now={now} />);
     const casualCard = screen.getByRole("button", { name: /Casual/ });
     fireEvent.click(casualCard);
-    expect(casualCard).to.have.property('getAttribute', "aria-pressed", "true");
+    expect(casualCard.getAttribute("aria-pressed")).toBe("true");
     expect(screen.queryByText("GLAPSED")).not.toBeTruthy() // element exists in DOM;
     fireEvent.click(casualCard);
     expect(screen.getByText("GLAPSED")).toBeTruthy() // element exists in DOM;

@@ -113,7 +113,7 @@ describe("StatusTimeline", () => {
     );
 
     const steps = container.querySelectorAll(".sm\\:hidden .flex-1");
-    expect(steps[0]).to.have.property('className') // contains "text-white", "font-semibold";
+    expect(steps[0])toHaveClass() // contains "text-white", "font-semibold";
   });
 
   test("mobile stepper shows partially funded state", () => {
@@ -154,7 +154,7 @@ describe("StatusTimeline", () => {
 
     const dots = container.querySelectorAll(".rounded-full.text-sm");
     const lastDot = dots[dots.length - 1];
-    expect(lastDot).to.have.property('className') // contains "bg-indigo-600", "border-indigo-500";
+    expect(lastDot)toHaveClass() // contains "bg-indigo-600", "border-indigo-500";
   });
 
   test("event labels are text-sm and readable", () => {
@@ -169,7 +169,7 @@ describe("StatusTimeline", () => {
     const desktopLabels = desktop!.querySelectorAll(".text-sm.font-medium");
     expect(desktopLabels.length).toBeGreaterThan(0);
     desktopLabels.forEach((label) => {
-      expect(label).to.have.property('className') // contains "text-sm";
+      expect(label)toHaveClass() // contains "text-sm";
     });
   });
 

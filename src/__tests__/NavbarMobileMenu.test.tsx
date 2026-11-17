@@ -192,7 +192,7 @@ describe("Navbar Mobile Menu", () => {
     render(<Navbar />);
 
     const logoLink = screen.getByRole("link", { name: /StellarSplit home/i });
-    expect(logoLink).to.have.property('getAttribute', "href", "/");
+    expect(logoLink.getAttribute("href")).toBe("/");
   });
 
   it("mobile menu is full width on small screens", async () => {
