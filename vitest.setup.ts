@@ -195,50 +195,29 @@ vi.mock('@/lib/apiClient', () => ({
   apiFetch: vi.fn(async () => ({})),
 }));
 
-vi.mock('@/contexts/AccessibilityContext', () => {
-  let fontScale = 100;
-  let reducedMotion = false;
-  let highContrast = 'normal' as const;
-
+vi.mock('@/contexts/AccessibilityContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/contexts/AccessibilityContext')>();
   return {
+    ...actual,
     AccessibilityProvider: ({ children }: any) => children,
-    useAccessibility: () => ({
-      fontScale,
-      setFontScale: (scale: number) => { fontScale = scale; },
-      reducedMotion,
-      setReducedMotion: (enabled: boolean) => { reducedMotion = enabled; },
-      highContrast,
-      setHighContrast: (contrast: string) => { highContrast = contrast as any; },
-    }),
   };
 });
 
-vi.mock('@/contexts/WalletContext', () => {
-  let isConnected = false;
-  let address = 'GTEST123456789';
-
+vi.mock('@/contexts/WalletContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/contexts/WalletContext')>();
   return {
+    ...actual,
     WalletProvider: ({ children }: any) => children,
-    useWalletContext: () => ({
-      address,
-      isConnected,
-      connect: async () => { isConnected = true; },
-      disconnect: () => { isConnected = false; },
-      signTransaction: async (xdr: string) => ({ signedXdr: xdr }),
-    }),
   };
 });
 
-vi.mock('@/context/ToastContext', () => ({
-  ToastProvider: ({ children }: any) => children,
-  useToast: () => ({
-    toast: (msg: string) => console.log('toast:', msg),
-    success: (msg: string) => console.log('success:', msg),
-    error: (msg: string) => console.log('error:', msg),
-    warning: (msg: string) => console.log('warning:', msg),
-    info: (msg: string) => console.log('info:', msg),
-  }),
-}));
+vi.mock('@/context/ToastContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/context/ToastContext')>();
+  return {
+    ...actual,
+    ToastProvider: ({ children }: any) => children,
+  };
+});
 
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({
