@@ -16,7 +16,7 @@ describe('FormInputs - aria-describedby', () => {
       render(<TextInput id="email" label="Email" error="Required" />);
       const input = screen.getByRole('textbox');
       expect(input.getAttribute('aria-describedby')).toBe('email-error');
-      expect(screen.getByText('Required')).getAttribute('id').toBe('email-error');
+      expect(screen.getByText('Required').getAttribute('id')).toBe('email-error');
     });
 
     it('sets aria-describedby pointing to helper text element', () => {
