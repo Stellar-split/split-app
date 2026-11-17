@@ -202,14 +202,14 @@ vi.mock('@/contexts/AccessibilityContext', () => {
 
   return {
     AccessibilityProvider: ({ children }: any) => children,
-    useAccessibility: vi.fn(() => ({
+    useAccessibility: () => ({
       fontScale,
       setFontScale: (scale: number) => { fontScale = scale; },
       reducedMotion,
       setReducedMotion: (enabled: boolean) => { reducedMotion = enabled; },
       highContrast,
       setHighContrast: (contrast: string) => { highContrast = contrast as any; },
-    })),
+    }),
   };
 });
 
@@ -219,25 +219,25 @@ vi.mock('@/contexts/WalletContext', () => {
 
   return {
     WalletProvider: ({ children }: any) => children,
-    useWalletContext: vi.fn(() => ({
+    useWalletContext: () => ({
       address,
       isConnected,
-      connect: vi.fn(async () => { isConnected = true; }),
-      disconnect: vi.fn(() => { isConnected = false; }),
-      signTransaction: vi.fn(async (xdr: string) => ({ signedXdr: xdr })),
-    })),
+      connect: async () => { isConnected = true; },
+      disconnect: () => { isConnected = false; },
+      signTransaction: async (xdr: string) => ({ signedXdr: xdr }),
+    }),
   };
 });
 
 vi.mock('@/context/ToastContext', () => ({
   ToastProvider: ({ children }: any) => children,
-  useToast: vi.fn(() => ({
-    toast: vi.fn((msg: string) => console.log('toast:', msg)),
-    success: vi.fn((msg: string) => console.log('success:', msg)),
-    error: vi.fn((msg: string) => console.log('error:', msg)),
-    warning: vi.fn((msg: string) => console.log('warning:', msg)),
-    info: vi.fn((msg: string) => console.log('info:', msg)),
-  })),
+  useToast: () => ({
+    toast: (msg: string) => console.log('toast:', msg),
+    success: (msg: string) => console.log('success:', msg),
+    error: (msg: string) => console.log('error:', msg),
+    warning: (msg: string) => console.log('warning:', msg),
+    info: (msg: string) => console.log('info:', msg),
+  }),
 }));
 
 vi.mock('next/navigation', () => ({
