@@ -34,12 +34,12 @@ describe('FormInputs - aria-describedby', () => {
 
     it('sets aria-invalid when error is present', () => {
       render(<TextInput id="email" label="Email" error="Invalid email" />);
-      expect(screen.getByRole('textbox')).getAttribute('aria-invalid').toBe('true');
+      expect(screen.getByRole('textbox').getAttribute('aria-invalid')).toBe('true');
     });
 
     it('sets aria-invalid=false when no error', () => {
       render(<TextInput id="email" label="Email" />);
-      expect(screen.getByRole('textbox')).getAttribute('aria-invalid').toBe('false');
+      expect(screen.getByRole('textbox').getAttribute('aria-invalid')).toBe('false');
     });
   });
 
