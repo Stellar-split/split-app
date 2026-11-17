@@ -1,4 +1,40 @@
 import { vi, beforeEach, afterEach } from 'vitest';
+
+// Mock context providers BEFORE any imports
+vi.mock('@/contexts/AccessibilityContext', () => ({
+  AccessibilityProvider: ({ children }: any) => children,
+  useAccessibility: () => ({
+    fontScale: 100,
+    setFontScale: () => {},
+    reducedMotion: false,
+    setReducedMotion: () => {},
+    highContrast: 'normal',
+    setHighContrast: () => {},
+  }),
+}));
+
+vi.mock('@/contexts/WalletContext', () => ({
+  WalletProvider: ({ children }: any) => children,
+  useWalletContext: () => ({
+    address: 'GTEST123456789',
+    isConnected: false,
+    connect: async () => {},
+    disconnect: () => {},
+    signTransaction: async (xdr: string) => ({ signedXdr: xdr }),
+  }),
+}));
+
+vi.mock('@/context/ToastContext', () => ({
+  ToastProvider: ({ children }: any) => children,
+  useToast: () => ({
+    toast: () => {},
+    success: () => {},
+    error: () => {},
+    warning: () => {},
+    info: () => {},
+  }),
+}));
+
 import '@testing-library/jest-dom/vitest';
 
 // ============ GLOBAL TEST CONFIGURATION ============
