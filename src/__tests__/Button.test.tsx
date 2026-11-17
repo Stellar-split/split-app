@@ -37,11 +37,11 @@ describe('Button', () => {
 
   it('applies primary variant classes by default', () => {
     render(<Button>Primary</Button>);
-    expect(screen.getByRole('button')).toHaveClass() // contains 'bg-brand-600';
+    expect(screen.getByRole('button')).toHaveClass('bg-brand-600');
   });
 
   it('applies secondary variant classes', () => {
     render(<Button variant="secondary">Secondary</Button>);
-    expect(screen.getByRole('button')).toHaveClass() // contains 'bg-surface-800';
+    expect(screen.getByRole('button')).toHaveClass('bg-surface-800');
   });
 });
