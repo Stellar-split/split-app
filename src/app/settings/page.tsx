@@ -38,7 +38,7 @@ export default function SettingsPage() {
           id="fiat-currency"
           value={fiatCurrency}
           onChange={(e) => setFiatCurrency(e.target.value as FiatCurrency)}
-          className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full min-h-11 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           {FIAT_CURRENCIES.map((code) => (
             <option key={code} value={code}>
