@@ -218,6 +218,17 @@ vi.mock('@/contexts/WalletContext', () => ({
   })),
 }));
 
+vi.mock('@/contexts/ToastContext', () => ({
+  ToastProvider: ({ children }: any) => children,
+  useToast: vi.fn(() => ({
+    toast: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  })),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({
     push: vi.fn(async () => {}),
