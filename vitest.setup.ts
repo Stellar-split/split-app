@@ -198,11 +198,11 @@ vi.mock('@/lib/apiClient', () => ({
 vi.mock('@/contexts/AccessibilityContext', () => ({
   AccessibilityProvider: ({ children }: any) => children,
   useAccessibility: vi.fn(() => ({
-    fontSize: 1,
-    setFontSize: vi.fn(),
+    fontScale: 100,
+    setFontScale: vi.fn(),
     reducedMotion: false,
     setReducedMotion: vi.fn(),
-    highContrast: false,
+    highContrast: 'normal' as const,
     setHighContrast: vi.fn(),
   })),
 }));
