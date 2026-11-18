@@ -24,27 +24,27 @@ describe('PaymentProgress', () => {
 
   it('shows 0% when nothing funded', () => {
     render(<PaymentProgress funded={0n} total={100n} />);
-    expect(screen.getByRole('progressbar')).getAttribute('aria-valuenow').toBe('0');
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('0');
   });
 
   it('shows 50% when half funded', () => {
     render(<PaymentProgress funded={50n} total={100n} />);
-    expect(screen.getByRole('progressbar')).getAttribute('aria-valuenow').toBe('50');
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('50');
   });
 
   it('clamps at 100%', () => {
     render(<PaymentProgress funded={200n} total={100n} />);
-    expect(screen.getByRole('progressbar')).getAttribute('aria-valuenow').toBe('100');
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('100');
   });
 
   it('shows 0% when total is 0', () => {
     render(<PaymentProgress funded={0n} total={0n} />);
-    expect(screen.getByRole('progressbar')).getAttribute('aria-valuenow').toBe('0');
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('0');
   });
 
   it('derives amounts from invoice prop', () => {
     render(<PaymentProgress invoice={makeInvoice(25n, 100n)} />);
-    expect(screen.getByRole('progressbar')).getAttribute('aria-valuenow').toBe('25');
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('25');
   });
 
   it('shows funded/total text when invoice is provided', () => {
