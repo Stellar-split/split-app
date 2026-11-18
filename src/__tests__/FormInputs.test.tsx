@@ -23,7 +23,7 @@ describe('FormInputs - aria-describedby', () => {
       render(<TextInput id="email" label="Email" helperText="Your email address" />);
       const input = screen.getByRole('textbox');
       expect(input.getAttribute('aria-describedby')).toBe('email-helper');
-      expect(screen.getByText('Your email address')).getAttribute('id').toBe('email-helper');
+      expect(screen.getByText('Your email address').getAttribute('id')).toBe('email-helper');
     });
 
     it('does not set aria-describedby when no error or helper text', () => {
@@ -48,7 +48,7 @@ describe('FormInputs - aria-describedby', () => {
       render(<NumberInput id="count" label="Count" error="Must be positive" />);
       const input = screen.getByRole('spinbutton');
       expect(input.getAttribute('aria-describedby')).toBe('count-error');
-      expect(screen.getByText('Must be positive')).getAttribute('id').toBe('count-error');
+      expect(screen.getByText('Must be positive').getAttribute('id')).toBe('count-error');
     });
 
     it('sets aria-describedby pointing to helper text', () => {
