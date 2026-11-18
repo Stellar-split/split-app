@@ -28,7 +28,7 @@ describe("Stepper", () => {
   test("exposes the step labels on the enclosing nav element", () => {
     render(<Stepper steps={steps} />);
 
-    expect(screen.getByRole("navigation")).getAttribute("aria-label").toBe("Progress: Details, Recipients, Deadline, Review"
+    expect(screen.getByRole("navigation").getAttribute("aria-label")).toBe("Progress: Details, Recipients, Deadline, Review"
     );
   });
 

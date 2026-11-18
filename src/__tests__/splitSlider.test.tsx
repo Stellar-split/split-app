@@ -33,15 +33,15 @@ function sliders(): HTMLInputElement[] {
 describe("SplitSumIndicator", () => {
   it("turns green only at exactly 100%", () => {
     const { rerender } = render(<SplitSumIndicator sum={100} isValid />);
-    expect(screen.getByTestId("split-sum-bar")).getAttribute("data-state").toBe("valid");
+    expect(screen.getByTestId("split-sum-bar").getAttribute("data-state")).toBe("valid");
     expect(screen.getByTestId("split-sum-bar").className).toMatch(/bg-emerald-500/);
 
     rerender(<SplitSumIndicator sum={99.9} isValid={false} />);
-    expect(screen.getByTestId("split-sum-bar")).getAttribute("data-state").toBe("under");
+    expect(screen.getByTestId("split-sum-bar").getAttribute("data-state")).toBe("under");
     expect(screen.getByTestId("split-sum-bar").className).toMatch(/bg-red-500/);
 
     rerender(<SplitSumIndicator sum={120} isValid={false} />);
-    expect(screen.getByTestId("split-sum-bar")).getAttribute("data-state").toBe("over");
+    expect(screen.getByTestId("split-sum-bar").getAttribute("data-state")).toBe("over");
     expect(screen.getByTestId("split-sum-bar").className).toMatch(/bg-red-500/);
   });
 
@@ -94,9 +94,9 @@ describe("SplitCalculator sliders", () => {
 
   it("steps by 1% so arrow keys give whole-percent increments", () => {
     renderBuilder([line("GAAA1", 100)]);
-    expect(sliders()[0]).getAttribute("step").toBe("1");
-    expect(sliders()[0]).getAttribute("min").toBe("0");
-    expect(sliders()[0]).getAttribute("max").toBe("100");
+    expect(sliders()[0].getAttribute("step")).toBe("1");
+    expect(sliders()[0].getAttribute("min")).toBe("0");
+    expect(sliders()[0].getAttribute("max")).toBe("100");
   });
 
   it("keeps a paired exact-value field for sub-1% precision", () => {
