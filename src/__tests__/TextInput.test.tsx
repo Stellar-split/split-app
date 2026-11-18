@@ -20,12 +20,12 @@ describe('TextInput', () => {
 
   it('uses provided id', () => {
     render(<TextInput label="Email" id="email-field" />);
-    expect(screen.getByRole('textbox')).getAttribute('id').toBe('email-field');
+    expect(screen.getByRole('textbox').getAttribute('id')).toBe('email-field');
   });
 
   it('derives id from label when id not provided', () => {
     render(<TextInput label="Full Name" />);
-    expect(screen.getByRole('textbox')).getAttribute('id').toBe('full-name');
+    expect(screen.getByRole('textbox').getAttribute('id')).toBe('full-name');
   });
 
   it('shows error message', () => {
@@ -35,19 +35,19 @@ describe('TextInput', () => {
 
   it('sets aria-invalid when error is present', () => {
     render(<TextInput label="Email" error="Required" />);
-    expect(screen.getByRole('textbox')).getAttribute('aria-invalid').toBe('true');
+    expect(screen.getByRole('textbox').getAttribute('aria-invalid')).toBe('true');
   });
 
   it('sets aria-invalid=false when no error', () => {
     render(<TextInput label="Email" />);
-    expect(screen.getByRole('textbox')).getAttribute('aria-invalid').toBe('false');
+    expect(screen.getByRole('textbox').getAttribute('aria-invalid')).toBe('false');
   });
 
   it('sets aria-describedby pointing to error element', () => {
     render(<TextInput label="Email" error="Required" />);
     const input = screen.getByRole('textbox');
     expect(input.getAttribute('aria-describedby')).toBe('email-error');
-    expect(screen.getByText('Required')).getAttribute('id').toBe('email-error');
+    expect(screen.getByText('Required').getAttribute('id')).toBe('email-error');
   });
 
   it('does not render error paragraph when no error', () => {
