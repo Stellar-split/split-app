@@ -56,6 +56,11 @@ vi.mock('@stellar/stellar-sdk', () => ({
   Keypair: { random: () => ({ publicKey: () => 'GTEST' }) },
   TransactionBuilder: class {},
   Networks: { PUBLIC_NETWORK_PASSPHRASE: 'Public Global Stellar Network ; September 2015' },
+  StrKey: {
+    isValidEd25519PublicKey: () => true,
+    encodeEd25519PublicKey: (buffer) => 'GTEST',
+    decodeEd25519PublicKey: (key) => Buffer.alloc(32),
+  },
 }));
 
 import '@testing-library/jest-dom/vitest';
