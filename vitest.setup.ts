@@ -407,6 +407,12 @@ vi.mock('@/lib/tracking', () => ({
   trackUser: vi.fn(() => {}),
 }));
 
+vi.mock('@/lib/rateLimit', () => ({
+  isRateLockExpired: vi.fn(() => false),
+  getRateLimitKey: vi.fn(() => 'key'),
+  setRateLimit: vi.fn(() => {}),
+}));
+
 // ============ GLOBAL FETCH MOCK ============
 
 global.fetch = vi.fn(async (url: string, options?: any) => {
