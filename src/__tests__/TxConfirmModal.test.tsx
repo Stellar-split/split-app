@@ -197,7 +197,7 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
     );
 
     const title = screen.getByText(/✓ payment confirmed/i);
-    expect(title).toHaveClass() // contains "text-green-400";
+    expect(title).toHaveClass('text-green-400');
   });
 
   it("should display the correct action text in confirmation message", () => {

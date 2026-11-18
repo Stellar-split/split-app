@@ -39,17 +39,17 @@ describe('Toast', () => {
 
   it('applies success color class', () => {
     render(<Toast message="Done" type="success" />);
-    expect(screen.getByRole('alert')).toHaveClass() // contains 'bg-green-700';
+    expect(screen.getByRole('alert')).toHaveClass('bg-green-700');
   });
 
   it('applies error color class', () => {
     render(<Toast message="Failed" type="error" />);
-    expect(screen.getByRole('alert')).toHaveClass() // contains 'bg-red-700';
+    expect(screen.getByRole('alert')).toHaveClass('bg-red-700');
   });
 
   it('applies info color class by default', () => {
     render(<Toast message="Note" />);
-    expect(screen.getByRole('alert')).toHaveClass() // contains 'bg-gray-700';
+    expect(screen.getByRole('alert')).toHaveClass('bg-gray-700');
   });
 
   it('renders progress bar when duration is provided', () => {

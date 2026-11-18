@@ -248,7 +248,7 @@ describe("CommandPalette — keyboard shortcut display", () => {
     expect(options.length > 0).toBe(true);
     // Verify each option has the expected structure with room for shortcuts
     options.forEach((option) => {
-      expect(option).toHaveClass() // contains "flex", "items-center", "justify-between";
+      expect(option).toHaveClass('flex'), "items-center", "justify-between";
     });
   });
 
