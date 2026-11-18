@@ -333,6 +333,26 @@ vi.mock('@/lib/rpc', () => ({
   callRpc: vi.fn(async () => ({})),
 }));
 
+vi.mock('@/lib/biometric', () => ({
+  isBiometricAvailable: vi.fn(async () => false),
+  authenticate: vi.fn(async () => false),
+  register: vi.fn(async () => ({})),
+}));
+
+vi.mock('@/lib/lock', () => ({
+  lockSession: vi.fn(async () => ({})),
+  unlockSession: vi.fn(async () => ({})),
+  isSessionLocked: vi.fn(() => false),
+}));
+
+vi.mock('@/hooks/useEventSource', () => ({
+  useEventSource: vi.fn(() => ({ events: [], close: vi.fn() })),
+}));
+
+vi.mock('@/hooks/useContrastCheck', () => ({
+  useContrastCheck: vi.fn((color) => ({ passes: true, ratio: 4.5 })),
+}));
+
 // ============ GLOBAL FETCH MOCK ============
 
 global.fetch = vi.fn(async (url: string, options?: any) => {
