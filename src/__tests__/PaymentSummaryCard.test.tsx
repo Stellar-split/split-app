@@ -153,7 +153,7 @@ describe("PaymentSummaryCard", () => {
     );
     expect(screen.getByText(/Payment Summary/i)).toBeTruthy() // element exists in DOM;
     expect(screen.getByText(/1 payment/i)).toBeTruthy() // element exists in DOM;
-    expect(screen.getByRole("progressbar")).getAttribute("aria-valuenow").toBe("50");
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("50");
   });
 
   test("aggregator subscription wired — new payments applied on poll", async () => {
@@ -185,7 +185,7 @@ describe("PaymentSummaryCard", () => {
       expect(screen.getByText(/2 payments/i)).toBeTruthy() // element exists in DOM,
     );
     // Progress should reflect 70/100 USDC = 70%
-    expect(screen.getByRole("progressbar")).getAttribute("aria-valuenow").toBe("70");
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("70");
   });
 
   test("top-payer list shows highest payer first", async () => {
