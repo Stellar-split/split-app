@@ -447,6 +447,22 @@ vi.mock('@/lib/constants', () => ({
   MAX_RETRIES: 3,
 }));
 
+vi.mock('@/lib/dom', () => ({
+  createElement: vi.fn((tag) => document.createElement(tag)),
+  querySelector: vi.fn(() => null),
+  getElementById: vi.fn(() => null),
+  renderToDOM: vi.fn(() => {}),
+}));
+
+vi.mock('@/lib/events', () => ({
+  addEventListener: vi.fn(() => {}),
+  removeEventListener: vi.fn(() => {}),
+  dispatchEvent: vi.fn(() => true),
+  on: vi.fn(() => {}),
+  off: vi.fn(() => {}),
+  emit: vi.fn(() => {}),
+}));
+
 // ============ GLOBAL FETCH MOCK ============
 
 global.fetch = vi.fn(async (url: string, options?: any) => {
