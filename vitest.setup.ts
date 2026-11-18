@@ -413,6 +413,28 @@ vi.mock('@/lib/rateLimit', () => ({
   setRateLimit: vi.fn(() => {}),
 }));
 
+vi.mock('@/lib/observable', () => ({
+  createObservable: vi.fn(() => ({ subscribe: vi.fn(() => ({ unsubscribe: vi.fn() })) })),
+  subscribe: vi.fn(() => ({ unsubscribe: vi.fn() })),
+}));
+
+vi.mock('@/lib/stream', () => ({
+  createStream: vi.fn(() => ({ on: vi.fn(), off: vi.fn(), emit: vi.fn() })),
+  Stream: class { on = vi.fn(); off = vi.fn(); emit = vi.fn(); },
+}));
+
+vi.mock('@/lib/queue', () => ({
+  createQueue: vi.fn(() => ({ push: vi.fn(), pop: vi.fn(), size: 0 })),
+  enqueue: vi.fn(async () => ({})),
+  dequeue: vi.fn(async () => null),
+}));
+
+vi.mock('@/lib/worker', () => ({
+  startWorker: vi.fn(async () => ({})),
+  stopWorker: vi.fn(async () => ({})),
+  postMessage: vi.fn(() => {}),
+}));
+
 // ============ GLOBAL FETCH MOCK ============
 
 global.fetch = vi.fn(async (url: string, options?: any) => {
