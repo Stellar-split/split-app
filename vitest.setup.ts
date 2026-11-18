@@ -353,6 +353,35 @@ vi.mock('@/hooks/useContrastCheck', () => ({
   useContrastCheck: vi.fn((color) => ({ passes: true, ratio: 4.5 })),
 }));
 
+vi.mock('@/lib/api', () => ({
+  apiCall: vi.fn(async () => ({})),
+  apiGet: vi.fn(async () => ({})),
+  apiPost: vi.fn(async () => ({})),
+  apiPut: vi.fn(async () => ({})),
+  apiDelete: vi.fn(async () => ({})),
+}));
+
+vi.mock('@/lib/data', () => ({
+  fetchData: vi.fn(async () => []),
+  saveData: vi.fn(async () => ({})),
+  deleteData: vi.fn(async () => true),
+  updateData: vi.fn(async () => ({})),
+}));
+
+vi.mock('@/lib/auth', () => ({
+  login: vi.fn(async () => ({ token: 'mock-token' })),
+  logout: vi.fn(async () => ({})),
+  getCurrentUser: vi.fn(async () => null),
+  refreshToken: vi.fn(async () => ({ token: 'mock-token' })),
+}));
+
+vi.mock('@/lib/cache', () => ({
+  cacheGet: vi.fn(() => null),
+  cacheSet: vi.fn(() => {}),
+  cacheClear: vi.fn(() => {}),
+  cacheInvalidate: vi.fn(() => {}),
+}));
+
 // ============ GLOBAL FETCH MOCK ============
 
 global.fetch = vi.fn(async (url: string, options?: any) => {
