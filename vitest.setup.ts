@@ -435,6 +435,18 @@ vi.mock('@/lib/worker', () => ({
   postMessage: vi.fn(() => {}),
 }));
 
+vi.mock('@/lib/defaults', () => ({
+  DEFAULT_TIMEOUT: 5000,
+  DEFAULT_RETRY_COUNT: 3,
+  DEFAULT_BUFFER_SIZE: 100,
+}));
+
+vi.mock('@/lib/constants', () => ({
+  API_BASE_URL: 'http://localhost:3000',
+  API_VERSION: 'v1',
+  MAX_RETRIES: 3,
+}));
+
 // ============ GLOBAL FETCH MOCK ============
 
 global.fetch = vi.fn(async (url: string, options?: any) => {
