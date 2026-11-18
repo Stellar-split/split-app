@@ -305,6 +305,24 @@ vi.mock('@/lib/arbitration', () => ({
   getArbitratorByAddress: vi.fn(async () => null),
 }));
 
+vi.mock('@/lib/group', () => ({
+  getGroupMembers: vi.fn(async () => []),
+  createGroup: vi.fn(async () => ({})),
+  findGroup: vi.fn(async () => null),
+}));
+
+vi.mock('@/lib/session', () => ({
+  startSession: vi.fn(async () => ({})),
+  endSession: vi.fn(async () => ({})),
+  checkSession: vi.fn(async () => ({ active: false })),
+}));
+
+vi.mock('@/lib/crypto', () => ({
+  encryptData: vi.fn(async () => 'encrypted'),
+  decryptData: vi.fn(async () => ({})),
+  generateKey: vi.fn(async () => 'key'),
+}));
+
 // ============ GLOBAL FETCH MOCK ============
 
 global.fetch = vi.fn(async (url: string, options?: any) => {
