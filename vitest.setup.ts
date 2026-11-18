@@ -323,6 +323,16 @@ vi.mock('@/lib/crypto', () => ({
   generateKey: vi.fn(async () => 'key'),
 }));
 
+vi.mock('@/lib/notify', () => ({
+  notify: vi.fn(() => Promise.resolve()),
+  notifyUser: vi.fn(async () => ({})),
+}));
+
+vi.mock('@/lib/rpc', () => ({
+  RPC_URL: 'https://rpc-testnet.example.com',
+  callRpc: vi.fn(async () => ({})),
+}));
+
 // ============ GLOBAL FETCH MOCK ============
 
 global.fetch = vi.fn(async (url: string, options?: any) => {
