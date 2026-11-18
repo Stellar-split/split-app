@@ -382,6 +382,26 @@ vi.mock('@/lib/cache', () => ({
   cacheInvalidate: vi.fn(() => {}),
 }));
 
+vi.mock('@/lib/logger', () => ({
+  log: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
+  debug: vi.fn(),
+  info: vi.fn(),
+}));
+
+vi.mock('@/lib/error-handler', () => ({
+  handleError: vi.fn(() => ({})),
+  logError: vi.fn(() => {}),
+  captureException: vi.fn(() => {}),
+}));
+
+vi.mock('@/lib/tracking', () => ({
+  trackEvent: vi.fn(() => {}),
+  trackPage: vi.fn(() => {}),
+  trackUser: vi.fn(() => {}),
+}));
+
 // ============ GLOBAL FETCH MOCK ============
 
 global.fetch = vi.fn(async (url: string, options?: any) => {
