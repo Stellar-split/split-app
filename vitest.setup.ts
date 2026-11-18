@@ -226,8 +226,11 @@ Object.defineProperty(global, 'crypto', {
 // ============ MODULE MOCKS ============
 
 vi.mock('@/lib/stellar', () => ({
+  MAX_RECIPIENTS: 100,
+  HORIZON_URL: 'https://horizon-testnet.stellar.org',
   splitClient: {
     getInvoice: vi.fn(async () => ({})),
+    getGroupStatus: vi.fn(async () => ({})),
     submitTransaction: vi.fn(async () => ({ id: 'tx123' })),
   },
 }));
