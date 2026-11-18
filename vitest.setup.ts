@@ -60,6 +60,10 @@ vi.mock('@stellar/stellar-sdk', () => ({
     isValidEd25519PublicKey: () => true,
     encodeEd25519PublicKey: (buffer) => 'GTEST',
     decodeEd25519PublicKey: (key) => Buffer.alloc(32),
+    encodeContract: (buffer) => 'CTEST',
+    decodeContract: (key) => Buffer.alloc(32),
+    encodeEd25519SecretSeed: (buffer) => 'STEST',
+    decodeEd25519SecretSeed: (key) => Buffer.alloc(32),
   },
 }));
 
