@@ -293,6 +293,18 @@ vi.mock('@stellar/freighter-api', () => ({
   signTransaction: vi.fn(async (xdr) => ({ signedXdr: xdr })),
 }));
 
+vi.mock('@/lib/release', () => ({
+  transitionToReleased: vi.fn(async () => ({})),
+  transitionToDisputed: vi.fn(async () => ({})),
+  getReleaseCheck: vi.fn(async () => ({})),
+  canTransition: vi.fn(() => true),
+}));
+
+vi.mock('@/lib/arbitration', () => ({
+  createDispute: vi.fn(async () => ({})),
+  getArbitratorByAddress: vi.fn(async () => null),
+}));
+
 // ============ GLOBAL FETCH MOCK ============
 
 global.fetch = vi.fn(async (url: string, options?: any) => {
