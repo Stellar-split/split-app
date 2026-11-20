@@ -7,11 +7,13 @@ out/
 
 # ── Build outputs ─────────────────────────────────────────────────────────
 dist/
+build/
 
 # ── Environment variables ─────────────────────────────────────────────────
 .env
 .env.local
 .env.*.local
+.env.production
 
 # ── TypeScript ────────────────────────────────────────────────────────────
 *.tsbuildinfo
@@ -25,36 +27,34 @@ playwright-report/
 test-results/
 junit.xml
 *.lcov
+.vitest-cache/
 
 # ── OS files ──────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 *.DS_Store
 
-# Test artifacts
-**/__snapshots__/
-*.snap
-coverage/
-playwright-report/
-test-results/
-junit.xml
-*.lcov
-
 # ── Logs ──────────────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
-# Editor
+# ── Editor ────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
-# Misc
+# ── Misc ──────────────────────────────────────────────────────────────────
 .turbo/
 .vercel/
 .cache/
 *.tgz
-dist/
+.eslintcache
+.stylelintcache
