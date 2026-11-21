@@ -8,8 +8,9 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts', './src/__tests__/setup.ts'],
-    mockReset: true,
-    clearMocks: true,
+    mockReset: false,
+    restoreMocks: false,
+    clearMocks: false,
     testTimeout: 15000,
     exclude: ['e2e/**', 'node_modules/**'],
     include: [
