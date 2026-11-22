@@ -58,3 +58,6 @@ yarn-error.log*
 .cache/
 *.tgz
 dist/
+
+**/__snapshots__/
+**/*.snap
