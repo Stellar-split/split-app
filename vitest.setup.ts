@@ -71,17 +71,40 @@ import '@testing-library/jest-dom/vitest';
 
 // ============ GLOBAL TEST CONFIGURATION ============
 
-// Clear mocks before each test
+// Create fetch mock with all vi.fn methods available
+const createFetchMock = () => vi.fn(async (url: string, options?: any) => {
+  if (typeof url === 'string' && url.includes('/api/')) {
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => '',
+      blob: async () => new Blob(),
+    };
+  }
+  return {
+    ok: true,
+    status: 200,
+    json: async () => ({}),
+    text: async () => '',
+    blob: async () => new Blob(),
+  };
+}) as any;
+
+// Use real timers by default for better async handling
 beforeEach(() => {
-  vi.clearAllMocks();
-  vi.clearAllTimers();
-  // Reset fetch mock
-  global.fetch = vi.fn();
+  vi.useRealTimers();
+  global.fetch = createFetchMock();
+  // Clear individual mocks but preserve mock structure
+  vi.mocked(mockRouterInstance.push).mockClear();
+  vi.mocked(mockRouterInstance.replace).mockClear();
+  vi.mocked(mockRouterInstance.prefetch).mockClear();
 });
 
 afterEach(() => {
   vi.clearAllTimers();
   vi.clearAllMocks();
+  vi.useRealTimers();
   // Reset DOM
   document.body.innerHTML = '';
 });
@@ -251,14 +274,10 @@ vi.mock('@/lib/freighter', () => ({
 
 vi.mock('@/lib/ipfs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/ipfs')>();
+  // Let real uploadToIPFS use mocked fetch, only mock non-fetch functions
   return {
     ...actual,
-    uploadToIPFS: vi.fn(async () => 'QmMocked'),
-    uploadToIpfs: vi.fn(async () => 'QmMocked'),
     fetchFromIPFS: vi.fn(async () => ({})),
-    getIpfsUrl: vi.fn((cid: string) => `https://ipfs.io/ipfs/${cid}`),
-    isValidCid: vi.fn((cid: string) => /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(cid)),
-    mockIpfsUpload: vi.fn(async () => 'QmMocked'),
   };
 });
 
@@ -269,15 +288,17 @@ vi.mock('@/lib/apiClient', () => ({
 // Context mocks are now in src/__mocks__/contexts/ and src/__mocks__/context/
 // vitest automatically uses these mock files
 
+const mockRouterInstance = {
+  push: vi.fn().mockResolvedValue(undefined),
+  replace: vi.fn().mockResolvedValue(undefined),
+  prefetch: vi.fn().mockResolvedValue(undefined),
+  back: vi.fn(),
+  forward: vi.fn(),
+  refresh: vi.fn(),
+};
+
 vi.mock('next/navigation', () => ({
-  useRouter: vi.fn(() => ({
-    push: vi.fn(async () => {}),
-    replace: vi.fn(async () => {}),
-    prefetch: vi.fn(async () => {}),
-    back: vi.fn(),
-    forward: vi.fn(),
-    refresh: vi.fn(),
-  })),
+  useRouter: vi.fn(() => mockRouterInstance),
   useSearchParams: vi.fn(() => new URLSearchParams()),
   usePathname: vi.fn(() => '/'),
 }));
@@ -467,25 +488,4 @@ vi.mock('@/lib/events', () => ({
   emit: vi.fn(() => {}),
 }));
 
-// ============ GLOBAL FETCH MOCK ============
-
-global.fetch = vi.fn(async (url: string, options?: any) => {
-  // Default mock responses
-  if (typeof url === 'string' && url.includes('/api/')) {
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({}),
-      text: async () => '',
-      blob: async () => new Blob(),
-    };
-  }
-
-  return {
-    ok: true,
-    status: 200,
-    json: async () => ({}),
-    text: async () => '',
-    blob: async () => new Blob(),
-  };
-}) as any;
+// Global fetch is initialized in beforeEach hook above

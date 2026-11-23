@@ -154,8 +154,11 @@ describe('empty state distinction', () => {
 
 describe('debounce', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
   });
   afterEach(() => {
+    vi.runAllTimers();
+    vi.useRealTimers();
   });
 
   it('does not fire before 300ms', () => {
@@ -181,6 +184,9 @@ describe('debounce', () => {
     schedule();
     schedule(); // reset debounce mid-way
     expect(apply).not.toHaveBeenCalled();
+
+    // Advance timers to trigger the debounced callback
+    vi.advanceTimersByTime(300);
     expect(apply).toHaveBeenCalledTimes(1);
   });
 

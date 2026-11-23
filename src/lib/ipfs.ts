@@ -14,7 +14,7 @@ export async function uploadToIPFS(file: File): Promise<string> {
   const apiKey = process.env.NEXT_PUBLIC_IPFS_API_KEY;
   const headers: Record<string, string> = {};
   if (apiKey) {
-    headers['X-API-Key'] = apiKey;
+    headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_IPFS_URL || 'https://ipfs.io'}/upload`, {
@@ -63,10 +63,10 @@ export async function mockIpfsUpload(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const base32Chars = "abcdefghijklmnopqrstuvwxyz234567";
+  const base58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
   let result = "Qm";
   for (let i = 0; i < 44; i++) {
-    result += base32Chars[hashArray[i % hashArray.length] % 32];
+    result += base58Chars[hashArray[i % hashArray.length] % 58];
   }
   return result;
 }

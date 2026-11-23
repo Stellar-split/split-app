@@ -1,25 +1,25 @@
-# ── Dependencies ──────────────────────────────────────────────────────────
+# Dependencies
 node_modules/
 
-# ── Next.js ───────────────────────────────────────────────────────────────
+# Next.js
 .next/
 out/
 
-# ── Build outputs ─────────────────────────────────────────────────────────
+# Build outputs
 dist/
 build/
 
-# ── Environment variables ─────────────────────────────────────────────────
+# Environment variables
 .env
 .env.local
 .env.*.local
 .env.production
 
-# ── TypeScript ────────────────────────────────────────────────────────────
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
 
-# ── Test artifacts ────────────────────────────────────────────────────────
+# Test artifacts
 coverage/
 **/__snapshots__/
 *.snap
@@ -29,12 +29,11 @@ junit.xml
 *.lcov
 .vitest-cache/
 
-# ── OS files ──────────────────────────────────────────────────────────────
+# OS files
 .DS_Store
 Thumbs.db
-*.DS_Store
 
-# ── Logs ──────────────────────────────────────────────────────────────────
+# Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -56,5 +55,3 @@ yarn-error.log*
 .vercel/
 .cache/
 *.tgz
-.eslintcache
-.stylelintcache
