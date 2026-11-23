@@ -7,11 +7,13 @@ out/
 
 # Build outputs
 dist/
+build/
 
 # Environment variables
 .env
 .env.local
 .env.*.local
+.env.production
 
 # TypeScript
 *.tsbuildinfo
@@ -25,6 +27,7 @@ playwright-report/
 test-results/
 junit.xml
 *.lcov
+.vitest-cache/
 
 # OS files
 .DS_Store
@@ -35,14 +38,19 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
-# Editor
+# ── Editor ────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
-# Misc
+# ── Misc ──────────────────────────────────────────────────────────────────
 .turbo/
 .vercel/
 .cache/
