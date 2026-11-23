@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen } from "@testing-library/react";
 import VerifiedCreatorBadge, {
   formatVerificationDate,
@@ -53,7 +54,7 @@ describe("VerifiedCreatorBadge", () => {
     expect(tooltip).toHaveTextContent(
       "Verified via on-chain proof on January 15, 2024"
     );
-    expect(badge).toHaveAttribute("aria-describedby", tooltip.id);
+    expect(badge.getAttribute("aria-describedby")).toBe(tooltip.id);
   });
 
   it("falls back to a generic method when none is recorded", () => {
@@ -77,11 +78,9 @@ describe("VerifiedCreatorBadge", () => {
 
     render(<VerifiedCreatorBadge address={ADDRESS} />);
 
-    expect(screen.getByText(/Verified Creator/i)).toBeInTheDocument();
+    expect(screen.getByText(/Verified Creator/i)).toBeTruthy() // element exists in DOM;
     expect(screen.queryByRole("tooltip")).toBeNull();
-    expect(screen.getByText(/Verified Creator/i)).not.toHaveAttribute(
-      "aria-describedby"
-    );
+    expect(screen.getByText(/Verified Creator/i)).not.toHaveAttribute("aria-describedby");
   });
 
   it("formats dates in a human-readable form", () => {

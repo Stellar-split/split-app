@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { splitClient } from "@/lib/stellar";
+import { apiFetch } from "@/lib/apiClient";
 
-export type NotificationType = "payment" | "funded" | "released" | "expired";
+export type NotificationType = "payment" | "funded" | "released" | "expired" | "approval";
 
 export interface AppNotification {
   id: string;
@@ -16,6 +17,7 @@ export interface AppNotification {
   read: boolean;
   /** Subscription id, present for subscription-related notifications. */
   subscriptionId?: string;
+  approvalRequestId?: string;
 }
 
 const STORAGE_KEY = "stellarsplit_notifications_v2";
@@ -64,13 +66,14 @@ const TYPE_ICONS: Record<NotificationType, string> = {
   funded: "✅",
   released: "🚀",
   expired: "⏰",
+  approval: "📝",
 };
 
 export default function NotificationCenter() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const firstItemRef = useRef<HTMLButtonElement>(null);
+  const firstItemRef = useRef<HTMLAnchorElement>(null);
 
   const syncFromStorage = useCallback(() => {
     setNotifications(loadNotifications());
@@ -82,8 +85,13 @@ export default function NotificationCenter() {
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) syncFromStorage();
     };
+    const onApprovalNotification = () => syncFromStorage();
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener("approval-notifications-updated", onApprovalNotification);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("approval-notifications-updated", onApprovalNotification);
+    };
   }, [syncFromStorage]);
 
   // Poll subscribed invoices every 30 seconds
@@ -214,15 +222,13 @@ export default function NotificationCenter() {
   const unread = notifications.filter((n) => !n.read).length;
   const badgeCount = unread > 99 ? "99+" : unread > 0 ? String(unread) : null;
 
-  // Focus first item when opening
-  useEffect(() => {
-    if (open) {
-      setTimeout(() => firstItemRef.current?.focus(), 50);
-    }
-  }, [open]);
-
-  const unread = notifications.filter((n) => !n.read).length;
-  const badgeCount = unread > 99 ? "99+" : unread > 0 ? String(unread) : null;
+  const persistMarkAllRead = async (ids: string[]) => {
+    await apiFetch("/api/notifications/mark-read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+  };
 
   const markAllRead = async () => {
     const previous = notifications;
@@ -310,7 +316,9 @@ export default function NotificationCenter() {
               {sorted.map((n, idx) => (
                 <li key={n.id} role="listitem">
                   <Link
-                    href={`/invoice/${n.invoiceId}`}
+                    href={n.type === "approval"
+                      ? `/approvals?request=${encodeURIComponent(n.approvalRequestId ?? n.invoiceId)}`
+                      : `/invoice/${n.invoiceId}`}
                     ref={idx === 0 ? (firstItemRef as React.Ref<HTMLAnchorElement>) : undefined}
                     onClick={() => { markRead(n.id); setOpen(false); }}
                     className={`flex items-start gap-3 w-full px-4 py-3 hover:bg-white/[0.04] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${

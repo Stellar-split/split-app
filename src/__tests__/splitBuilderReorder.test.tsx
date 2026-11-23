@@ -2,7 +2,7 @@
  * Issue #471 — drag-to-reorder recipients in the split builder.
  */
 import { render, screen, fireEvent } from "@testing-library/react";
-import { vi } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import SplitCalculator from "@/components/SplitCalculator";
 import { moveItem } from "@/lib/reorder";
 import type { RecipientLine, SplitMeta } from "@/hooks/useSplitCalculator";
@@ -66,9 +66,9 @@ describe("moveItem", () => {
 describe("SplitCalculator reordering", () => {
   it("renders a drag handle on the leading edge of every row", () => {
     renderBuilder();
-    expect(screen.getByTestId("drag-handle-0")).toBeInTheDocument();
-    expect(screen.getByTestId("drag-handle-1")).toBeInTheDocument();
-    expect(screen.getByTestId("drag-handle-2")).toBeInTheDocument();
+    expect(screen.getByTestId("drag-handle-0")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByTestId("drag-handle-1")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByTestId("drag-handle-2")).toBeTruthy() // element exists in DOM;
 
     // Leading edge: the handle is the row's first interactive element.
     const row = screen.getByTestId("recipient-row-0");
@@ -161,7 +161,7 @@ describe("SplitCalculator reordering", () => {
     fireEvent.keyDown(screen.getByTestId("drag-handle-0"), { key: "ArrowDown" });
     expect(
       screen.getByText(/moved from position 1 to position 2 of 3/i)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("omits drag handles in read-only mode", () => {
@@ -171,6 +171,6 @@ describe("SplitCalculator reordering", () => {
         readOnly
       />
     );
-    expect(screen.queryByTestId("drag-handle-0")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("drag-handle-0")).not.toBeTruthy() // element exists in DOM;
   });
 });

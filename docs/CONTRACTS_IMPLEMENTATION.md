@@ -91,6 +91,56 @@ pub struct CreatorStats {
 
 Maintain a set of unique payers per creator to accurately count `total_payers`.
 
+## Issue #978: Payment Time-Lock Functionality
+
+**Location**: `split-contracts/src/types.rs` and main contract file
+
+### Implementation Tasks
+
+1. **Add TimeLock struct** in `types.rs`:
+```rust
+pub enum LockStatus {
+    Locked,
+    Released,
+    EarlyReleased,
+}
+
+pub struct TimeLock {
+    pub release_at: u64,        // ledger timestamp when funds unlock
+    pub early_penalty_bps: u32, // penalty applied on early release
+    pub status: LockStatus,
+}
+```
+
+2. **Lock creation**: When a payment/invoice is created with a lock, store `TimeLock` keyed by payment id. Validate `early_penalty_bps <= 10000` and `release_at > current ledger timestamp`.
+
+3. **Lock validation** `assert_unlocked(payment_id)`:
+   - Reject access while `status == Locked` and `now < release_at`
+   - Allow access once `now >= release_at` (automatic release)
+
+4. **Early access** `release_early(payment_id)`:
+   - Only callable by the payment recipient/creator
+   - Compute `penalty = amount * early_penalty_bps / 10000`
+   - Transfer `amount - penalty` to recipient, penalty to treasury
+   - Set `status = EarlyReleased`, emit `payment_early_released { payment_id, penalty }`
+
+5. **Automatic release**: On any access after `release_at`, transition `Locked -> Released` and emit `payment_released { payment_id }`.
+
+6. **Status tracking**: Provide `get_lock_status(payment_id) -> LockStatus` read function.
+
+7. **Analytics**: Track `total_locked`, `total_released`, `total_early_released`, and `total_penalties_collected` per creator; expose `get_lock_analytics(creator) -> LockAnalytics`.
+
+8. **Events**:
+   - `payment_locked { payment_id, release_at }`
+   - `payment_released { payment_id }`
+   - `payment_early_released { payment_id, penalty }`
+
+### Access Control
+
+- Only the payment recipient may trigger early release
+- Locked payments must never be released or withdrawn before `release_at` except via `release_early`
+- Enforce `debug_assert!(released_amount <= funded)` after every release
+
 ## Testing Strategy
 
 Each implementation should include:

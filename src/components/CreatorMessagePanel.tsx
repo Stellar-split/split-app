@@ -301,7 +301,7 @@ export default function CreatorMessagePanel({
               <button
                 type="submit"
                 disabled={!input.trim() || isSubmitting}
-                className="flex-shrink-0 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+                className="flex-shrink-0 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
               >
                 Send
               </button>

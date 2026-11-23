@@ -81,7 +81,7 @@ export default function RecipientPage() {
           </p>
           <Link
             href="/dashboard"
-            className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+            className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
           >
             Back to Dashboard
           </Link>

@@ -10,6 +10,7 @@
  */
 
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render } from "@testing-library/react";
 import EmbedThemeProvider, { validateThemeConfig } from "@/components/EmbedThemeProvider";
 
@@ -240,7 +241,7 @@ describe("EmbedThemeProvider component", () => {
       </EmbedThemeProvider>
     );
 
-    expect(getByText("Test content")).toBeInTheDocument();
+    expect(getByText("Test content")).toBeTruthy() // element exists in DOM;
   });
 
   test("updates CSS variables when config changes", () => {

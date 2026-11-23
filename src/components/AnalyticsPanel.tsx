@@ -110,7 +110,7 @@ export default function AnalyticsPanel({ invoices, subscriptions = [] }: Props) 
   const cancellationReasonData = useMemo(
     () =>
       Object.entries(subscriptionAnalytics.cancellationReasons)
-        .sort(([, a], [, b]) => b - a)
+        .sort(([, a], [, b]) => (b as number) - (a as number))
         .map(([reason, count]) => ({ reason, count })),
     [subscriptionAnalytics.cancellationReasons]
   );

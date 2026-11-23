@@ -65,7 +65,7 @@ describe("RecipientPaymentHistory", () => {
       />
     );
 
-    expect(screen.getByText(/loading payment history/i)).toBeInTheDocument();
+    expect(screen.getByText(/loading payment history/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("shows empty state when no payments exist", async () => {
@@ -81,12 +81,12 @@ describe("RecipientPaymentHistory", () => {
     await waitFor(() => {
       expect(
         screen.getByTestId("empty-history")
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
 
     expect(
       screen.getByText(/no payments recorded yet/i)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("renders a payment entry with amount and asset", async () => {
@@ -102,11 +102,11 @@ describe("RecipientPaymentHistory", () => {
     await waitFor(() => {
       expect(
         screen.getByTestId(`history-entry-${ENTRY_1.operationHash}`)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
 
-    expect(screen.getByText(/100\.00/)).toBeInTheDocument();
-    expect(screen.getByText(/XLM/)).toBeInTheDocument();
+    expect(screen.getByText(/100\.00/)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/XLM/)).toBeTruthy() // element exists in DOM;
   });
 
   it("renders multiple entries", async () => {
@@ -122,12 +122,12 @@ describe("RecipientPaymentHistory", () => {
     await waitFor(() => {
       expect(
         screen.getByTestId(`history-entry-${ENTRY_1.operationHash}`)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
 
     expect(
       screen.getByTestId(`history-entry-${ENTRY_2.operationHash}`)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("shows 'Load more' button when cursor is present", async () => {
@@ -143,7 +143,7 @@ describe("RecipientPaymentHistory", () => {
     await waitFor(() => {
       expect(
         screen.getByRole("button", { name: /load more/i })
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -160,12 +160,12 @@ describe("RecipientPaymentHistory", () => {
     await waitFor(() => {
       expect(
         screen.getByTestId(`history-entry-${ENTRY_1.operationHash}`)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
 
     expect(
       screen.queryByRole("button", { name: /load more/i })
-    ).not.toBeInTheDocument();
+    ).not.toBeTruthy() // element exists in DOM;
   });
 
   it("loads more entries when 'Load more' is clicked", async () => {
@@ -208,7 +208,7 @@ describe("RecipientPaymentHistory", () => {
     await waitFor(() => {
       expect(
         screen.getByRole("button", { name: /load more/i })
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
 
     await user.click(screen.getByRole("button", { name: /load more/i }));
@@ -216,18 +216,18 @@ describe("RecipientPaymentHistory", () => {
     await waitFor(() => {
       expect(
         screen.getByTestId(`history-entry-${ENTRY_2.operationHash}`)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
 
     // Original entry still visible
     expect(
       screen.getByTestId(`history-entry-${ENTRY_1.operationHash}`)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
 
     // Cursor exhausted — Load more button gone
     expect(
       screen.queryByRole("button", { name: /load more/i })
-    ).not.toBeInTheDocument();
+    ).not.toBeTruthy() // element exists in DOM;
   });
 
   it("shows an error message when the fetch fails", async () => {
@@ -241,7 +241,7 @@ describe("RecipientPaymentHistory", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -279,11 +279,11 @@ describe("RecipientPaymentHistory", () => {
     await waitFor(() => {
       expect(
         screen.getByTestId(`history-entry-${ENTRY_1.operationHash}`)
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
 
     // TxHash component shows first 8 chars...last 6 chars
     const truncated = `${ENTRY_1.operationHash.slice(0, 8)}...${ENTRY_1.operationHash.slice(-6)}`;
-    expect(screen.getByText(truncated)).toBeInTheDocument();
+    expect(screen.getByText(truncated)).toBeTruthy() // element exists in DOM;
   });
 });

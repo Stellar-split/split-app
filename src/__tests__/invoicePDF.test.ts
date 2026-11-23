@@ -1,4 +1,5 @@
 import { getPDFThemeClasses } from "@/lib/pdfTheme";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 
 describe("getPDFThemeClasses", () => {
   it("print mode returns light classes when resolvedTheme is light", () => {

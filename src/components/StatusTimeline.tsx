@@ -164,14 +164,6 @@ function buildEvents(
   return events;
 }
 
-interface TimelineEvent {
-  key: string;
-  icon: string;
-  label: string;
-  timestamp: number | null;
-  actor?: string;
-}
-
 function relativeTime(ts: number): string {
   const diff = Math.floor((Date.now() / 1000) - ts);
   if (diff < 60) return "just now";
@@ -182,72 +174,6 @@ function relativeTime(ts: number): string {
 
 function absoluteTime(ts: number): string {
   return new Date(ts * 1000).toLocaleString();
-}
-
-function truncate(addr: string) {
-  return addr.length > 12 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr;
-}
-
-function buildEvents(invoice: Invoice, total: bigint): TimelineEvent[] {
-  const events: TimelineEvent[] = [];
-
-  // Created — use deadline as a proxy anchor; SDK Invoice has no createdAt
-  events.push({
-    key: "created",
-    icon: "📄",
-    label: "Invoice Created",
-    timestamp: null,
-    actor: invoice.creator,
-  });
-
-  if (invoice.funded > 0n) {
-    events.push({
-      key: "first-payment",
-      icon: "💳",
-      label: "First Payment",
-      timestamp: null,
-    });
-  }
-
-  const milestone = total > 0n ? (total * 50n) / 100n : 0n;
-  if (invoice.funded >= milestone && milestone > 0n) {
-    events.push({
-      key: "milestone",
-      icon: "🏁",
-      label: "Milestone Reached (50%)",
-      timestamp: null,
-    });
-  }
-
-  if (total > 0n && invoice.funded >= total) {
-    events.push({
-      key: "fully-funded",
-      icon: "✅",
-      label: "Fully Funded",
-      timestamp: null,
-    });
-  }
-
-  if (invoice.status === "Released") {
-    events.push({
-      key: "released",
-      icon: "🚀",
-      label: "Funds Released",
-      timestamp: null,
-    });
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (invoice.status === "Pending" && invoice.deadline <= now) {
-    events.push({
-      key: "expired",
-      icon: "⏰",
-      label: "Invoice Expired",
-      timestamp: invoice.deadline,
-    });
-  }
-
-  return events;
 }
 
 interface Props {

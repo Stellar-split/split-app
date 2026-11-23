@@ -153,7 +153,7 @@ export default function ExportModal({
         {/* Header */}
         <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Export Invoices</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Export Invoices</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {invoices.length} invoice{invoices.length !== 1 ? 's' : ''} available
             </p>
@@ -161,7 +161,7 @@ export default function ExportModal({
           <button
             onClick={onClose}
             disabled={isExporting}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none disabled:opacity-50"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none disabled:opacity-50"
           >
             <svg
               className="w-6 h-6"
@@ -295,7 +295,7 @@ export default function ExportModal({
           <button
             onClick={onClose}
             disabled={isExporting}
-            className="px-4 py-2 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-gray-700 dark:text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>

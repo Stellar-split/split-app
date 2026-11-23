@@ -35,7 +35,7 @@ describe("InvoiceTable Column Visibility Toggle", () => {
   it("renders a gear icon button to open column settings", () => {
     render(<InvoiceTable invoices={mockInvoices} />);
     const gearButton = screen.getByRole("button", { name: /column settings/i });
-    expect(gearButton).toBeInTheDocument();
+    expect(gearButton).toBeTruthy() // element exists in DOM;
   });
 
   it("displays dropdown menu with column toggles when gear icon is clicked", async () => {
@@ -45,11 +45,11 @@ describe("InvoiceTable Column Visibility Toggle", () => {
     const gearButton = screen.getByRole("button", { name: /column settings/i });
     await user.click(gearButton);
 
-    expect(screen.getByRole("checkbox", { name: /ID/i })).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: /Amount/i })).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: /Status/i })).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: /Deadline/i })).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: /Funded/i })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /ID/i })).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("checkbox", { name: /Amount/i })).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("checkbox", { name: /Status/i })).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("checkbox", { name: /Deadline/i })).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("checkbox", { name: /Funded/i })).toBeTruthy() // element exists in DOM;
   });
 
   it("toggles column visibility when checkbox is clicked", async () => {
@@ -114,9 +114,9 @@ describe("InvoiceTable Column Visibility Toggle", () => {
     await user.click(tagsCheckbox);
     await user.click(recipientsCheckbox);
 
-    expect(screen.getByText("inv-1")).toBeInTheDocument();
-    expect(screen.getByText("inv-2")).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: /Amount/ })).toBeInTheDocument();
+    expect(screen.getByText("inv-1")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("inv-2")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("columnheader", { name: /Amount/ })).toBeTruthy() // element exists in DOM;
   });
 
   it("closes dropdown menu when clicking outside", async () => {
@@ -126,12 +126,12 @@ describe("InvoiceTable Column Visibility Toggle", () => {
     const gearButton = screen.getByRole("button", { name: /column settings/i });
     await user.click(gearButton);
 
-    expect(screen.getByRole("checkbox", { name: /ID/i })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /ID/i })).toBeTruthy() // element exists in DOM;
 
     fireEvent.click(container);
 
     await waitFor(() => {
-      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+      expect(screen.queryByRole("checkbox")).not.toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -145,7 +145,7 @@ describe("InvoiceTable Column Visibility Toggle", () => {
     await user.keyboard("{Escape}");
 
     await waitFor(() => {
-      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+      expect(screen.queryByRole("checkbox")).not.toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -169,10 +169,10 @@ describe("InvoiceTable Column Visibility Toggle", () => {
   it("renders all columns initially visible by default", () => {
     render(<InvoiceTable invoices={mockInvoices} />);
 
-    expect(screen.getByText("ID")).toBeInTheDocument();
-    expect(screen.getByText("Amount")).toBeInTheDocument();
-    expect(screen.getByText("Status")).toBeInTheDocument();
-    expect(screen.getByText("Deadline")).toBeInTheDocument();
-    expect(screen.getByText("Funded")).toBeInTheDocument();
+    expect(screen.getByText("ID")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Amount")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Status")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Deadline")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Funded")).toBeTruthy() // element exists in DOM;
   });
 });

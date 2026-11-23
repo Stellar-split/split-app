@@ -17,7 +17,7 @@
 
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { vi } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 import KeyboardShortcutsModal from "@/components/KeyboardShortcutsModal";
 import {
@@ -80,7 +80,7 @@ describe("KeyboardShortcutsModal overlay container", () => {
     renderWithRegistry(<HeaderShortcutsButton />);
 
     openViaButton();
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
 
     act(() => {
       screen.getByRole("button", { name: /close keyboard shortcuts/i }).click();
@@ -185,7 +185,7 @@ describe("KeyboardShortcutsModal category grouping", () => {
     renderGrouped();
 
     // Check that shortcuts are rendered by verifying the dialog is present
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
 
     // Check that all categories are rendered
     const headings = screen.getAllByRole("heading", { level: 3 });

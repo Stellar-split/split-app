@@ -14,12 +14,12 @@ describe('WalletAddress', () => {
 
   it('renders full address when truncate=false', () => {
     render(<WalletAddress address={ADDR} truncate={false} />);
-    expect(screen.getByText(ADDR)).toBeInTheDocument();
+    expect(screen.getByText(ADDR)).toBeTruthy() // element exists in DOM;
   });
 
   it('sets title to full address', () => {
     render(<WalletAddress address={ADDR} />);
-    expect(screen.getByTitle(ADDR)).toBeInTheDocument();
+    expect(screen.getByTitle(ADDR)).toBeTruthy() // element exists in DOM;
   });
 
   it('shows a copy button and copies the address on click', async () => {
@@ -35,6 +35,6 @@ describe('WalletAddress', () => {
     await user.click(screen.getByRole('button', { name: /copy/i }));
 
     expect(writeText).toHaveBeenCalledWith(ADDR);
-    expect(screen.getByText('Copied!')).toBeInTheDocument();
+    expect(screen.getByText('Copied!')).toBeTruthy() // element exists in DOM;
   });
 });

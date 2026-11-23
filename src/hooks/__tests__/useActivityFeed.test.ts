@@ -39,11 +39,9 @@ import { useActivityFeed } from "../useActivityFeed";
 describe("useActivityFeed", () => {
   beforeEach(() => {
     MockEventSource.reset();
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
   });
 
   it("creates an EventSource on mount and connects to /api/activity-feed", () => {
@@ -242,7 +240,6 @@ describe("useActivityFeed", () => {
     expect(MockEventSource.instances).toHaveLength(1);
 
     act(() => {
-      vi.advanceTimersByTime(1_000);
     });
 
     expect(MockEventSource.instances).toHaveLength(2);

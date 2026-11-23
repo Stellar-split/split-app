@@ -174,7 +174,7 @@ export function SessionLockProvider({ children }: { children: React.ReactNode })
                   onClick={unlockWithBiometric}
                   disabled={unlocking}
                   autoFocus
-                  className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                  className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
                 >
                   {unlocking ? "Waiting for device…" : "Unlock with biometrics"}
                 </button>
@@ -194,7 +194,7 @@ export function SessionLockProvider({ children }: { children: React.ReactNode })
                 type="button"
                 onClick={resume}
                 autoFocus
-                className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+                className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
               >
                 Resume
               </button>

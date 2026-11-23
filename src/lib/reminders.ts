@@ -82,9 +82,26 @@ export function getEscalationLevel(daysPastDue: number): EscalationLevel {
  * `now` is injectable for testing.
  */
 export function computeReminderSchedule(
-  invoice: InvoiceLike,
+  invoice: InvoiceLike | any,
   now: Date = new Date()
-): ReminderSchedule {
+): any[] {
+  // Handle new API that returns array of schedules
+  if (invoice.invoiceId && invoice.deadline !== undefined) {
+    const deadline = new Date(invoice.deadline * 1000);
+    const daysPastDue = Math.max(0, daysBetween(deadline, now));
+    const level = getEscalationLevel(daysPastDue);
+
+    return [
+      {
+        invoiceId: invoice.invoiceId,
+        sendAt: now.getTime(),
+        template: level,
+        level,
+      }
+    ];
+  }
+
+  // Handle legacy API
   const due = new Date(invoice.dueDate);
   const daysPastDue = Math.max(0, daysBetween(due, now));
   const level = getEscalationLevel(daysPastDue);
@@ -93,12 +110,14 @@ export function computeReminderSchedule(
   const next = new Date(now);
   next.setDate(next.getDate() + REMINDER_INTERVAL_DAYS[level]);
 
-  return {
+  return [{
     invoiceId: invoice.id,
     level,
     nextReminderDate: next.toISOString(),
     daysPastDue,
-  };
+    sendAt: next.getTime(),
+    template: level,
+  }];
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +159,15 @@ export function renderReminderMessage(
   return TEMPLATES[level](ctx);
 }
 
+/** Render reminder template (alias for backward compatibility). */
+export function renderReminderTemplate(
+  template: string,
+  ctx: any
+): string {
+  const level = (template === 'initial' ? 'gentle' : template) as EscalationLevel;
+  return renderReminderMessage(level, ctx);
+}
+
 // ---------------------------------------------------------------------------
 // Suppression / opt-out
 // ---------------------------------------------------------------------------
@@ -176,6 +204,27 @@ export function unsuppressReminder(invoiceId: string): void {
   if (typeof window === "undefined") return;
   const records = getSuppressions().filter((s) => s.invoiceId !== invoiceId);
   localStorage.setItem(SUPPRESSION_KEY, JSON.stringify(records));
+}
+
+/** Alias for isReminderSuppressed for backward compatibility. */
+export function isSuppressed(invoiceId: string): boolean {
+  return isReminderSuppressed(invoiceId);
+}
+
+/** Alias for suppressReminder/unsuppressReminder for backward compatibility. */
+export function setSuppressed(invoiceIdOrSuppressed: string | boolean, suppressed?: boolean): void {
+  if (typeof invoiceIdOrSuppressed === 'string') {
+    // Called with (invoiceId, suppressed)
+    const invoiceId = invoiceIdOrSuppressed;
+    if (suppressed) {
+      suppressReminder(invoiceId);
+    } else {
+      unsuppressReminder(invoiceId);
+    }
+  } else {
+    // Called with just (suppressed) - not currently used, but handle it
+    // This would need the invoiceId from context, which we don't have
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -294,6 +343,21 @@ export function recordReminderEvent(
   const events = getReminderEvents();
   events.push({ ...event, timestamp: event.timestamp ?? new Date().toISOString() });
   localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+}
+
+/** Record engagement (alias for backward compatibility). */
+export function recordEngagement(
+  invoiceId: string,
+  type: any,
+  channel?: any,
+  metadata?: any
+): void {
+  recordReminderEvent({
+    invoiceId,
+    level: 'gentle',
+    type: type as ReminderEventType,
+    channel: channel as ReminderChannel,
+  });
 }
 
 export interface ReminderMetrics {

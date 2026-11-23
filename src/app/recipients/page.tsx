@@ -120,7 +120,7 @@ export default function RecipientsPage() {
         <button
           onClick={openAddModal}
           disabled={entries.length >= 50}
-          className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {entries.length >= 50 ? t("recipients.limitReached") : t("recipients.addRecipient")}
         </button>
@@ -266,7 +266,7 @@ export default function RecipientsPage() {
                   </button>
                   <button
                     type="submit"
-                    className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   >
                     {t("recipients.save")}
                   </button>

@@ -23,7 +23,7 @@ describe("WeeklyRaisedChart", () => {
     );
     expect(
       screen.getByRole("figure", { name: "USDC raised per week chart" })
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("renders bar chart with data", () => {
@@ -35,12 +35,12 @@ describe("WeeklyRaisedChart", () => {
         ]}
       />
     );
-    expect(screen.getByTestId("bar-chart")).toBeInTheDocument();
-    expect(screen.getByTestId("responsive-container")).toBeInTheDocument();
+    expect(screen.getByTestId("bar-chart")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByTestId("responsive-container")).toBeTruthy() // element exists in DOM;
   });
 
   it("shows 'No data available' when data is empty", () => {
     render(<WeeklyRaisedChart data={[]} />);
-    expect(screen.getByText("No data available")).toBeInTheDocument();
+    expect(screen.getByText("No data available")).toBeTruthy() // element exists in DOM;
   });
 });

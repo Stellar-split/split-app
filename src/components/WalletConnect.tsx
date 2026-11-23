@@ -65,8 +65,8 @@ export default function WalletConnect({ compact = false }: Props) {
     disconnect,
     connectLedger,
     ledgerStatus,
-    ledgerDerivationPath,
-    setLedgerDerivationPath,
+    derivationPath,
+    setDerivationPath,
   } = useWalletContext();
   const toast = useToast();
   const [modalError, setModalError] = useState<WalletErrorType>(null);
@@ -133,7 +133,7 @@ export default function WalletConnect({ compact = false }: Props) {
   const handleConnectLedger = async () => {
     setLedgerConnecting(true);
     try {
-      await connectLedger(ledgerDerivationPath);
+      await connectLedger(derivationPath);
     } catch (e) {
       const errType = classifyWalletError(e);
       if (errType === "rejected") {
@@ -264,19 +264,19 @@ export default function WalletConnect({ compact = false }: Props) {
       <div className="flex flex-col gap-1.5 w-full sm:w-auto">
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
           <span
-            className={`inline-block h-2 w-2 rounded-full ${LEDGER_STATUS_DOT[ledgerStatus]}`}
+            className={`inline-block h-2 w-2 rounded-full ${LEDGER_STATUS_DOT[(ledgerStatus as LedgerStatus) || 'disconnected']}`}
             aria-hidden="true"
           />
           <span role="status" aria-live="polite">
-            Ledger: {LEDGER_STATUS_LABEL[ledgerStatus]}
+            Ledger: {LEDGER_STATUS_LABEL[(ledgerStatus as LedgerStatus) || 'disconnected']}
           </span>
         </div>
         <label className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
           <span>Derivation path</span>
           <select
-            value={ledgerDerivationPath}
-            onChange={(e) => setLedgerDerivationPath(e.target.value)}
-            disabled={ledgerConnecting || ledgerStatus === "connected"}
+            value={derivationPath}
+            onChange={(e) => setDerivationPath(e.target.value)}
+            disabled={ledgerConnecting || (ledgerStatus as LedgerStatus) === "connected"}
             className="min-h-9 rounded-lg bg-gray-100 dark:bg-gray-800 px-2 py-1 text-xs font-mono text-gray-700 dark:text-gray-300 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-label="Ledger derivation path"
           >

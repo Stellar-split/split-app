@@ -1,4 +1,5 @@
 import { computeWebhookSignature } from "./webhookSignature";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import crypto from "crypto";
 
 // Polyfill Web Crypto for the Jest environment if it's missing.

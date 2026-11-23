@@ -144,11 +144,11 @@ export function useWallet() {
 
       if (cached.walletType === "ledger") {
         try {
-          const status = await getLedgerStatus();
+          const statusResult = await getLedgerStatus();
           if (cancelled) return;
-          setState((prev) => ({ ...prev, ledgerStatus: status }));
+          setState((prev) => ({ ...prev, ledgerStatus: statusResult.status }));
 
-          if (status !== "connected") {
+          if (statusResult.status !== "connected") {
             writeCache(null);
             setState((prev) => ({ ...prev, address: null, walletType: null }));
             return;
@@ -254,9 +254,9 @@ export function useWallet() {
 
   const refreshLedgerStatus = useCallback(async () => {
     try {
-      const status = await getLedgerStatus();
-      setState((prev) => ({ ...prev, ledgerStatus: status }));
-      return status;
+      const statusResult = await getLedgerStatus();
+      setState((prev) => ({ ...prev, ledgerStatus: statusResult.status }));
+      return statusResult.status;
     } catch {
       setState((prev) => ({ ...prev, ledgerStatus: "error" }));
       return "error" as LedgerStatus;

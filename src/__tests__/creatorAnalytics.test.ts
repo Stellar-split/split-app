@@ -1,4 +1,5 @@
 import { rateCardTotal, toLineItems, type RateCardItem } from "@/lib/rateCard";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { summarizeEarnings } from "@/lib/recipientEarnings";
 import { computeImpact } from "@/lib/invoiceImpact";
 import { predictPayment } from "@/lib/paymentPrediction";

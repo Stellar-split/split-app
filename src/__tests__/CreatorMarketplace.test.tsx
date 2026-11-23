@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from "@testing-library/react";
 import CreatorMarketplace from "@/components/marketplace/CreatorMarketplace";
 import { discoverCreators, listCategories, type MarketplaceCreator } from "@/lib/creatorMarketplace";
@@ -23,11 +24,11 @@ describe("creatorMarketplace", () => {
 describe("CreatorMarketplace", () => {
   it("renders creators with profile links and supports filtering", () => {
     render(<CreatorMarketplace creators={creators} />);
-    expect(screen.getByRole("link", { name: "Ada" })).toHaveAttribute("href", "/creator/GA");
+    expect(screen.getByRole("link", { name: "Ada" })).getAttribute("href").toBe("/creator/GA");
     fireEvent.click(screen.getByLabelText("Verified only"));
-    expect(screen.queryByText("Bo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Bo")).not.toBeTruthy() // element exists in DOM;
     fireEvent.change(screen.getByLabelText("Search creators"), { target: { value: "zzz" } });
-    expect(screen.getByText("No creators found.")).toBeInTheDocument();
+    expect(screen.getByText("No creators found.")).toBeTruthy() // element exists in DOM;
   });
 });
 

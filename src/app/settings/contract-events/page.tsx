@@ -220,7 +220,7 @@ function ContractEventsExplorer() {
             type="button"
             onClick={applyRange}
             disabled={!!rangeError}
-            className="min-h-10 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold disabled:opacity-40"
+            className="min-h-10 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-40"
           >
             Apply range
           </button>

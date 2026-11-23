@@ -5,7 +5,7 @@ import { signTransaction, NETWORK_PASSPHRASE } from "@/lib/freighter";
 import { signWithLedger, isLedgerError } from "@/lib/ledger";
 import { classifyError } from "@/lib/errors";
 import { useToast } from "@/contexts/ToastContext";
-import { useWallet } from "@/contexts/WalletContext";
+import { useWalletContext } from "@/contexts/WalletContext";
 
 const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ??
@@ -61,7 +61,7 @@ function isLedgerRejection(error: unknown): boolean {
  */
 export function useStellarTransaction() {
   const toast = useToast();
-  const { activeWallet } = useWallet();
+  const { address, walletType } = useWalletContext();
   const [status, setStatus] = useState<TransactionStatus>("idle");
   const [txHash, setTxHash] = useState<string | null>(null);
   // Guards against a double-submit from an impatient second click.
@@ -79,10 +79,10 @@ export function useStellarTransaction() {
       try {
         let signedXdr: string;
         try {
-          if (activeWallet === "ledger") {
+          if (walletType === "ledger") {
             // signWithLedger displays the transaction on the device and waits
             // for the user to confirm before returning the signed envelope.
-            signedXdr = await signWithLedger(unsignedXdr);
+            signedXdr = await signWithLedger(unsignedXdr, NETWORK_PASSPHRASE);
           } else {
             signedXdr = await signTransaction(unsignedXdr);
           }
@@ -131,7 +131,7 @@ export function useStellarTransaction() {
         inFlight.current = false;
       }
     },
-    [toast, activeWallet]
+    [toast, walletType]
   );
 
   const reset = useCallback(() => {
@@ -181,7 +181,23 @@ function describeFailure(error: unknown): string {
   if (horizonResult) {
     return `Transaction failed: ${horizonResult}`;
   }
-  return classifyError(error).message;
+
+  const errorMsg = (error as any)?.message || String(error) || 'Unknown error';
+  const classified = classifyError(error);
+
+  const messages: Record<string, string> = {
+    network: 'Network connection failed. Please check your internet and try again.',
+    timeout: 'Request timed out. Please try again.',
+    validation: 'Invalid transaction data. Please check and try again.',
+    contract: 'Contract execution failed. Please try again.',
+    wallet_not_connected: 'Wallet not connected. Please connect a wallet first.',
+    invoice_not_found: 'Invoice not found.',
+    rpc_error: 'RPC error occurred. Please try again.',
+    rpc_timeout: 'RPC request timed out. Please try again.',
+    unknown: errorMsg,
+  };
+
+  return messages[classified] || errorMsg;
 }
 
 export default useStellarTransaction;

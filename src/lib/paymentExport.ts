@@ -2,6 +2,7 @@
 import {
   paymentsToCSV,
   filterPaymentsByDateRange,
+  type PaymentWithMeta,
 } from './csvExport';
 import {
   buildPaymentSummaryHtml,
@@ -12,6 +13,7 @@ import {
  * Supported export formats for payment data.
  */
 export type PaymentExportFormat = 'csv' | 'json' | 'pdf';
+export type ExportFormat = PaymentExportFormat;
 
 /**
  * Filter object accepted by the export helpers.
@@ -134,11 +136,11 @@ export function filterPayments<T extends ExportablePayment>(
   const { startDate, endDate, statuses } = filters;
 
   if (startDate || endDate) {
-    result = filterPaymentsByDateRange(
-      result as unknown as Record<string, unknown>[],
-      startDate,
-      endDate,
-    ) as unknown as T[];
+    result = (filterPaymentsByDateRange(
+      result as unknown as PaymentWithMeta[],
+      startDate ?? null,
+      endDate ?? null,
+    ) as unknown) as T[];
   }
 
   if (Array.isArray(statuses) && statuses.length > 0) {
@@ -314,4 +316,26 @@ export function generateReconciliationReport(
 
 function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+export interface ExportHistoryRecord {
+  invoiceId: string;
+  format: PaymentExportFormat;
+  paymentCount: number;
+  startDate: string | null;
+  endDate: string | null;
+  columns?: string[];
+}
+
+export function recordExportHistory(record: ExportHistoryRecord): void {
+  try {
+    const history = JSON.parse(localStorage.getItem('exportHistory') || '[]');
+    history.push({
+      ...record,
+      timestamp: new Date().toISOString(),
+    });
+    localStorage.setItem('exportHistory', JSON.stringify(history.slice(-100)));
+  } catch (error) {
+    console.error('Failed to record export history:', error);
+  }
 }

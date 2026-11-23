@@ -52,14 +52,19 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
         endDate || null
       );
 
-      exportPayments({
-        invoiceId,
-        payments: filteredPayments,
-        format: exportFormat,
-        columns: selectedColumns,
-        startDate: startDate || null,
-        endDate: endDate || null,
-      });
+      const exportablePayments = filteredPayments.map(p => ({
+        ...p,
+        amount: typeof p.amount === 'bigint' ? Number(p.amount) : p.amount,
+      }));
+
+      exportPayments(
+        exportablePayments,
+        exportFormat,
+        {
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+        }
+      );
 
       recordExportHistory({
         invoiceId,
@@ -130,7 +135,7 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
             type="button"
             onClick={handleExport}
             disabled={exporting || payments.length === 0}
-            className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-semibold transition-colors"
+            className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-semibold transition-colors"
           >
             {exporting
               ? 'Exporting...'

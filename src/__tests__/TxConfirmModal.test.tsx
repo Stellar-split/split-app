@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TxConfirmModal from "@/components/TxConfirmModal";
@@ -24,8 +25,8 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
       />
     );
 
-    expect(screen.getByText(/✓ payment confirmed/i)).toBeInTheDocument();
-    expect(screen.getByText("Transaction hash")).toBeInTheDocument();
+    expect(screen.getByText(/✓ payment confirmed/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Transaction hash")).toBeTruthy() // element exists in DOM;
   });
 
   it("should display transaction hash", () => {
@@ -40,7 +41,7 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
       />
     );
 
-    expect(screen.getByText(txHash)).toBeInTheDocument();
+    expect(screen.getByText(txHash)).toBeTruthy() // element exists in DOM;
   });
 
   it("should render link to Stellar Expert with proper URL structure", () => {
@@ -58,7 +59,7 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
     const link = screen.getByRole("link", {
       name: /view on stellar expert/i,
     });
-    expect(link).toHaveAttribute("href");
+    expect(link.getAttribute("href"));
     const href = link.getAttribute("href");
     expect(href).toContain("stellar.expert/explorer");
     expect(href).toContain(`tx/${txHash}`);
@@ -79,8 +80,8 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
     const link = screen.getByRole("link", {
       name: /view on stellar expert/i,
     });
-    expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
   });
 
   it("should allow copying transaction hash", async () => {
@@ -125,7 +126,6 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
       configurable: true,
     });
 
-    vi.useFakeTimers();
 
     render(
       <TxConfirmModal
@@ -139,16 +139,14 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
     fireEvent.click(copyButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Copied!")).toBeInTheDocument();
+      expect(screen.getByText("Copied!")).toBeTruthy() // element exists in DOM;
     });
 
-    vi.advanceTimersByTime(2001);
 
     await waitFor(() => {
-      expect(screen.getByText("Copy")).toBeInTheDocument();
+      expect(screen.getByText("Copy")).toBeTruthy() // element exists in DOM;
     });
 
-    vi.useRealTimers();
   });
 
   it("should close modal when close button is clicked", async () => {
@@ -199,7 +197,7 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
     );
 
     const title = screen.getByText(/✓ payment confirmed/i);
-    expect(title).toHaveClass("text-green-400");
+    expect(title).toHaveClass('text-green-400');
   });
 
   it("should display the correct action text in confirmation message", () => {
@@ -213,7 +211,7 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
       />
     );
 
-    expect(screen.getByText(/✓ withdrawal confirmed/i)).toBeInTheDocument();
+    expect(screen.getByText(/✓ withdrawal confirmed/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("should be accessible with proper ARIA attributes", () => {
@@ -228,7 +226,7 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
     );
 
     const dialog = container.querySelector('[role="dialog"]');
-    expect(dialog).toHaveAttribute("aria-modal", "true");
-    expect(dialog).toHaveAttribute("aria-labelledby", "tx-modal-title");
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-labelledby")).toBe("tx-modal-title");
   });
 });

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useWalletBalance } from "../hooks/useWalletBalance";
 import { useWalletConnect } from "../hooks/useWalletConnect";
+import { getActiveNetwork } from "../lib/networks";
 
 const POLL_MS = 60_000;
 
@@ -47,8 +48,8 @@ export default function NetworkStatus() {
   const [browserOffline, setBrowserOffline] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { lowBalance, lowBalanceAssets } = useWalletBalance();
-  const { status: wcStatus } = useWalletConnect();
+  const { session, status: wcStatus } = useWalletConnect();
+  const { lowBalance, lowBalanceAssets } = useWalletBalance(session?.accounts?.[0] || null);
 
   const poll = useCallback(async () => {
     const s = await checkHealth(getActiveNetwork().rpcUrl);
@@ -139,13 +140,13 @@ export default function NetworkStatus() {
   // ── WalletConnect connection indicator styles ───────────────────────────────
 
   const wcConnected = wcStatus === "connected";
-  const wcPending = wcStatus === "connecting" || wcStatus === "pairing";
+  const wcPending = wcStatus === "connecting" || wcStatus === "awaiting_scan";
 
   const wcDotColor = wcConnected
     ? "bg-blue-400"
     : wcPending
     ? "bg-blue-400 animate-pulse"
-    : wcStatus === "error" || wcStatus === "disconnected"
+    : wcStatus === "error" || wcStatus === "idle"
     ? "bg-gray-500"
     : "bg-gray-400";
 
@@ -168,22 +169,23 @@ export default function NetworkStatus() {
 
   // ── Network badge styles ─────────────────────────────────────────────────────
 
+  const activeNetwork = getActiveNetwork();
   const networkBadgeClasses =
-    NETWORK === "Mainnet"
-      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
-      : NETWORK === "Testnet"
-      ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
-      : "bg-gray-500/15 border-gray-500/40 text-gray-400";
+    activeNetwork.label === "Mainnet"
+      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-700"
+      : activeNetwork.label === "Testnet"
+      ? "bg-amber-500/15 border-amber-500/40 text-amber-900"
+      : "bg-gray-500/15 border-gray-500/40 text-gray-700";
 
   const networkIcon =
-    NETWORK === "Mainnet" ? "🌐" : NETWORK === "Testnet" ? "🧪" : "❓";
+    activeNetwork.label === "Mainnet" ? "🌐" : activeNetwork.label === "Testnet" ? "🧪" : "❓";
 
   const networkTooltip =
-    NETWORK === "Mainnet"
+    activeNetwork.label === "Mainnet"
       ? "Connected to Stellar Mainnet — real assets"
-      : NETWORK === "Testnet"
+      : activeNetwork.label === "Testnet"
       ? "Connected to Stellar Testnet — test assets only"
-      : "Network unknown — check NEXT_PUBLIC_STELLAR_NETWORK";
+      : `Connected to ${activeNetwork.label}`;
 
   return (
     <>
@@ -247,10 +249,10 @@ export default function NetworkStatus() {
         <div className="group relative">
           <span
             className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold tracking-wide select-none ${networkBadgeClasses}`}
-            aria-label={`Network: ${NETWORK}`}
+            aria-label={`Network: ${activeNetwork.label}`}
           >
             <span aria-hidden="true">{networkIcon}</span>
-            <span className="hidden sm:inline">{NETWORK}</span>
+            <span className="hidden sm:inline">{activeNetwork.label}</span>
           </span>
           {/* Tooltip */}
           <span
@@ -267,7 +269,7 @@ export default function NetworkStatus() {
             className={`inline-block w-2 h-2 rounded-full shrink-0 ${dotColor}`}
             aria-hidden="true"
           />
-          <span className="text-xs text-gray-400 hidden sm:inline">{healthLabel}</span>
+          <span className="text-xs text-gray-700 dark:text-gray-300 hidden sm:inline">{healthLabel}</span>
           {/* Tooltip */}
           <span
             role="tooltip"
@@ -283,7 +285,7 @@ export default function NetworkStatus() {
             className={`inline-block w-2 h-2 rounded-full shrink-0 ${wcDotColor}`}
             aria-hidden="true"
           />
-          <span className="text-xs text-gray-400 hidden sm:inline">{wcLabel}</span>
+          <span className="text-xs text-gray-700 dark:text-gray-300 hidden sm:inline">{wcLabel}</span>
           {/* Tooltip */}
           <span
             role="tooltip"

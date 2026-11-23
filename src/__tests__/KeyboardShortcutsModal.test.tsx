@@ -11,6 +11,7 @@
  */
 
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
 import { ShortcutRegistryProvider } from "@/context/ShortcutRegistry";
@@ -71,17 +72,17 @@ describe("KeyboardShortcutsModal — ? key trigger", () => {
 
     pressKey("?");
 
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
     expect(
       screen.getByText("Keyboard Shortcuts")
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   test("pressing ? a second time closes the modal (toggle)", () => {
     renderWithRegistry(<HeaderShortcutsButton />);
 
     pressKey("?");
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
 
     pressKey("?");
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -121,7 +122,7 @@ describe("KeyboardShortcutsModal — Escape closes the modal", () => {
     renderWithRegistry(<HeaderShortcutsButton />);
 
     pressKey("?");
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
 
     pressKey("Escape");
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -138,7 +139,7 @@ describe("KeyboardShortcutsModal — header button", () => {
       screen.getByRole("button", { name: /keyboard shortcuts/i }).click();
     });
 
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
   });
 
   test("clicking the close (×) button inside the modal dismisses it", () => {
@@ -148,7 +149,7 @@ describe("KeyboardShortcutsModal — header button", () => {
       screen.getByRole("button", { name: /keyboard shortcuts/i }).click();
     });
 
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
 
     act(() => {
       screen.getByRole("button", { name: /close keyboard shortcuts/i }).click();
@@ -164,9 +165,9 @@ describe("KeyboardShortcutsModal — shortcut list content", () => {
     pressKey("?");
 
     // Check the four mandatory shortcuts from the acceptance criteria
-    expect(screen.getByText("Open keyboard shortcuts reference")).toBeInTheDocument();
-    expect(screen.getByText("Navigate to Search")).toBeInTheDocument();
-    expect(screen.getByText("Create new invoice (on dashboard)")).toBeInTheDocument();
-    expect(screen.getByText(/close modal/i)).toBeInTheDocument();
+    expect(screen.getByText("Open keyboard shortcuts reference")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Navigate to Search")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Create new invoice (on dashboard)")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/close modal/i)).toBeTruthy() // element exists in DOM;
   });
 });

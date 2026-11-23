@@ -122,7 +122,7 @@ export default function RecipientOnboarding() {
             <a
               href="/recipient"
               onClick={complete}
-              className="w-full text-center px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              className="w-full text-center px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             >
               Go to Recipient Portal →
             </a>
@@ -160,7 +160,7 @@ function StepActions({
       </button>
       <button
         onClick={onNext}
-        className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+        className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
       >
         {step === total - 1 ? "Next" : "Next"}
       </button>

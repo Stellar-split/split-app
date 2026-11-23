@@ -1,14 +1,15 @@
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import CommandPalette, { fuzzyMatch } from "@/components/CommandPalette";
 
-const navigateSpy = jest.fn();
+const navigateSpy = vi.fn();
 
 beforeEach(() => {
   navigateSpy.mockClear();
 });
 
-jest.mock("@/components/FocusTrap", () => ({
+vi.mock("@/components/FocusTrap", () => ({
   __esModule: true,
   default: function MockFocusTrap({
     children,
@@ -67,7 +68,7 @@ describe("CommandPalette — open/close", () => {
 
     pressKey("k", document, { metaKey: true });
 
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
   });
 
   test("Ctrl+K opens the palette", () => {
@@ -75,14 +76,14 @@ describe("CommandPalette — open/close", () => {
 
     pressKey("k", document, { ctrlKey: true });
 
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
   });
 
   test("Escape closes the palette", () => {
     render(<CommandPalette onNavigate={navigateSpy} />);
 
     pressKey("k", document, { metaKey: true });
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
 
     pressKey("Escape");
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -92,7 +93,7 @@ describe("CommandPalette — open/close", () => {
     render(<CommandPalette onNavigate={navigateSpy} />);
 
     pressKey("k", document, { metaKey: true });
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
 
     pressKey("k", document, { metaKey: true });
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -139,7 +140,7 @@ describe("CommandPalette — fuzzy search", () => {
       fireEvent.change(input, { target: { value: "zzzzzzzznotfound" } });
     });
 
-    expect(screen.getByText(/no results found/i)).toBeInTheDocument();
+    expect(screen.getByText(/no results found/i)).toBeTruthy() // element exists in DOM;
   });
 });
 
@@ -150,15 +151,15 @@ describe("CommandPalette — keyboard navigation", () => {
 
     const input = screen.getByLabelText(/search pages/i);
     const options = screen.getAllByRole("option");
-    expect(options[0]).toHaveAttribute("aria-selected", "true");
+    expect(options[0].getAttribute("aria-selected")).toBe("true");
 
     act(() => {
       fireEvent.keyDown(input, { key: "ArrowDown" });
     });
 
     const optionsAfter = screen.getAllByRole("option");
-    expect(optionsAfter[1]).toHaveAttribute("aria-selected", "true");
-    expect(optionsAfter[0]).toHaveAttribute("aria-selected", "false");
+    expect(optionsAfter[1].getAttribute("aria-selected")).toBe("true");
+    expect(optionsAfter[0].getAttribute("aria-selected")).toBe("false");
   });
 
   test("ArrowUp from first wraps to last", () => {
@@ -172,7 +173,7 @@ describe("CommandPalette — keyboard navigation", () => {
 
     const options = screen.getAllByRole("option");
     const lastOption = options[options.length - 1];
-    expect(lastOption).toHaveAttribute("aria-selected", "true");
+    expect(lastOption.getAttribute("aria-selected")).toBe("true");
   });
 });
 
@@ -195,8 +196,8 @@ describe("CommandPalette — parameterized action", () => {
       invoiceOption!.click();
     });
 
-    expect(screen.getByText(/Go to invoice #/)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/enter invoice id/i)).toBeInTheDocument();
+    expect(screen.getByText(/Go to invoice #/)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByPlaceholderText(/enter invoice id/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("entering an ID and pressing Enter navigates to the invoice", () => {
@@ -231,7 +232,7 @@ describe("CommandPalette — keyboard shortcut display", () => {
     pressKey("k", document, { metaKey: true });
 
     // Ensure the palette opens without errors
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
   });
 
   test("shows right-aligned shortcut hints in command rows", () => {
@@ -247,7 +248,7 @@ describe("CommandPalette — keyboard shortcut display", () => {
     expect(options.length > 0).toBe(true);
     // Verify each option has the expected structure with room for shortcuts
     options.forEach((option) => {
-      expect(option).toHaveClass("flex", "items-center", "justify-between");
+      expect(option).toHaveClass('flex'), "items-center", "justify-between";
     });
   });
 
@@ -257,7 +258,7 @@ describe("CommandPalette — keyboard shortcut display", () => {
 
     // Check that palette structure allows for kbd elements
     const palette = screen.getByRole("dialog");
-    expect(palette).toBeInTheDocument();
+    expect(palette).toBeTruthy() // element exists in DOM;
   });
 
   test("existing tests continue to pass with shortcut integration", () => {

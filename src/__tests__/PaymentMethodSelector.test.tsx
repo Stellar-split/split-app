@@ -10,6 +10,7 @@
  */
 
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PaymentMethodSelector from "@/components/PaymentMethodSelector";
@@ -56,8 +57,8 @@ describe("PaymentMethodSelector", () => {
     );
 
     const fieldset = screen.getByRole("group");
-    expect(fieldset).toBeInTheDocument();
-    expect(fieldset).toHaveAttribute("role", "group");
+    expect(fieldset).toBeTruthy() // element exists in DOM;
+    expect(fieldset.getAttribute("role")).toBe("group");
   });
 
   test("renders radio options for Freighter and WalletConnect", () => {
@@ -76,8 +77,8 @@ describe("PaymentMethodSelector", () => {
       name: /WalletConnect/i,
     });
 
-    expect(freighterRadio).toBeInTheDocument();
-    expect(walletConnectRadio).toBeInTheDocument();
+    expect(freighterRadio).toBeTruthy() // element exists in DOM;
+    expect(walletConnectRadio).toBeTruthy() // element exists in DOM;
   });
 
   test("ArrowDown key moves focus to next option", async () => {
@@ -256,7 +257,7 @@ describe("PaymentMethodSelector", () => {
 
     // All radios should have name attribute for grouping
     radios.forEach((radio) => {
-      expect(radio).toHaveAttribute("name", "payment-method");
+      expect(radio.getAttribute("name")).toBe("payment-method");
     });
   });
 

@@ -564,7 +564,7 @@ export default function InvoiceExportButton({ invoice, total, branding }: Props)
             type="button"
             onClick={handleSendEmail}
             disabled={emailLoading || !emailValue.trim()}
-            className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-sm font-semibold text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 inline-flex items-center gap-1.5 whitespace-nowrap"
+            className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 text-sm font-semibold text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 inline-flex items-center gap-1.5 whitespace-nowrap"
           >
             {emailLoading ? (
               <>

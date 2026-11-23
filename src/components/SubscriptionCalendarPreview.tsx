@@ -28,12 +28,23 @@ export default function SubscriptionCalendarPreview({
   const isCancelled = status === "cancelled";
 
   const upcomingDates = useMemo(
-    () => computeUpcomingDates(intervalDays, count, fromDate),
+    () => computeUpcomingDates(
+      String(intervalDays),
+      fromDate?.getTime() ?? Date.now(),
+      count
+    ),
     [intervalDays, count, fromDate]
   );
 
   const initialView = useMemo(() => {
-    const first = upcomingDates[0] ?? fromDate ?? new Date();
+    let first: Date;
+    if (upcomingDates[0]) {
+      first = new Date(upcomingDates[0]);
+    } else if (fromDate) {
+      first = fromDate;
+    } else {
+      first = new Date();
+    }
     return { year: first.getFullYear(), month: first.getMonth() };
   }, [upcomingDates, fromDate]);
 
@@ -48,7 +59,8 @@ export default function SubscriptionCalendarPreview({
 
   const invoiceDaysInView = useMemo(() => {
     const days = new Set<number>();
-    for (const date of upcomingDates) {
+    for (const dateTime of upcomingDates) {
+      const date = new Date(dateTime);
       if (date.getFullYear() === viewYear && date.getMonth() === viewMonth) {
         days.add(date.getDate());
       }

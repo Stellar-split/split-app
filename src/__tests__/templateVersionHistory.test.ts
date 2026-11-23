@@ -1,3 +1,4 @@
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 /**
  * Unit tests for template version history logic.
  * Tests are extracted from the pure helper functions used in TemplateManager.

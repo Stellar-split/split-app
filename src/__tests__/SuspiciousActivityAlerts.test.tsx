@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from "@testing-library/react";
 import SuspiciousActivityAlerts from "@/components/security/SuspiciousActivityAlerts";
 import { detectSuspiciousActivity, type ActivityEvent } from "@/lib/suspiciousActivity";
@@ -27,10 +28,10 @@ describe("detectSuspiciousActivity", () => {
 describe("SuspiciousActivityAlerts", () => {
   it("shows empty state and dismisses alerts", () => {
     const { rerender } = render(<SuspiciousActivityAlerts events={normal} />);
-    expect(screen.getByText("No suspicious activity detected.")).toBeInTheDocument();
+    expect(screen.getByText("No suspicious activity detected.")).toBeTruthy() // element exists in DOM;
     rerender(<SuspiciousActivityAlerts events={[...normal, { id: "s", actor: "GS", amount: 9999, timestamp: 0 }]} />);
     expect(screen.getByRole("alert")).toHaveTextContent(/medium risk/i);
     fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeTruthy() // element exists in DOM;
   });
 });

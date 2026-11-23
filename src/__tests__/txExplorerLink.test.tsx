@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import "@testing-library/jest-dom";
 
 describe("Issue #413: Onchain Explorer Deep-Link per Transaction", () => {

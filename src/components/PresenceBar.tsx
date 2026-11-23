@@ -52,8 +52,6 @@ function Avatar({ presence, isCurrentUser }: AvatarProps) {
             loading="lazy"
             decoding="async"
             className="w-full h-full rounded-full object-cover"
-            loading="lazy"
-            decoding="async"
           />
         ) : (
           initials

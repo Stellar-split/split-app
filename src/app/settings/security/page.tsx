@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/apiClient';
+import { WalletSecuritySettings } from '@/components/WalletSecuritySettings';
 import {
   clearWalletConnection,
   getWalletConnection,
@@ -204,8 +205,7 @@ export default function SecuritySettingsPage() {
               <p className="text-sm font-medium text-gray-200">Current connection</p>
               {wallet ? (
                 <>
-                  <p className="mt-2 text-sm text-gray-400">Wallet: {wallet.walletType}</p>
-                  <p className="mt-1 break-all text-sm text-gray-400">Address: {wallet.address}</p>
+                  <p className="mt-1 break-all text-sm text-gray-400">Address: {wallet.publicKey}</p>
                 </>
               ) : (
                 <p className="mt-2 text-sm text-gray-400">No wallet is currently connected.</p>

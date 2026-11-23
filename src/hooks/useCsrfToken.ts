@@ -39,13 +39,13 @@ export function useCsrfToken(): UseCsrfTokenResult {
       timerRef.current = setTimeout(async () => {
         if (cancelled) return;
         await load(true);
-        scheduleRefresh(Math.max(getCachedCsrfExpiry() - Date.now() - REFRESH_SKEW_MS, REFRESH_SKEW_MS));
+        scheduleRefresh(Math.max((getCachedCsrfExpiry() ?? 0) - Date.now() - REFRESH_SKEW_MS, REFRESH_SKEW_MS));
       }, delayMs);
     };
 
     load().then(() => {
       if (cancelled) return;
-      scheduleRefresh(Math.max(getCachedCsrfExpiry() - Date.now() - REFRESH_SKEW_MS, REFRESH_SKEW_MS));
+      scheduleRefresh(Math.max((getCachedCsrfExpiry() ?? 0) - Date.now() - REFRESH_SKEW_MS, REFRESH_SKEW_MS));
     });
 
     return () => {

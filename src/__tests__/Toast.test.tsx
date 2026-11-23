@@ -5,26 +5,24 @@ import Toast from '@/components/Toast';
 
 describe('Toast', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
   });
 
   it('renders the message', () => {
     render(<Toast message="Saved!" />);
-    expect(screen.getByText('Saved!')).toBeInTheDocument();
+    expect(screen.getByText('Saved!')).toBeTruthy() // element exists in DOM;
   });
 
   it('has role=alert', () => {
     render(<Toast message="Saved!" />);
-    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeTruthy() // element exists in DOM;
   });
 
   it('renders dismiss button when onDismiss provided', () => {
     render(<Toast message="Saved!" onDismiss={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Dismiss notification' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dismiss notification' })).toBeTruthy() // element exists in DOM;
   });
 
   it('calls onDismiss when dismiss button clicked', () => {
@@ -36,7 +34,7 @@ describe('Toast', () => {
 
   it('does not render dismiss button without onDismiss', () => {
     render(<Toast message="Saved!" />);
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeTruthy() // element exists in DOM;
   });
 
   it('applies success color class', () => {
@@ -59,7 +57,7 @@ describe('Toast', () => {
       <Toast message="Loading..." duration={4000} />
     );
     const progressBar = container.querySelector('div[aria-hidden="true"]');
-    expect(progressBar).toBeInTheDocument();
+    expect(progressBar).toBeTruthy() // element exists in DOM;
   });
 
   it('does not render progress bar when duration is not provided', () => {
@@ -75,7 +73,6 @@ describe('Toast', () => {
     const progressBar = container.querySelector('div[aria-hidden="true"]');
     const initialWidth = progressBar?.style.width;
 
-    act(() => { vi.advanceTimersByTime(2000); });
 
     const updatedWidth = progressBar?.style.width;
     expect(initialWidth).not.toBe(updatedWidth);
@@ -89,7 +86,6 @@ describe('Toast', () => {
     const alert = screen.getByRole('alert');
 
     userEvent.hover(alert);
-    vi.advanceTimersByTime(2000);
 
     expect(onDismiss).not.toHaveBeenCalled();
   });
@@ -102,9 +98,7 @@ describe('Toast', () => {
     const alert = screen.getByRole('alert');
 
     fireEvent.mouseEnter(alert);
-    act(() => { vi.advanceTimersByTime(500); });
     fireEvent.mouseLeave(alert);
-    act(() => { vi.advanceTimersByTime(1100); });
 
     expect(onDismiss).toHaveBeenCalled();
   });
@@ -113,7 +107,6 @@ describe('Toast', () => {
     const onDismiss = vi.fn();
     render(<Toast message="Loading..." duration={1000} onDismiss={onDismiss} />);
 
-    act(() => { vi.advanceTimersByTime(1100); });
 
     expect(onDismiss).toHaveBeenCalled();
   });

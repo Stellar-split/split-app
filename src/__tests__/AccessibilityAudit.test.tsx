@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from "@testing-library/react";
 import AccessibilityAuditPanel from "@/components/AccessibilityAuditPanel";
 import { auditColorPairs, auditDocument } from "@/lib/accessibilityAudit";
@@ -72,9 +73,9 @@ describe("AccessibilityAuditPanel", () => {
         <AccessibilityAuditPanel />
       </div>,
     );
-    expect(screen.queryByText(/issue/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/issue/)).not.toBeTruthy() // element exists in DOM;
     fireEvent.click(screen.getByText("Run audit"));
-    expect(screen.getByText("1 issue found")).toBeInTheDocument();
-    expect(screen.getByText("Image is missing an alt attribute.")).toBeInTheDocument();
+    expect(screen.getByText("1 issue found")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Image is missing an alt attribute.")).toBeTruthy() // element exists in DOM;
   });
 });

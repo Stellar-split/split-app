@@ -49,8 +49,8 @@ export default function PaymentMethodSelector({ onMethodChange, payerAddress, re
     let cancelled = false;
     const checkLedger = async () => {
       try {
-        const status = await getLedgerStatus();
-        if (!cancelled) setLedgerAvailable(status.connected);
+        const ledgerStatus = await getLedgerStatus();
+        if (!cancelled) setLedgerAvailable(ledgerStatus.status === 'connected');
       } catch {
         if (!cancelled) setLedgerAvailable(false);
       }

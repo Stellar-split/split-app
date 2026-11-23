@@ -3,6 +3,7 @@
  */
 
 import { encodeTemplate, decodeTemplate } from "@/lib/templateSharing";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 
 interface Recipient {
   address: string;

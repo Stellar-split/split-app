@@ -34,10 +34,7 @@ describe("commentStore", () => {
 
   it("pages older comments with the before cursor", () => {
     const a = addComment("inv-1", "GALICE", "first");
-    vi.useFakeTimers();
-    vi.advanceTimersByTime(10);
     const b = addComment("inv-1", "GALICE", "second");
-    vi.useRealTimers();
 
     const page = listComments("inv-1", { before: b.createdAt });
     expect(page).toEqual([a]);

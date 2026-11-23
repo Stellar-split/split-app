@@ -65,13 +65,13 @@ describe("BulkTagModal", () => {
 
     expect(
       screen.getByText(`Add tags to ${SELECTED_IDS.length} invoices`)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("uses singular 'invoice' for count of 1", () => {
     renderModal({ selectedIds: ["inv-001"] });
 
-    expect(screen.getByText("Add tags to 1 invoice")).toBeInTheDocument();
+    expect(screen.getByText("Add tags to 1 invoice")).toBeTruthy() // element exists in DOM;
   });
 
   it("renders TagInput for entering tags", () => {
@@ -79,7 +79,7 @@ describe("BulkTagModal", () => {
 
     expect(
       screen.getByRole("combobox")
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("confirm button is disabled when no tags are entered", () => {
@@ -233,6 +233,6 @@ describe("BulkTagModal", () => {
 
     expect(
       screen.getByText(/existing tags are preserved/i)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 });

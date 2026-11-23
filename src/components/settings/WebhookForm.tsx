@@ -134,7 +134,7 @@ export default function WebhookForm({ onCreated }: Props) {
       <button
         type="submit"
         disabled={submitting}
-        className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
+        className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 text-white text-sm font-semibold transition-colors"
       >
         {submitting ? "Adding…" : "Add Webhook"}
       </button>

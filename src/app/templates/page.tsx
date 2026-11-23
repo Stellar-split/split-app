@@ -174,7 +174,7 @@ export default function TemplatesPage() {
             <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
             <Link
               href="/invoice/new"
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold text-white transition-colors"
             >
               + New Invoice
             </Link>
@@ -202,7 +202,7 @@ export default function TemplatesPage() {
             </p>
             <Link
               href="/invoice/new"
-              className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+              className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold text-white transition-colors"
             >
               Create Invoice
             </Link>
@@ -274,7 +274,7 @@ export default function TemplatesPage() {
                   <button
                     type="button"
                     onClick={() => handleUse(i)}
-                    className="flex-1 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-colors"
+                    className="flex-1 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold text-white transition-colors"
                   >
                     Load
                   </button>

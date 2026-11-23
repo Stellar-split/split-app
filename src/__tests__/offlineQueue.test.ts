@@ -1,4 +1,5 @@
 import type { QueuedPayment } from "@/lib/offlineQueue";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 
 let store: Record<string, QueuedPayment> = {};
 

@@ -1,3 +1,5 @@
+import { recordSecurityEvent } from "@/lib/walletSecurity";
+
 /**
  * Optional biometric unlock using the device's platform authenticator
  * (Touch ID, Face ID, Windows Hello, Android fingerprint) via WebAuthn.
@@ -31,6 +33,7 @@ function randomBytes(n: number): ArrayBuffer {
 /** True when this browser/device offers a user-verifying platform authenticator. */
 export async function isBiometricAvailable(): Promise<boolean> {
   if (typeof window === "undefined" || !window.PublicKeyCredential || !navigator.credentials) return false;
+  if (!window.isSecureContext) return false;
   try {
     return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
   } catch {
@@ -48,49 +51,60 @@ export function getBiometricCredentialId(): string | null {
 }
 
 export function isBiometricEnabled(): boolean {
-  return getBiometricCredentialId() !== null;
+  return Boolean(getBiometricCredentialId());
 }
 
 /** Register a platform credential and remember its ID. Prompts the OS biometric dialog. */
 export async function enableBiometric(label = "StellarSplit"): Promise<void> {
-  if (!(await isBiometricAvailable())) {
-    throw new Error("Biometric authentication isn't available on this device.");
-  }
-  const credential = (await navigator.credentials.create({
-    publicKey: {
-      challenge: randomBytes(32),
-      rp: { name: "StellarSplit", id: window.location.hostname },
-      user: { id: randomBytes(16), name: label, displayName: label },
-      pubKeyCredParams: [
-        { type: "public-key", alg: -7 },
-        { type: "public-key", alg: -257 },
-      ],
-      authenticatorSelection: {
-        authenticatorAttachment: "platform",
-        userVerification: "required",
-        residentKey: "discouraged",
+  try {
+    if (!(await isBiometricAvailable())) {
+      throw new Error("Biometric authentication isn't available on this device.");
+    }
+    const credential = (await navigator.credentials.create({
+      publicKey: {
+        challenge: randomBytes(32),
+        rp: { name: "StellarSplit", id: window.location.hostname },
+        user: { id: randomBytes(16), name: label, displayName: label },
+        pubKeyCredParams: [
+          { type: "public-key", alg: -7 },
+          { type: "public-key", alg: -257 },
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          userVerification: "required",
+          residentKey: "discouraged",
+        },
+        timeout: 60_000,
+        attestation: "none",
       },
-      timeout: 60_000,
-      attestation: "none",
-    },
-  })) as PublicKeyCredential | null;
-  if (!credential) throw new Error("Biometric setup was cancelled.");
-  window.localStorage.setItem(BIOMETRIC_CREDENTIAL_KEY, toBase64Url(credential.rawId));
+    })) as PublicKeyCredential | null;
+    if (!credential?.rawId.byteLength) throw new Error("Biometric setup was cancelled.");
+    window.localStorage.setItem(BIOMETRIC_CREDENTIAL_KEY, toBase64Url(credential.rawId));
+    recordSecurityEvent({ type: "biometric_enrolled" });
+  } catch (error) {
+    recordSecurityEvent({ type: "biometric_failed", detail: "enrollment" });
+    throw error;
+  }
 }
 
 export function disableBiometric(): void {
   if (typeof window === "undefined") return;
+  const wasEnabled = isBiometricEnabled();
   try {
     window.localStorage.removeItem(BIOMETRIC_CREDENTIAL_KEY);
   } catch {
     // ignore
   }
+  if (wasEnabled) recordSecurityEvent({ type: "biometric_disabled" });
 }
 
 /** Ask the OS to verify the user with the registered credential. Resolves true on success. */
 export async function verifyBiometric(): Promise<boolean> {
   const id = getBiometricCredentialId();
-  if (!id || !navigator.credentials) return false;
+  if (!id || !navigator.credentials) {
+    recordSecurityEvent({ type: "biometric_failed", detail: "unavailable" });
+    return false;
+  }
   try {
     const assertion = await navigator.credentials.get({
       publicKey: {
@@ -100,8 +114,21 @@ export async function verifyBiometric(): Promise<boolean> {
         timeout: 60_000,
       },
     });
-    return assertion !== null;
+    const credentialId = fromBase64Url(id);
+    const rawId = (assertion as PublicKeyCredential | null)?.rawId;
+    const response = (assertion as PublicKeyCredential | null)?.response as AuthenticatorAssertionResponse | undefined;
+    const authenticatorData = response?.authenticatorData;
+    const matchesCredential = Boolean(
+      rawId && rawId.byteLength === credentialId.byteLength &&
+      new Uint8Array(rawId).every((byte, index) => byte === new Uint8Array(credentialId)[index]),
+    );
+    const userVerified = Boolean(authenticatorData && authenticatorData.byteLength >= 33 &&
+      (new Uint8Array(authenticatorData)[32] & 0x04) !== 0);
+    const verified = assertion?.type === "public-key" && matchesCredential && userVerified;
+    recordSecurityEvent({ type: verified ? "biometric_success" : "biometric_failed", detail: "verification" });
+    return verified;
   } catch {
+    recordSecurityEvent({ type: "biometric_failed", detail: "verification" });
     return false;
   }
 }

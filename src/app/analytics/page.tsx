@@ -9,7 +9,10 @@ import { generateCsv, type CsvRow } from "@/lib/csvExport";
 import type { Invoice } from "@stellar-split/sdk";
 import ChartBuilder, { type ChartBuilderDataPoint } from "@/components/analytics/ChartBuilder";
 import AnalyticsPanel from "@/components/subscriptions/AnalyticsPanel";
+import DataQualityPanel from "@/components/DataQualityPanel";
 import { loadSubscriptions, type Subscription } from "@/lib/subscriptions";
+import AttributionAnalyticsPanel from "@/components/analytics/AttributionAnalyticsPanel";
+import BenchmarkAnalyticsPanel from "@/components/analytics/BenchmarkAnalyticsPanel";
 
 const STROOPS = 10_000_000;
 
@@ -163,13 +166,17 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (!publicKey) return;
-    try {
-      setSubscriptions(loadSubscriptions(publicKey));
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load subscriptions"
-      );
-    }
+    const loadData = async () => {
+      try {
+        const data = await loadSubscriptions(publicKey);
+        setSubscriptions(data);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load subscriptions"
+        );
+      }
+    };
+    loadData();
   }, [publicKey]);
 
   const filtered = useMemo(() => {
@@ -445,6 +452,7 @@ export default function AnalyticsPage() {
           </div>
         ) : (
           <>
+          <DataQualityPanel invoices={filtered} />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <KpiCard
             label="Total Raised"

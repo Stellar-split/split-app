@@ -25,7 +25,7 @@ function FieldWrapper({
     <div className="flex flex-col gap-1">
       <label
         htmlFor={id}
-        className="text-sm font-medium text-gray-200 dark:text-gray-200"
+        className="text-sm font-medium text-gray-800 dark:text-gray-200 dark:text-gray-200"
       >
         {label}
         {required && (
@@ -255,7 +255,7 @@ export function Toggle({
       <div className="flex items-center justify-between">
         <label
           htmlFor={id}
-          className="text-sm font-medium text-gray-200 dark:text-gray-200 cursor-pointer"
+          className="text-sm font-medium text-gray-800 dark:text-gray-200 dark:text-gray-200 cursor-pointer"
         >
           {label}
           {required && (
@@ -334,7 +334,7 @@ export function Checkbox({
           onChange={(e) => onChange(e.target.checked)}
           className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
         />
-        <span className="text-sm font-medium text-gray-200 dark:text-gray-200">
+        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 dark:text-gray-200">
           {label}
           {required && (
             <span className="ml-1 text-red-400" aria-hidden="true">

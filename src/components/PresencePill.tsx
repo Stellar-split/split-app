@@ -1,45 +1,17 @@
-"use client";
+'use client';
 
-import { truncateAddress } from "@stellar-split/sdk";
-
-interface RemotePresence {
-  address: string;
-  online: boolean;
-  color: string;
+export interface PresencePillProps {
+  presences?: Array<{ address: string; name?: string }>;
+  currentAddress?: string;
 }
 
-interface Props {
-  presences: RemotePresence[];
-  currentAddress: string | null;
-}
-
-export default function PresencePill({ presences, currentAddress }: Props) {
-  const online = presences.filter((p) => p.online && p.address !== currentAddress);
-  if (online.length === 0) return null;
-
+export function PresencePill({ presences = [] }: PresencePillProps) {
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <span className="text-xs text-gray-400">Editing:</span>
-      <div className="flex items-center gap-1">
-        {online.slice(0, 5).map((p) => (
-          <div
-            key={p.address}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white ring-2"
-            style={{
-              backgroundColor: p.color,
-              outlineColor: p.color,
-            }}
-            title={p.address}
-          >
-            {truncateAddress(p.address).slice(0, 2).toUpperCase()}
-          </div>
-        ))}
-        {online.length > 5 && (
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold bg-gray-700 text-gray-300">
-            +{online.length - 5}
-          </div>
-        )}
-      </div>
+    <div className="flex items-center gap-2 px-3 py-1 bg-gray-800 rounded-full text-xs">
+      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+      <span className="text-gray-300">{presences.length} editing</span>
     </div>
   );
 }
+
+export default PresencePill;

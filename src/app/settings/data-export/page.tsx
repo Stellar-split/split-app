@@ -44,7 +44,7 @@ export default function DataExportPage() {
         type="button"
         onClick={handleExport}
         disabled={exporting}
-        className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+        className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
       >
         {exporting ? "Exporting…" : "Export My Data"}
       </button>

@@ -16,6 +16,7 @@ import { saveReceipt } from "@/lib/receiptStore";
 import { apiFetch } from "@/lib/apiClient";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import type { RateLock } from "@/lib/currency";
+import { getActiveNetwork } from "@/lib/networks";
 
 const STELLAR_EXPERT_BASE =
   getActiveNetwork().explorerTxBase;
@@ -145,7 +146,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
       setLockExpired(false);
       return;
     }
-    const check = () => setLockExpired(Date.now() >= rateLock.expiresAt);
+    const check = () => setLockExpired(Date.now() >= rateLock.expiresAt.getTime());
     check();
     const timer = setInterval(check, 1000);
     return () => clearInterval(timer);
@@ -251,11 +252,12 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
     }
     setError(null);
     if (!rateLock && xlmRate) {
+      const now = new Date();
       setRateLock({
         currency: invoiceCurrency,
-        rate: xlmRate.rate,
-        lockedAt: Date.now(),
-        expiresAt: Date.now() + 5 * 60 * 1000,
+        rate: xlmRate,
+        lockedAt: now,
+        expiresAt: new Date(now.getTime() + 5 * 60 * 1000),
       });
     }
     setShowBreakdown(true);
@@ -608,7 +610,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
                 : ratesError
                   ? "Unavailable"
                   : xlmRate
-                    ? `1 ${invoiceCurrency} ≈ ${xlmRate.rate.toFixed(6)} XLM`
+                    ? `1 ${invoiceCurrency} ≈ ${xlmRate.toFixed(6)} XLM`
                     : "Unavailable"}
             </span>
           </div>
@@ -616,7 +618,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
             <div className="flex items-center justify-between mt-1">
               <span className="text-gray-400">Converted total</span>
               <span className="font-mono text-indigo-300">
-                ≈ {(Number(formatAmount(paymentTotal)) * xlmRate.rate).toFixed(6)} XLM
+                ≈ {(Number(formatAmount(paymentTotal)) * xlmRate).toFixed(6)} XLM
               </span>
             </div>
           )}
@@ -654,7 +656,7 @@ export default function PayModal({ invoice, total, publicKey, onPay, onClose }: 
           type="button"
           onClick={handleReview}
           disabled={paying || !parsed || parsed <= 0n || isCapReached || isCapExceeded || lockExpired}
-          className="w-full px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="w-full px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {paying ? "Waiting for signature..." : "Review & Pay"}
         </button>

@@ -1,11 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Bundle,
-  BundleService,
-  Invoice,
-  InvoiceStatus,
-  PaymentOptions,
-} from '../services/bundleService';
+import { InvoiceStatus } from '@/lib/bundles';
+import type { InvoiceBundle as Bundle, Invoice, BundleService, PaymentOptions } from '@/lib/bundles';
 
 export interface BundleCreationModalProps {
   isOpen: boolean;

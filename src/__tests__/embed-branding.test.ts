@@ -1,3 +1,4 @@
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 /**
  * Unit tests for embed branding URL generation and storage.
  *

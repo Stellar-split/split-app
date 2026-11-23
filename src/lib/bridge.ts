@@ -29,6 +29,8 @@ export interface FeeEstimate {
   bridgeFee: string;
   /** Fee as a fraction of the invoice amount (0–1) */
   bridgeFeeRatio: number;
+  /** USDC portion of the fee, rounded up to the nearest micro-USDC. */
+  estimatedUsdcFee: string;
   /** Amount that actually arrives on Stellar side, in USDC */
   netAmount: string;
   /** Estimated settlement time */
@@ -94,6 +96,11 @@ const BRIDGE_FEE_RATIOS: Record<SupportedChain, number> = {
   solana: 0.001,   // 0.1 %
 };
 
+const BRIDGE_FEE_BPS: Record<SupportedChain, bigint> = {
+  ethereum: 30n,
+  solana: 10n,
+};
+
 /** Fixed gas/relay fee in the source-chain native token. */
 const NATIVE_FEES: Record<SupportedChain, string> = {
   ethereum: "0.002 ETH",
@@ -112,18 +119,92 @@ export function estimateBridgeFee(
   chain: SupportedChain,
   amount: string
 ): FeeEstimate {
-  const meta = SUPPORTED_CHAINS.find((c) => c.id === chain)!;
-  const parsed = parseFloat(amount) || 0;
+  const meta = SUPPORTED_CHAINS.find((c) => c.id === chain);
+  if (!meta) throw new Error(`Unsupported chain: ${chain}`);
+  const amountMicros = parseUsdcMicros(amount);
+  const feeMicros = (amountMicros * BRIDGE_FEE_BPS[chain] + 9_999n) / 10_000n;
+  const netMicros = amountMicros > feeMicros ? amountMicros - feeMicros : 0n;
   const ratio = BRIDGE_FEE_RATIOS[chain];
-  const fee = parsed * ratio;
-  const net = Math.max(0, parsed - fee);
 
   return {
-    bridgeFee: `${NATIVE_FEES[chain]} + ${(fee).toFixed(6)} USDC`,
+    bridgeFee: `${NATIVE_FEES[chain]} + ${formatUsdcMicros(feeMicros)} USDC`,
     bridgeFeeRatio: ratio,
-    netAmount: net.toFixed(6),
+    estimatedUsdcFee: formatUsdcMicros(feeMicros),
+    netAmount: formatUsdcMicros(netMicros),
     estimatedTime: meta.estimatedTime,
   };
+}
+
+export interface BridgeRoute {
+  chain: SupportedChain;
+  estimate: FeeEstimate;
+}
+
+export interface BridgeRoutePlan {
+  selected: BridgeRoute;
+  fallbackRoutes: BridgeRoute[];
+  /** Savings versus the Ethereum route, based on USDC fees only. */
+  savingsVsEthereum: string;
+  savingsPercent: number;
+  /** Extra USDC cost if a manual override is more expensive than the cheapest route. */
+  costAboveCheapest: string;
+}
+
+/** Rank routes by USDC fee, then by settlement time for equal-cost routes. */
+export function optimizeBridgeRoute(
+  amount: string,
+  options: {
+    preferredChain?: SupportedChain;
+    unavailableChains?: SupportedChain[];
+  } = {}
+): BridgeRoutePlan | null {
+  const unavailable = new Set(options.unavailableChains ?? []);
+  const routes = SUPPORTED_CHAINS
+    .filter((chain) => !unavailable.has(chain.id))
+    .map((chain) => ({ chain: chain.id, estimate: estimateBridgeFee(chain.id, amount) }))
+    .sort((left, right) => {
+      const feeDifference =
+        parseUsdcMicros(left.estimate.estimatedUsdcFee) -
+        parseUsdcMicros(right.estimate.estimatedUsdcFee);
+      if (feeDifference !== 0n) return feeDifference < 0n ? -1 : 1;
+      return parseEstimatedSeconds(left.estimate.estimatedTime) - parseEstimatedSeconds(right.estimate.estimatedTime);
+    });
+
+  if (routes.length === 0) return null;
+
+  const selected = routes.find((route) => route.chain === options.preferredChain) ?? routes[0];
+  const ethereumRoute = routes.find((route) => route.chain === "ethereum");
+  const cheapestFee = parseUsdcMicros(routes[0].estimate.estimatedUsdcFee);
+  const selectedFee = parseUsdcMicros(selected.estimate.estimatedUsdcFee);
+  const ethereumFee = ethereumRoute ? parseUsdcMicros(ethereumRoute.estimate.estimatedUsdcFee) : selectedFee;
+  const savingsMicros = ethereumFee > selectedFee ? ethereumFee - selectedFee : 0n;
+  const savingsPercent = ethereumFee > 0n ? Number((savingsMicros * 10_000n) / ethereumFee) / 100 : 0;
+
+  return {
+    selected,
+    fallbackRoutes: routes.filter((route) => route.chain !== selected.chain),
+    savingsVsEthereum: formatUsdcMicros(savingsMicros),
+    savingsPercent,
+    costAboveCheapest: formatUsdcMicros(selectedFee > cheapestFee ? selectedFee - cheapestFee : 0n),
+  };
+}
+
+function parseUsdcMicros(amount: string): bigint {
+  const match = amount.trim().match(/^(\d+)(?:\.(\d{0,6}))?$/);
+  if (!match) return 0n;
+  return BigInt(match[1]) * 1_000_000n + BigInt((match[2] ?? "").padEnd(6, "0") || "0");
+}
+
+function formatUsdcMicros(amount: bigint): string {
+  const whole = amount / 1_000_000n;
+  const fraction = (amount % 1_000_000n).toString().padStart(6, "0");
+  return `${whole}.${fraction}`;
+}
+
+function parseEstimatedSeconds(estimatedTime: string): number {
+  const match = estimatedTime.match(/~(\d+)\s*(min|s)/);
+  if (!match) return Number.POSITIVE_INFINITY;
+  return Number(match[1]) * (match[2] === "min" ? 60 : 1);
 }
 
 // ─── Wallet helpers ───────────────────────────────────────────────────────────

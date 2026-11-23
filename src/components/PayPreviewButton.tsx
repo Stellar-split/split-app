@@ -65,7 +65,7 @@ export default function PayPreviewButton({ invoiceId, status }: Props) {
         type="button"
         onClick={handleClick}
         disabled={connecting}
-        className="w-full max-w-sm min-h-12 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-base transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        className="w-full max-w-sm min-h-12 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-white text-base transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         {connecting ? "Connecting wallet…" : "Pay This Invoice"}
       </button>

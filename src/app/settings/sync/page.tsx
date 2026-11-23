@@ -93,7 +93,7 @@ export default function StateSyncPage() {
           type="button"
           onClick={handleExport}
           disabled={exportStatus.type === "loading"}
-          className="min-h-11 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm transition-colors disabled:opacity-50"
+          className="min-h-11 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors disabled:opacity-50"
         >
           {exportStatus.type === "loading" ? "Exporting…" : "Export State"}
         </button>
@@ -120,7 +120,7 @@ export default function StateSyncPage() {
             accept="application/json,.json"
             onChange={handleImportFile}
             disabled={importStatus.type === "loading"}
-            className="block w-full text-sm text-gray-300
+            className="block w-full text-sm text-gray-700 dark:text-gray-700 dark:text-gray-300
               file:mr-4 file:py-2 file:px-4
               file:rounded-lg file:border-0
               file:text-sm file:font-semibold

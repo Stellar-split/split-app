@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -113,6 +114,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const nonce = getNonce();
+  const isEmbed = headers().get("x-app-pathname")?.startsWith("/embed/") ?? false;
 
   return (
     // dir="ltr" is set here as scaffold; I18nProvider will update it client-side when RTL locales (ar/he) are added
@@ -121,34 +123,38 @@ export default function RootLayout({
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: accessibilityBootstrap }} />
       </head>
-      <body suppressHydrationWarning className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased overflow-x-hidden">
+      <body suppressHydrationWarning className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white antialiased overflow-x-hidden">
         <QueryProvider>
           <ThemeProvider>
             <AccessibilityProvider>
               <I18nProvider>
                 <SessionLockProvider>
                   <ToastProvider>
-                    <SkipNavLink />
-                    <Navbar />
-                    <SimulationBanner />
-                    <UpgradeBanner />
+                    <WalletProvider>
+                      <UserPreferencesProvider>
+                      {!isEmbed && <SkipNavLink />}
+                    {!isEmbed && <Navbar />}
+                    {!isEmbed && <SimulationBanner />}
+                    {!isEmbed && <UpgradeBanner />}
                     <ErrorBoundary>
-                      <main id="main-content" tabIndex={-1}>
-                        {children}
-                      </main>
+                      {isEmbed ? children : <main id="main-content" tabIndex={-1}>{children}</main>}
                     </ErrorBoundary>
-                    <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
-                      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-                        <p className="text-xs text-gray-500">
-                          © {new Date().getFullYear()} StellarSplit
-                        </p>
-                        <LanguageSwitcher />
-                      </div>
-                    </footer>
-                    <CommandPalette />
-                    <OnboardingFlow />
-                    <RecipientOnboarding />
-                    <InstallBanner />
+                    {!isEmbed && (
+                      <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 py-6 px-4 sm:px-6">
+                        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+                          <p className="text-xs text-gray-500">
+                            © {new Date().getFullYear()} StellarSplit
+                          </p>
+                          <LanguageSwitcher />
+                        </div>
+                      </footer>
+                    )}
+                    {!isEmbed && <CommandPalette />}
+                    {!isEmbed && <OnboardingFlow />}
+                    {!isEmbed && <RecipientOnboarding />}
+                    {!isEmbed && <InstallBanner />}
+                      </UserPreferencesProvider>
+                    </WalletProvider>
                   </ToastProvider>
                 </SessionLockProvider>
               </I18nProvider>

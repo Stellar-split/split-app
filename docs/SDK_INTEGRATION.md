@@ -202,6 +202,15 @@ Track these metrics in analytics:
 - Creator fee tier distribution
 - Average funding time per creator
 
+## Client Analytics Iframe
+
+1. Configure a unique server-only `EMBED_ANALYTICS_SIGNING_SECRET` in production.
+2. Create a read-only API key under Settings → API Keys.
+3. Open Settings → API Dashboard, select the key, enter the creator wallet and the client site's HTTPS origin, then choose the initial status/date filters and widget styling.
+4. Generate and copy the iframe snippet into the client site. The signed analytics token is placed in the URL fragment, expires after 30 days, and is restricted to the configured origin. Generate a replacement snippet after expiration.
+
+The widget fetches read-only portfolio totals, invoice status counts, and daily funded totals from `/api/embed/analytics`. Supported filters are `status=all|Pending|Released|Refunded` and `range=all|30d|90d|365d`. Embed request counts are available in the API Dashboard; the current usage counter is process-local and should be backed by a shared persistent store for multi-instance production deployments.
+
 ---
 
 **Status**: Issues #309 (frontend hook) ✅ COMPLETE

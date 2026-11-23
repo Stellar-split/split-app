@@ -3,6 +3,7 @@ import {
   computeCreatorReputation,
   type CreatorReputation,
   type CreatorReputationMetrics,
+  type CreatorReputationInput,
 } from '../lib/creatorReputation';
 
 /**
@@ -151,7 +152,7 @@ function subscribeToMetrics(
 /**
  * Map raw API metrics onto the scoring algorithm's expected input shape.
  */
-function toReputationMetrics(raw: RawCreatorMetrics): CreatorReputationMetrics {
+function toReputationMetrics(raw: RawCreatorMetrics): CreatorReputationInput {
   return {
     totalInvoices: raw.totalInvoices,
     fulfilledInvoices: raw.fulfilledInvoices,

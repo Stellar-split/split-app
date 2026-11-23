@@ -65,7 +65,6 @@ export default function QRModal({
   const isError = status === "error";
   const canShowQR = !!uri && !isTimeout && !isError;
   const statusText = isError && errorMessage ? errorMessage : STATUS_TEXT[status];
-======
 
   const handleCopy = async () => {
     try {
@@ -162,7 +161,7 @@ export default function QRModal({
           {(isTimeout || isError) && onRetry && (
             <button
               onClick={onRetry}
-              className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+              className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold text-white transition-colors"
             >
               Retry
             </button>

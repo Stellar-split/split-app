@@ -127,7 +127,7 @@ export default function InvoiceShareQRModal({ open, invoiceId, invoiceTitle, tot
               <button
                 type="button"
                 onClick={handleDownload}
-                className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors shadow-lg shadow-indigo-600/10"
+                className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold text-white transition-colors shadow-lg shadow-indigo-600/10"
               >
                 Download QR
               </button>

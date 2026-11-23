@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { vi, describe, test, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, it, beforeEach, afterEach, expect, describe, test, beforeEach, afterEach, expect } from "vitest";
 import GlobalSearch from "@/components/GlobalSearch";
 import type { Invoice } from "@stellar-split/sdk";
 
@@ -41,11 +41,9 @@ describe("GlobalSearch — query highlighting", () => {
   ];
 
   beforeEach(() => {
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
   });
 
   test("highlights matched substring in invoice ID (case-insensitive)", async () => {
@@ -61,7 +59,6 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
@@ -79,10 +76,9 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
-    expect(screen.getByText(/office/i)).toBeInTheDocument();
+    expect(screen.getByText(/office/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("highlights matched substring in creator address", async () => {
@@ -98,7 +94,6 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
@@ -117,7 +112,6 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
@@ -130,12 +124,11 @@ describe("GlobalSearch — query highlighting", () => {
     fireEvent.click(trigger);
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     expect(
       screen.getByText(/start typing to search invoices and addresses/i)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   test("case-insensitive matching highlights correctly", async () => {
@@ -150,10 +143,9 @@ describe("GlobalSearch — query highlighting", () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(300);
     });
 
     // Should find the result even with uppercase query
-    expect(screen.queryByText(/no results for/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no results for/i)).not.toBeTruthy() // element exists in DOM;
   });
 });

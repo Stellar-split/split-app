@@ -1,4 +1,5 @@
 import React from "react";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import PayModal, { getPaymentErrorMessage } from "@/components/PayModal";
 import type { Invoice } from "@stellar-split/sdk";
@@ -41,7 +42,7 @@ const invoice: Invoice = {
 
 describe("PayModal", () => {
   it("defaults to remaining share, shows balance, pays with tip, and renders explorer link", async () => {
-    const onPay = jest.fn().mockResolvedValue({ txHash: "abc123hash" });
+    const onPay = vi.fn().mockResolvedValue({ txHash: "abc123hash" });
 
     render(
       <PayModal
@@ -49,13 +50,13 @@ describe("PayModal", () => {
         total={100n * SCALE}
         publicKey="GPAYER"
         onPay={onPay}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />
     );
 
     const amountInput = await screen.findByLabelText(/amount \(usdc\)/i);
     expect(amountInput).toHaveValue(40);
-    expect(await screen.findByText(/100.00 USDC available/i)).toBeInTheDocument();
+    expect(await screen.findByText(/100.00 USDC available/i)).toBeTruthy() // element exists in DOM;
 
     fireEvent.change(screen.getByLabelText(/tip \(optional\)/i), {
       target: { value: "2" },
@@ -71,10 +72,8 @@ describe("PayModal", () => {
         expect.objectContaining({ tip: 2n * SCALE, donateOnFailure: true })
       )
     );
-    expect(await screen.findByText(/payment confirmed/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /view on stellar expert/i })).toHaveAttribute(
-      "href",
-      expect.stringContaining("/abc123hash")
+    expect(await screen.findByText(/payment confirmed/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByRole("link", { name: /view on stellar expert/i })).getAttribute("href").toBe(expect.stringContaining("/abc123hash")
     );
   });
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getFreighterPublicKey } from '@/lib/freighter';
+import { getActiveNetwork } from '@/lib/networks';
 import {
   generateChallenge,
   storeAttestation,
@@ -23,14 +24,19 @@ export default function VerifyIdentityPage() {
   const [address, setAddress] = useState<string | null>(null);
   const [walletInput, setWalletInput] = useState('');
   const {
-    input: validatedInput,
-    setInput: setValidatedInput,
-    result: validationResult,
-    loading: validating,
+    isValid,
+    isLoading: validating,
     error: validationError,
-    validate: validateAddress,
-    reset: resetValidation,
+    validateAddress,
+    onAddressChange,
+    resolvedAddress,
+    federationAddress,
+    isFunded,
+    memoId,
+    memoType,
   } = useAddressValidation();
+
+  const resetValidation = () => setWalletInput('');
   const [attestation, setAttestation] = useState<CreatorAttestation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -219,27 +225,30 @@ export default function VerifyIdentityPage() {
           <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
-              value={validatedInput}
-              onChange={(e) => setValidatedInput(e.target.value)}
+              value={walletInput}
+              onChange={(e) => {
+                setWalletInput(e.target.value);
+                onAddressChange(e.target.value);
+              }}
               placeholder="G... or name*domain.com"
               aria-label="Wallet address or federation address"
               className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-mono"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  void validateAddress();
+                  void validateAddress(walletInput);
                 }
               }}
             />
             <button
               type="button"
-              onClick={() => void validateAddress()}
-              disabled={validating || !validatedInput.trim()}
+              onClick={() => void validateAddress(walletInput)}
+              disabled={validating || !walletInput.trim()}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg transition-colors text-sm font-medium"
             >
               {validating ? 'Validating...' : 'Validate'}
             </button>
-            {(validationResult || validationError) && (
+            {(isValid || validationError) && (
               <button
                 type="button"
                 onClick={resetValidation}
@@ -256,25 +265,25 @@ export default function VerifyIdentityPage() {
             </div>
           )}
 
-          {validationResult && (
+          {isValid && (
             <div className="mt-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-full bg-green-900 text-green-300">
                   ✓ Valid address
                 </span>
-                {validationResult.federation && (
+                {federationAddress && (
                   <span className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-full bg-indigo-900 text-indigo-300">
                     Resolved from federation
                   </span>
                 )}
               </div>
 
-              {validationResult.federation && (
+              {federationAddress && (
                 <div className="space-y-1 text-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                     <span className="text-gray-400">Federation address:</span>
                     <span className="font-mono text-gray-200 break-all">
-                      {validationResult.federation}
+                      {federationAddress}
                     </span>
                   </div>
                 </div>
@@ -282,22 +291,22 @@ export default function VerifyIdentityPage() {
 
               <div className="space-y-1 text-sm">
                 <span className="text-gray-400">Stellar address:</span>
-                <WalletAddress address={validationResult.address} />
+                <WalletAddress address={resolvedAddress || walletInput} />
               </div>
 
-              {validationResult.memo && (
+              {memoId && (
                 <div className="space-y-1 text-sm">
                   <span className="text-gray-400">Memo:</span>
                   <span className="font-mono text-gray-200 break-all">
-                    {validationResult.memo.type}: {validationResult.memo.value}
+                    {memoType}: {memoId}
                   </span>
                 </div>
               )}
 
-              {address && validationResult.address !== address && (
+              {address && resolvedAddress && resolvedAddress !== address && (
                 <button
                   type="button"
-                  onClick={() => setWalletInput(validationResult.address)}
+                  onClick={() => setWalletInput(resolvedAddress)}
                   className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
                 >
                   Use this address

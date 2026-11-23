@@ -93,7 +93,7 @@ describe('InvoiceListSentinel', () => {
       />
     );
 
-    expect(screen.getByText('Loading more invoices…')).toBeInTheDocument();
+    expect(screen.getByText('Loading more invoices…')).toBeTruthy() // element exists in DOM;
   });
 
   it('should display all loaded message when allLoaded is true', () => {
@@ -106,7 +106,7 @@ describe('InvoiceListSentinel', () => {
       />
     );
 
-    expect(screen.getByText('All invoices loaded')).toBeInTheDocument();
+    expect(screen.getByText('All invoices loaded')).toBeTruthy() // element exists in DOM;
   });
 
   it('should pass custom rootMargin to IntersectionObserver', () => {

@@ -19,11 +19,13 @@ export type AnalyticsEventName =
   | 'filter_applied'
   | 'settings_changed'
   | 'feature_used'
-  | 'error_occurred';
+  | 'error_occurred'
+  | 'invoice_list_viewed'
+  | 'invoice_created';
 
 export interface AnalyticsProperties {
   /** Arbitrary string properties. PII is stripped before sending. */
-  [key: string]: string | number | boolean | null | undefined;
+  [key: string]: string | number | boolean | null | undefined | Record<string, number>;
 }
 
 export interface AnalyticsEvent {

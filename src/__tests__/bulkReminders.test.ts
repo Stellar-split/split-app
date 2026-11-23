@@ -1,4 +1,5 @@
 import { setBulkReminders, getReminders } from "@/lib/reminders";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 
 const FUTURE_DATE = "2030-01-01T10:00:00.000Z";
 
@@ -23,7 +24,7 @@ describe("setBulkReminders — partial failure reporting", () => {
   it("reports failure individually when localStorage throws for one invoice", () => {
     const original = Storage.prototype.setItem;
     let callCount = 0;
-    Storage.prototype.setItem = jest.fn(function (key, value) {
+    Storage.prototype.setItem = vi.fn(function (key, value) {
       callCount++;
       if (callCount === 2) {
         throw new Error("QuotaExceededError");

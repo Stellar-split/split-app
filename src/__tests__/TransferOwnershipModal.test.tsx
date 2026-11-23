@@ -1,3 +1,4 @@
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 /**
  * Unit tests for TransferOwnershipModal:
  * - Double-entry address validation (submit disabled until both fields match)
@@ -8,7 +9,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import TransferOwnershipModal from "@/components/TransferOwnershipModal";
 
-jest.mock("@/components/FocusTrap", () => ({
+vi.mock("@/components/FocusTrap", () => ({
   __esModule: true,
   default: function FocusTrap({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
@@ -19,18 +20,18 @@ const NEW_OWNER = "GCEZWKZPVOPNFHIMZQ3OQNFHM2FQNBXCQ3PNHIMZQ3OQNFHM2FQNBX";
 
 describe("TransferOwnershipModal — double-entry validation", () => {
   it("disables submit when both fields are empty", () => {
-    const onConfirm = jest.fn();
+    const onConfirm = vi.fn();
     render(
-      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={jest.fn()} />
+      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={vi.fn()} />
     );
     const submit = screen.getByRole("button", { name: /transfer ownership/i });
     expect(submit).toBeDisabled();
   });
 
   it("disables submit when only the first field is filled", () => {
-    const onConfirm = jest.fn();
+    const onConfirm = vi.fn();
     render(
-      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={jest.fn()} />
+      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={vi.fn()} />
     );
     fireEvent.change(screen.getByLabelText(/^new owner address$/i), {
       target: { value: NEW_OWNER },
@@ -39,9 +40,9 @@ describe("TransferOwnershipModal — double-entry validation", () => {
   });
 
   it("disables submit when addresses do not match", () => {
-    const onConfirm = jest.fn();
+    const onConfirm = vi.fn();
     render(
-      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={jest.fn()} />
+      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={vi.fn()} />
     );
     fireEvent.change(screen.getByLabelText(/^new owner address$/i), {
       target: { value: NEW_OWNER },
@@ -50,13 +51,13 @@ describe("TransferOwnershipModal — double-entry validation", () => {
       target: { value: "GDIFFERENT" },
     });
     expect(screen.getByRole("button", { name: /transfer ownership/i })).toBeDisabled();
-    expect(screen.getByText(/addresses do not match/i)).toBeInTheDocument();
+    expect(screen.getByText(/addresses do not match/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("enables submit when both addresses match", () => {
-    const onConfirm = jest.fn();
+    const onConfirm = vi.fn();
     render(
-      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={jest.fn()} />
+      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={vi.fn()} />
     );
     fireEvent.change(screen.getByLabelText(/^new owner address$/i), {
       target: { value: NEW_OWNER },
@@ -68,9 +69,9 @@ describe("TransferOwnershipModal — double-entry validation", () => {
   });
 
   it("calls onConfirm with the trimmed address when submitted", async () => {
-    const onConfirm = jest.fn().mockResolvedValue(undefined);
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
     render(
-      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={jest.fn()} />
+      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={vi.fn()} />
     );
     fireEvent.change(screen.getByLabelText(/^new owner address$/i), {
       target: { value: `  ${NEW_OWNER}  ` },
@@ -85,9 +86,9 @@ describe("TransferOwnershipModal — double-entry validation", () => {
 
 describe("TransferOwnershipModal — error handling", () => {
   it("shows error message when onConfirm rejects", async () => {
-    const onConfirm = jest.fn().mockRejectedValue(new Error("Network error"));
+    const onConfirm = vi.fn().mockRejectedValue(new Error("Network error"));
     render(
-      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={jest.fn()} />
+      <TransferOwnershipModal invoiceId="inv-1" onConfirm={onConfirm} onClose={vi.fn()} />
     );
     fireEvent.change(screen.getByLabelText(/^new owner address$/i), {
       target: { value: NEW_OWNER },

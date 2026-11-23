@@ -23,7 +23,7 @@ describe("UniquePayersChart", () => {
     );
     expect(
       screen.getByRole("figure", { name: "Unique payers over time chart" })
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("renders line chart with data", () => {
@@ -35,12 +35,12 @@ describe("UniquePayersChart", () => {
         ]}
       />
     );
-    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
-    expect(screen.getByTestId("responsive-container")).toBeInTheDocument();
+    expect(screen.getByTestId("line-chart")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByTestId("responsive-container")).toBeTruthy() // element exists in DOM;
   });
 
   it("shows 'No data available' when data is empty", () => {
     render(<UniquePayersChart data={[]} />);
-    expect(screen.getByText("No data available")).toBeInTheDocument();
+    expect(screen.getByText("No data available")).toBeTruthy() // element exists in DOM;
   });
 });

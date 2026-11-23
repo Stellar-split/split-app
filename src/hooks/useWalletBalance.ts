@@ -238,6 +238,8 @@ export function useWalletBalance(
     history,
     warnings,
     hasLowBalance: warnings.length > 0,
+    lowBalance: warnings.length > 0,
+    lowBalanceAssets: warnings.map((w) => w.asset),
     isLoading,
     isRetrying,
     error: error && retriesExhausted ? error : undefined,

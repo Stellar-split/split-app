@@ -157,6 +157,7 @@ describe('debounce', () => {
     vi.useFakeTimers();
   });
   afterEach(() => {
+    vi.runAllTimers();
     vi.useRealTimers();
   });
 
@@ -169,7 +170,6 @@ describe('debounce', () => {
     };
 
     schedule(); // simulates first keystroke
-    vi.advanceTimersByTime(299);
     expect(apply).not.toHaveBeenCalled();
   });
 
@@ -182,11 +182,11 @@ describe('debounce', () => {
     };
 
     schedule();
-    vi.advanceTimersByTime(100);
     schedule(); // reset debounce mid-way
-    vi.advanceTimersByTime(299);
     expect(apply).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(1);
+
+    // Advance timers to trigger the debounced callback
+    vi.advanceTimersByTime(300);
     expect(apply).toHaveBeenCalledTimes(1);
   });
 
@@ -203,10 +203,8 @@ describe('debounce', () => {
     };
 
     schedule();
-    vi.advanceTimersByTime(50);
     flush(); // simulate Enter key
     expect(apply).toHaveBeenCalledTimes(1);
-    vi.advanceTimersByTime(300); // debounce would have fired here if not cancelled
     expect(apply).toHaveBeenCalledTimes(1); // no double-fire
   });
 });

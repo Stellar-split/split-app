@@ -1,3 +1,4 @@
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 /**
  * Contract Invariant Tests (#286)
  *

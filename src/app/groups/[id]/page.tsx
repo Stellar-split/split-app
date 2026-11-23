@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { splitClient, payWithNonce } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { formatAmount, truncateAddress } from "@stellar-split/sdk";
@@ -18,6 +18,8 @@ interface MemberRow {
   pct: number;
   paid: boolean;
 }
+
+const POLL_MS = 5000;
 
 export default function GroupDetailPage() {
   const params = useParams();
@@ -157,7 +159,7 @@ export default function GroupDetailPage() {
         <Link href="/groups" className="text-indigo-400 hover:text-indigo-300 text-sm mb-6 inline-block">&larr; Back to groups</Link>
         <div className="text-center py-12 bg-gray-800 border border-gray-700 rounded-lg">
           <p className="text-gray-400 mb-4">This group has no invoices yet.</p>
-          <Link href="/invoice/new" className="inline-block px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition-colors">
+          <Link href="/invoice/new" className="inline-block px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors">
             Create Invoice
           </Link>
         </div>
@@ -268,7 +270,7 @@ export default function GroupDetailPage() {
                     {!row.paid && publicKey && (
                       <button
                         onClick={() => setPayTarget({ invoice: row.invoice, total: row.total })}
-                        className="min-h-8 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold transition-colors"
+                        className="min-h-8 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
                       >
                         Contribute
                       </button>
@@ -303,7 +305,7 @@ export default function GroupDetailPage() {
               {!row.paid && publicKey && (
                 <button
                   onClick={() => setPayTarget({ invoice: row.invoice, total: row.total })}
-                  className="w-full min-h-10 mt-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+                  className="w-full min-h-10 mt-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
                 >
                   Contribute
                 </button>

@@ -1,4 +1,5 @@
 import { generateICS, type ICSEvent } from "@/lib/icsExport";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 
 const FIXED_STAMP = new Date("2025-01-15T12:00:00Z");
 

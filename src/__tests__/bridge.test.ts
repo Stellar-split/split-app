@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { SUPPORTED_CHAINS, estimateBridgeFee } from "@/lib/bridge";
+import { SUPPORTED_CHAINS, estimateBridgeFee, optimizeBridgeRoute } from "@/lib/bridge";
 
 // ─── SUPPORTED_CHAINS ────────────────────────────────────────────────────────
 
@@ -88,6 +88,42 @@ describe("estimateBridgeFee — ethereum", () => {
 
   test("net amount never goes negative", () => {
     expect(parseFloat(estimateBridgeFee("ethereum", "-50").netAmount)).toBeGreaterThanOrEqual(0);
+  });
+
+  test("rounds fees up to the nearest micro-USDC", () => {
+    expect(estimateBridgeFee("ethereum", "0.000001").estimatedUsdcFee).toBe("0.000001");
+  });
+});
+
+describe("optimizeBridgeRoute", () => {
+  test("selects the lowest-cost route and reports savings and fallbacks", () => {
+    const plan = optimizeBridgeRoute("100");
+
+    expect(plan?.selected.chain).toBe("solana");
+    expect(plan?.fallbackRoutes.map((route) => route.chain)).toEqual(["ethereum"]);
+    expect(plan?.savingsVsEthereum).toBe("0.200000");
+    expect(plan?.savingsPercent).toBe(66.66);
+    expect(plan?.costAboveCheapest).toBe("0.000000");
+  });
+
+  test("respects a manual override and reports its added cost", () => {
+    const plan = optimizeBridgeRoute("100", { preferredChain: "ethereum" });
+
+    expect(plan?.selected.chain).toBe("ethereum");
+    expect(plan?.fallbackRoutes.map((route) => route.chain)).toEqual(["solana"]);
+    expect(plan?.savingsVsEthereum).toBe("0.000000");
+    expect(plan?.costAboveCheapest).toBe("0.200000");
+  });
+
+  test("uses an available fallback when a route is unavailable", () => {
+    const plan = optimizeBridgeRoute("100", { unavailableChains: ["solana"] });
+
+    expect(plan?.selected.chain).toBe("ethereum");
+    expect(plan?.fallbackRoutes).toEqual([]);
+  });
+
+  test("returns null when no routes are available", () => {
+    expect(optimizeBridgeRoute("100", { unavailableChains: ["ethereum", "solana"] })).toBeNull();
   });
 });
 

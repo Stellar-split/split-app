@@ -1,3 +1,4 @@
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import {
   redactValue,
   redactObject,
@@ -5,7 +6,7 @@ import {
   EXPECTED_TOP_LEVEL_KEYS,
 } from "@/lib/accountDataExport";
 
-jest.mock("@/lib/stateSync", () => ({
+vi.mock("@/lib/stateSync", () => ({
   STELLARSPLIT_PREFIX: "stellarsplit_",
   collectState: () => ({
     stellarsplit_address_book: "[]",
@@ -78,7 +79,7 @@ describe("generateExport", () => {
   });
 
   test("calls progress callback", async () => {
-    const progress = jest.fn();
+    const progress = vi.fn();
     await generateExport("GABCDEFTEST", progress);
     expect(progress).toHaveBeenCalled();
   });

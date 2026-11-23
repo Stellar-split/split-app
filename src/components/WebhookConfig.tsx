@@ -185,7 +185,7 @@ export default function WebhookConfig({ invoiceId }: Props) {
         <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={handleSave}
-            className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+            className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
           >
             Save Webhook
           </button>

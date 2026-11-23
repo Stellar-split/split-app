@@ -1,3 +1,4 @@
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 /**
  * Tests for the multi-step form progress indicator (#475).
  */
@@ -27,9 +28,7 @@ describe("Stepper", () => {
   test("exposes the step labels on the enclosing nav element", () => {
     render(<Stepper steps={steps} />);
 
-    expect(screen.getByRole("navigation")).toHaveAttribute(
-      "aria-label",
-      "Progress: Details, Recipients, Deadline, Review"
+    expect(screen.getByRole("navigation").getAttribute("aria-label")).toBe("Progress: Details, Recipients, Deadline, Review"
     );
   });
 
@@ -44,11 +43,11 @@ describe("Stepper", () => {
   test("collapses to a 'Step N of M — Label' summary for small viewports", () => {
     render(<Stepper steps={steps} />);
 
-    expect(screen.getByText("Step 2 of 4 — Recipients")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 of 4 — Recipients")).toBeTruthy() // element exists in DOM;
   });
 
   test("completed steps are clickable and report their index", async () => {
-    const onStepClick = jest.fn();
+    const onStepClick = vi.fn();
     render(<Stepper steps={steps} onStepClick={onStepClick} />);
 
     await userEvent.click(screen.getByRole("button", { name: /Go back to step 1: Details/i }));
@@ -57,7 +56,7 @@ describe("Stepper", () => {
   });
 
   test("current and upcoming steps are not clickable", () => {
-    render(<Stepper steps={steps} onStepClick={jest.fn()} />);
+    render(<Stepper steps={steps} onStepClick={vi.fn()} />);
 
     // Only the single completed step renders as a button.
     expect(screen.getAllByRole("button")).toHaveLength(1);
@@ -77,6 +76,6 @@ describe("Stepper", () => {
   test("falls back to the last step when every step is complete", () => {
     render(<Stepper steps={steps.map((s) => ({ ...s, status: "complete" as const }))} />);
 
-    expect(screen.getByText("Step 4 of 4 — Review")).toBeInTheDocument();
+    expect(screen.getByText("Step 4 of 4 — Review")).toBeTruthy() // element exists in DOM;
   });
 });

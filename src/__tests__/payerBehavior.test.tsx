@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import PayerBehaviorAnalytics from "@/components/analytics/PayerBehaviorAnalytics";
 import { analyzePayers } from "@/lib/payerBehavior";
 
@@ -18,9 +19,9 @@ describe("payer behavior", () => {
   it("filters by segment and shows an empty state", () => {
     const { rerender } = render(<PayerBehaviorAnalytics payments={payments} />);
     fireEvent.change(screen.getByLabelText("Segment"), { target: { value: "at-risk" } });
-    expect(screen.queryByText("GA")).not.toBeInTheDocument();
-    expect(screen.getByText("GB")).toBeInTheDocument();
+    expect(screen.queryByText("GA")).not.toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("GB")).toBeTruthy() // element exists in DOM;
     rerender(<PayerBehaviorAnalytics payments={[]} />);
-    expect(screen.getByText("No payer activity yet.")).toBeInTheDocument();
+    expect(screen.getByText("No payer activity yet.")).toBeTruthy() // element exists in DOM;
   });
 });

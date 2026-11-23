@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { InvoiceBundle } from '../services/bundleService';
+import type { InvoiceBundle } from '@/lib/bundles';
 
 interface BundleAnalyticsPanelProps {
   bundles: InvoiceBundle[];

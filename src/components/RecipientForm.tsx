@@ -115,10 +115,22 @@ export default function RecipientForm({
   const savedRecipients = useMemo(() => searchRecipients(savedSearchQuery), [savedSearchQuery]);
 
   // Validate every recipient address and resolve federation/ENS names.
-  const addressValidation = useAddressValidation(recipients.map((r) => r.address));
+  const [validationMap, setValidationMap] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    const newMap: Record<string, any> = {};
+    recipients.forEach((r) => {
+      if (!newMap[r.address]) {
+        newMap[r.address] = { isValid: false, isLoading: false, errorReason: null };
+      }
+    });
+    setValidationMap(newMap);
+  }, [recipients.map(r => r.address).join('|')]);
+
+  const addressValidation = recipients.map(r => validationMap[r.address]);
   const hasInvalidAddress = recipients.some((r, i) => {
     const result = addressValidation[i];
-    return !!r.address.trim() && (!result || !result.valid || result.resolving);
+    return !!r.address.trim() && (!result || !result.isValid || result.isLoading);
   });
 
   // Contact emails come from localStorage, so they can only be resolved after
@@ -197,8 +209,6 @@ export default function RecipientForm({
           onAmountSuggestionSelect={(amount) => selectAmountSuggestion(i, amount)}
           onRemove={() => removeRow(i)}
           onEmailChange={(email) => updateRow(i, row.address, row.label, email)}
-          validation={addressValidation[i]}
-          onResolvedAddress={(address) => updateRow(i, address)}
         />
       ))}
 

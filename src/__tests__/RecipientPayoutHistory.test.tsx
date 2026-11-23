@@ -74,8 +74,8 @@ describe("Recipient Payout History (#409)", () => {
         </div>
       );
 
-      expect(screen.getByTestId("payout-inv1_payout")).toBeInTheDocument();
-      expect(screen.getByTestId("payout-inv2_payout")).toBeInTheDocument();
+      expect(screen.getByTestId("payout-inv1_payout")).toBeTruthy() // element exists in DOM;
+      expect(screen.getByTestId("payout-inv2_payout")).toBeTruthy() // element exists in DOM;
     });
 
     it("displays table sorted by date descending by default", () => {
@@ -104,7 +104,7 @@ describe("Recipient Payout History (#409)", () => {
 
       expect(
         screen.getByText("No payouts found for this address")
-      ).toBeInTheDocument();
+      ).toBeTruthy() // element exists in DOM;
     });
   });
 

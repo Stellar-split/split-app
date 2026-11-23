@@ -29,12 +29,12 @@ describe('InvoiceShareQRModal', () => {
 
   it('renders when open is true', () => {
     render(<InvoiceShareQRModal open={true} invoiceId="42" onClose={onClose} />);
-    expect(screen.getByText('Share via QR Code')).toBeInTheDocument();
+    expect(screen.getByText('Share via QR Code')).toBeTruthy() // element exists in DOM;
   });
 
   it('does not render when open is false', () => {
     render(<InvoiceShareQRModal open={false} invoiceId="42" onClose={onClose} />);
-    expect(screen.queryByText('Share via QR Code')).not.toBeInTheDocument();
+    expect(screen.queryByText('Share via QR Code')).not.toBeTruthy() // element exists in DOM;
   });
 
   it('calls onClose when close button or dismiss is clicked', () => {

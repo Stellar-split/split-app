@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import BatchPayQueue from "@/components/BatchPayQueue";
@@ -43,7 +44,7 @@ describe("Issue #597: BatchPayQueue error messages", () => {
 
     expect(
       screen.getByText(/search for invoices above to add them/i)
-    ).toBeInTheDocument();
+    ).toBeTruthy() // element exists in DOM;
   });
 
   it("should display queue items with invoice details", () => {
@@ -61,8 +62,8 @@ describe("Issue #597: BatchPayQueue error messages", () => {
     );
 
     const invoiceText = screen.getAllByText(/invoice #inv-123/i)[0];
-    expect(invoiceText).toBeInTheDocument();
-    expect(screen.getByText(/status: pending/i)).toBeInTheDocument();
+    expect(invoiceText).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/status: pending/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("should allow changing amount for queue items", async () => {
@@ -123,8 +124,8 @@ describe("Issue #597: BatchPayQueue error messages", () => {
       />
     );
 
-    expect(screen.getByText(/running total/i)).toBeInTheDocument();
-    expect(screen.getByText(/125 usdc/i)).toBeInTheDocument();
+    expect(screen.getByText(/running total/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/125 usdc/i)).toBeTruthy() // element exists in DOM;
   });
 
   it("should handle drag and drop reordering", async () => {
@@ -234,6 +235,6 @@ describe("Issue #597: BatchPayQueue error messages", () => {
       />
     );
 
-    expect(screen.getByText(/50 usdc/i)).toBeInTheDocument();
+    expect(screen.getByText(/50 usdc/i)).toBeTruthy() // element exists in DOM;
   });
 });

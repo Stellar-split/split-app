@@ -57,7 +57,7 @@ export default function GlobalError({
                   textAlign: "left",
                 }}
               >
-                {template.suggestions.map((suggestion) => (
+                {template.suggestions.map((suggestion: string) => (
                   <li key={suggestion} style={{ marginBottom: "0.5rem" }}>
                     {suggestion}
                   </li>

@@ -113,8 +113,8 @@ export function forecastEarningsDetailed(
     for (let period = 1; period <= periods; period++) {
       const x = n - 1 + period;
       const result = predict(values, x, model, period);
-      const spread = model === 'linear'
-        ? 1.96 * result.residualStdDev * Math.sqrt(1 + 1 / n + (n > 1 ? (x - result.meanX) ** 2 / result.sxx : 0))
+      const spread = model === 'linear' && 'meanX' in result && 'sxx' in result
+        ? 1.96 * result.residualStdDev * Math.sqrt(1 + 1 / n + (n > 1 ? (x - (result as any).meanX) ** 2 / (result as any).sxx : 0))
         : 1.96 * result.residualStdDev;
       const forecast = Math.max(0, result.value);
       points.push({

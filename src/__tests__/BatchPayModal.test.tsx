@@ -9,6 +9,7 @@
  */
 
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, act, fireEvent } from "@testing-library/react";
 import BatchPayModal from "@/components/BatchPayModal";
 import type { Invoice } from "@stellar-split/sdk";
@@ -94,9 +95,7 @@ describe("BatchPayModal", () => {
     );
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Payment/i });
-    expect(confirmButton).toHaveAttribute(
-      "title",
-      "Connect your wallet to continue"
+    expect(confirmButton.getAttribute("title")).toBe("Connect your wallet to continue"
     );
   });
 
@@ -131,9 +130,7 @@ describe("BatchPayModal", () => {
     );
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Payment/i });
-    expect(confirmButton).not.toHaveAttribute(
-      "title",
-      "Connect your wallet to continue"
+    expect(confirmButton).not.getAttribute("title").toBe("Connect your wallet to continue"
     );
   });
 
@@ -198,6 +195,6 @@ describe("BatchPayModal", () => {
     await act(async () => {
       // Wait for success message
     });
-    expect(screen.getByText(/Batch payment sent!/i)).toBeInTheDocument();
+    expect(screen.getByText(/Batch payment sent!/i)).toBeTruthy() // element exists in DOM;
   });
 });

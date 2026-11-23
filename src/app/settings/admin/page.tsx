@@ -206,7 +206,7 @@ export default function AdminSettingsPage() {
                 type="button"
                 onClick={handlePropose}
                 disabled={submitting || !newAdminAddress}
-                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold text-white transition-colors disabled:opacity-50"
+                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-white transition-colors disabled:opacity-50"
               >
                 {submitting ? "Proposing…" : "Propose Admin Rotation"}
               </button>

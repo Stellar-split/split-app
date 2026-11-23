@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import CreatorNetwork from "@/components/network/CreatorNetwork";
 import { acceptConnection, requestConnection, suggestCreators } from "@/lib/creatorNetwork";
 
@@ -25,6 +26,6 @@ describe("creator network", () => {
   it("shows a pending request after clicking Connect", () => {
     render(<CreatorNetwork me={me} creators={creators} />);
     fireEvent.click(screen.getAllByText("Connect")[0]);
-    expect(screen.getByText("Pending (1)")).toBeInTheDocument();
+    expect(screen.getByText("Pending (1)")).toBeTruthy() // element exists in DOM;
   });
 });

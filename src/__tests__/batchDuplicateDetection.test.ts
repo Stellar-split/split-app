@@ -1,4 +1,5 @@
 import { findBatchDuplicates } from "@/lib/batchUtils";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 
 describe("findBatchDuplicates", () => {
   test("detects exact-duplicate rows (same recipient, amount)", () => {

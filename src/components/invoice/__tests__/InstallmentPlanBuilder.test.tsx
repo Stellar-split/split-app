@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import InstallmentPlanBuilder from "@/components/invoice/InstallmentPlanBuilder";
@@ -17,7 +18,7 @@ describe("InstallmentPlanBuilder", () => {
   });
 
   test("adds a milestone on click and can save when amounts match total", async () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(<InstallmentPlanBuilder {...defaultProps} onChange={onChange} />);
     await userEvent.click(screen.getByRole("button", { name: /add milestone/i }));
     const inputs = screen.getAllByRole("spinbutton");
@@ -31,7 +32,7 @@ describe("InstallmentPlanBuilder", () => {
   });
 
   test("shows blocking validation when amounts do not sum to total", async () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     render(<InstallmentPlanBuilder {...defaultProps} onChange={onChange} />);
     await userEvent.click(screen.getByRole("button", { name: /add milestone/i }));
     const inputs = screen.getAllByRole("spinbutton");

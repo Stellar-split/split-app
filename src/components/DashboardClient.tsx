@@ -2,11 +2,9 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
-import { splitClient } from "@/lib/stellar";
 import InvoiceSearch from "@/components/InvoiceSearch";
 import InvoiceCard from "@/components/InvoiceCard";
 import ActivityFeed from "@/components/ActivityFeed";
@@ -28,12 +26,14 @@ import BulkActionToolbar from "@/components/invoice/BulkActionToolbar";
 import {
   DASHBOARD_PRESETS,
   SORT_OPTIONS,
+  INVOICE_STATUS_FILTERS,
   filterDashboardInvoices,
   getDashboardPresetCounts,
   sortInvoices,
   filterByDateRange,
   type DashboardPresetId,
   type DashboardSortId,
+  type InvoiceStatusFilter,
 } from "@/lib/dashboardFilters";
 import { useInvoiceTags } from "@/hooks/useInvoiceTags";
 import { invoiceHasTag } from "@/lib/invoiceTags";
@@ -41,19 +41,6 @@ import InvoiceTable from "@/components/InvoiceTable";
 import FilterPresetDropdown from "@/components/invoices/FilterPresetDropdown";
 import AdvancedSortSelect from "@/components/invoices/AdvancedSortSelect";
 import { apiFetch } from "@/lib/apiClient";
-
-// ── URL helpers ──────────────────────────────────────────────────────────────
-
-function readParams(sp: URLSearchParams) {
-  const presetFilters = (sp.get("preset") ?? "").split(",").filter(Boolean) as DashboardPresetId[];
-  const sort = (sp.get("sort") ?? "newest") as DashboardSortId;
-  const dateFrom = sp.get("from") ?? "";
-  const dateTo = sp.get("to") ?? "";
-  const tag = sp.get("tag") ?? "";
-  return { presetFilters, sort, dateFrom, dateTo, tag };
-}
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 // ── URL helpers ──────────────────────────────────────────────────────────────
 
@@ -69,6 +56,7 @@ function readParams(sp: URLSearchParams) {
 
 export default function DashboardClient() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   // URL-derived filter state
@@ -76,6 +64,7 @@ export default function DashboardClient() {
     () => readParams(searchParams),
     [searchParams],
   );
+  const tag = searchParams.get("tag") ?? "";
 
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
@@ -92,41 +81,15 @@ export default function DashboardClient() {
   const [bulkReminderResults, setBulkReminderResults] = useState<BulkReminderResult[] | null>(null);
   // Mobile filter drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // ── URL mutation helpers ────────────────────────────────────────────────────
-
-  const pushParams = useCallback(
-    (updates: Record<string, string>) => {
-      const sp = new URLSearchParams(searchParams.toString());
-      for (const [k, v] of Object.entries(updates)) {
-        if (v) sp.set(k, v);
-        else sp.delete(k);
-      }
-      router.replace(`?${sp.toString()}`, { scroll: false });
-    },
-    [router, searchParams],
-  );
-
-  const toggleStatus = (preset: DashboardPresetId) => {
-    const next = statuses.includes(preset)
-      ? statuses.filter((s) => s !== preset)
-      : [...statuses, preset];
-    pushParams({ status: next.join(",") });
-  };
-
-  const clearFilters = () => {
-    router.replace("?", { scroll: false });
-    setSearchValue("");
-  };
-
-  const isFiltered =
-    statuses.length > 0 || dateFrom || dateTo || sort !== "newest";
+  const [feedOpen, setFeedOpen] = useState(false);
+  const [shareQRInvoiceId, setShareQRInvoiceId] = useState<string | null>(null);
+  const unreadCount = 0;
+  const tableDisplayNumbers: Record<string, string> = {};
+  const tagsByInvoice: Record<string, string[]> = {};
 
   // ── Data fetching ───────────────────────────────────────────────────────────
-  const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
-  const [activePreset, setActivePreset] = useState<DashboardPresetId>("all");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   // Multi-select state management (bulk archive/delete toolbar)
@@ -157,20 +120,13 @@ export default function DashboardClient() {
   );
 
   const togglePresetFilter = (preset: DashboardPresetId) => {
-    const next = presetFilters.includes(preset)
-      ? presetFilters.filter((s) => s !== preset)
-      : [...presetFilters, preset];
-    pushParams({ preset: next.join(",") });
-  };
-
-  const toggleStatus = (status: InvoiceStatusFilter) => {
-    const next = selectedStatuses.includes(status)
-      ? selectedStatuses.filter((s) => s !== status)
-      : [...selectedStatuses, status];
+    const next = statuses.includes(preset)
+      ? statuses.filter((s) => s !== preset)
+      : [...statuses, preset];
     pushParams({ status: next.join(",") });
   };
 
-  const displayStatuses = useMemo<InvoiceStatusFilter[]>(() => {
+  const selectedStatuses = useMemo<InvoiceStatusFilter[]>(() => {
     const raw = searchParams.get("display");
     if (!raw) return [];
     return raw
@@ -179,6 +135,15 @@ export default function DashboardClient() {
         INVOICE_STATUS_FILTERS.includes(s as InvoiceStatusFilter),
       );
   }, [searchParams]);
+
+  const toggleStatus = (status: InvoiceStatusFilter) => {
+    const next = selectedStatuses.includes(status)
+      ? selectedStatuses.filter((s) => s !== status)
+      : [...selectedStatuses, status];
+    pushParams({ display: next.join(",") });
+  };
+
+  const displayStatuses = selectedStatuses;
 
   const toggleDisplayStatus = (status: InvoiceStatusFilter) => {
     const next = displayStatuses.includes(status)
@@ -191,7 +156,6 @@ export default function DashboardClient() {
     router.replace(pathname, { scroll: false });
     setSearchValue("");
     setNumericResult(null);
-    router.replace(pathname, { scroll: false });
   };
 
 
@@ -199,7 +163,7 @@ export default function DashboardClient() {
   // with the preset `status` param above).
 
   const isFiltered =
-    presetFilters.length > 0 ||
+    statuses.length > 0 ||
     selectedStatuses.length > 0 ||
     displayStatuses.length > 0 ||
     !!dateFrom ||
@@ -211,14 +175,14 @@ export default function DashboardClient() {
 
   const currentFilterState = useMemo<Record<string, string>>(
     () => ({
-      preset: presetFilters.join(","),
-      status: selectedStatuses.join(","),
+      status: statuses.join(","),
+      display: selectedStatuses.join(","),
       sort: sort !== "newest" ? sort : "",
       from: dateFrom,
       to: dateTo,
       tag,
     }),
-    [presetFilters, selectedStatuses, sort, dateFrom, dateTo, tag],
+    [statuses, selectedStatuses, sort, dateFrom, dateTo, tag],
   );
 
   const applyFilterPreset = (filters: Record<string, string>) => {
@@ -274,7 +238,7 @@ export default function DashboardClient() {
   useEffect(() => {
     getFreighterPublicKey()
       .then(setPublicKey)
-      .catch(() => setError("Connect your Freighter wallet to view your dashboard."));
+      .catch(() => setWalletError("Connect your Freighter wallet to view your dashboard."));
   }, []);
 
   // Infinite-scroll invoice list
@@ -303,28 +267,7 @@ export default function DashboardClient() {
 
   // Fetch splitMeta for overdue detection
   useEffect(() => {
-    if (!publicKey) return;
-    const fetchInvoices = async () => {
-      setLoading(true);
-      const results: Invoice[] = [];
-      for (let id = 1; id <= 50; id++) {
-        try {
-          const inv = await splitClient.getInvoice(String(id));
-          const mine =
-            inv.creator === publicKey ||
-            inv.recipients.some((r) => r.address === publicKey);
-          if (mine) {
-            results.push(inv);
-            setInvoices([...results]);
-          }
-        })
-      );
-      if (!cancelled) setSplitMetaMap(map);
-    })();
-    return () => {
-      cancelled = true;
-    };
-    fetchInvoices().catch((e) => { setError(String(e)); setLoading(false); });
+    // Invoices are loaded via useInfiniteInvoices hook - no manual fetch needed
   }, [publicKey]);
 
   // Numeric search debounce
@@ -473,12 +416,12 @@ export default function DashboardClient() {
               <button
                 key={preset.id}
                 type="button"
-                onClick={() => toggleStatus(preset.id)}
+                onClick={() => togglePresetFilter(preset.id)}
                 aria-pressed={active}
                 className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
                   active
                     ? "bg-indigo-600 text-white"
-                    : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"
+                    : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-700 dark:text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"
                 }`}
               >
                 {preset.label}
@@ -533,7 +476,7 @@ export default function DashboardClient() {
         <button
           type="button"
           onClick={clearFilters}
-          className="self-start rounded-full border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="self-start rounded-full border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm font-semibold text-gray-600 dark:text-gray-700 dark:text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
           Clear filters
         </button>
@@ -592,7 +535,7 @@ export default function DashboardClient() {
                 className={`min-h-9 px-3 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                   viewMode === "cards"
                     ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-700 dark:text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -608,7 +551,7 @@ export default function DashboardClient() {
                 className={`min-h-9 px-3 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5 border-l border-gray-300 dark:border-gray-700 ${
                   viewMode === "table"
                     ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-700 dark:text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -624,7 +567,7 @@ export default function DashboardClient() {
               <button
                 onClick={() => setShowBatchModal(true)}
                 disabled={selected.size === 0}
-                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 Pay Selected ({selected.size})
               </button>
@@ -636,13 +579,15 @@ export default function DashboardClient() {
               <button
                 onClick={() => setShowReminderPicker(true)}
                 disabled={reminderSelected.size === 0}
-                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 Set Reminder ({reminderSelected.size})
               </button>
             </>
           )}
-          <Link href="/invoice/new" className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors">
+          <Link href="/invoice/new" className="min-h-11 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors">
+            Create Invoice
+          </Link>
           {compareMode && (
             <>
               <button
@@ -709,11 +654,11 @@ export default function DashboardClient() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 mt-4">
           <div className="rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Active</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalActive}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalActive}</p>
           </div>
           <div className="rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Value Locked</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {formatAmount(totalValueLocked)} USDC
             </p>
           </div>
@@ -813,9 +758,9 @@ export default function DashboardClient() {
         </div>
       ) : invoices.length === 0 ? (
         <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-12 text-center">
-          <h2 className="text-xl font-semibold text-gray-300 mb-2">No invoices yet</h2>
-          <p className="text-gray-500 mb-6 max-w-sm mx-auto">Create your first invoice to start receiving payments on-chain.</p>
-          <Link href="/invoice/new" className="inline-flex items-center px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors">
+          <h2 className="text-xl font-semibold text-white mb-2">No invoices yet</h2>
+          <p className="text-white dark:text-gray-300 mb-6 max-w-sm mx-auto">Create your first invoice to start receiving payments on-chain.</p>
+          <Link href="/invoice/new" className="inline-flex items-center px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors">
             + Create your first invoice
           </Link>
         </div>
@@ -877,8 +822,9 @@ export default function DashboardClient() {
               );
             }
             return (
-              <Link key={inv.id} href={`/invoice/${inv.id}`} className="block">{card}</Link>
-              <div key={inv.id}>
+              <>
+                <Link key={inv.id} href={`/invoice/${inv.id}`} className="block">{card}</Link>
+                <div key={inv.id}>
                 {isMultiSelectable ? (
                   <button
                     type="button"
@@ -1012,6 +958,7 @@ export default function DashboardClient() {
                   </div>
                 )}
               </div>
+              </>
             );
           })}
           {loading && [...Array(3)].map((_, i) => <SkeletonCard key={`sk-${i}`} />)}
@@ -1059,7 +1006,7 @@ export default function DashboardClient() {
                 Cancel
               </button>
               <button type="button" onClick={handleScheduleBulkReminders} disabled={!reminderDateTime}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors disabled:opacity-50">
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
                 Schedule
               </button>
             </div>

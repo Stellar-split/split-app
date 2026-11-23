@@ -1,15 +1,17 @@
 import type { Invoice } from "@stellar-split/sdk";
 
-export type DashboardPresetId = "all" | "active" | "funded" | "refunded" | "expired" | "draft";
+export type DashboardPresetId = "all" | "active" | "funded" | "refunded" | "expired" | "draft" | "overdue";
 export type DashboardSortId = "newest" | "oldest" | "amount-desc" | "amount-asc" | "deadline";
 
-export const SORT_OPTIONS: { id: DashboardSortId; label: string }[] = [
-  { id: "newest", label: "Most Recent" },
-  { id: "oldest", label: "Oldest" },
-  { id: "amount-desc", label: "Amount (high–low)" },
-  { id: "amount-asc", label: "Amount (low–high)" },
-  { id: "deadline", label: "Deadline (soonest)" },
+export const SORT_OPTIONS: { id: DashboardSortId; label: string; group: string }[] = [
+  { id: "newest", label: "Most Recent", group: "Date" },
+  { id: "oldest", label: "Oldest", group: "Date" },
+  { id: "amount-desc", label: "Amount (high–low)", group: "Amount" },
+  { id: "amount-asc", label: "Amount (low–high)", group: "Amount" },
+  { id: "deadline", label: "Deadline (soonest)", group: "Deadline" },
 ];
+
+export const SORT_GROUPS = Array.from(new Set(SORT_OPTIONS.map(o => o.group)));
 
 export function sortInvoices(invoices: Invoice[], sort: DashboardSortId): Invoice[] {
   const list = [...invoices];
@@ -64,6 +66,7 @@ export const DASHBOARD_PRESETS: DashboardPresetDefinition[] = [
   { id: "refunded", label: "Refunded", emptyState: "No refunded invoices." },
   { id: "expired",  label: "Expired",  emptyState: "No expired invoices right now." },
   { id: "draft",    label: "Draft",    emptyState: "No draft invoices." },
+  { id: "overdue",  label: "Overdue",  emptyState: "No overdue invoices." },
 ];
 
 export function matchesDashboardPreset(
@@ -85,6 +88,9 @@ export function matchesDashboardPreset(
       return invoice.status === "Pending" && invoice.deadline <= now;
     case "draft":
       return (invoice as any).status === "Draft";
+    case "overdue":
+      return invoice.status === "Pending" &&
+        (splitMeta?.installments?.some(inst => inst.dueDate <= now && inst.status !== "paid") ?? false);
     default:
       return false;
   }

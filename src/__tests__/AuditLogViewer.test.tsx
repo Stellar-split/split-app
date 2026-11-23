@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from "@testing-library/react";
 import AuditLogViewer from "@/components/audit/AuditLogViewer";
 import { auditEntriesToCsv, filterAuditEntries, type AuditEntry } from "@/lib/auditLog";
@@ -30,6 +31,6 @@ describe("AuditLogViewer", () => {
     fireEvent.change(screen.getByLabelText("Search audit log"), { target: { value: "signed" } });
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
     fireEvent.change(screen.getByLabelText("Filter by category"), { target: { value: "payment" } });
-    expect(screen.getByText(/No audit entries/)).toBeInTheDocument();
+    expect(screen.getByText(/No audit entries/)).toBeTruthy() // element exists in DOM;
   });
 });

@@ -61,7 +61,7 @@ function InvoiceCard({ invoice, displayNumber, onShareQR, onCompareToggle, isCom
                 e.stopPropagation();
                 onShareQR();
               }}
-              className="p-1 rounded-md bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-750 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors border border-gray-300 dark:border-gray-700"
+              className="p-1 rounded-md bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-750 text-gray-600 dark:text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white dark:hover:text-gray-100 transition-colors border border-gray-300 dark:border-gray-700"
               aria-label={`Share Invoice #${invoice.id} via QR code`}
               title="Share via QR Code"
             >

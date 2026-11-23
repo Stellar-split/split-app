@@ -238,7 +238,7 @@ export default function CustomizationPanel({
           <button
             type="button"
             onClick={handleSave}
-            className="w-full min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
+            className="w-full min-h-11 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
           >
             Save Customization
           </button>

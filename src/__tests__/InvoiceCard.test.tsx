@@ -42,43 +42,43 @@ const invoice: Invoice = {
 describe('InvoiceCard', () => {
   it('renders invoice id', () => {
     render(<InvoiceCard invoice={invoice} />);
-    expect(screen.getByText(/Invoice #42/)).toBeInTheDocument();
+    expect(screen.getByText(/Invoice #42/)).toBeTruthy() // element exists in DOM;
   });
 
   it('renders status badge', () => {
     render(<InvoiceCard invoice={invoice} />);
-    expect(screen.getByTestId('status-badge')).toBeInTheDocument();
+    expect(screen.getByTestId('status-badge')).toBeTruthy() // element exists in DOM;
   });
 
   it('renders truncated recipient addresses', () => {
     render(<InvoiceCard invoice={invoice} />);
-    expect(screen.getByText('GABC...1234')).toBeInTheDocument();
-    expect(screen.getByText('GXYZ...WXYZ')).toBeInTheDocument();
+    expect(screen.getByText('GABC...1234')).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText('GXYZ...WXYZ')).toBeTruthy() // element exists in DOM;
   });
 
   it('renders funded amount', () => {
     render(<InvoiceCard invoice={invoice} />);
-    expect(screen.getByText(/50.*USDC funded/)).toBeInTheDocument();
+    expect(screen.getByText(/50.*USDC funded/)).toBeTruthy() // element exists in DOM;
   });
 
   it('renders FundingProgress', () => {
     render(<InvoiceCard invoice={invoice} />);
-    expect(screen.getByTestId('funding-progress')).toBeInTheDocument();
+    expect(screen.getByTestId('funding-progress')).toBeTruthy() // element exists in DOM;
   });
 
   it('renders displayNumber when provided', () => {
     render(<InvoiceCard invoice={invoice} displayNumber="INV-001" />);
-    expect(screen.getByText('(INV-001)')).toBeInTheDocument();
+    expect(screen.getByText('(INV-001)')).toBeTruthy() // element exists in DOM;
   });
 
   it('renders DeadlineCountdown when deadline > 0', () => {
     const withDeadline = { ...invoice, deadline: Math.floor(Date.now() / 1000) + 3600 };
     render(<InvoiceCard invoice={withDeadline} />);
-    expect(screen.getByTestId('deadline-countdown')).toBeInTheDocument();
+    expect(screen.getByTestId('deadline-countdown')).toBeTruthy() // element exists in DOM;
   });
 
   it('does not render DeadlineCountdown when deadline is 0', () => {
     render(<InvoiceCard invoice={invoice} />);
-    expect(screen.queryByTestId('deadline-countdown')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('deadline-countdown')).not.toBeTruthy() // element exists in DOM;
   });
 });

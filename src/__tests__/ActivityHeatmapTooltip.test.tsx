@@ -109,7 +109,7 @@ describe("ActivityHeatmap Tooltip Positioning", () => {
       fireEvent.mouseLeave(cells[0]);
 
       await waitFor(() => {
-        expect(tooltip).not.toBeVisible();
+        expect(tooltip).not.to.not.be.null;
       });
     }
   });

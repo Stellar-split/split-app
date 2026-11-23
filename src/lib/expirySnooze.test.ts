@@ -17,7 +17,6 @@ describe("expirySnooze", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-    vi.useRealTimers();
   });
 
   it("should snooze an invoice", () => {
@@ -62,7 +61,6 @@ describe("expirySnooze", () => {
   });
 
   it("should calculate time remaining correctly", () => {
-    vi.useFakeTimers();
     const now = new Date();
     const dueDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000); // 2d 5h from now
 

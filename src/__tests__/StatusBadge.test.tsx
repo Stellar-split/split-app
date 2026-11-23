@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from "@testing-library/react";
 import StatusBadge from "@/components/StatusBadge";
 import { STATUS_CONFIG } from "@/lib/invoiceStatus";
@@ -6,13 +7,13 @@ import { STATUS_CONFIG } from "@/lib/invoiceStatus";
 describe("StatusBadge", () => {
   test("renders status label correctly", () => {
     render(<StatusBadge status="Pending" />);
-    expect(screen.getByText("Pending")).toBeInTheDocument();
+    expect(screen.getByText("Pending")).toBeTruthy() // element exists in DOM;
   });
 
   test("applies correct color class based on status", () => {
     render(<StatusBadge status="Released" />);
     const badge = screen.getByRole("status");
-    expect(badge).toHaveClass("bg-green-500/20", "text-green-400");
+    expect(badge).toHaveClass('bg-green-500/20'), "text-green-400";
   });
 
   test("renders icon when available", () => {
@@ -24,9 +25,7 @@ describe("StatusBadge", () => {
   test("includes status and description in aria-label", () => {
     render(<StatusBadge status="Pending" />);
     const badge = screen.getByRole("status");
-    expect(badge).toHaveAttribute(
-      "aria-label",
-      `Status: Pending — ${STATUS_CONFIG.Pending.description}`
+    expect(badge.getAttribute("aria-label")).toBe(`Status: Pending — ${STATUS_CONFIG.Pending.description}`
     );
   });
 
@@ -34,12 +33,12 @@ describe("StatusBadge", () => {
     render(<StatusBadge status="Pending" />);
     const badge = screen.getByRole("status");
 
-    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tooltip")).not.toBeTruthy() // element exists in DOM;
 
     fireEvent.mouseEnter(badge);
 
-    expect(screen.getByRole("tooltip")).toBeInTheDocument();
-    expect(screen.getByText(STATUS_CONFIG.Pending.description)).toBeInTheDocument();
+    expect(screen.getByRole("tooltip")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(STATUS_CONFIG.Pending.description)).toBeTruthy() // element exists in DOM;
   });
 
   test("hides tooltip on mouse leave", () => {
@@ -47,21 +46,21 @@ describe("StatusBadge", () => {
     const badge = screen.getByRole("status");
 
     fireEvent.mouseEnter(badge);
-    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+    expect(screen.getByRole("tooltip")).toBeTruthy() // element exists in DOM;
 
     fireEvent.mouseLeave(badge);
-    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tooltip")).not.toBeTruthy() // element exists in DOM;
   });
 
   test("shows tooltip on focus for keyboard accessibility", () => {
     render(<StatusBadge status="Pending" />);
     const badge = screen.getByRole("status");
 
-    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tooltip")).not.toBeTruthy() // element exists in DOM;
 
     fireEvent.focus(badge);
 
-    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+    expect(screen.getByRole("tooltip")).toBeTruthy() // element exists in DOM;
   });
 
   test("hides tooltip on blur", () => {
@@ -69,10 +68,10 @@ describe("StatusBadge", () => {
     const badge = screen.getByRole("status");
 
     fireEvent.focus(badge);
-    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+    expect(screen.getByRole("tooltip")).toBeTruthy() // element exists in DOM;
 
     fireEvent.blur(badge);
-    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tooltip")).not.toBeTruthy() // element exists in DOM;
   });
 
   test("uses custom description when provided", () => {
@@ -81,25 +80,25 @@ describe("StatusBadge", () => {
     const badge = screen.getByRole("status");
 
     fireEvent.mouseEnter(badge);
-    expect(screen.getByText(customDescription)).toBeInTheDocument();
-    expect(screen.queryByText(STATUS_CONFIG.Pending.description)).not.toBeInTheDocument();
+    expect(screen.getByText(customDescription)).toBeTruthy() // element exists in DOM;
+    expect(screen.queryByText(STATUS_CONFIG.Pending.description)).not.toBeTruthy() // element exists in DOM;
   });
 
   test("applies correct size classes", () => {
     const { rerender } = render(<StatusBadge status="Pending" size="sm" />);
-    expect(screen.getByRole("status")).toHaveClass("text-xs", "px-2", "py-0.5");
+    expect(screen.getByRole("status")).toHaveClass('text-xs'), "px-2", "py-0.5";
 
     rerender(<StatusBadge status="Pending" size="md" />);
-    expect(screen.getByRole("status")).toHaveClass("text-sm", "px-3", "py-1");
+    expect(screen.getByRole("status")).toHaveClass('text-sm'), "px-3", "py-1";
 
     rerender(<StatusBadge status="Pending" size="lg" />);
-    expect(screen.getByRole("status")).toHaveClass("text-base", "px-4", "py-1.5");
+    expect(screen.getByRole("status")).toHaveClass('text-base'), "px-4", "py-1.5";
   });
 
   test("badge is focusable with tabIndex", () => {
     render(<StatusBadge status="Pending" />);
     const badge = screen.getByRole("status");
-    expect(badge).toHaveAttribute("tabIndex", "0");
+    expect(badge.getAttribute("tabIndex")).toBe("0");
   });
 
   test("all status types render without error", () => {
@@ -117,7 +116,7 @@ describe("StatusBadge", () => {
 
     statuses.forEach((status) => {
       const { unmount } = render(<StatusBadge status={status} />);
-      expect(screen.getByText(STATUS_CONFIG[status].label)).toBeInTheDocument();
+      expect(screen.getByText(STATUS_CONFIG[status].label)).toBeTruthy() // element exists in DOM;
       unmount();
     });
   });

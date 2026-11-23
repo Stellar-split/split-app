@@ -9,6 +9,7 @@
 
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import { validateDeadline } from "@/components/DuplicateModal";
 import NewInvoicePage from "@/app/invoice/new/page";
 
@@ -181,7 +182,7 @@ describe("NewInvoicePage — URL pre-fill (clone mode)", () => {
     render(<NewInvoicePage />);
 
     // Loading message should appear while getInvoice is in-flight
-    expect(screen.getByText(/Loading invoice data/i)).toBeInTheDocument();
+    expect(screen.getByText(/Loading invoice data/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("shows cloned-from banner with link to source invoice after load", async () => {
@@ -191,11 +192,11 @@ describe("NewInvoicePage — URL pre-fill (clone mode)", () => {
     render(<NewInvoicePage />);
 
     await waitFor(() =>
-      expect(screen.getByText(/#42/)).toBeInTheDocument()
+      expect(screen.getByText(/#42/)).toBeTruthy() // element exists in DOM
     );
 
     const link = screen.getByRole("link", { name: /#42/ });
-    expect(link).toHaveAttribute("href", "/invoice/42");
+    expect(link.getAttribute("href")).toBe("/invoice/42");
   });
 
   test("applies deadline param to the datetime-local input", async () => {
@@ -218,6 +219,6 @@ describe("NewInvoicePage — URL pre-fill (clone mode)", () => {
 
   test("shows no cloned-from banner when from param is absent", () => {
     render(<NewInvoicePage />);
-    expect(screen.queryByText(/Cloned from/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Cloned from/i)).not.toBeTruthy() // element exists in DOM;
   });
 });

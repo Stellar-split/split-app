@@ -21,4 +21,4 @@ jobs:
         run: npm ci
 
       - name: Run unit + snapshot tests
-        run: npx vitest run --ci
+        run: npx vitest run

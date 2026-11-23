@@ -379,7 +379,7 @@ export default function RecurringWizard({ onConfirm }: Props) {
           <button
             type="button"
             onClick={handleNext}
-            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium"
+            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium"
           >
             Next
           </button>
@@ -387,7 +387,7 @@ export default function RecurringWizard({ onConfirm }: Props) {
           <button
             type="button"
             onClick={handleConfirm}
-            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium"
+            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium"
           >
             Confirm
           </button>

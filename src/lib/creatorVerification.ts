@@ -12,6 +12,8 @@ export type BadgeId = "email" | "wallet" | "kyc" | "established" | "reliable";
 export interface TrustBadge {
   id: BadgeId;
   label: string;
+  description?: string;
+  icon?: string;
 }
 
 export type TrustTier = "unverified" | "verified" | "trusted";

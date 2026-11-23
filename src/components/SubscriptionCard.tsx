@@ -67,7 +67,11 @@ function formatTimestamp(ts: number): string {
 }
 
 export default function SubscriptionCard({ subscription }: Props) {
-  const display = formatSubscriptionForDisplay(subscription);
+  const subscriptionForDisplay = {
+    ...subscription,
+    name: subscription.templateName
+  } as any;
+  const display = formatSubscriptionForDisplay(subscriptionForDisplay);
   const { label: relativeLabel, overdue } = useRelativeBillingDate(subscription.nextRunDate);
 
   return (

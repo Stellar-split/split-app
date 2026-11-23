@@ -68,7 +68,7 @@ export default function Modal({
           <div className="flex items-center justify-between gap-4">
             <h2
               id={titleId}
-              className={hideTitle ? "sr-only" : "text-lg font-semibold text-gray-900 dark:text-gray-100"}
+              className={hideTitle ? "sr-only" : "text-lg font-semibold text-gray-900 dark:text-white"}
             >
               {title}
             </h2>
@@ -76,7 +76,7 @@ export default function Modal({
               type="button"
               onClick={onClose}
               aria-label="Close dialog"
-              className="ml-auto shrink-0 rounded-lg p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="ml-auto shrink-0 rounded-lg p-1 text-gray-600 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

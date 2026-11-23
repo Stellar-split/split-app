@@ -10,6 +10,7 @@
  */
 
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen, waitFor, act } from "@testing-library/react";
 import GroupDetailPage from "@/app/groups/[id]/page";
 
@@ -57,7 +58,7 @@ describe("GroupDetailPage", () => {
   test("shows 'Group not found' when no matching group exists", async () => {
     render(<GroupDetailPage />);
     await waitFor(() =>
-      expect(screen.getByText(/Group not found/i)).toBeInTheDocument()
+      expect(screen.getByText(/Group not found/i)).toBeTruthy() // element exists in DOM
     );
   });
 
@@ -70,9 +71,9 @@ describe("GroupDetailPage", () => {
     });
     render(<GroupDetailPage />);
     await waitFor(() =>
-      expect(screen.getByText("Alpha Team")).toBeInTheDocument()
+      expect(screen.getByText("Alpha Team")).toBeTruthy() // element exists in DOM
     );
-    expect(screen.getByText(/3 members/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 members/i)).toBeTruthy() // element exists in DOM;
   });
 
   test("shows all member addresses", async () => {
@@ -85,8 +86,8 @@ describe("GroupDetailPage", () => {
     render(<GroupDetailPage />);
     await waitFor(() => screen.getByText("Beta Group"));
     // Each address renders as both full and truncated (truncateAddress shortens it)
-    expect(screen.getByText("GALICE1234567890")).toBeInTheDocument();
-    expect(screen.getByText("GBOB12345678901")).toBeInTheDocument();
+    expect(screen.getByText("GALICE1234567890")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("GBOB12345678901")).toBeTruthy() // element exists in DOM;
   });
 
   test("shows 'No members' when group has empty members list", async () => {
@@ -98,7 +99,7 @@ describe("GroupDetailPage", () => {
     });
     render(<GroupDetailPage />);
     await waitFor(() =>
-      expect(screen.getByText(/No members in this group/i)).toBeInTheDocument()
+      expect(screen.getByText(/No members in this group/i)).toBeTruthy() // element exists in DOM
     );
   });
 
@@ -128,7 +129,7 @@ describe("GroupDetailPage", () => {
     });
     render(<GroupDetailPage />);
     await waitFor(() =>
-      expect(screen.getByText(/1 member$/i)).toBeInTheDocument()
+      expect(screen.getByText(/1 member$/i)).toBeTruthy() // element exists in DOM
     );
   });
 });

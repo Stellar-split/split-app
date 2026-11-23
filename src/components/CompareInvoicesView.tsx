@@ -312,7 +312,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               diffMode === "all"
                 ? "bg-indigo-600 text-white"
-                : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
+                : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
             }`}
             aria-pressed={diffMode === "all"}
           >
@@ -324,7 +324,7 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               diffMode === "diffs-only"
                 ? "bg-indigo-600 text-white"
-                : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
+                : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"
             }`}
             aria-pressed={diffMode === "diffs-only"}
           >
@@ -368,10 +368,10 @@ export default function CompareInvoicesView({ invoiceA, invoiceB, onPayA, onPayB
                 <div className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 self-start pt-3.5">
                   {row.label}
                 </div>
-                <div className={`px-4 py-3 text-sm text-gray-900 dark:text-gray-200 border-l border-gray-100 dark:border-gray-800 ${differs ? diffClass(row.rawA, row.rawB) : ""}`}>
+                <div className={`px-4 py-3 text-sm text-gray-900 dark:text-white dark:text-gray-800 dark:text-gray-200 border-l border-gray-100 dark:border-gray-800 ${differs ? diffClass(row.rawA, row.rawB) : ""}`}>
                   {row.valA}
                 </div>
-                <div className={`px-4 py-3 text-sm text-gray-900 dark:text-gray-200 border-l border-gray-100 dark:border-gray-800 ${differs ? diffClass(row.rawA, row.rawB) : ""}`}>
+                <div className={`px-4 py-3 text-sm text-gray-900 dark:text-white dark:text-gray-800 dark:text-gray-200 border-l border-gray-100 dark:border-gray-800 ${differs ? diffClass(row.rawA, row.rawB) : ""}`}>
                   {row.valB}
                 </div>
               </div>

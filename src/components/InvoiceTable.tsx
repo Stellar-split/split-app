@@ -27,10 +27,13 @@ const COLUMN_LABELS: Record<ColumnKey, string> = {
   deadline: "Deadline", aging: "Aging", tags: "Tags", recipients: "Recipients",
 };
 
-const BUCKET_ORDER: Record<AgingBucketKey, number> = AGING_BUCKETS.reduce(
-  (acc, b, i) => ({ ...acc, [b.key]: i }),
-  {} as Record<AgingBucketKey, number>,
-);
+const BUCKET_ORDER: Record<AgingBucketKey, number> = {
+  current: 0,
+  "1-30": 1,
+  "31-60": 2,
+  "61-90": 3,
+  "90+": 4,
+};
 export type SortDir = "asc" | "desc";
 
 export interface InvoiceTableSortState {
@@ -88,10 +91,12 @@ function sortInvoices(
     case "aging": {
       const now = Math.floor(Date.now() / 1000);
       return list.sort((a, b) => {
-        const ba = BUCKET_ORDER[getAgingBucket(a, now)];
-        const bb = BUCKET_ORDER[getAgingBucket(b, now)];
+        const daysA = getDaysOverdue(a.deadline);
+        const daysB = getDaysOverdue(b.deadline);
+        const ba = BUCKET_ORDER[getAgingBucket(daysA) as AgingBucketKey];
+        const bb = BUCKET_ORDER[getAgingBucket(daysB) as AgingBucketKey];
         if (ba !== bb) return mul * (ba - bb);
-        return mul * (getDaysOverdue(a, now) - getDaysOverdue(b, now));
+        return mul * (daysA - daysB);
       });
     }
     case "status": {
@@ -267,9 +272,9 @@ export default function InvoiceTable({
   const filtered = useMemo(
     () =>
       agingFilter
-        ? invoices.filter((inv) => getAgingBucket(inv, now) === agingFilter)
+        ? invoices.filter((inv) => getAgingBucket(getDaysOverdue(inv.deadline)) === agingFilter)
         : invoices,
-    [invoices, agingFilter, now],
+    [invoices, agingFilter],
   );
 
   const sorted = useMemo(() => sortInvoices(filtered, sort), [filtered, sort]);
@@ -451,18 +456,29 @@ export default function InvoiceTable({
                   )}
 
                   {colVisible.aging && (() => {
-                    const bucket = getAgingBucket(inv, now);
-                    const days = getDaysOverdue(inv, now);
-                    const meta = AGING_BUCKETS.find((b) => b.key === bucket);
+                    const days = getDaysOverdue(inv.deadline);
+                    const bucket = getAgingBucket(days) as AgingBucketKey;
+                    const meta = AGING_BUCKETS[bucket];
                     return (
                       <td className="px-4 py-3">
                         <div className="flex flex-col gap-0.5">
-                          <span
-                            className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta?.className ?? "bg-gray-500/20 text-gray-400"}`}
-                            aria-label={`Aging bucket: ${meta?.label ?? bucket}`}
-                          >
-                            {meta?.label ?? bucket}
-                          </span>
+                          {(() => {
+                            const colorClass = {
+                              green: "bg-green-500/20 text-green-400",
+                              yellow: "bg-yellow-500/20 text-yellow-400",
+                              orange: "bg-orange-500/20 text-orange-400",
+                              red: "bg-red-500/20 text-red-400",
+                              darkred: "bg-red-900/20 text-red-200",
+                            }[meta?.color ?? "gray"] ?? "bg-gray-500/20 text-gray-400";
+                            return (
+                              <span
+                                className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${colorClass}`}
+                                aria-label={`Aging bucket: ${meta?.label ?? bucket}`}
+                              >
+                                {meta?.label ?? bucket}
+                              </span>
+                            );
+                          })()}
                           {days > 0 && (
                             <span className="text-[11px] text-amber-400">{days}d overdue</span>
                           )}

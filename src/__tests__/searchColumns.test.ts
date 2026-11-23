@@ -7,6 +7,7 @@ const localStorageMock = {
 };
 Object.defineProperty(global, 'localStorage', { value: localStorageMock });
 
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import {
   SEARCH_COLUMNS,
   loadColumns,

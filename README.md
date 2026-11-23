@@ -107,3 +107,6 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide.
 
 <!-- handsoff-issue-991 -->
 - #991: Implement custom report builder and scheduling
+
+<!-- handsoff-issue-981 -->
+- #981: Add invoice template library with versioning

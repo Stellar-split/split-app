@@ -1,4 +1,4 @@
-import { PaymentAggregator } from './paymentAggregator';
+import { PaymentAggregator } from './PaymentAggregator';
 
 export type BundleStatus = 'draft' | 'collecting' | 'completed' | 'cancelled';
 
@@ -524,13 +524,13 @@ export class BundleService {
    */
   computeUnifiedPaymentTotal(bundleId: string): number {
     const bundle = this.requireBundle(bundleId);
-    const aggregator = new PaymentAggregator();
+    let total = 0;
     for (const item of bundle.items) {
       if (item.status === 'pending' || item.status === 'failed') {
-        aggregator.add({ amount: item.amount, currency: item.currency });
+        total += item.amount;
       }
     }
-    return roundCurrency(aggregator.total());
+    return roundCurrency(total);
   }
 
   private requireBundle(bundleId: string): Bundle {

@@ -1,4 +1,5 @@
 import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen } from "@testing-library/react";
 import type { Invoice } from "@stellar-split/sdk";
 import InvoiceSentiment, { analyzeInvoiceSentiment } from "@/components/invoice/InvoiceSentiment";
@@ -82,7 +83,7 @@ describe("computePayerHealth", () => {
   });
   it("renders an empty state", () => {
     render(<PayerWalletHealth payments={[]} />);
-    expect(screen.getByText("No payer wallets yet.")).toBeInTheDocument();
+    expect(screen.getByText("No payer wallets yet.")).toBeTruthy() // element exists in DOM;
   });
 });
 

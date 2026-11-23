@@ -9,23 +9,54 @@ import FormField from "@/components/ui/FormField";
 import UnsavedChangesModal from "@/components/ui/UnsavedChangesModal";
 import FeeTooltip from "@/components/ui/FeeTooltip";
 import { useNetworkFeeBreakdown } from "@/hooks/useNetworkFeeBreakdown";
+import { useInvoiceTags } from "@/hooks/useInvoiceTags";
+import { useOfflineDraftAutosave } from "@/hooks/useOfflineDraftAutosave";
+import { useXlmUsdcRate } from "@/hooks/useXlmUsdcRate";
+import { useInvoiceCollaboration } from "@/hooks/useInvoiceCollaboration";
+import { calculateSplit } from "@/hooks/useSplitCalculator";
 import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { apiFetch } from "@/lib/apiClient";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
+import { REVIEW_STEP, validateWizardStep, firstInvalidStep, FIELD_HELP, type WizardState } from "@/lib/invoiceWizard";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
+import { generateRetroactiveInvoiceId, saveRetroactiveInvoice, type RetroactiveInvoice } from "@/lib/retroactiveInvoices";
 import { useI18n } from "@/components/I18nProvider";
 import DeadlineSuggester from "@/components/DeadlineSuggester";
 import { validateDeadline } from "@/components/DuplicateModal";
+import type { SplitMeta } from "@/lib/api/invoices";
+
+interface PlanMilestone {
+  date: number;
+  amount: string;
+}
 import { decodeTemplate } from "@/lib/templateSharing";
+import type { ImportedTxData } from "@/lib/txImport";
+import type { StoredDraft, DraftFormData } from "@/lib/offlineDraftDB";
+import { getOrCreateLocalUserId, listDraftsForUser } from "@/lib/offlineDraftDB";
 import DraftCollaborationPanel from "@/components/DraftCollaborationPanel";
+import {
+  createApprovalRequest,
+  getApprovalPolicy,
+  notifyApprovalUsers,
+  saveApprovalRequests,
+  getApprovalRequests,
+  shouldRequireApproval,
+} from "@/lib/invoiceApprovals";
 
 const RecipientForm = dynamic(() => import("@/components/RecipientForm"), { ssr: false });
 const TemplateManager = dynamic(() => import("@/components/TemplateManager"), { ssr: false });
 const TxImportPanel = dynamic(() => import("@/components/invoice/TxImportPanel"), { ssr: false });
 const DraftRecoveryBanner = dynamic(() => import("@/components/invoice/DraftRecoveryBanner"), { ssr: false });
 const CloneBanner = dynamic(() => import("@/components/invoice/CloneBanner"), { ssr: false });
+const CursorOverlay = dynamic(() => import("@/components/CursorOverlay"), { ssr: false });
+const SplitCalculator = dynamic(() => import("@/components/SplitCalculator"), { ssr: false });
+const TagInput = dynamic(() => import("@/components/TagInput"), { ssr: false });
+const InstallmentPlanBuilder = dynamic(() => import("@/components/InstallmentPlanBuilder"), { ssr: false });
+const CoSignerSection = dynamic(() => import("@/components/CoSignerSection"), { ssr: false });
+import { PresencePill } from "@/components/PresencePill";
+import { ReconnectionBanner } from "@/components/ReconnectionBanner";
 
 interface RecipientRow {
   address: string;
@@ -55,6 +86,12 @@ function useToasts() {
   }, []);
   return { toasts, addToast };
 }
+
+const WIZARD_STEPS = [
+  { label: "Details", value: "details", description: "Add invoice details" },
+  { label: "Recipients", value: "recipients", description: "Add payment recipients" },
+  { label: "Review", value: "review", description: "Review and submit" },
+];
 
 const STEPS = WIZARD_STEPS.map((s) => s.label);
 
@@ -120,15 +157,15 @@ function NewInvoiceForm() {
   const [intervalDays, setIntervalDays] = useState<7 | 30>(7);
   const [submitting, setSubmitting] = useState(false);
   const [splitMeta, setSplitMeta] = useState<SplitMeta | null>(null);
-  const [installments, setInstallments] = useState<PlanMilestone[]>([]);
+  const [installments, setInstallments] = useState<any[]>([]);
   const [cosigners, setCosigners] = useState<string[]>([]);
   const [cosignerThreshold, setCosignerThreshold] = useState<number>(1);
   const [tags, setTags] = useState<string[]>([]);
-  const { allTags, saveTags } = useInvoiceTags();
+  const { tags: allTags, saveTags } = useInvoiceTags();
 
   const fromId = searchParams.get("from");
   const deadlineParam = searchParams.get("deadline");
-  const draftId =
+  const initialDraftId =
     searchParams.get("draft") ?? fromId ?? "new-invoice-draft";
   const [cloneSourceId, setCloneSourceId] = useState<string | null>(null);
   const [originalToken, setOriginalToken] = useState<string | null>(null);
@@ -142,7 +179,7 @@ function NewInvoiceForm() {
   const [retroError, setRetroError] = useState<string | null>(null);
 
   const [draftUserId, setDraftUserId] = useState<string | null>(null);
-  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(initialDraftId);
   const [recoveredDraft, setRecoveredDraft] = useState<StoredDraft | null>(null);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
@@ -670,6 +707,22 @@ function NewInvoiceForm() {
 
     try {
       const creator = await getFreighterPublicKey();
+      const amounts = recipients.map((recipient) =>
+        toUsdc(equalSplit ? perRecipientAmount ?? "0" : recipient.amount),
+      );
+      const approvalAmount = amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
+      const policy = await getApprovalPolicy();
+
+      if (shouldRequireApproval(approvalAmount, policy)) {
+        const invoiceTitle = `Invoice for ${recipients[0]?.address ?? "recipient"}`;
+        const approvalRequest = createApprovalRequest(invoiceTitle, approvalAmount);
+        const existingRequests = await getApprovalRequests();
+        saveApprovalRequests([approvalRequest, ...existingRequests]);
+        discardDraft();
+        addToast("Invoice submitted for approval", "success");
+        router.push(`/approvals?request=${approvalRequest.id}`);
+        return;
+      }
 
       if (cloneSourceId) {
         const deadlineTs = Math.floor(new Date(cloneDeadlineIso).getTime() / 1000);
@@ -1133,8 +1186,7 @@ function NewInvoiceForm() {
       </div>
 
       <SplitCalculator
-        initialTotal={equalSplit ? totalAmount : recipients.reduce((s, r) => s + parseFloat(r.amount || "0"), 0).toFixed(7)}
-        onSplitMetaChange={setSplitMeta}
+        splitMeta={splitMeta ?? undefined}
       />
     </div>
   );
@@ -1147,10 +1199,8 @@ function NewInvoiceForm() {
 
       <div>
         <TagInput
-          value={tags}
-          onChange={setTags}
-          suggestions={allTags}
-          placeholder="e.g. design, q3-retainer"
+          tags={tags}
+          onTagsChange={setTags}
         />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{FIELD_HELP.tags}</p>
       </div>
@@ -1189,22 +1239,10 @@ function NewInvoiceForm() {
         </div>
       )}
 
-      <InstallmentPlanBuilder
-        totalAmount={total}
-        installments={installments}
-        assetCode={token === (process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "") ? "USDC" : "XLM"}
-        onChange={setInstallments}
-      />
+      <InstallmentPlanBuilder />
 
       <div>
-        <CoSignerSection
-          cosigners={cosigners}
-          threshold={cosignerThreshold}
-          onChange={(signers, thresh) => {
-            setCosigners(signers);
-            setCosignerThreshold(thresh);
-          }}
-        />
+        <CoSignerSection />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{FIELD_HELP.cosigners}</p>
         {touchedFields.has('cosigners') && fieldErrors['cosigners'] && (
           <p className="text-sm text-red-600 dark:text-red-400 mt-1">{fieldErrors['cosigners']}</p>
@@ -1356,7 +1394,7 @@ function NewInvoiceForm() {
         )}
       </div>
 
-      <DraftCollaborationPanel draftId={draftId} />
+      {draftId && <DraftCollaborationPanel draftId={draftId} />}
 
       {/* Cloned-from banner */}
       {cloneSourceId && (
@@ -1455,8 +1493,6 @@ function NewInvoiceForm() {
           </div>
         </div>
       </form>
-      </>
-      )}
 
       <UnsavedChangesModal
         isOpen={showUnsavedModal}
