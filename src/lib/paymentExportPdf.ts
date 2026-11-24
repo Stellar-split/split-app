@@ -9,10 +9,31 @@
  */
 
 import type { Payment } from "@stellar-split/sdk";
-import { formatAmount } from "@stellar-split/sdk";
 import { getPdfTheme } from "@/lib/pdfTheme";
 
 type PaymentWithMeta = Payment & { timestamp?: number; txHash?: string };
+
+/** Stellar amounts are expressed in stroops (7 decimal places). */
+const STROOPS_PER_UNIT = 10_000_000n;
+
+/**
+ * Format a payment amount as a fixed 2-decimal USDC string.
+ *
+ * Implemented locally (rather than relying on the SDK's `formatAmount`) so the
+ * PDF export works with plain bigint/number amounts and never throws on
+ * malformed input.
+ */
+function formatAmount(amount: unknown): string {
+  if (typeof amount === "bigint") {
+    const whole = amount / STROOPS_PER_UNIT;
+    const fraction = (amount % STROOPS_PER_UNIT) / 100_000n;
+    return `${whole}.${fraction.toString().padStart(2, "0")}`;
+  }
+  if (typeof amount === "number" && Number.isFinite(amount)) {
+    return (amount / Number(STROOPS_PER_UNIT)).toFixed(2);
+  }
+  return "0.00";
+}
 
 /** Escape untrusted text before interpolating it into the HTML document. */
 function escapeHtml(value: string): string {
@@ -31,10 +52,14 @@ function formatTimestamp(timestamp: number | undefined): string {
   return new Date(ms).toISOString();
 }
 
-/** Sum payment amounts when the SDK exposes them as bigints. */
+/** Sum payment amounts, tolerating bigint or numeric amounts. */
 function sumAmounts(payments: PaymentWithMeta[]): bigint {
   return payments.reduce<bigint>((sum, payment) => {
-    return sum + (typeof payment.amount === "bigint" ? payment.amount : 0n);
+    if (typeof payment.amount === "bigint") return sum + payment.amount;
+    if (typeof payment.amount === "number" && Number.isFinite(payment.amount)) {
+      return sum + BigInt(Math.round(payment.amount));
+    }
+    return sum;
   }, 0n);
 }
 
@@ -125,7 +150,7 @@ export function generatePaymentSummaryFilename(invoiceId: string): string {
 }
 
 /** Open the summary document and trigger the browser's print/PDF dialog. */
-export function downloadPaymentSummaryPDF(html: string): void {
+export function downloadPaymentSummaryPDF(html: string, filename?: string): void {
   if (typeof window === "undefined") return;
 
   const blob = new Blob([html], { type: "text/html" });
@@ -140,4 +165,8 @@ export function downloadPaymentSummaryPDF(html: string): void {
   } else {
     URL.revokeObjectURL(url);
   }
+
+  // `filename` is accepted for API symmetry with the CSV/JSON exporters; the
+  // browser derives the saved PDF name from the document title.
+  void filename;
 }
