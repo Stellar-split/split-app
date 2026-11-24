@@ -32,13 +32,18 @@ export default function Navbar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") return true;
-    return window.innerWidth < 640;
+    return window.innerWidth < 1024;
   });
   const pathname = usePathname();
   const hamburgerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(false);
+    };
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -93,7 +98,11 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav links — visible on lg and wider */}
-          <nav className="hidden lg:flex items-center gap-1 flex-1" aria-label="Main navigation">
+          <nav
+            className="hidden lg:flex items-center gap-1 flex-1"
+            aria-label="Main navigation"
+            aria-hidden={isMobile}
+          >
             {NAV_LINKS.map(({ href, label }) => (
               <Link
                 key={href}
@@ -134,12 +143,12 @@ export default function Navbar() {
               <span aria-hidden="true">+</span> New Invoice
             </Link>
 
-            {/* Hamburger button — visible below sm (640px) */}
+            {/* Hamburger button — visible below lg (1024px) */}
             {isMobile && (
               <button
                 ref={hamburgerRef}
                 className="ml-1 flex items-center justify-center h-9 w-9 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors lg:hidden"
-                aria-label="Open menu"
+                aria-label={sidebarOpen ? "Close menu" : "Open menu"}
                 aria-expanded={sidebarOpen}
                 aria-controls="mobile-sidebar"
                 onClick={() => setSidebarOpen((prev) => !prev)}
@@ -164,7 +173,7 @@ export default function Navbar() {
 
       {/* Slide-in sidebar for below lg */}
       <MobileSidebar
-        isOpen={sidebarOpen}
+        isOpen={sidebarOpen && isMobile}
         onClose={() => setSidebarOpen(false)}
         triggerRef={hamburgerRef}
       />
