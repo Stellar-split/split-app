@@ -39,7 +39,7 @@ export const LEVELS: Level[] = [
   { level: 2, name: "Contributor", minPoints: 50 },
   { level: 3, name: "Supporter", minPoints: 150 },
   { level: 4, name: "Champion", minPoints: 400 },
-  { level: 5, name: "Legend", minPoints: 1000 },
+  { level: 5, name: "Legend", minPoints: 5000 },
 ];
 
 export const BADGES: BadgeDefinition[] = [
