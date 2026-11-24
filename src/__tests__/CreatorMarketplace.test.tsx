@@ -24,11 +24,11 @@ describe("creatorMarketplace", () => {
 describe("CreatorMarketplace", () => {
   it("renders creators with profile links and supports filtering", () => {
     render(<CreatorMarketplace creators={creators} />);
-    expect(screen.getByRole("link", { name: "Ada" })).getAttribute("href").toBe("/creator/GA");
+    expect(screen.getByRole("link", { name: "Ada" }).getAttribute("href")).toBe("/creator/GA");
     fireEvent.click(screen.getByLabelText("Verified only"));
-    expect(screen.queryByText("Bo")).not.toBeTruthy() // element exists in DOM;
+    expect(screen.queryByText("Bo")).toBeNull();
     fireEvent.change(screen.getByLabelText("Search creators"), { target: { value: "zzz" } });
-    expect(screen.getByText("No creators found.")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("No creators found.")).toBeTruthy();
   });
 });
 
