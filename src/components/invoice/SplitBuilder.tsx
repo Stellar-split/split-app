@@ -51,6 +51,7 @@ export default function SplitBuilder({
 
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [announcement, setAnnouncement] = useState("");
   const pendingFocusIndex = useRef<number | null>(null);
   const handleRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -120,7 +121,10 @@ export default function SplitBuilder({
 
   const reorderRecipient = (from: number, to: number) => {
     if (readOnly || from === to) return;
-    setRecipients((prev) => moveItem(prev, from, to));
+    setRecipients((prev) => {
+      if (from < 0 || to < 0 || from >= prev.length || to >= prev.length) return prev;
+      return moveItem(prev, from, to);
+    });
   };
 
   const handleDragStart = (index: number) => {
@@ -151,10 +155,16 @@ export default function SplitBuilder({
       event.preventDefault();
       pendingFocusIndex.current = index + 1;
       reorderRecipient(index, index + 1);
+      setAnnouncement(
+        `Moved from position ${index + 1} to position ${index + 2} of ${recipients.length}`
+      );
     } else if (event.key === "ArrowUp" && index > 0) {
       event.preventDefault();
       pendingFocusIndex.current = index - 1;
       reorderRecipient(index, index - 1);
+      setAnnouncement(
+        `Moved from position ${index + 1} to position ${index} of ${recipients.length}`
+      );
     }
   };
 
@@ -262,6 +272,9 @@ export default function SplitBuilder({
       )}
 
       <div className="space-y-3 mb-5">
+        <p role="status" aria-live="polite" className="sr-only">
+          {announcement}
+        </p>
         {recipients.length === 0 && !readOnly && (
           <p className="text-sm text-gray-500 text-center py-6">
             No recipients yet. Click &ldquo;+ Add Recipient&rdquo; to begin.
@@ -272,6 +285,7 @@ export default function SplitBuilder({
           <div
             key={index}
             data-testid={`recipient-row-${index}`}
+            draggable={!readOnly}
             onDragStart={() => handleDragStart(index)}
             onDragOver={(e) => {
               e.preventDefault();
@@ -299,6 +313,7 @@ export default function SplitBuilder({
                   }}
                   data-testid={`drag-handle-${index}`}
                   aria-label={`Reorder recipient ${index + 1}`}
+                  aria-roledescription="sortable"
                   onMouseDown={() => handleDragStart(index)}
                   onKeyDown={(e) => handleHandleKeyDown(index, e)}
                   disabled={readOnly}
