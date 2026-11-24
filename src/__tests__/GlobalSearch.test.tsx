@@ -1,8 +1,14 @@
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { vi, describe, it, beforeEach, afterEach, expect, describe, test, beforeEach, afterEach, expect } from "vitest";
+import { vi, describe, test, beforeEach, afterEach, expect } from "vitest";
 import GlobalSearch from "@/components/GlobalSearch";
 import type { Invoice } from "@stellar-split/sdk";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn() }),
+  usePathname: () => "/dashboard",
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 describe("GlobalSearch — query highlighting", () => {
   const mockInvoices: Invoice[] = [
@@ -41,25 +47,35 @@ describe("GlobalSearch — query highlighting", () => {
   ];
 
   beforeEach(() => {
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
+    vi.useRealTimers();
   });
+
+  /** Types a query into the search input and flushes the debounce timer. */
+  function typeQuery(value: string) {
+    const input = screen.getByRole("combobox");
+    act(() => {
+      fireEvent.change(input, { target: { value } });
+    });
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+  }
+
+  /** Opens the search dialog via the first "Open search" trigger. */
+  function openSearch() {
+    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
+    fireEvent.click(trigger);
+  }
 
   test("highlights matched substring in invoice ID (case-insensitive)", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
-    // Open search
-    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
-    fireEvent.click(trigger);
-
-    const input = screen.getByRole("combobox");
-    act(() => {
-      fireEvent.change(input, { target: { value: "inv-2024" } });
-    });
-
-    act(() => {
-    });
+    openSearch();
+    typeQuery("inv-2024");
 
     expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
   });
@@ -67,16 +83,8 @@ describe("GlobalSearch — query highlighting", () => {
   test("highlights matched substring in invoice title", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
-    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
-    fireEvent.click(trigger);
-
-    const input = screen.getByRole("combobox");
-    act(() => {
-      fireEvent.change(input, { target: { value: "office" } });
-    });
-
-    act(() => {
-    });
+    openSearch();
+    typeQuery("office");
 
     expect(screen.getByText(/office/i)).toBeTruthy() // element exists in DOM;
   });
@@ -84,17 +92,8 @@ describe("GlobalSearch — query highlighting", () => {
   test("highlights matched substring in creator address", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
-    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
-    fireEvent.click(trigger);
-
-    const input = screen.getByRole("combobox");
-    const addressSubstring = "GCZQ2WQ";
-    act(() => {
-      fireEvent.change(input, { target: { value: addressSubstring } });
-    });
-
-    act(() => {
-    });
+    openSearch();
+    typeQuery("GCZQ2WQ");
 
     expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
   });
@@ -102,17 +101,8 @@ describe("GlobalSearch — query highlighting", () => {
   test("highlights matched substring in recipient address", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
-    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
-    fireEvent.click(trigger);
-
-    const input = screen.getByRole("combobox");
-    const addressSubstring = "GDZST3X";
-    act(() => {
-      fireEvent.change(input, { target: { value: addressSubstring } });
-    });
-
-    act(() => {
-    });
+    openSearch();
+    typeQuery("GDZST3X");
 
     expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
   });
@@ -120,11 +110,7 @@ describe("GlobalSearch — query highlighting", () => {
   test("handles empty query without highlighting", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
-    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
-    fireEvent.click(trigger);
-
-    act(() => {
-    });
+    openSearch();
 
     expect(
       screen.getByText(/start typing to search invoices and addresses/i)
@@ -134,16 +120,8 @@ describe("GlobalSearch — query highlighting", () => {
   test("case-insensitive matching highlights correctly", async () => {
     render(<GlobalSearch invoices={mockInvoices} publicKey={null} />);
 
-    const trigger = screen.getAllByRole("button", { name: /open search/i })[0];
-    fireEvent.click(trigger);
-
-    const input = screen.getByRole("combobox");
-    act(() => {
-      fireEvent.change(input, { target: { value: "OFFICE" } });
-    });
-
-    act(() => {
-    });
+    openSearch();
+    typeQuery("OFFICE");
 
     // Should find the result even with uppercase query
     expect(screen.queryByText(/no results for/i)).not.toBeTruthy() // element exists in DOM;
