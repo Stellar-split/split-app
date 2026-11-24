@@ -18,6 +18,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
 });
 
 const futureExpiry = () => Math.floor(Date.now() / 1000) + 16_212; // ~4h 30m 12s
@@ -47,12 +48,14 @@ test("has role=status and aria-live=polite", () => {
 });
 
 test("countdown text updates after 1 second tick", () => {
+  vi.useFakeTimers();
   const expiry = Math.floor(Date.now() / 1000) + 65; // 1m 05s
   render(<CooldownBadge expiresAt={expiry} />);
 
   const before = screen.getByRole("status").textContent ?? "";
 
   act(() => {
+    vi.advanceTimersByTime(1000);
   });
 
   const after = screen.getByRole("status").textContent ?? "";
@@ -60,12 +63,14 @@ test("countdown text updates after 1 second tick", () => {
 });
 
 test("clears (renders nothing) once the expiry timestamp passes", () => {
+  vi.useFakeTimers();
   const expiry = Math.floor(Date.now() / 1000) + 2; // expires in 2 s
   const { container } = render(<CooldownBadge expiresAt={expiry} />);
 
   expect(container.firstChild).not.toBeNull();
 
   act(() => {
+    vi.advanceTimersByTime(3000);
   });
 
   expect(container.firstChild).toBeNull();
