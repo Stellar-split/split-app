@@ -3,6 +3,19 @@ import { searchAddressHistory } from "@/lib/invoiceHistory";
 import { getAddressBook } from "@/lib/addressBook";
 import { resolveFederationAddress } from "@/lib/stellar";
 
+/** In-memory cache of resolved labels keyed by normalized address. */
+const labelCache = new Map<string, string | null>();
+
+/** Matches a federation address such as `alice*stellar.org`. */
+const FEDERATION_ADDRESS_RE = /^[^@\s*]+\*[^@\s*]+\.[^@\s*]+$/;
+
+/**
+ * Clears the module-level label cache (useful for tests).
+ */
+export function clearAddressLabelCache(): void {
+  labelCache.clear();
+}
+
 /**
  * Derives a smart label suggestion for a Stellar address or Federation address:
  * (1) Resolves federation addresses via stellar-sdk FederationServer
@@ -13,10 +26,24 @@ export async function resolveAddressLabel(address: string): Promise<string | nul
   const trimmed = address.trim();
   if (!trimmed) return null;
 
-  // 1. Resolve federation address (e.g., user*domain.com or *domain.com)
+  const cacheKey = trimmed.toLowerCase();
+  if (labelCache.has(cacheKey)) {
+    return labelCache.get(cacheKey) ?? null;
+  }
+
+  const label = await resolveAddressLabelUncached(trimmed);
+  labelCache.set(cacheKey, label);
+  return label;
+}
+
+/**
+ * Resolves a label without consulting the cache.
+ */
+async function resolveAddressLabelUncached(trimmed: string): Promise<string | null> {
+  // 1. Resolve federation address (e.g., user*domain.com)
   //    Uses the shared cached resolver so labels benefit from caching and
   //    consistent error handling.
-  if (trimmed.includes("*")) {
+  if (FEDERATION_ADDRESS_RE.test(trimmed)) {
     try {
       const record = await resolveFederationAddress(trimmed);
       if (record) {
