@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { RecipientLine, SplitMeta } from "@/hooks/useSplitCalculator";
 import { useSplitCalculator, defaultRecipientLine } from "@/hooks/useSplitCalculator";
+import { moveItem } from "@/lib/reorder";
+import SplitSumIndicator from "@/components/invoice/SplitSumIndicator";
 
 const STROOP_SCALE = 1e7;
 
@@ -45,6 +48,18 @@ export default function SplitBuilder({
     }
     return [];
   });
+
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const pendingFocusIndex = useRef<number | null>(null);
+  const handleRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  useEffect(() => {
+    if (pendingFocusIndex.current === null) return;
+    const index = pendingFocusIndex.current;
+    pendingFocusIndex.current = null;
+    handleRefs.current[index]?.focus();
+  }, [recipients]);
 
   const parsedTotal = Math.max(0, parseFloat(totalAmount) || 0);
 
@@ -101,6 +116,46 @@ export default function SplitBuilder({
   const removeRecipient = (index: number) => {
     if (readOnly) return;
     setRecipients((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const reorderRecipient = (from: number, to: number) => {
+    if (readOnly || from === to) return;
+    setRecipients((prev) => moveItem(prev, from, to));
+  };
+
+  const handleDragStart = (index: number) => {
+    if (readOnly) return;
+    setDraggingIndex(index);
+  };
+
+  const handleDragOver = (index: number) => {
+    if (readOnly || draggingIndex === null) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (index: number) => {
+    if (readOnly || draggingIndex === null) return;
+    reorderRecipient(draggingIndex, index);
+    setDraggingIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleHandleKeyDown = (index: number, event: ReactKeyboardEvent) => {
+    if (readOnly) return;
+    if (event.key === "ArrowDown" && index < recipients.length - 1) {
+      event.preventDefault();
+      pendingFocusIndex.current = index + 1;
+      reorderRecipient(index, index + 1);
+    } else if (event.key === "ArrowUp" && index > 0) {
+      event.preventDefault();
+      pendingFocusIndex.current = index - 1;
+      reorderRecipient(index, index - 1);
+    }
   };
 
   const allocatedAmount = recipients.reduce(
@@ -180,6 +235,20 @@ export default function SplitBuilder({
         </div>
       </div>
 
+      {mode === "percent" && (
+        <div className="mb-4">
+          <SplitSumIndicator
+            sum={recipients.reduce((s, r) => s + (r.sharePercent || 0), 0)}
+            isValid={result.validation.sharesSumTo100}
+          />
+          {!result.validation.sharesSumTo100 && result.validation.errorMessage && (
+            <p role="alert" className="text-sm text-red-400">
+              {result.validation.errorMessage}
+            </p>
+          )}
+        </div>
+      )}
+
       {mode === "fixed" && !isBalanced && (
         <div role="alert" className="mb-4 text-sm text-red-400 bg-red-950/40 border border-red-800 rounded-lg px-3 py-2">
           Allocation does not match invoice total within tolerance
@@ -200,9 +269,45 @@ export default function SplitBuilder({
         )}
 
         {recipients.map((line, index) => (
-          <div key={index} className="bg-gray-900/60 border border-gray-700 rounded-lg p-4 space-y-3">
+          <div
+            key={index}
+            data-testid={`recipient-row-${index}`}
+            onDragStart={() => handleDragStart(index)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              handleDragOver(index);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              handleDrop(index);
+            }}
+            onDragEnd={handleDragEnd}
+            className={`bg-gray-900/60 border border-gray-700 rounded-lg p-4 space-y-3 transition-all ${
+              draggingIndex === index ? "opacity-50" : ""
+            } ${
+              dragOverIndex === index && draggingIndex !== index
+                ? "ring-2 ring-indigo-500"
+                : ""
+            }`}
+          >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-gray-400">Recipient #{index + 1}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  ref={(el) => {
+                    handleRefs.current[index] = el;
+                  }}
+                  data-testid={`drag-handle-${index}`}
+                  aria-label={`Reorder recipient ${index + 1}`}
+                  onMouseDown={() => handleDragStart(index)}
+                  onKeyDown={(e) => handleHandleKeyDown(index, e)}
+                  disabled={readOnly}
+                  className="cursor-grab text-gray-500 hover:text-gray-300 transition-colors disabled:cursor-not-allowed"
+                >
+                  ⠿
+                </button>
+                <span className="text-xs font-medium text-gray-400">Recipient #{index + 1}</span>
+              </div>
               {!readOnly && (
                 <button
                   type="button"
@@ -227,22 +332,51 @@ export default function SplitBuilder({
             </div>
 
             {mode === "percent" ? (
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">
-                  Share %
-                </label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  max="100"
-                  value={line.sharePercent}
-                  onChange={(e) =>
-                    updateRecipient(index, { sharePercent: parseFloat(e.target.value) || 0 })
-                  }
-                  disabled={readOnly}
-                  className="w-full min-h-9 bg-gray-950 border border-gray-700 rounded-md px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-70"
-                />
+              <div className="space-y-2">
+                <div>
+                  <label
+                    htmlFor={`recipient-${index}-share-slider`}
+                    className="block text-xs font-medium text-gray-400 mb-1"
+                  >
+                    Share %
+                  </label>
+                  <input
+                    id={`recipient-${index}-share-slider`}
+                    type="range"
+                    step="1"
+                    min="0"
+                    max="100"
+                    value={Math.round(line.sharePercent || 0)}
+                    aria-label={`Recipient ${index + 1} share percentage`}
+                    onChange={(e) =>
+                      updateRecipient(index, { sharePercent: parseFloat(e.target.value) || 0 })
+                    }
+                    disabled={readOnly}
+                    className="w-full accent-indigo-500 disabled:opacity-70"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor={`recipient-${index}-share-exact`}
+                    className="block text-xs font-medium text-gray-400 mb-1"
+                  >
+                    Share % (exact)
+                  </label>
+                  <input
+                    id={`recipient-${index}-share-exact`}
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    max="100"
+                    value={line.sharePercent}
+                    aria-label={`Recipient ${index + 1} share percentage, exact value`}
+                    onChange={(e) =>
+                      updateRecipient(index, { sharePercent: parseFloat(e.target.value) || 0 })
+                    }
+                    disabled={readOnly}
+                    className="w-full min-h-9 bg-gray-950 border border-gray-700 rounded-md px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-70"
+                  />
+                </div>
               </div>
             ) : (
               <div>
