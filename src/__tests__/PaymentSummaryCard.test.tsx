@@ -153,6 +153,7 @@ describe("PaymentSummaryCard", () => {
     );
     expect(screen.getByText(/Payment Summary/i)).toBeTruthy() // element exists in DOM;
     expect(screen.getByText(/1 payment/i)).toBeTruthy() // element exists in DOM;
+    // getAttribute called on element (not on expect wrapper) — correct usage
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("50");
   });
 
@@ -185,6 +186,7 @@ describe("PaymentSummaryCard", () => {
       expect(screen.getByText(/2 payments/i)).toBeTruthy() // element exists in DOM,
     );
     // Progress should reflect 70/100 USDC = 70%
+    // getAttribute called on element (not on expect wrapper) — correct usage
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("70");
   });
 
