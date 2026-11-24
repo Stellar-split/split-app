@@ -10,6 +10,11 @@ interface Props {
   title?: string;
 }
 
+/**
+ * EscrowAnalyticsDashboard — renders escrow metric cards (TVL, released funds,
+ * dispute rate), status distribution, condition pass rates, token volume,
+ * trend analysis, and a Markdown report export.
+ */
 export default function EscrowAnalyticsDashboard({
   escrows,
   title = "Escrow Analytics & Reporting",
@@ -27,14 +32,16 @@ export default function EscrowAnalyticsDashboard({
 
   const handleCopyReport = () => {
     const md = generateEscrowMarkdownReport(report);
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(md);
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(md).catch(() => {
+        /* clipboard unavailable — report stays visible in the dashboard */
+      });
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const { summary, byStatus, byConditionType, byToken } = report;
+  const { summary, byStatus, byConditionType, byToken, trends } = report;
 
   return (
     <div
@@ -73,6 +80,7 @@ export default function EscrowAnalyticsDashboard({
           <button
             type="button"
             onClick={handleCopyReport}
+            aria-label="Export escrow analytics report as Markdown"
             className="rounded-lg bg-blue-600 hover:bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
             {copied ? "Copied Report!" : "Export Report"}
@@ -178,6 +186,53 @@ export default function EscrowAnalyticsDashboard({
             })}
           </div>
         </div>
+      </div>
+
+      {/* Trend Analysis */}
+      <div className="rounded-lg bg-gray-800/40 p-4 border border-gray-700/50 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-200">Trend Analysis</h3>
+          <span
+            className={`text-xs font-mono tabular-nums ${
+              trends.direction === "up"
+                ? "text-green-400"
+                : trends.direction === "down"
+                ? "text-rose-400"
+                : "text-gray-400"
+            }`}
+          >
+            {trends.direction === "up" ? "▲" : trends.direction === "down" ? "▼" : "■"}{" "}
+            {trends.releasedValueChangePercentage}% released value
+          </span>
+        </div>
+        <div className="flex items-end gap-2 h-24" role="img" aria-label="Escrow release trend">
+          {trends.points.map((point) => {
+            const max = trends.points.reduce(
+              (acc, p) => (p.valueReleased > acc ? p.valueReleased : acc),
+              0n
+            );
+            const height =
+              max > 0n ? Math.round((Number(point.valueReleased) / Number(max)) * 100) : 0;
+            return (
+              <div key={point.timestamp} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full h-20 flex items-end">
+                  <div
+                    className="w-full rounded-t bg-blue-500/80"
+                    style={{ height: `${height}%` }}
+                    title={`${point.label}: ${formatAmount(point.valueReleased)} released`}
+                  />
+                </div>
+                <span className="text-[9px] text-gray-500 truncate w-full text-center">
+                  {point.label.slice(5)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-gray-500 mt-2">
+          New escrows change: {trends.createdCountChangePercentage}% ·{" "}
+          {trends.points.reduce((acc, p) => acc + p.disputed, 0)} disputes opened in window
+        </p>
       </div>
 
       {/* Token Distribution */}

@@ -265,6 +265,30 @@ export interface EscrowAnalyticsFilter {
   status?: EscrowStatus;
 }
 
+export interface EscrowTrendPoint {
+  /** Unix timestamp (seconds) of the bucket start */
+  timestamp: number;
+  /** Human readable bucket label, e.g. "2024-01-05" */
+  label: string;
+  created: number;
+  released: number;
+  disputed: number;
+  valueLocked: bigint;
+  valueReleased: bigint;
+}
+
+export interface EscrowTrendAnalysis {
+  /** Bucket granularity used for the trend series */
+  granularity: "day" | "week" | "month";
+  points: EscrowTrendPoint[];
+  /** Percentage change of released value between the two halves of the window */
+  releasedValueChangePercentage: number;
+  /** Percentage change of newly created escrows between the two halves of the window */
+  createdCountChangePercentage: number;
+  /** "up" | "down" | "flat" direction of the released value trend */
+  direction: "up" | "down" | "flat";
+}
+
 export interface EscrowAnalyticsReport {
   summary: {
     totalEscrows: number;
@@ -286,6 +310,7 @@ export interface EscrowAnalyticsReport {
   byStatus: Record<EscrowStatus, number>;
   byConditionType: Record<EscrowConditionType, { total: number; met: number; passRatePercentage: number }>;
   byToken: Record<string, { totalVolume: bigint; activeTvl: bigint; count: number }>;
+  trends: EscrowTrendAnalysis;
   generatedAt: number;
 }
 

@@ -11,6 +11,8 @@ import type {
   EscrowConditionType,
   EscrowContract,
   EscrowStatus,
+  EscrowTrendAnalysis,
+  EscrowTrendPoint,
 } from "@/types/escrow";
 
 const ALL_STATUSES: EscrowStatus[] = [
@@ -229,7 +231,105 @@ export function computeEscrowAnalytics(
     byStatus,
     byConditionType,
     byToken,
+    trends: computeEscrowTrends(escrows, now),
     generatedAt: now,
+  };
+}
+
+/**
+ * Computes a bucketed trend series (created / released / disputed counts and values)
+ * over the escrow lifecycle, plus period-over-period change percentages.
+ */
+export function computeEscrowTrends(
+  escrows: EscrowContract[],
+  now: number = Math.floor(Date.now() / 1000),
+  bucketCount = 6
+): EscrowTrendAnalysis {
+  const DAY = 86400;
+  const bucketSeconds = DAY;
+  const buckets = Math.max(1, bucketCount);
+  const windowStart = now - buckets * bucketSeconds;
+
+  const points: EscrowTrendPoint[] = [];
+  for (let i = 0; i < buckets; i++) {
+    const start = windowStart + i * bucketSeconds;
+    points.push({
+      timestamp: start,
+      label: new Date(start * 1000).toISOString().slice(0, 10),
+      created: 0,
+      released: 0,
+      disputed: 0,
+      valueLocked: 0n,
+      valueReleased: 0n,
+    });
+  }
+
+  const bucketIndex = (ts: number): number => {
+    if (ts < windowStart || ts >= windowStart + buckets * bucketSeconds) return -1;
+    return Math.floor((ts - windowStart) / bucketSeconds);
+  };
+
+  escrows.forEach((escrow) => {
+    const createdIdx = bucketIndex(escrow.createdAt);
+    if (createdIdx >= 0) {
+      points[createdIdx].created += 1;
+      if (escrow.fundedAmount > 0n) {
+        points[createdIdx].valueLocked += escrow.fundedAmount;
+      }
+    }
+
+    if (escrow.status === "Released") {
+      const releasedIdx = bucketIndex(escrow.releasedAt ?? escrow.updatedAt);
+      if (releasedIdx >= 0) {
+        points[releasedIdx].released += 1;
+        points[releasedIdx].valueReleased += escrow.fundedAmount;
+      }
+    }
+
+    if (escrow.dispute) {
+      const disputedIdx = bucketIndex(escrow.dispute.createdAt);
+      if (disputedIdx >= 0) {
+        points[disputedIdx].disputed += 1;
+      }
+    }
+  });
+
+  const half = Math.floor(points.length / 2);
+  const sum = (slice: EscrowTrendPoint[], key: "valueReleased" | "created"): bigint => {
+    return slice.reduce((acc, p) => acc + BigInt(p[key]), 0n);
+  };
+
+  const changePercentage = (previous: bigint, current: bigint): number => {
+    if (previous === 0n) return current === 0n ? 0 : 100;
+    const delta = Number(current - previous) / Number(previous);
+    return Math.round(delta * 10000) / 100;
+  };
+
+  const previousPoints = points.slice(0, half);
+  const currentPoints = points.slice(half);
+
+  const releasedValueChangePercentage = changePercentage(
+    sum(previousPoints, "valueReleased"),
+    sum(currentPoints, "valueReleased")
+  );
+  const createdCountChangePercentage = changePercentage(
+    sum(previousPoints, "created"),
+    sum(currentPoints, "created")
+  );
+
+  const direction: EscrowTrendAnalysis["direction"] =
+    releasedValueChangePercentage > 0
+      ? "up"
+      : releasedValueChangePercentage < 0
+      ? "down"
+      : "flat";
+
+  return {
+    granularity: "day",
+    points,
+    releasedValueChangePercentage,
+    createdCountChangePercentage,
+    direction,
   };
 }
 
@@ -237,7 +337,7 @@ export function computeEscrowAnalytics(
  * Generates an executive Markdown report from the escrow analytics.
  */
 export function generateEscrowMarkdownReport(report: EscrowAnalyticsReport): string {
-  const { summary, byStatus, byConditionType, byToken, generatedAt } = report;
+  const { summary, byStatus, byConditionType, byToken, trends, generatedAt } = report;
 
   const dateStr = new Date(generatedAt * 1000).toISOString();
 
@@ -286,6 +386,16 @@ export function generateEscrowMarkdownReport(report: EscrowAnalyticsReport): str
   ][];
   tokenEntries.forEach(([token, data]) => {
     md += `| ${token} | ${data.count} | ${data.totalVolume.toString()} | ${data.activeTvl.toString()} |\n`;
+  });
+  md += `\n`;
+
+  md += `## Trend Analysis (${trends.granularity}ly)\n`;
+  md += `- **Released Value Change**: ${trends.releasedValueChangePercentage}% (${trends.direction})\n`;
+  md += `- **New Escrows Change**: ${trends.createdCountChangePercentage}%\n\n`;
+  md += `| Period | Created | Released | Disputed | Value Locked | Value Released |\n`;
+  md += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
+  trends.points.forEach((point) => {
+    md += `| ${point.label} | ${point.created} | ${point.released} | ${point.disputed} | ${point.valueLocked.toString()} | ${point.valueReleased.toString()} |\n`;
   });
 
   return md;
