@@ -132,7 +132,7 @@ describe("BulkTagModal", () => {
     const { onClose } = renderModal();
 
     // The backdrop is the outermost dialog container
-    const backdrop = screen.getByRole("dialog");
+    const backdrop = screen.getByTestId("bulk-tag-backdrop");
     await user.click(backdrop);
 
     expect(onClose).toHaveBeenCalledTimes(1);
