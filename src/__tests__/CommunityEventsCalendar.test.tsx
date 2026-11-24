@@ -68,6 +68,6 @@ describe("CommunityEventsCalendar", () => {
     render(<CommunityEventsCalendar events={events} initialDate={new Date(2026, 2, 1)} onRsvpChange={onRsvpChange} />);
     fireEvent.click(screen.getAllByText("RSVP")[0]);
     expect(onRsvpChange).toHaveBeenLastCalledWith(["a"]);
-    expect(screen.getByText("Going")).getAttribute("aria-pressed").toBe("true");
+    expect(screen.getByText("Going").getAttribute("aria-pressed")).toBe("true");
   });
 });
