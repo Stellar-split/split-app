@@ -18,7 +18,7 @@ describe("CreatorAccountabilityScore", () => {
       />,
     );
     expect(screen.getByLabelText("Grade A")).toBeTruthy() // element exists in DOM;
-    expect(screen.getByRole("meter")).getAttribute("aria-valuenow").toBe("100");
+    expect(screen.getByRole("meter").getAttribute("aria-valuenow")).toBe("100");
     expect(screen.getByText("50 / 50")).toBeTruthy() // element exists in DOM;
   });
 
