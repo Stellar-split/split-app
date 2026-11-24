@@ -3,16 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Invoice } from "@stellar-split/sdk";
-import { truncateAddress } from "@stellar-split/sdk";
-
-function useDebounce<T>(value: T, ms: number) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = window.setTimeout(() => setDebounced(value), ms);
-    return () => window.clearTimeout(t);
-  }, [value, ms]);
-  return debounced;
-}
 
 function escapeRe(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -93,13 +83,36 @@ export default function GlobalSearch({ invoices, publicKey }: Props) {
   const [query, setQuery] = useState("");
   const [allPublic, setAllPublic] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [fetchedInvoices, setFetchedInvoices] = useState<Invoice[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const debounced = useDebounce(query, 300);
-  const results = filterResults(invoices, debounced, publicKey, allPublic);
+  useEffect(() => {
+    if (!publicKey || invoices.length > 0) return;
+
+    const controller = new AbortController();
+    fetch(`/api/invoices?publicKey=${encodeURIComponent(publicKey)}`, {
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Failed to load invoices (${response.status})`);
+        return response.json();
+      })
+      .then((data: { invoices?: Invoice[] }) => {
+        setFetchedInvoices(Array.isArray(data.invoices) ? data.invoices : []);
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setFetchedInvoices([]);
+      });
+
+    return () => controller.abort();
+  }, [publicKey, invoices.length]);
+
+  const availableInvoices = invoices.length > 0 ? invoices : fetchedInvoices;
+  const results = filterResults(availableInvoices, query, publicKey, allPublic);
   const totalCount = results.invoices.length + results.addresses.length;
-  const hasQuery = debounced.trim().length > 0;
+  const hasQuery = query.trim().length > 0;
 
   // Flat list of navigable items for keyboard nav
   const items: { type: "invoice" | "address"; id: string; href: string }[] = [
@@ -155,7 +168,7 @@ export default function GlobalSearch({ invoices, publicKey }: Props) {
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [debounced]);
+  }, [query]);
 
   return (
     <>
@@ -228,6 +241,7 @@ export default function GlobalSearch({ invoices, publicKey }: Props) {
               <div className="flex items-center gap-2 px-4 py-2 border-b border-white/[0.04] text-xs text-slate-500">
                 <button
                   onClick={() => setAllPublic(false)}
+                  aria-pressed={!allPublic}
                   className={`px-2 py-0.5 rounded-full transition-colors ${!allPublic ? "bg-brand-600/30 text-brand-300" : "hover:text-slate-300"}`}
                 >
                   My invoices
@@ -235,6 +249,7 @@ export default function GlobalSearch({ invoices, publicKey }: Props) {
                 <span>/</span>
                 <button
                   onClick={() => setAllPublic(true)}
+                  aria-pressed={allPublic}
                   className={`px-2 py-0.5 rounded-full transition-colors ${allPublic ? "bg-brand-600/30 text-brand-300" : "hover:text-slate-300"}`}
                 >
                   All public invoices
@@ -258,7 +273,7 @@ export default function GlobalSearch({ invoices, publicKey }: Props) {
               {hasQuery && totalCount === 0 && (
                 <li className="px-4 py-6 flex flex-col items-center gap-3 text-center">
                   <span className="text-2xl" aria-hidden="true">🔍</span>
-                  <p className="text-sm text-slate-400">No results for <span className="text-white">&ldquo;{debounced}&rdquo;</span></p>
+                  <p className="text-sm text-slate-400">No results for <span className="text-white">&ldquo;{query.trim()}&rdquo;</span></p>
                   <a
                     href="/invoice/new"
                     onClick={closeSearch}
@@ -291,15 +306,15 @@ export default function GlobalSearch({ invoices, publicKey }: Props) {
                         >
                           <div className="flex flex-col gap-0.5 min-w-0">
                             <span className="text-sm text-white font-medium">
-                              Invoice #<Highlight text={inv.id} query={debounced} />
+                              Invoice #<Highlight text={inv.id} query={query} />
                               {(inv as Invoice & { title?: string }).title && (
                                 <span className="ml-2 text-slate-400 font-normal">
-                                  — <Highlight text={(inv as Invoice & { title?: string }).title!} query={debounced} />
+                                  — <Highlight text={(inv as Invoice & { title?: string }).title!} query={query} />
                                 </span>
                               )}
                             </span>
                             <span className="text-xs text-slate-500 font-mono truncate">
-                              <Highlight text={inv.creator} query={debounced} />
+                              <Highlight text={inv.creator} query={query} />
                             </span>
                           </div>
                           <span className={`shrink-0 ml-3 text-xs px-2 py-0.5 rounded-full font-semibold ${
@@ -338,7 +353,7 @@ export default function GlobalSearch({ invoices, publicKey }: Props) {
                         >
                           <span className="text-lg" aria-hidden="true">👤</span>
                           <span className="text-sm text-white font-mono truncate">
-                            <Highlight text={a.address} query={debounced} />
+                            <Highlight text={a.address} query={query} />
                           </span>
                         </button>
                       </li>

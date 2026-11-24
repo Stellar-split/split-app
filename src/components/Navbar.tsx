@@ -13,6 +13,7 @@ import GlobalSearch from "@/components/GlobalSearch";
 import MobileSidebar from "@/components/layout/MobileSidebar";
 import Breadcrumb from "@/components/Breadcrumb";
 import HelpTooltip from "@/components/HelpTooltip";
+import { useWalletContext } from "@/contexts/WalletContext";
 
 const NAV_LINKS = [
   { href: "/dashboard",            label: "Dashboard" },
@@ -29,6 +30,7 @@ const NAV_LINKS = [
 ];
 
 export default function Navbar() {
+  const { address } = useWalletContext();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -125,6 +127,7 @@ export default function Navbar() {
               />
             </div>
             <ThemeToggle />
+            <GlobalSearch invoices={[]} publicKey={address || null} />
 
             {/* New Invoice CTA — hidden below lg */}
             <Link
