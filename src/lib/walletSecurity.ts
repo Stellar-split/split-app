@@ -106,17 +106,44 @@ export const SECURITY_TIPS: readonly SecurityTip[] = [
 
 const SECRET_SEED_PATTERN = /\bS[A-Z2-7]{55}\b/g;
 
-export function containsSecretKey(text: string): boolean {
-  return (text.match(SECRET_SEED_PATTERN) ?? []).some((value) => StrKey.isValidEd25519SecretSeed(value));
+/**
+ * Validates a Stellar secret seed (StrKey "S..." with a correct CRC16
+ * checksum). Falls back to a local checksum check if the installed SDK
+ * build does not expose `StrKey.isValidEd25519SecretSeed`.
+ */
+export function isValidEd25519SecretSeed(value: string): boolean {
+  const strKey = StrKey as unknown as {
+    isValidEd25519SecretSeed?: (v: string) => boolean;
+  };
+  if (typeof strKey.isValidEd25519SecretSeed === "function") {
+    return strKey.isValidEd25519SecretSeed(value);
+  }
+  if (!/^S[A-Z2-7]{55}$/.test(value)) return false;
+  try {
+    const decoded = (StrKey as unknown as { decodeEd25519SecretSeed?: (v: string) => Uint8Array })
+      .decodeEd25519SecretSeed?.(value);
+    return decoded instanceof Uint8Array && decoded.length === 32;
+  } catch {
+    return false;
+  }
 }
 
+/** True when the text contains at least one valid Stellar secret seed. */
+export function containsSecretKey(text: string): boolean {
+  if (!text) return false;
+  return (text.match(SECRET_SEED_PATTERN) ?? []).some((value) => isValidEd25519SecretSeed(value));
+}
+
+/** True when the text looks like a BIP39-style recovery phrase (12/15/18/21/24 words). */
 export function looksLikeRecoveryPhrase(text: string): boolean {
+  if (!text) return false;
   const words = text.trim().split(/\s+/);
   return [12, 15, 18, 21, 24].includes(words.length) && words.every((word) => /^[a-z]{3,8}$/.test(word));
 }
 
 export type SecretKind = "secret_key" | "recovery_phrase";
 
+/** Classifies the kind of secret material found in the text, if any. */
 export function detectSecretMaterial(text: string): SecretKind | null {
   if (!text) return null;
   if (containsSecretKey(text)) return "secret_key";
