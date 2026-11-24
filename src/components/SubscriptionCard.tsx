@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { formatAmount } from "@stellar-split/sdk";
 import type { Subscription } from "@/types/subscription";
 import {
   formatFrequency,
@@ -129,7 +130,7 @@ export default function SubscriptionCard({ subscription }: Props) {
         </div>
         <div>
           <p className="text-gray-500 text-xs">USDC Collected</p>
-          <p className="text-gray-300">{display.totalUsdcFormatted}</p>
+          <p className="text-gray-300">{formatAmount(subscription.totalUsdcCollected)}</p>
         </div>
         <div>
           <p className="text-gray-500 text-xs">Created</p>
