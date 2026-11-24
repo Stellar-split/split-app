@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import FocusTrap from "./FocusTrap";
 import { QRCodeCanvas } from "qrcode.react";
+import { isWalletConnected } from "@/lib/freighter";
 
 export type WalletConnectStatus =
   | "idle"
@@ -21,6 +22,8 @@ type QRModalProps = {
   onCopied?: () => void;
   onRetry?: () => void;
   onConnected?: () => void;
+  /** Delay in ms between wallet connection polls. Defaults to 2000ms. */
+  pollingInterval?: number;
 };
 
 const STATUS_TEXT: Record<WalletConnectStatus, string> = {
@@ -41,8 +44,53 @@ export default function QRModal({
   onCopied,
   onRetry,
   onConnected,
+  pollingInterval = 2000,
 }: QRModalProps) {
   const firedRef = useRef(false);
+  const callbacksRef = useRef({ onConnected, onClose });
+
+  useEffect(() => {
+    callbacksRef.current = { onConnected, onClose };
+  }, [onConnected, onClose]);
+
+  // Poll the wallet connection while the modal is open and awaiting approval.
+  useEffect(() => {
+    if (!open) {
+      firedRef.current = false;
+      return;
+    }
+    if (status === "session_approved" || status === "timeout" || status === "error") {
+      return;
+    }
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const check = async () => {
+      try {
+        const connected = await isWalletConnected();
+        if (cancelled || firedRef.current) return;
+        if (connected) {
+          firedRef.current = true;
+          callbacksRef.current.onConnected?.();
+          callbacksRef.current.onClose();
+          return;
+        }
+      } catch {
+        // Ignore transient wallet errors and keep polling.
+      }
+      if (!cancelled) {
+        timer = setTimeout(check, pollingInterval);
+      }
+    };
+
+    void check();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [open, status, pollingInterval]);
 
   // Close the modal once the parent reports a successful session approval.
   useEffect(() => {
