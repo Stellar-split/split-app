@@ -37,8 +37,8 @@ export async function saveSubscriptions(subscriptions: Subscription[]): Promise<
 export function formatSubscriptionForDisplay(subscription: Subscription): any {
   return {
     ...subscription,
-    createdAtFormatted: new Date(subscription.createdAt).toLocaleString(),
-    nextRunDateFormatted: new Date(subscription.nextRunDate).toLocaleString(),
+    createdAtFormatted: new Date(subscription.createdAt * 1000).toLocaleString(),
+    nextRunDateFormatted: new Date(subscription.nextRunDate * 1000).toLocaleString(),
     totalUsdcFormatted: (Number(subscription.totalUsdcCollected) / 1_000_000).toFixed(2),
   };
 }
