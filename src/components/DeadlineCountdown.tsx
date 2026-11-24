@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { isExpired } from "@stellar-split/sdk";
 import RelativeTime from "@/components/ui/RelativeTime";
 
 interface Props {
@@ -48,7 +47,11 @@ export default function DeadlineCountdown({ deadline, compact = false, expiredLa
   }, []);
 
   useEffect(() => {
-    if (isExpired(deadline) || prefersReducedMotion) return;
+    setTimeLeft(calcTimeLeft(deadline));
+  }, [deadline]);
+
+  useEffect(() => {
+    if (calcTimeLeft(deadline) === 0 || prefersReducedMotion) return;
 
     const id = window.setInterval(() => {
       const left = calcTimeLeft(deadline);
@@ -59,7 +62,7 @@ export default function DeadlineCountdown({ deadline, compact = false, expiredLa
     return () => window.clearInterval(id);
   }, [deadline, prefersReducedMotion]);
 
-  if (isExpired(deadline) || timeLeft === 0) {
+  if (timeLeft === 0) {
     return (
       <time
         dateTime={new Date(deadline * 1000).toISOString()}
