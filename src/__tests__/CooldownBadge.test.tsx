@@ -8,16 +8,22 @@ import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
  *  - renders nothing when expiresAt is in the past (expired)
  *  - ticks down by 1 second after each interval
  *  - has the required ARIA attributes for screen-reader announcements
+ *  - reacts to expiry timestamp transitions (null -> future, active -> null)
  */
 
 import React from "react";
 import { render, screen, act } from "@testing-library/react";
 import CooldownBadge from "@/components/CooldownBadge";
 
+const NOW = new Date("2024-01-01T00:00:00.000Z").getTime();
+
 beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(NOW);
 });
 
 afterEach(() => {
+  vi.useRealTimers();
 });
 
 const futureExpiry = () => Math.floor(Date.now() / 1000) + 16_212; // ~4h 30m 12s
@@ -51,12 +57,15 @@ test("countdown text updates after 1 second tick", () => {
   render(<CooldownBadge expiresAt={expiry} />);
 
   const before = screen.getByRole("status").textContent ?? "";
+  expect(before).toContain("Next payment in 1m 05s");
 
   act(() => {
+    vi.advanceTimersByTime(1000);
   });
 
   const after = screen.getByRole("status").textContent ?? "";
   expect(after).not.toBe(before);
+  expect(after).toContain("Next payment in 1m 04s");
 });
 
 test("clears (renders nothing) once the expiry timestamp passes", () => {
@@ -66,7 +75,32 @@ test("clears (renders nothing) once the expiry timestamp passes", () => {
   expect(container.firstChild).not.toBeNull();
 
   act(() => {
+    vi.advanceTimersByTime(2000);
   });
 
   expect(container.firstChild).toBeNull();
+});
+
+test("shows the badge when expiresAt changes from null to a future timestamp", () => {
+  const { container, rerender } = render(<CooldownBadge expiresAt={null} />);
+  expect(container.firstChild).toBeNull();
+
+  rerender(<CooldownBadge expiresAt={futureExpiry()} />);
+  expect(screen.getByRole("status")).toBeTruthy();
+});
+
+test("hides the badge when an active expiry changes to null", () => {
+  const { container, rerender } = render(<CooldownBadge expiresAt={futureExpiry()} />);
+  expect(container.firstChild).not.toBeNull();
+
+  rerender(<CooldownBadge expiresAt={null} />);
+  expect(container.firstChild).toBeNull();
+});
+
+test("uses the new timestamp when an active deadline is replaced", () => {
+  const { rerender } = render(<CooldownBadge expiresAt={futureExpiry()} />);
+  expect(screen.getByRole("status").textContent).toContain("4h 30m 12s");
+
+  rerender(<CooldownBadge expiresAt={Math.floor(Date.now() / 1000) + 125} />);
+  expect(screen.getByRole("status").textContent).toContain("Next payment in 2m 05s");
 });
