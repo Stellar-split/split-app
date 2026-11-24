@@ -22,6 +22,8 @@ export interface PaymentExportFilters {
   startDate?: string;
   endDate?: string;
   statuses?: string[];
+  /** Invoice id used as the heading of the PDF payment summary. */
+  invoiceId?: string;
 }
 
 /**
@@ -209,7 +211,10 @@ export function exportPayments(
       return json;
     }
     case 'pdf': {
-      const html = buildPaymentSummaryHtml(filtered as unknown as Record<string, unknown>[]);
+      const html = buildPaymentSummaryHtml(
+        filters.invoiceId ?? 'all',
+        filtered as unknown as PaymentWithMeta[],
+      );
       downloadPaymentSummaryPDF(html, filename);
       return html;
     }
