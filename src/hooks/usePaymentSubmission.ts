@@ -7,11 +7,25 @@ import { toAppError } from "@/lib/appError";
 import { useToast } from "@/context/ToastContext";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 
+/** Minimal rate lock shape needed to detect expiry. */
+export interface PaymentRateLock {
+  currency?: string;
+  rate?: number;
+  /** Epoch ms when the lock expires. */
+  expiresAt: number;
+}
+
+/** Options accepted when initiating a payment. */
+export interface InitiatePaymentOptions {
+  rateLock?: PaymentRateLock | null;
+}
+
 interface PaymentSubmissionState {
   showSimulationPreview: boolean;
   isSimulating: boolean;
   simulationResult: SimulationResult | null;
   simulationError: string | null;
+  rateLockExpired: boolean;
 }
 
 interface UsePaymentSubmissionReturn {
@@ -19,9 +33,22 @@ interface UsePaymentSubmissionReturn {
   initiateDemoPayment: (
     transactionXdr: string,
     onConfirm: () => Promise<any>,
-    onCancel: () => void
+    onCancel: () => void,
+    options?: InitiatePaymentOptions
   ) => Promise<void>;
   resetState: () => void;
+}
+
+/**
+ * Returns true when the given rate lock is missing or has expired.
+ * A lock is considered expired at or after its `expiresAt` timestamp.
+ */
+export function isRateLockExpired(
+  lock: PaymentRateLock | null | undefined,
+  now: number = Date.now()
+): boolean {
+  if (!lock || typeof lock.expiresAt !== "number") return false;
+  return now >= lock.expiresAt;
 }
 
 export function usePaymentSubmission(): UsePaymentSubmissionReturn {
@@ -30,6 +57,7 @@ export function usePaymentSubmission(): UsePaymentSubmissionReturn {
     isSimulating: false,
     simulationResult: null,
     simulationError: null,
+    rateLockExpired: false,
   });
 
   const { notify } = useToast();
@@ -39,13 +67,27 @@ export function usePaymentSubmission(): UsePaymentSubmissionReturn {
     async (
       transactionXdr: string,
       onConfirm: () => Promise<any>,
-      onCancel: () => void
+      onCancel: () => void,
+      options?: InitiatePaymentOptions
     ) => {
+      if (isRateLockExpired(options?.rateLock)) {
+        setState((prev) => ({
+          ...prev,
+          showSimulationPreview: false,
+          isSimulating: false,
+          simulationResult: null,
+          simulationError: "Rate lock has expired. Please refresh the rate and try again.",
+          rateLockExpired: true,
+        }));
+        return;
+      }
+
       setState((prev) => ({
         ...prev,
         showSimulationPreview: true,
         isSimulating: true,
         simulationError: null,
+        rateLockExpired: false,
       }));
 
       try {
@@ -150,6 +192,7 @@ export function usePaymentSubmission(): UsePaymentSubmissionReturn {
       isSimulating: false,
       simulationResult: null,
       simulationError: null,
+      rateLockExpired: false,
     });
   }, []);
 

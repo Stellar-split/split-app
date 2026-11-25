@@ -114,13 +114,14 @@ export async function verifyBiometric(): Promise<boolean> {
         timeout: 60_000,
       },
     });
-    const credentialId = fromBase64Url(id);
+    const credentialId = new Uint8Array(fromBase64Url(id));
     const rawId = (assertion as PublicKeyCredential | null)?.rawId;
     const response = (assertion as PublicKeyCredential | null)?.response as AuthenticatorAssertionResponse | undefined;
     const authenticatorData = response?.authenticatorData;
+    const rawIdBytes = rawId ? new Uint8Array(rawId) : null;
     const matchesCredential = Boolean(
-      rawId && rawId.byteLength === credentialId.byteLength &&
-      new Uint8Array(rawId).every((byte, index) => byte === new Uint8Array(credentialId)[index]),
+      rawIdBytes && rawIdBytes.byteLength === credentialId.byteLength &&
+      rawIdBytes.every((byte, index) => byte === credentialId[index]),
     );
     const userVerified = Boolean(authenticatorData && authenticatorData.byteLength >= 33 &&
       (new Uint8Array(authenticatorData)[32] & 0x04) !== 0);

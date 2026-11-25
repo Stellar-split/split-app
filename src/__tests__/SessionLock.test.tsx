@@ -1,7 +1,16 @@
 import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import React from "react";
-import { render, screen, act, fireEvent } from "@testing-library/react";
+import { render, screen, act, fireEvent, cleanup } from "@testing-library/react";
 import { SessionLockProvider, useSessionLock } from "@/contexts/SessionLockContext";
+
+const TIMEOUT_MS = 15 * 60 * 1000;
+
+/** Advances fake timers inside act so the provider's interval tick flushes. */
+function advance(ms: number) {
+  act(() => {
+    vi.advanceTimersByTime(ms);
+  });
+}
 
 function TestConsumer() {
   const { locked, timeoutMinutes, setTimeoutMinutes, resume } = useSessionLock();
@@ -18,9 +27,13 @@ function TestConsumer() {
 
 beforeEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
+  vi.useFakeTimers();
 });
 
 afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
 });
 
 test("starts unlocked", () => {
@@ -48,8 +61,7 @@ test("locks after inactivity timeout", () => {
     </SessionLockProvider>,
   );
 
-  act(() => {
-  });
+  advance(TIMEOUT_MS + 1000);
 
   expect(screen.getByTestId("locked").textContent).toBe("true");
 });
@@ -61,14 +73,12 @@ test("interaction resets the timer", () => {
     </SessionLockProvider>,
   );
 
-  act(() => {
-  });
+  advance(TIMEOUT_MS - 60_000);
   expect(screen.getByTestId("locked").textContent).toBe("false");
 
   fireEvent.mouseDown(document);
 
-  act(() => {
-  });
+  advance(TIMEOUT_MS - 60_000);
   expect(screen.getByTestId("locked").textContent).toBe("false");
 });
 

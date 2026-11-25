@@ -72,14 +72,33 @@ export function addComment(invoiceId: string, authorAddress: string, text: strin
   return comment;
 }
 
-/** Oldest-first page of comments. Pass `before` (a createdAt cursor) to page further back. */
+export const DEFAULT_COMMENT_PAGE_SIZE = 50;
+export const MAX_COMMENT_PAGE_SIZE = 200;
+
+/**
+ * Oldest-first page of comments, ordered by `createdAt` (ties broken by id).
+ * Pass `before` (a createdAt cursor) to page further back: only comments
+ * strictly older than the cursor are returned, and the newest `limit` of those
+ * are kept so pages walk backwards without gaps or duplicates.
+ */
 export function listComments(
   invoiceId: string,
   opts: { before?: number; limit?: number } = {}
 ): StoredComment[] {
   const all = commentsByInvoice.get(invoiceId) ?? [];
-  const limit = opts.limit ?? 50;
-  const filtered = opts.before !== undefined ? all.filter((c) => c.createdAt < opts.before!) : all;
+  const requested = opts.limit ?? DEFAULT_COMMENT_PAGE_SIZE;
+  const limit = Number.isFinite(requested)
+    ? Math.min(Math.max(Math.floor(requested), 1), MAX_COMMENT_PAGE_SIZE)
+    : DEFAULT_COMMENT_PAGE_SIZE;
+
+  const ordered = [...all].sort(
+    (a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id)
+  );
+  const filtered =
+    opts.before !== undefined && Number.isFinite(opts.before)
+      ? ordered.filter((c) => c.createdAt < opts.before!)
+      : ordered;
+
   return filtered.slice(-limit);
 }
 

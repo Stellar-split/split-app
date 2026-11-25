@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import FocusTrap from "./FocusTrap";
 import { QRCodeCanvas } from "qrcode.react";
+import { isWalletConnected } from "@/lib/freighter";
 
 export type WalletConnectStatus =
   | "idle"
@@ -21,6 +22,8 @@ type QRModalProps = {
   onCopied?: () => void;
   onRetry?: () => void;
   onConnected?: () => void;
+  /** Delay in ms between wallet connection status polls. Defaults to 2000. */
+  pollingInterval?: number;
 };
 
 const STATUS_TEXT: Record<WalletConnectStatus, string> = {
@@ -41,8 +44,43 @@ export default function QRModal({
   onCopied,
   onRetry,
   onConnected,
+  pollingInterval = 2000,
 }: QRModalProps) {
   const firedRef = useRef(false);
+
+  // Poll wallet connection status while the modal is open and fire
+  // onConnected once when a connection change is detected.
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+    let wasConnected = false;
+
+    const check = async () => {
+      let connected = false;
+      try {
+        connected = await isWalletConnected();
+      } catch {
+        connected = false;
+      }
+      if (cancelled) return;
+      if (connected && !wasConnected && !firedRef.current) {
+        firedRef.current = true;
+        onConnected?.();
+      }
+      wasConnected = connected;
+    };
+
+    void check();
+    const timer = setInterval(() => {
+      void check();
+    }, pollingInterval);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [open, pollingInterval, onConnected]);
 
   // Close the modal once the parent reports a successful session approval.
   useEffect(() => {

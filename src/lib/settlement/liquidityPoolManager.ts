@@ -296,6 +296,18 @@ export class LiquidityPoolManager {
   }
 
   /**
+   * Look up the active reservation created for a quote.
+   */
+  public getReservationByQuoteId(quoteId: string): LiquidityReservation | undefined {
+    for (const reservation of this.reservations.values()) {
+      if (reservation.quoteId === quoteId && reservation.status === 'active') {
+        return reservation;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Release reserved liquidity if quote expires or settlement is canceled
    */
   public releaseReservation(reservationId: string): void {

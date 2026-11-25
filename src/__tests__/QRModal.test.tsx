@@ -1,4 +1,4 @@
-import { vi, describe, it, beforeEach, afterEach, expect, describe, it, test, beforeEach, afterEach, expect } from "vitest";
+import { vi, beforeEach, afterEach, expect, test } from "vitest";
 /**
  * Unit tests for QRModal polling (#211).
  *
@@ -11,7 +11,7 @@ import { vi, describe, it, beforeEach, afterEach, expect, describe, it, test, be
  */
 
 import React from "react";
-import { render, act } from "@testing-library/react";
+import { render, act, cleanup } from "@testing-library/react";
 import QRModal from "@/components/QRModal";
 
 // ── mock isWalletConnected ────────────────────────────────────────────────────
@@ -38,11 +38,14 @@ const baseProps = {
 };
 
 beforeEach(() => {
+  vi.useFakeTimers();
   mockIsWalletConnected.mockResolvedValue(false);
 });
 
 afterEach(() => {
+  cleanup();
   vi.clearAllMocks();
+  vi.useRealTimers();
 });
 
 test("onConnected fires exactly once when wallet connects", async () => {
@@ -80,7 +83,7 @@ test("onConnected does not fire while wallet not connected", async () => {
   render(<QRModal {...baseProps} onConnected={onConnected} pollingInterval={2000} />);
 
   await act(async () => {
-    jest.advanceTimersByTime(6000); // 3 ticks, never connected
+    await vi.advanceTimersByTimeAsync(6000); // 3 ticks, never connected
   });
 
   expect(onConnected).not.toHaveBeenCalled();
@@ -103,7 +106,7 @@ test("polling stops when open becomes false", async () => {
   mockIsWalletConnected.mockResolvedValue(true);
 
   await act(async () => {
-    jest.advanceTimersByTime(6000);
+    await vi.advanceTimersByTimeAsync(6000);
   });
 
   expect(onConnected).not.toHaveBeenCalled();
@@ -118,7 +121,7 @@ test("no interval leak: re-opening fires onConnected exactly once per cycle", as
   );
 
   await act(async () => {
-    jest.advanceTimersByTime(2000);
+    await vi.advanceTimersByTimeAsync(2000);
   });
   expect(onConnected).toHaveBeenCalledTimes(0);
 
@@ -149,7 +152,7 @@ test("pollingInterval prop controls tick frequency", async () => {
 
   // Should not have fired before 500ms
   await act(async () => {
-    jest.advanceTimersByTime(400);
+    await vi.advanceTimersByTimeAsync(400);
   });
   expect(onConnected).toHaveBeenCalledTimes(0);
 
