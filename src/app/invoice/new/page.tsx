@@ -18,7 +18,14 @@ import { splitClient } from "@/lib/stellar";
 import { getFreighterPublicKey } from "@/lib/freighter";
 import { apiFetch } from "@/lib/apiClient";
 import { deadlineFromDays, parseAmount, formatAmount } from "@stellar-split/sdk";
-import { REVIEW_STEP, validateWizardStep, firstInvalidStep, FIELD_HELP, type WizardState } from "@/lib/invoiceWizard";
+import {
+  WIZARD_STEPS,
+  REVIEW_STEP,
+  validateWizardStep,
+  firstInvalidStep,
+  FIELD_HELP,
+  type WizardState,
+} from "@/lib/invoiceWizard";
 import TxConfirmModal from "@/components/TxConfirmModal";
 import { recordInvoiceHistory } from "@/lib/invoiceHistory";
 import { generateRetroactiveInvoiceId, saveRetroactiveInvoice, type RetroactiveInvoice } from "@/lib/retroactiveInvoices";
@@ -86,12 +93,6 @@ function useToasts() {
   }, []);
   return { toasts, addToast };
 }
-
-const WIZARD_STEPS = [
-  { label: "Details", value: "details", description: "Add invoice details" },
-  { label: "Recipients", value: "recipients", description: "Add payment recipients" },
-  { label: "Review", value: "review", description: "Review and submit" },
-];
 
 const STEPS = WIZARD_STEPS.map((s) => s.label);
 

@@ -98,12 +98,23 @@ export function buildCustomNetwork(input: CustomNetworkInput): NetworkConfig {
   };
 }
 
+/** Hosts that are considered to run on this machine (plain http allowed). */
+const LOCAL_HOSTNAMES = ["localhost", "127.0.0.1", "::1", "[::1]"];
+
+function isLocalHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return LOCAL_HOSTNAMES.includes(host) || host.endsWith(".localhost");
+}
+
+/**
+ * A remote endpoint must use https; plain http is only tolerated for a node
+ * running on this machine. Anything that is not an absolute URL is rejected.
+ */
 function isAllowedUrl(value: string): boolean {
   try {
     const url = new URL(value);
     if (url.protocol === "https:") return true;
-    // Plain http is only acceptable for a node running on this machine.
-    return url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    return url.protocol === "http:" && isLocalHostname(url.hostname);
   } catch {
     return false;
   }
