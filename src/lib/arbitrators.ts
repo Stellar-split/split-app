@@ -7,6 +7,26 @@ export interface Arbitrator {
   resolvedDisputeCount?: number | null;
 }
 
+export interface DisputeVote {
+  invoiceId?: string;
+  arbitrator: string;
+  vote: string | number;
+  votedAt?: string;
+}
+
+export interface DisputeEvidenceLink {
+  filename: string;
+  cid: string;
+  submitter: string;
+  timestamp: number;
+}
+
+export interface DisputeTimelineEvent {
+  timestamp: number;
+  description: string;
+  actor?: string;
+}
+
 export interface DisputeRecord {
   id: string;
   invoiceId: string;
@@ -17,9 +37,9 @@ export interface DisputeRecord {
   timestamp: number;
   description?: string;
   arbitrators: string[];
-  votes: Array<{ invoiceId: string; arbitrator: string; vote: string | number }>;
-  timeline: Array<{ timestamp: number; description: string; actor?: string }>;
-  evidenceLinks: Array<{ filename: string; cid: string; submitter: string; timestamp: number }>;
+  votes: DisputeVote[];
+  timeline: DisputeTimelineEvent[];
+  evidenceLinks: DisputeEvidenceLink[];
 }
 
 export type DisputeState = 'Open' | 'Evidence' | 'Voting' | 'Resolved' | 'Enforced';
@@ -58,8 +78,11 @@ export function isVotingComplete(data: any): boolean {
   return false;
 }
 
-export function canEnforceResolution(data: any): boolean {
-  return false;
+/** True when every assigned arbitrator has cast a vote. */
+export function isVotingComplete(data: DisputeRecord): boolean {
+  if (!data || !Array.isArray(data.arbitrators) || data.arbitrators.length === 0) return false;
+  const voters = new Set((data.votes ?? []).map((v) => v.arbitrator));
+  return data.arbitrators.every((arb) => voters.has(arb));
 }
 
 export function getArbitrators(): Arbitrator[] {

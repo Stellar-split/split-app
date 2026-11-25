@@ -12,6 +12,7 @@ import {
   type DisputeOutcome,
   isVotingComplete,
   canEnforceResolution,
+  normalizeVote,
 } from "@/lib/arbitrators";
 
 interface Props {
@@ -56,8 +57,13 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
   const dispute = (invoice as Invoice & { disputeRecord?: DisputeRecord }).disputeRecord;
   if (!dispute) return null;
 
-  const isArbitrator = dispute.arbitrators.includes(publicKey);
-  const hasVoted = dispute.votes.some((v) => v.arbitrator === publicKey);
+  const arbitrators = dispute.arbitrators ?? [];
+  const votes = dispute.votes ?? [];
+  const evidenceLinks = dispute.evidenceLinks ?? [];
+  const timeline = dispute.timeline ?? [];
+
+  const isArbitrator = arbitrators.includes(publicKey);
+  const hasVoted = votes.some((v) => v.arbitrator === publicKey);
   const votingComplete = isVotingComplete(dispute);
   const canEnforce = canEnforceResolution(dispute);
 
@@ -116,8 +122,8 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
     }
   };
 
-  const releaseVotes = dispute.votes.filter((v) => v.vote === "Release").length;
-  const refundVotes = dispute.votes.filter((v) => v.vote === "Refund").length;
+  const releaseVotes = votes.filter((v) => normalizeVote(v.vote) === "Release").length;
+  const refundVotes = votes.filter((v) => normalizeVote(v.vote) === "Refund").length;
   const totalVotes = releaseVotes + refundVotes;
   const releasePercent = totalVotes > 0 ? (releaseVotes / totalVotes) * 100 : 0;
   const refundPercent = totalVotes > 0 ? (refundVotes / totalVotes) * 100 : 0;
@@ -174,16 +180,16 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
           </div>
           <div className="bg-gray-900/60 rounded-xl p-4 border border-gray-700">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Arbitrators</p>
-            <p className="text-sm text-gray-200">{dispute.arbitrators.length} assigned</p>
+            <p className="text-sm text-gray-200">{arbitrators.length} assigned</p>
           </div>
         </div>
 
         {/* Dispute Timeline */}
-        {dispute.timeline.length > 0 && (
+        {timeline.length > 0 && (
           <div className="mb-6 bg-gray-900/60 rounded-xl p-4 border border-gray-700">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-3">Timeline</p>
             <ol className="space-y-2">
-              {dispute.timeline.map((event, idx) => (
+              {timeline.map((event, idx) => (
                 <li key={idx} className="flex items-start gap-3 text-sm">
                   <span className="text-gray-500 shrink-0 font-mono text-xs pt-0.5">
                     {new Date(event.timestamp * 1000).toLocaleString()}
@@ -213,7 +219,7 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-white">Live Vote Tally</h3>
             <span className="text-xs text-gray-500">
-              {totalVotes} of {dispute.arbitrators.length} votes cast
+              {totalVotes} of {arbitrators.length} votes cast
             </span>
           </div>
 
@@ -339,13 +345,13 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
             </button>
           </div>
 
-          {dispute.evidenceLinks.length === 0 ? (
+          {evidenceLinks.length === 0 ? (
             <p className="text-sm text-gray-500 bg-gray-900/40 border border-gray-700 rounded-lg p-4 text-center">
               No evidence submitted yet
             </p>
           ) : (
             <div className="space-y-2">
-              {dispute.evidenceLinks.map((evidence, idx) => (
+              {evidenceLinks.map((evidence, idx) => (
                 <div
                   key={idx}
                   className="bg-gray-900/60 border border-gray-700 rounded-lg p-3 flex items-start justify-between gap-3 hover:bg-gray-900/80 transition-colors"
@@ -376,7 +382,7 @@ export default function DisputePanel({ invoice, publicKey, onRefresh }: Props) {
 
         {/* Arbitrators List */}
         <ArbitratorPicker
-          arbitrators={dispute.arbitrators.map((address) => ({
+          arbitrators={arbitrators.map((address) => ({
             address,
             name: truncateAddress(address),
             resolvedDisputeCount: null,
