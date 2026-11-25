@@ -1,5 +1,6 @@
 import { computeWebhookSignature } from "./webhookSignature";
 import { describe, it, test, beforeEach, afterEach, expect, vi } from "vitest";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import crypto from "crypto";
 
 // jsdom does not implement crypto.subtle, so install Node's Web Crypto
@@ -40,6 +41,10 @@ describe("Webhook Signature", () => {
 
     const computedSignature = await computeWebhookSignature(secret, payload);
 
+    // Compute using the function we are testing
+    const computedSignature = await computeWebhookSignature(secret, payload);
+
+    // Compute expected signature using Node's crypto module
     const expectedSignature = crypto
       .createHmac("sha256", secret)
       .update(payload)

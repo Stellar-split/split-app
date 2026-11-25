@@ -18,6 +18,7 @@ export class AppError extends Error {
   ) {
     super(message);
     if (typeof options === "boolean") {
+    if (typeof options === 'boolean') {
       this.isNetworkError = options;
     } else {
       this.isNetworkError = options.isNetworkError ?? false;

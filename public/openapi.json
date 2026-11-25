@@ -1,0 +1,88 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "StellarSplit REST API",
+    "version": "1.0.0",
+    "description": "Versioned read API for invoices and payment history. Blockchain mutations must be signed by the user's wallet through the StellarSplit SDK. See docs/REST_API.md for authentication, pagination, response formats, and rate-limit behavior."
+  },
+  "servers": [{ "url": "/", "description": "Current StellarSplit deployment" }],
+  "tags": [{ "name": "Invoices", "description": "Read invoice data and payment history" }],
+  "security": [{ "BearerApiKey": [] }],
+  "paths": {
+    "/api/v1/invoices": {
+      "get": {
+        "tags": ["Invoices"],
+        "operationId": "listInvoicesV1",
+        "summary": "List invoices for a Stellar address",
+        "description": "Returns invoices created by or addressed to publicKey. Results are cursor-paginated. limit defaults to 20 and is capped at 50. Bigint values are decimal strings.",
+        "parameters": [
+          { "name": "publicKey", "in": "query", "required": true, "description": "Stellar account public key.", "schema": { "type": "string", "pattern": "^G[A-Z2-7]{55}$" }, "example": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF" },
+          { "name": "cursor", "in": "query", "required": false, "description": "Exclusive invoice ID cursor returned by the previous page.", "schema": { "type": "string", "pattern": "^[1-9][0-9]*$" }, "example": "25" },
+          { "name": "limit", "in": "query", "required": false, "description": "Page size from 1 to 50; defaults to 20.", "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 20 }, "example": 20 },
+          { "name": "q", "in": "query", "required": false, "description": "Prefix search on invoice title or memo.", "schema": { "type": "string", "maxLength": 100 }, "example": "design" }
+        ],
+        "responses": {
+          "200": { "description": "Invoice page", "content": { "application/json": { "example": { "data": { "invoices": [{ "id": "25", "status": "Pending", "creator": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "funded": "12500000", "deadline": 1800000000, "recipients": [], "payments": [] }], "nextCursor": "25" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "502": { "$ref": "#/components/responses/UpstreamError" },
+          "503": { "$ref": "#/components/responses/ConfigurationError" }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}": {
+      "get": {
+        "tags": ["Invoices"],
+        "operationId": "getInvoiceV1",
+        "summary": "Get an invoice",
+        "description": "Returns one invoice by its positive numeric contract ID. Bigint values are decimal strings.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Positive numeric invoice ID.", "schema": { "type": "string", "pattern": "^[1-9][0-9]*$" }, "example": "25" }
+        ],
+        "responses": {
+          "200": { "description": "Invoice", "content": { "application/json": { "example": { "data": { "invoice": { "id": "25", "status": "Pending", "creator": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "funded": "12500000", "deadline": 1800000000, "recipients": [], "payments": [] } }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ConfigurationError" }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/history": {
+      "get": {
+        "tags": ["Invoices"],
+        "operationId": "listInvoicePaymentHistoryV1",
+        "summary": "List invoice payments",
+        "description": "Returns a page of an invoice's payment history. cursor is a zero-based offset; nextCursor is null when history is exhausted.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Positive numeric invoice ID.", "schema": { "type": "string", "pattern": "^[1-9][0-9]*$" }, "example": "25" },
+          { "name": "cursor", "in": "query", "required": false, "description": "Zero-based payment offset; defaults to 0.", "schema": { "type": "integer", "minimum": 0, "default": 0 }, "example": 0 },
+          { "name": "limit", "in": "query", "required": false, "description": "Page size from 1 to 50; defaults to 10.", "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 10 }, "example": 10 }
+        ],
+        "responses": {
+          "200": { "description": "Payment history page", "content": { "application/json": { "example": { "data": { "payments": [{ "payer": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "amount": "5000000", "timestamp": 1799990000 }], "nextCursor": null }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ConfigurationError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerApiKey": { "type": "http", "scheme": "bearer", "bearerFormat": "StellarSplit API key", "description": "Signed StellarSplit API key. Read- or write-scoped keys may read v1 resources." }
+    },
+    "responses": {
+      "ValidationError": { "description": "Invalid path or query parameters", "content": { "application/json": { "example": { "error": { "code": "VALIDATION_ERROR", "message": "One or more query parameters are invalid.", "details": { "fieldErrors": { "publicKey": ["Must be a valid Stellar public key"] } }, "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+      "Unauthorized": { "description": "Missing or invalid API key", "content": { "application/json": { "example": { "error": { "code": "UNAUTHORIZED", "message": "A valid API key is required.", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+      "NotFound": { "description": "Invoice does not exist", "content": { "application/json": { "example": { "error": { "code": "NOT_FOUND", "message": "Invoice was not found.", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+      "RateLimited": { "description": "Quota exceeded. Includes Retry-After and X-RateLimit-* headers.", "headers": { "Retry-After": { "schema": { "type": "integer" }, "description": "Seconds until retry is permitted." } }, "content": { "application/json": { "example": { "error": { "code": "RATE_LIMITED", "message": "Too many requests. Retry after the rate limit window resets.", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+      "UpstreamError": { "description": "Stellar network could not be reached", "content": { "application/json": { "example": { "error": { "code": "UPSTREAM_ERROR", "message": "Unable to fetch invoices from the Stellar network.", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } },
+      "ConfigurationError": { "description": "Production API-key signing secret is not configured", "content": { "application/json": { "example": { "error": { "code": "CONFIGURATION_ERROR", "message": "API key authentication is not configured.", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" }, "meta": { "apiVersion": "v1", "requestId": "1b18a217-d138-4ea2-a44a-1ec09e289a53" } } } } }
+    }
+  }
+}

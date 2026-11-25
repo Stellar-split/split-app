@@ -1,0 +1,124 @@
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
+/**
+ * Unit tests for @mention parsing, chip rendering, self-mention suppression,
+ * and malformed pattern handling in CommentSection / notifications.
+ */
+
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import { parseMentions, notifyMention } from "@/lib/notifications";
+import { renderCommentText } from "@/components/CommentSection";
+import { StrKey } from "@stellar/stellar-sdk";
+
+// ---------------------------------------------------------------------------
+// Valid 56-char Stellar addresses (G + 55 uppercase alphanumeric chars).
+// ---------------------------------------------------------------------------
+const ADDR_A = StrKey.encodeEd25519PublicKey(Buffer.alloc(32, 1));
+const ADDR_B = StrKey.encodeEd25519PublicKey(Buffer.alloc(32, 2));
+const SELF   = StrKey.encodeEd25519PublicKey(Buffer.alloc(32, 3));
+
+// ---------------------------------------------------------------------------
+// parseMentions
+// ---------------------------------------------------------------------------
+
+describe("parseMentions", () => {
+  test("returns empty array for text with no mentions", () => {
+    expect(parseMentions("no mentions here")).toEqual([]);
+  });
+
+  test("extracts a single valid address", () => {
+    expect(parseMentions(`Hey @${ADDR_A} check this out`)).toEqual([ADDR_A]);
+  });
+
+  test("extracts multiple distinct addresses", () => {
+    const result = parseMentions(`@${ADDR_A} and @${ADDR_B}`);
+    expect(result).toEqual(expect.arrayContaining([ADDR_A, ADDR_B]));
+    expect(result).toHaveLength(2);
+  });
+
+  test("deduplicates repeated mentions of the same address", () => {
+    expect(parseMentions(`@${ADDR_A} again @${ADDR_A}`)).toEqual([ADDR_A]);
+  });
+
+  test("ignores malformed @G patterns shorter than 56 chars", () => {
+    expect(parseMentions("@GABC123 is not valid")).toEqual([]);
+  });
+
+  test("ignores @G patterns longer than 56 chars", () => {
+    const tooLong = "G" + "A".repeat(56); // 57 chars total
+    expect(parseMentions(`@${tooLong}`)).toEqual([]);
+  });
+
+  test("ignores lowercase g-prefix patterns", () => {
+    const lower = "g" + "a".repeat(55);
+    expect(parseMentions(`@${lower}`)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// renderCommentText
+// ---------------------------------------------------------------------------
+
+describe("renderCommentText", () => {
+  test("renders plain text when no mentions are present", () => {
+    const { container } = render(<>{renderCommentText("hello world")}</>);
+    expect(container.textContent).toBe("hello world");
+    expect(container.querySelector("span[aria-label]")).toBeNull();
+  });
+
+  test("renders a chip for a valid address mention", () => {
+    render(<>{renderCommentText(`Pay @${ADDR_A} please`)}</>);
+    const chip = screen.getByLabelText(`Mentioned address ${ADDR_A}`);
+    expect(chip).toBeTruthy() // element exists in DOM;
+    // Chip shows truncated form, not full raw address
+    expect(chip.textContent).toMatch(/^@/);
+    expect(chip.textContent).not.toBe(`@${ADDR_A}`);
+  });
+
+  test("renders chips for each valid address in multi-mention text", () => {
+    render(<>{renderCommentText(`@${ADDR_A} and @${ADDR_B}`)}</>);
+    expect(screen.getByLabelText(`Mentioned address ${ADDR_A}`)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByLabelText(`Mentioned address ${ADDR_B}`)).toBeTruthy() // element exists in DOM;
+  });
+
+  test("malformed @G pattern renders as plain text, not a chip", () => {
+    const { container } = render(<>{renderCommentText("@GBADADDRESS is wrong")}</>);
+    expect(container.textContent).toContain("@GBADADDRESS");
+    expect(container.querySelector("span[aria-label]")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// notifyMention — test via Notification constructor spy
+// ---------------------------------------------------------------------------
+
+describe("notifyMention", () => {
+  let NotificationSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    NotificationSpy = vi.fn();
+    NotificationSpy.permission = "granted" as NotificationPermission;
+    Object.defineProperty(global, "Notification", {
+      writable: true,
+      configurable: true,
+      value: NotificationSpy,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test("does NOT notify when mentionedAddress === commenterAddress (self-mention)", () => {
+    notifyMention(SELF, SELF, "INV-1");
+    expect(NotificationSpy).not.toHaveBeenCalled();
+  });
+
+  test("fires a Notification when mentionedAddress differs from commenter", () => {
+    notifyMention(ADDR_A, ADDR_B, "INV-1");
+    expect(NotificationSpy).toHaveBeenCalledTimes(1);
+    const [title, opts] = NotificationSpy.mock.calls[0];
+    expect(title).toContain("INV-1");
+    expect(opts.tag).toContain(ADDR_A);
+  });
+});

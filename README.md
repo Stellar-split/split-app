@@ -1,4 +1,7 @@
-# split-app
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Stellar-split/.github/main/assets/stellarsplit-mark.svg" alt="StellarSplit" width="80" />
+  <h1>split-app</h1>
+</div>
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
@@ -10,11 +13,11 @@ Next.js 14 frontend dApp for **StellarSplit** — on-chain invoice & payment spl
 
 ## Live Demo
 
-> [https://splitapp-steel.vercel.app](https://splitapp-steel.vercel.app)
+> [https://stellarsplit-dapp.vercel.app](https://stellarsplit-dapp.vercel.app)
 
 ## Screenshots
 
-> _(Add screenshots here after first deployment)_
+![StellarSplit homepage — split invoices on-chain, instantly](docs/screenshots/homepage.png)
 
 ## Tech Stack
 
@@ -65,6 +68,15 @@ Open [http://localhost:3000](http://localhost:3000).
 | `/invoice/[id]` | Invoice detail, payment progress, Pay button |
 | `/verify/[id]` | Public on-chain verification (no login needed) |
 
+## Continuous Testing (Local Dev)
+
+Run tests continuously while developing, instead of a single one-off run:
+
+```bash
+npm run test:watch       # vitest in watch mode, scoped to files changed vs. the last commit
+npm run test:watch:all   # vitest in watch mode, full suite
+```
+
 ## Run Lint
 
 ```bash
@@ -84,3 +96,17 @@ This project participates in the [Drips Wave Program](https://drips.network/wave
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide.
 
 **Do not start coding until assigned to an issue by a maintainer.**
+
+## Handsoff notes
+
+<!-- handsoff-issue-844 -->
+- #844: Implement advanced invoice personalization engine
+
+<!-- handsoff-issue-989 -->
+- #989: Implement customizable dashboards with drag-and-drop widgets
+
+<!-- handsoff-issue-991 -->
+- #991: Implement custom report builder and scheduling
+
+<!-- handsoff-issue-981 -->
+- #981: Add invoice template library with versioning

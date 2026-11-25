@@ -5,6 +5,11 @@ import { useCallback, useState } from "react";
 export interface QueuedItem {
   type: "payment" | "invoice" | "subscription";
   execute: () => Promise<unknown>;
+import { useCallback, useState } from 'react';
+
+export interface QueuedItem {
+  type: 'payment' | 'invoice' | 'subscription';
+  execute: () => Promise<any>;
 }
 
 export interface UseOfflineQueueReturn {
@@ -39,6 +44,7 @@ export function useOfflineQueue(): UseOfflineQueueReturn {
           await item.execute();
         } catch (error) {
           console.error("Error processing queued item:", error);
+          console.error('Error processing queued item:', error);
           enqueue(item);
           break;
         }

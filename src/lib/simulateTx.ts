@@ -5,12 +5,14 @@
 
 export const RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
+import { RPC_URL } from "./stellar";
 
 export interface LedgerEffect {
   accountId: string;
   balanceChange: {
     assetCode: string;
     change: string;
+    change: string; // amount as string
   };
 }
 
@@ -30,11 +32,21 @@ export async function simulateTransaction(
     const response = await fetch(RPC_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+export async function simulateTransaction(transactionXdr: string): Promise<SimulationResult> {
+  try {
+    const response = await fetch(RPC_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: 1,
         method: "simulateTransaction",
         params: { transaction: transactionXdr },
+        params: {
+          transaction: transactionXdr,
+        },
       }),
     });
 
@@ -70,6 +82,7 @@ export async function simulateTransaction(
 
     const isSuccess =
       result.transactionResult?.resultCode === "txSUCCESS" || !!result.results;
+    const isSuccess = result.transactionResult?.resultCode === "txSUCCESS" || !!result.results;
     if (!isSuccess) {
       return {
         success: false,
@@ -78,12 +91,14 @@ export async function simulateTransaction(
         error: `Transaction simulation failed: ${
           result.transactionResult?.resultCode ?? "unknown"
         }`,
+        error: `Transaction simulation failed: ${result.transactionResult?.resultCode ?? "unknown"}`,
       };
     }
 
     const fee = parseInt(result.latestLedgerBumpSeqNum || "0", 10) || 0;
     const estimatedGas =
       result.cost?.cpuInstructions || result.cost?.memoryBytes || 0;
+    const estimatedGas = result.cost?.cpuInstructions || result.cost?.memoryBytes || 0;
 
     const effects: LedgerEffect[] = [];
     for (const entry of result.results ?? []) {
@@ -113,6 +128,12 @@ export async function simulateTransaction(
           }
         }
       );
+      result.auth.forEach((auth: { rootInvocation?: { function?: { contractId?: string; name?: string } } }) => {
+        if (auth.rootInvocation?.function) {
+          const { contractId, name } = auth.rootInvocation.function;
+          authEntries.push(`Contract ${contractId}: ${name || "invoke"}`);
+        }
+      });
     }
 
     return {
@@ -125,6 +146,7 @@ export async function simulateTransaction(
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown simulation error";
+    const errorMessage = error instanceof Error ? error.message : "Unknown simulation error";
     return {
       success: false,
       fee: 0,

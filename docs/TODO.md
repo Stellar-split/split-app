@@ -1,0 +1,6 @@
+- [x] Inspect existing layout/navigation for adding /leaderboard link
+- [x] Implement src/app/leaderboard/page.tsx: fetch invoices 1–100, aggregate payments by payer, sort, show top 20
+- [x] Highlight connected wallet’s rank if present in top 20
+- [x] Add responsive UI + loading skeleton
+- [x] Add leaderboard link to main navigation (src/app/layout.tsx)
+- [x] Run typecheck/lint to ensure no TS errors (repo has pre-existing TS errors unrelated to leaderboard)

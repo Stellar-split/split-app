@@ -1,0 +1,28 @@
+import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
+import { render, screen } from "@testing-library/react";
+import SocialProofWidget from "@/components/pay/SocialProofWidget";
+
+const MIN = 60_000;
+const NOW = 1_000_000_000;
+const ADDR = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
+
+describe("SocialProofWidget", () => {
+  it("shows recent payments with masked payer addresses", () => {
+    render(
+      <SocialProofWidget
+        now={NOW}
+        payments={[{ id: "1", payer: ADDR, amount: 25, asset: "XLM", paidAt: NOW - 5 * MIN }]}
+      />,
+    );
+    expect(screen.getByText("1 person paid in the last 24 hours")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("5m ago")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/paid 25 XLM/)).toBeTruthy() // element exists in DOM;
+    expect(screen.queryByText(ADDR)).toBeNull();
+  });
+
+  it("renders nothing when there are no payments", () => {
+    const { container } = render(<SocialProofWidget payments={[]} now={NOW} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});

@@ -1,0 +1,244 @@
+'use client';
+
+import { useState } from 'react';
+import type { Payment } from '@stellar-split/sdk';
+import {
+  filterPaymentsByDateRange,
+  PAYMENT_EXPORT_COLUMNS,
+  PAYMENT_EXPORT_COLUMN_LABELS,
+  type PaymentExportColumn,
+} from '@/lib/csvExport';
+import {
+  exportPayments,
+  recordExportHistory,
+  type ExportFormat,
+} from '@/lib/paymentExport';
+
+interface Props {
+  invoiceId: string;
+  payments: Payment[];
+}
+
+const EXPORT_FORMATS: ExportFormat[] = ['csv', 'json', 'pdf'];
+
+export default function PaymentExport({ invoiceId, payments }: Props) {
+  const [showFilters, setShowFilters] = useState(false);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('csv');
+  const [selectedColumns, setSelectedColumns] = useState<PaymentExportColumn[]>([
+    ...PAYMENT_EXPORT_COLUMNS,
+  ]);
+
+  const toggleColumn = (column: PaymentExportColumn) => {
+    setSelectedColumns((current) => {
+      if (current.includes(column)) {
+        if (current.length <= 1) return current;
+        return current.filter((c) => c !== column);
+      }
+      return [...current, column];
+    });
+  };
+
+  const handleExport = () => {
+    setExporting(true);
+
+    try {
+      // Filter payments by date range if specified
+      const filteredPayments = filterPaymentsByDateRange(
+        payments,
+        startDate || null,
+        endDate || null
+      );
+
+      const exportablePayments = filteredPayments.map(p => ({
+        ...p,
+        amount: typeof p.amount === 'bigint' ? Number(p.amount) : p.amount,
+      }));
+
+      exportPayments(
+        exportablePayments,
+        exportFormat,
+        {
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          invoiceId,
+        }
+      );
+
+      recordExportHistory({
+        invoiceId,
+        format: exportFormat,
+        paymentCount: filteredPayments.length,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        columns: exportFormat === 'csv' ? selectedColumns : undefined,
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export payments. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setStartDate('');
+    setEndDate('');
+  };
+
+  const filteredCount = filterPaymentsByDateRange(
+    payments,
+    startDate || null,
+    endDate || null
+  ).length;
+
+  const hasFilters = startDate || endDate;
+
+  return (
+    <div className="bg-gray-900 rounded-lg p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <h3 className="text-sm font-medium text-gray-300">Export Payment History</h3>
+        <div className="flex gap-2 flex-wrap items-center">
+          <button
+            type="button"
+            onClick={() => setShowFilters(!showFilters)}
+            className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-colors border border-gray-700"
+          >
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
+
+          {/* Export format selector */}
+          <div
+            role="group"
+            aria-label="Export format"
+            className="inline-flex rounded-lg border border-gray-700 overflow-hidden"
+          >
+            {EXPORT_FORMATS.map((format) => (
+              <button
+                key={format}
+                type="button"
+                onClick={() => setExportFormat(format)}
+                aria-pressed={exportFormat === format}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  exportFormat === format
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                {format.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={exporting || payments.length === 0}
+            aria-label={`Export payments ${exportFormat.toUpperCase()}`}
+            className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-semibold transition-colors"
+          >
+            {exporting
+              ? 'Exporting...'
+              : `Export Payments ${exportFormat.toUpperCase()}`}
+          </button>
+        </div>
+      </div>
+
+      {/* Date Range Filters */}
+      {showFilters && (
+        <div className="border-t border-gray-800 pt-4 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mb-3">
+            <div className="flex-1">
+              <label htmlFor="start-date" className="block text-xs text-gray-400 mb-1">
+                Start Date
+              </label>
+              <input
+                id="start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div className="flex-1">
+              <label htmlFor="end-date" className="block text-xs text-gray-400 mb-1">
+                End Date
+              </label>
+              <input
+                id="end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-xs text-gray-400">
+              {hasFilters ? (
+                <>
+                  Showing {filteredCount} of {payments.length} payment{payments.length !== 1 ? 's' : ''}
+                </>
+              ) : (
+                <>All {payments.length} payment{payments.length !== 1 ? 's' : ''} will be exported</>
+              )}
+            </p>
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Column Selection */}
+      {payments.length > 0 && exportFormat === 'csv' && (
+        <div className="border-t border-gray-800 pt-4 mt-4">
+          <p className="text-xs text-gray-400 mb-2">Columns to include</p>
+          <div className="flex flex-wrap gap-3">
+            {PAYMENT_EXPORT_COLUMNS.map((column) => (
+              <label
+                key={column}
+                className="flex items-center gap-1.5 text-xs text-gray-300"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedColumns.includes(column)}
+                  onChange={() => toggleColumn(column)}
+                  className="rounded border-gray-700 bg-gray-800 text-indigo-500 focus:ring-indigo-500"
+                />
+                {PAYMENT_EXPORT_COLUMN_LABELS[column]}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {payments.length === 0 && (
+        <p className="text-sm text-gray-500 mt-2">
+          No payments to export yet. Payments will appear here once the invoice receives contributions.
+        </p>
+      )}
+
+      {/* Export Info */}
+      {payments.length > 0 && !showFilters && (
+        <p className="text-xs text-gray-500 mt-2">
+          {exportFormat === 'pdf'
+            ? 'PDF will include the invoice number, payer addresses, amounts, timestamps, and transaction hashes.'
+            : exportFormat === 'json'
+              ? 'JSON will include payer address, amount (USDC), timestamp, and transaction hash for all payments.'
+              : 'CSV will include payer address, amount (USDC), timestamp, and transaction hash for all payments.'}
+        </p>
+      )}
+    </div>
+  );
+}

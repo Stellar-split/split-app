@@ -1,0 +1,224 @@
+/**
+ * Tests for the duplicate-invoice clone flow.
+ *
+ * 1. Unit tests for `validateDeadline` (pure logic, no DOM needed).
+ * 2. Integration tests for the URL pre-fill parsing in NewInvoiceForm:
+ *    - `from` query param triggers loading state
+ *    - `deadline` query param is applied to the datetime-local input
+ */
+
+import React from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
+import { validateDeadline } from "@/components/DuplicateModal";
+import NewInvoicePage from "@/app/invoice/new/page";
+
+// ── Unit tests: validateDeadline ──────────────────────────────────────────────
+
+describe("validateDeadline", () => {
+  test("returns null for a deadline 1 hour from now", () => {
+    const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000 + 1000).toISOString();
+    expect(validateDeadline(oneHourFromNow)).toBeNull();
+  });
+
+  test("returns error for a deadline exactly now", () => {
+    const now = new Date().toISOString();
+    expect(validateDeadline(now)).toBe(
+      "Deadline must be at least 1 hour in the future"
+    );
+  });
+
+  test("returns error for a deadline 59 minutes from now", () => {
+    const almostOneHour = new Date(Date.now() + 59 * 60 * 1000).toISOString();
+    expect(validateDeadline(almostOneHour)).toBe(
+      "Deadline must be at least 1 hour in the future"
+    );
+  });
+
+  test("returns error for a deadline in the past", () => {
+    const past = new Date(Date.now() - 1000).toISOString();
+    expect(validateDeadline(past)).toBe(
+      "Deadline must be at least 1 hour in the future"
+    );
+  });
+
+  test("returns error for an invalid date string", () => {
+    expect(validateDeadline("not-a-date")).toBe("Please enter a valid date.");
+  });
+
+  test("accepts a deadline 7 days from now", () => {
+    const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    expect(validateDeadline(sevenDays)).toBeNull();
+  });
+});
+
+// ── Integration tests: URL pre-fill ──────────────────────────────────────────
+
+// Hoist mockSearchParams so it's available inside vi.mock factories.
+const mockSearchParams = vi.hoisted(() => new Map<string, string>());
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/invoice/new",
+  useSearchParams: () => ({
+    get: (key: string) => mockSearchParams.get(key) ?? null,
+    toString: () => new URLSearchParams([...mockSearchParams]).toString(),
+  }),
+}));
+
+// Stub heavy SDK so tests don't hit the network.
+vi.mock("@/lib/stellar", () => ({
+  splitClient: {
+    getInvoice: vi.fn().mockResolvedValue({
+      id: "42",
+      creator: "GABC",
+      recipients: [{ address: "GXYZ", amount: 10_000_000n }],
+      token: "CUSDC",
+      deadline: Math.floor(Date.now() / 1000) + 86400,
+      funded: 0n,
+      status: "Pending",
+      payments: [],
+    }),
+    createInvoice: vi.fn(),
+  },
+}));
+
+vi.mock("@/lib/freighter", () => ({
+  getFreighterPublicKey: vi.fn().mockResolvedValue("GPUBKEY"),
+}));
+
+// Minimal stubs for child components that are not under test.
+vi.mock("@/components/RecipientForm", () => ({
+  __esModule: true,
+  default: () => <div data-testid="recipient-form" />,
+}));
+vi.mock("@/components/TemplateManager", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+vi.mock("@/components/TxConfirmModal", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+vi.mock("@/components/I18nProvider", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}));
+vi.mock("@/components/DeadlineSuggester", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+vi.mock("@/lib/invoiceHistory", () => ({
+  recordInvoiceHistory: vi.fn(),
+}));
+
+vi.mock("@/components/SplitCalculator", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/hooks/useOfflineDraftAutosave", () => ({
+  useOfflineDraftAutosave: () => ({
+    isOffline: false,
+    discardDraft: vi.fn(),
+  }),
+}));
+
+vi.mock("@/lib/offlineDraftDB", () => ({
+  getOrCreateLocalUserId: () => "local-user-id",
+  listDraftsForUser: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/components/invoice/DraftRecoveryBanner", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/components/invoice/TxImportPanel", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/lib/templateSharing", () => ({
+  decodeTemplate: vi.fn(),
+}));
+
+vi.mock("@/hooks/useInvoiceCollaboration", () => ({
+  useInvoiceCollaboration: () => ({
+    remoteCursors: [],
+    remotePresence: [],
+    isConnected: false,
+    connectionError: null,
+    focusedField: null,
+    setFocusedField: vi.fn(),
+    emitFieldBlur: vi.fn(),
+  }),
+}));
+
+vi.mock("@/components/CursorOverlay", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/components/PresencePill", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock("@/components/ReconnectionBanner", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+describe("NewInvoicePage — URL pre-fill (clone mode)", () => {
+  beforeEach(() => {
+    mockSearchParams.clear();
+  });
+
+  test("shows 'Loading invoice data…' when from param is present", async () => {
+    mockSearchParams.set("from", "42");
+
+    render(<NewInvoicePage />);
+
+    // Loading message should appear while getInvoice is in-flight
+    expect(screen.getByText(/Loading invoice data/i)).toBeTruthy() // element exists in DOM;
+  });
+
+  test("shows cloned-from banner with link to source invoice after load", async () => {
+    mockSearchParams.set("from", "42");
+    mockSearchParams.set("deadline", new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString());
+
+    render(<NewInvoicePage />);
+
+    await waitFor(() =>
+      expect(screen.getByText(/#42/)).toBeTruthy() // element exists in DOM
+    );
+
+    const link = screen.getByRole("link", { name: /#42/ });
+    expect(link.getAttribute("href")).toBe("/invoice/42");
+  });
+
+  test("applies deadline param to the datetime-local input", async () => {
+    const deadline = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    const deadlineIso = deadline.toISOString().slice(0, 16);
+    mockSearchParams.set("from", "42");
+    mockSearchParams.set("deadline", deadlineIso);
+    // Clone mode's deadline field lives on the default step (Basic Info).
+
+    render(<NewInvoicePage />);
+
+    await waitFor(() => {
+      // Scope to the input — the stepper's nav aria-label also contains "Deadline".
+      const input = screen.getByLabelText(/deadline/i, {
+        selector: "input",
+      }) as HTMLInputElement;
+      expect(input.value).toBe(deadlineIso);
+    });
+  });
+
+  test("shows no cloned-from banner when from param is absent", () => {
+    render(<NewInvoicePage />);
+    expect(screen.queryByText(/Cloned from/i)).not.toBeTruthy() // element exists in DOM;
+  });
+});

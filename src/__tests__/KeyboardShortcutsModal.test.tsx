@@ -1,0 +1,173 @@
+/**
+ * Unit tests for KeyboardShortcutsModal (#<issue>).
+ *
+ * Covers:
+ *  - `?` keypress outside inputs opens the modal
+ *  - `?` keypress inside <input> is suppressed
+ *  - `?` keypress inside <textarea> is suppressed
+ *  - Escape closes the modal (delegated to FocusTrap)
+ *  - Header `?` button opens the modal
+ *  - Modal close button dismisses the modal
+ */
+
+import React from "react";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import HeaderShortcutsButton from "@/components/HeaderShortcutsButton";
+import { ShortcutRegistryProvider } from "@/context/ShortcutRegistry";
+
+function renderWithRegistry(ui: React.ReactElement) {
+  return render(<ShortcutRegistryProvider>{ui}</ShortcutRegistryProvider>);
+}
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// ── mock FocusTrap ─────────────────────────────────────────────────────────────
+// Renders children transparently and calls onClose when Escape is pressed
+vi.mock("@/components/FocusTrap", () => ({
+  __esModule: true,
+  default: function MockFocusTrap({
+    children,
+    onClose,
+  }: {
+    children: React.ReactNode;
+    onClose?: () => void;
+  }) {
+    React.useEffect(() => {
+      const handler = (e: KeyboardEvent) => {
+        if (e.key === "Escape") onClose?.();
+      };
+      document.addEventListener("keydown", handler);
+      return () => document.removeEventListener("keydown", handler);
+    }, [onClose]);
+
+    return <>{children}</>;
+  },
+}));
+
+// Helper: fire a keydown on a given target element (defaults to document)
+function pressKey(
+  key: string,
+  target: EventTarget = document,
+  options: KeyboardEventInit = {}
+) {
+  act(() => {
+    target.dispatchEvent(
+      new KeyboardEvent("keydown", { key, bubbles: true, ...options })
+    );
+  });
+}
+
+// ── tests ──────────────────────────────────────────────────────────────────────
+
+describe("KeyboardShortcutsModal — ? key trigger", () => {
+  test("pressing ? outside an input opens the modal", () => {
+    renderWithRegistry(<HeaderShortcutsButton />);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    pressKey("?");
+
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
+    expect(
+      screen.getByText("Keyboard Shortcuts")
+    ).toBeTruthy() // element exists in DOM;
+  });
+
+  test("pressing ? a second time closes the modal (toggle)", () => {
+    renderWithRegistry(<HeaderShortcutsButton />);
+
+    pressKey("?");
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
+
+    pressKey("?");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  test("pressing ? inside an <input> does NOT open the modal", () => {
+    renderWithRegistry(
+      <div>
+        <HeaderShortcutsButton />
+        <input data-testid="text-input" />
+      </div>
+    );
+
+    const input = screen.getByTestId("text-input");
+    pressKey("?", input);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  test("pressing ? inside a <textarea> does NOT open the modal", () => {
+    renderWithRegistry(
+      <div>
+        <HeaderShortcutsButton />
+        <textarea data-testid="text-area" />
+      </div>
+    );
+
+    const textarea = screen.getByTestId("text-area");
+    pressKey("?", textarea);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("KeyboardShortcutsModal — Escape closes the modal", () => {
+  test("pressing Escape closes the open modal", () => {
+    renderWithRegistry(<HeaderShortcutsButton />);
+
+    pressKey("?");
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
+
+    pressKey("Escape");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("KeyboardShortcutsModal — header button", () => {
+  test("clicking the ? header button opens the modal", () => {
+    renderWithRegistry(<HeaderShortcutsButton />);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    act(() => {
+      screen.getByRole("button", { name: /keyboard shortcuts/i }).click();
+    });
+
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
+  });
+
+  test("clicking the close (×) button inside the modal dismisses it", () => {
+    renderWithRegistry(<HeaderShortcutsButton />);
+
+    act(() => {
+      screen.getByRole("button", { name: /keyboard shortcuts/i }).click();
+    });
+
+    expect(screen.getByRole("dialog")).toBeTruthy() // element exists in DOM;
+
+    act(() => {
+      screen.getByRole("button", { name: /close keyboard shortcuts/i }).click();
+    });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("KeyboardShortcutsModal — shortcut list content", () => {
+  test("modal displays the required shortcut entries", () => {
+    renderWithRegistry(<HeaderShortcutsButton />);
+    pressKey("?");
+
+    // Check the four mandatory shortcuts from the acceptance criteria
+    expect(screen.getByText("Open keyboard shortcuts reference")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Navigate to Search")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("Create new invoice (on dashboard)")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/close modal/i)).toBeTruthy() // element exists in DOM;
+  });
+});

@@ -1,0 +1,188 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import InvoiceTimeline from '@/components/InvoiceTimeline';
+import type { InvoiceEvent } from '@/components/InvoiceTimeline';
+
+const mockEventsData: InvoiceEvent[] = [
+  {
+    type: 'Created',
+    description: 'Invoice created',
+    timestamp: Math.floor(Date.now() / 1000),
+    actor: 'GCREATOR',
+    txHash: 'abc123def456',
+  },
+  {
+    type: 'PaymentReceived',
+    description: '100 USDC received',
+    timestamp: Math.floor(Date.now() / 1000) - 3600,
+    actor: 'GPAYER',
+    txHash: 'def789ghi012',
+  },
+];
+
+const { mockGetInvoiceEvents } = vi.hoisted(() => ({
+  mockGetInvoiceEvents: vi.fn(),
+}));
+
+vi.mock('@/lib/stellar', () => ({
+  splitClient: {
+    getInvoiceEvents: (...args: any[]) => mockGetInvoiceEvents(...args),
+  },
+}));
+
+vi.mock('@/components/WalletAddress', () => ({
+  default: function MockWalletAddress({ address }: any) {
+    return <span>{address}</span>;
+  },
+}));
+
+vi.mock('@/components/ui/RelativeTime', () => ({
+  default: function MockRelativeTime({ iso }: any) {
+    return <span>{new Date(iso).toLocaleString()}</span>;
+  },
+}));
+
+describe('InvoiceTimeline', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetInvoiceEvents.mockResolvedValue({
+      events: mockEventsData,
+      nextCursor: undefined,
+    });
+  });
+
+  it('should render timeline events', async () => {
+    render(<InvoiceTimeline invoiceId="test-id" />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Created/i).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('should render show details button for events with details', async () => {
+    render(<InvoiceTimeline invoiceId="test-id" />);
+
+    await waitFor(() => {
+      const showDetailsButtons = screen.getAllByText(/Show details/i);
+      expect(showDetailsButtons.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('should expand details when show details button is clicked', async () => {
+    render(<InvoiceTimeline invoiceId="test-id" />);
+
+    // Wait for events to load, then click outside waitFor to avoid infinite retry loop
+    const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
+    fireEvent.click(showDetailsButtons[0].closest('button')!);
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Hide details/i).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('should collapse details when hide details button is clicked', async () => {
+    render(<InvoiceTimeline invoiceId="test-id" />);
+
+    const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
+    fireEvent.click(showDetailsButtons[0].closest('button')!);
+
+    const hideDetailsButtons = await screen.findAllByText(/Hide details/i, undefined, { timeout: 5000 });
+    fireEvent.click(hideDetailsButtons[0].closest('button')!);
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Show details/i).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('should display actor address when details are expanded', async () => {
+    render(<InvoiceTimeline invoiceId="test-id" />);
+
+    const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
+    fireEvent.click(showDetailsButtons[0].closest('button')!);
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/GCREATOR|GPAYER/).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('should display transaction hash link when details are expanded', async () => {
+    render(<InvoiceTimeline invoiceId="test-id" />);
+
+    const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
+    fireEvent.click(showDetailsButtons[0].closest('button')!);
+
+    await waitFor(() => {
+      // link has href to stellar.expert
+      const txLinks = screen.getAllByRole('link').filter((l) =>
+        l.getAttribute('href')?.includes('stellar.expert')
+      );
+      expect(txLinks.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('should have correct aria-expanded attribute', async () => {
+    render(<InvoiceTimeline invoiceId="test-id" />);
+
+    const showDetailsButtons = await screen.findAllByText(/Show details/i, undefined, { timeout: 5000 });
+    const button = showDetailsButtons[0].closest('button')!;
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(button.getAttribute('aria-expanded')).toBe('true');
+    });
+  });
+
+  it('should apply animation classes to details section', async () => {
+    const { container } = render(<InvoiceTimeline invoiceId="test-id" />);
+
+    await waitFor(() => {
+      const detailsSections = container.querySelectorAll('.timeline-details');
+      expect(detailsSections.length).toBeGreaterThan(0);
+
+      detailsSections.forEach((section) => {
+        expect(section.classList.contains('collapsed')).toBe(true);
+      });
+    });
+  });
+
+  it('should toggle animation classes when expanding', async () => {
+    const { container } = render(<InvoiceTimeline invoiceId="test-id" />);
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('.timeline-details').length).toBeGreaterThan(0);
+    });
+
+    const showDetailsButtons = screen.getAllByText(/Show details/i);
+    const detailsSections = container.querySelectorAll('.timeline-details');
+    expect(detailsSections[0]?.classList.contains('collapsed')).toBe(true);
+
+    fireEvent.click(showDetailsButtons[0].closest('button')!);
+
+    await waitFor(() => {
+      expect(detailsSections[0]?.classList.contains('expanded')).toBe(true);
+    });
+  });
+
+  it('should render animation CSS rules', async () => {
+    const { container } = render(<InvoiceTimeline invoiceId="test-id" />);
+
+    await waitFor(() => {
+      const styleTag = container.querySelector('style');
+      expect(styleTag).toBeTruthy() // element exists in DOM;
+      expect(styleTag?.textContent).toContain('timeline-details');
+      expect(styleTag?.textContent).toContain('max-height');
+      expect(styleTag?.textContent).toContain('transition');
+    });
+  });
+
+  it('should respect prefers-reduced-motion', async () => {
+    const { container } = render(<InvoiceTimeline invoiceId="test-id" />);
+
+    await waitFor(() => {
+      const styleTag = container.querySelector('style');
+      expect(styleTag?.textContent).toContain('prefers-reduced-motion');
+    });
+  });
+});

@@ -1,0 +1,249 @@
+'use client';
+
+import { useEffect, useState, useCallback, useRef } from 'react';
+import WalletAddress from './WalletAddress';
+import RelativeTime from '@/components/ui/RelativeTime';
+import { splitClient as _splitClient } from '@/lib/stellar';
+import { getActiveNetwork } from "@/lib/networks";
+
+export interface InvoiceEvent {
+  type:
+    | 'Created'
+    | 'PaymentReceived'
+    | 'Funded'
+    | 'Released'
+    | 'RefundIssued'
+    | 'DisputeRaised'
+    | 'DisputeResolved'
+    | 'Frozen'
+    | 'Archived'
+    | 'Amended'
+    | 'VersionRestored';
+  description: string;
+  actor?: string;
+  timestamp: number; // unix seconds
+  txHash?: string;
+  /** Version number produced by this event, if applicable. */
+  version?: number;
+  /** Human-readable reason supplied for an amendment. */
+  amendmentReason?: string;
+  /** Optional free-form comment accompanying an amendment. */
+  amendmentComment?: string;
+}
+
+interface Props {
+  invoiceId: string;
+}
+
+const STELLAR_EXPERT_BASE =
+  getActiveNetwork().explorerTxBase;
+
+const EVENT_META: Record<
+  InvoiceEvent['type'],
+  { icon: string; color: string; dot: string }
+> = {
+  Created: { icon: '✦', color: 'text-gray-400', dot: 'bg-gray-500' },
+  PaymentReceived: { icon: '💳', color: 'text-green-400', dot: 'bg-green-500' },
+  Funded: { icon: '✅', color: 'text-green-400', dot: 'bg-green-500' },
+  Released: { icon: '🚀', color: 'text-green-400', dot: 'bg-green-500' },
+  RefundIssued: { icon: '↩️', color: 'text-orange-400', dot: 'bg-orange-500' },
+  DisputeRaised: { icon: '⚠️', color: 'text-red-400', dot: 'bg-red-500' },
+  DisputeResolved: { icon: '🤝', color: 'text-green-400', dot: 'bg-green-500' },
+  Frozen: { icon: '🧊', color: 'text-orange-400', dot: 'bg-orange-500' },
+  Archived: { icon: '📦', color: 'text-gray-400', dot: 'bg-gray-500' },
+  Amended: { icon: '✏️', color: 'text-indigo-400', dot: 'bg-indigo-500' },
+  VersionRestored: { icon: '⏪', color: 'text-purple-400', dot: 'bg-purple-500' },
+};
+
+async function fetchEvents(invoiceId: string, cursor?: string): Promise<{ events: InvoiceEvent[]; nextCursor?: string }> {
+  try {
+    const client = _splitClient as any;
+    if (typeof client.getInvoiceEvents !== 'function') return { events: [] };
+    const result = await client.getInvoiceEvents(invoiceId, { cursor, limit: 20 });
+    return result as { events: InvoiceEvent[]; nextCursor?: string };
+  } catch {
+    return { events: [] };
+  }
+}
+
+export default function InvoiceTimeline({ invoiceId }: Props) {
+  const [events, setEvents] = useState<InvoiceEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [nextCursor, setNextCursor] = useState<string | undefined>();
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [expandedIndices, setExpandedIndices] = useState<Set<number>>(new Set());
+  const detailsRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { events: evts, nextCursor: nc } = await fetchEvents(invoiceId);
+    setEvents(evts);
+    setNextCursor(nc);
+    setLoading(false);
+  }, [invoiceId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const loadOlder = async () => {
+    if (!nextCursor) return;
+    setLoadingMore(true);
+    const { events: older, nextCursor: nc } = await fetchEvents(invoiceId, nextCursor);
+    setEvents((prev) => [...prev, ...older]);
+    setNextCursor(nc);
+    setLoadingMore(false);
+  };
+
+  const toggleExpand = (index: number) => {
+    setExpandedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex gap-3">
+            <div className="w-2 h-2 mt-2 rounded-full bg-gray-700 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-gray-700 rounded w-48" />
+              <div className="h-3 bg-gray-700 rounded w-32" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <p className="text-gray-500 text-sm bg-gray-800/40 border border-gray-700 rounded-xl px-4 py-6 text-center">
+        No events yet.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <style>{`
+        @media (prefers-reduced-motion: no-preference) {
+          .timeline-details {
+            transition: max-height 300ms ease-in-out, opacity 300ms ease-in-out;
+          }
+          .timeline-details.collapsed {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+          }
+          .timeline-details.expanded {
+            max-height: 500px;
+            opacity: 1;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .timeline-details {
+            transition: none;
+          }
+          .timeline-details.collapsed {
+            display: none;
+          }
+        }
+      `}</style>
+      <ol className="relative border-l border-gray-700 ml-2 space-y-6">
+        {events.map((evt, i) => {
+          const meta = EVENT_META[evt.type] ?? EVENT_META.Created;
+          const isExpanded = expandedIndices.has(i);
+          const hasDetails =
+            evt.actor ||
+            evt.txHash ||
+            evt.version !== undefined ||
+            evt.amendmentReason ||
+            evt.amendmentComment;
+          return (
+            <li key={i} className="pl-6 relative">
+              {/* dot */}
+              <span
+                className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-gray-900 ${meta.dot}`}
+                aria-hidden="true"
+              />
+              <div className="flex flex-wrap items-start gap-x-2 gap-y-0.5">
+                <span className={`font-medium text-sm ${meta.color}`}>
+                  {meta.icon} {evt.type.replace(/([A-Z])/g, ' $1').trim()}
+                </span>
+                {evt.version !== undefined && (
+                  <span className="text-xs font-mono text-gray-500 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5">
+                    v{evt.version}
+                  </span>
+                )}
+                <RelativeTime iso={new Date(evt.timestamp * 1000).toISOString()} className="text-xs text-gray-500 cursor-default" />
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">{evt.description}</p>
+              {evt.amendmentReason && (
+                <p className="text-xs text-indigo-300 mt-1">
+                  <span className="text-gray-500">Reason:</span> {evt.amendmentReason}
+                </p>
+              )}
+
+              {hasDetails && (
+                <button
+                  type="button"
+                  onClick={() => toggleExpand(i)}
+                  className="mt-1.5 inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+                  aria-expanded={isExpanded}
+                >
+                  <span>{isExpanded ? '▼' : '▶'}</span>
+                  {isExpanded ? 'Hide details' : 'Show details'}
+                </button>
+              )}
+
+              <div
+                ref={(el) => {
+                  detailsRefs.current[i] = el;
+                }}
+                className={`timeline-details ${isExpanded ? 'expanded' : 'collapsed'}`}
+              >
+                {evt.amendmentComment && (
+                  <div className="mt-2 text-xs text-gray-400 bg-gray-800/60 border border-gray-700 rounded-lg px-3 py-2 whitespace-pre-wrap">
+                    {evt.amendmentComment}
+                  </div>
+                )}
+                {evt.actor && (
+                  <div className="mt-2">
+                    <WalletAddress address={evt.actor} short showCopy />
+                  </div>
+                )}
+                {evt.txHash && (
+                  <a
+                    href={`${STELLAR_EXPERT_BASE}/${evt.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-indigo-400 hover:underline mt-2 inline-block font-mono"
+                  >
+                    {evt.txHash.slice(0, 8)}…{evt.txHash.slice(-6)} ↗
+                  </a>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      {nextCursor && (
+        <button
+          type="button"
+          onClick={loadOlder}
+          disabled={loadingMore}
+          className="mt-6 w-full py-2 text-sm text-gray-400 hover:text-gray-200 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+        >
+          {loadingMore ? 'Loading…' : 'Load older events'}
+        </button>
+      )}
+    </div>
+  );
+}
