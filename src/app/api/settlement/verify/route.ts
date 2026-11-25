@@ -13,6 +13,21 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ success: true, verification: result });
 }
 
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const settlementId = body?.settlementId;
+    if (!settlementId) {
+      return NextResponse.json({ error: 'settlementId is required' }, { status: 400 });
+    }
+    const verification = await defaultSettlementEngine.verifySettlementOnChain(settlementId);
+    return NextResponse.json({ success: true, verification });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

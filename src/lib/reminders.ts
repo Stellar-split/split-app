@@ -426,6 +426,9 @@ export function getReminders(): Reminder[] {
 }
 
 export function setReminder(reminder: Reminder): void {
+  if (typeof window === "undefined") {
+    throw new Error("localStorage is not available");
+  }
   const reminders = getReminders().filter((r) => r.invoiceId !== reminder.invoiceId);
   reminders.push(reminder);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(reminders));
@@ -451,18 +454,26 @@ export function setBulkReminders(
   reminderDate: string,
   message?: string
 ): BulkReminderResult[] {
-  return invoiceIds.map((invoiceId) => {
+  if (!Array.isArray(invoiceIds) || invoiceIds.length === 0) return [];
+
+  const results: BulkReminderResult[] = [];
+  for (const invoiceId of invoiceIds) {
     try {
       setReminder({
         invoiceId,
         reminderDate,
         message: message ?? `Invoice #${invoiceId} payment reminder`,
       });
-      return { invoiceId, success: true };
+      results.push({ invoiceId, success: true });
     } catch (err) {
-      return { invoiceId, success: false, error: String(err) };
+      results.push({
+        invoiceId,
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
-  });
+  }
+  return results;
 }
 
 /**

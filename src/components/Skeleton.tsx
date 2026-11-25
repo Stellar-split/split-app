@@ -1,9 +1,19 @@
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={`skeleton ${className || ''}`} />;
+  return (
+    <div
+      aria-hidden="true"
+      className={`skeleton skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded ${className || ''}`}
+    />
+  );
 }
 
 export function SkeletonCard() {
-  return <div className="skeleton-card"><Skeleton className="h-8 w-full mb-2" /><Skeleton className="h-4 w-3/4" /></div>;
+  return (
+    <div className="skeleton-card" role="status" aria-busy="true" aria-label="Loading invoice data">
+      <Skeleton className="h-8 w-full mb-2" />
+      <Skeleton className="h-4 w-3/4" />
+    </div>
+  );
 }
 
 export function SubscriptionDetailSkeleton() {

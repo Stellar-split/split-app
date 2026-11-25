@@ -1,4 +1,7 @@
 export * from './types';
+export * from './blockchainClient';
+export * from './auditTrail';
+export * from './analytics';
 export * from './liquidityPoolManager';
 export * from './liquidityProvider';
 export * from './rateQuoter';

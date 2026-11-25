@@ -40,7 +40,12 @@ export async function simulateTransaction(transactionXdr: string): Promise<Simul
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      return {
+        success: false,
+        fee: 0,
+        effects: [],
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      };
     }
 
     const data = await response.json();
@@ -65,45 +70,44 @@ export async function simulateTransaction(transactionXdr: string): Promise<Simul
     }
 
     const isSuccess = result.transactionResult?.resultCode === "txSUCCESS" || !!result.results;
+    if (!isSuccess) {
+      return {
+        success: false,
+        fee: 0,
+        effects: [],
+        error: `Transaction simulation failed: ${result.transactionResult?.resultCode ?? "unknown"}`,
+      };
+    }
+
     const fee = parseInt(result.latestLedgerBumpSeqNum || "0", 10) || 0;
     const estimatedGas = result.cost?.cpuInstructions || result.cost?.memoryBytes || 0;
 
     const effects: LedgerEffect[] = [];
-    if (result.results?.[0]?.effects) {
-      result.results[0].effects.forEach(
-        (effect: {
-          type?: string;
-          account?: string;
-          balance?: string;
-          asset?: { code?: string };
-        }) => {
-          if (effect.account && (effect.type === "account_created" || effect.type === "account_debited" || effect.type === "account_credited")) {
-            effects.push({
-              accountId: effect.account,
-              balanceChange: {
-                assetCode: effect.asset?.code || "XLM",
-                change: effect.balance || "0",
-              },
-            });
-          }
-        }
-      );
-    }
-
-    const authEntries: string[] = [];
-    if (result.sorobanResourceFee || result.auth) {
-      if (Array.isArray(result.auth)) {
-        result.auth.forEach((auth: { rootInvocation?: { function?: { contractId?: string; name?: string } } }) => {
-          if (auth.rootInvocation?.function) {
-            const { contractId, name } = auth.rootInvocation.function;
-            authEntries.push(`Contract ${contractId}: ${name || "invoke"}`);
-          }
+    for (const entry of result.results ?? []) {
+      for (const effect of entry.effects ?? []) {
+        if (!effect.account) continue;
+        effects.push({
+          accountId: effect.account,
+          balanceChange: {
+            assetCode: effect.asset?.code || "XLM",
+            change: effect.balance || "0",
+          },
         });
       }
     }
 
+    const authEntries: string[] = [];
+    if (Array.isArray(result.auth)) {
+      result.auth.forEach((auth: { rootInvocation?: { function?: { contractId?: string; name?: string } } }) => {
+        if (auth.rootInvocation?.function) {
+          const { contractId, name } = auth.rootInvocation.function;
+          authEntries.push(`Contract ${contractId}: ${name || "invoke"}`);
+        }
+      });
+    }
+
     return {
-      success: isSuccess,
+      success: true,
       fee,
       effects,
       authEntries: authEntries.length > 0 ? authEntries : undefined,

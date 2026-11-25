@@ -1,6 +1,7 @@
 import React from "react";
 import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
 import StatusTimeline from "@/components/StatusTimeline";
 import type { Invoice } from "@stellar-split/sdk";
 
@@ -112,8 +113,9 @@ describe("StatusTimeline", () => {
       <StatusTimeline invoice={invoice} total={100_000_000n} />
     );
 
-    const steps = container.querySelectorAll(".sm\\:hidden .flex-1");
-    expect(steps[0]).toHaveClass('text-white'), "font-semibold";
+    const steps = container.querySelectorAll(".sm\\:hidden p");
+    expect(steps[0]).toHaveClass("text-white");
+    expect(steps[0]).toHaveClass("font-semibold");
   });
 
   test("mobile stepper shows partially funded state", () => {
@@ -154,7 +156,8 @@ describe("StatusTimeline", () => {
 
     const dots = container.querySelectorAll(".rounded-full.text-sm");
     const lastDot = dots[dots.length - 1];
-    expect(lastDot).toHaveClass('bg-indigo-600'), "border-indigo-500";
+    expect(lastDot).toHaveClass("bg-indigo-600");
+    expect(lastDot).toHaveClass("border-indigo-500");
   });
 
   test("event labels are text-sm and readable", () => {
@@ -169,7 +172,7 @@ describe("StatusTimeline", () => {
     const desktopLabels = desktop!.querySelectorAll(".text-sm.font-medium");
     expect(desktopLabels.length).toBeGreaterThan(0);
     desktopLabels.forEach((label) => {
-      expect(label).toHaveClass('text-sm');
+      expect(label).toHaveClass("text-sm");
     });
   });
 

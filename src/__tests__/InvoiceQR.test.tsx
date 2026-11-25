@@ -1,6 +1,6 @@
 import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import React from "react";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, cleanup } from "@testing-library/react";
 import InvoiceQR, { clampAmount, MIN_AMOUNT } from "@/components/InvoiceQR";
 
 vi.mock("qrcode.react", () => ({
@@ -10,9 +10,13 @@ vi.mock("qrcode.react", () => ({
 }));
 
 beforeEach(() => {
+  vi.useFakeTimers();
 });
 
 afterEach(() => {
+  cleanup();
+  vi.runOnlyPendingTimers();
+  vi.useRealTimers();
 });
 
 describe("clampAmount", () => {
@@ -76,10 +80,42 @@ describe("InvoiceQR component", () => {
     fireEvent.change(input, { target: { value: "25" } });
 
     act(() => {
+      vi.advanceTimersByTime(300);
     });
 
     const qr = screen.getByTestId("qr-canvas");
     expect(qr.getAttribute("data-value")).toContain("amount=25");
+  });
+
+  test("QR updates when amount changes again", () => {
+    render(<InvoiceQR invoiceId="test-123" remainingBalance={100} />);
+    const input = screen.getByLabelText(/payment amount/i);
+
+    fireEvent.change(input, { target: { value: "25" } });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(screen.getByTestId("qr-canvas").getAttribute("data-value")).toContain("amount=25");
+
+    fireEvent.change(input, { target: { value: "40" } });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(screen.getByTestId("qr-canvas").getAttribute("data-value")).toContain("amount=40");
+  });
+
+  test("QR falls back to verify payload when amount is cleared", () => {
+    render(<InvoiceQR invoiceId="test-123" remainingBalance={100} />);
+    const input = screen.getByLabelText(/payment amount/i);
+
+    fireEvent.change(input, { target: { value: "" } });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    const value = screen.getByTestId("qr-canvas").getAttribute("data-value") ?? "";
+    expect(value).toContain("/verify/test-123");
+    expect(value).not.toContain("amount=");
   });
 
   test("Full button resets to remaining balance", () => {

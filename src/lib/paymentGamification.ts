@@ -39,7 +39,7 @@ export const LEVELS: Level[] = [
   { level: 2, name: "Contributor", minPoints: 50 },
   { level: 3, name: "Supporter", minPoints: 150 },
   { level: 4, name: "Champion", minPoints: 400 },
-  { level: 5, name: "Legend", minPoints: 1000 },
+  { level: 5, name: "Legend", minPoints: 5000 },
 ];
 
 export const BADGES: BadgeDefinition[] = [
@@ -115,4 +115,45 @@ export function computeGamification(events: PaymentEvent[]): GamificationSummary
     paymentCount: events.length,
     badges: BADGES.map((b) => ({ ...b, earned: earned[b.id] ?? false })),
   };
+}
+
+export interface LeaderboardEntry {
+  address: string;
+  points: number;
+  level: Level;
+  paymentCount: number;
+  rank: number;
+}
+
+export interface LeaderboardParticipant {
+  address: string;
+  events: PaymentEvent[];
+}
+
+/**
+ * Ranks participants by points (descending), breaking ties by payment count and
+ * then address, and assigns 1-based ranks.
+ */
+export function buildLeaderboard(
+  participants: LeaderboardParticipant[],
+  limit = 10,
+): LeaderboardEntry[] {
+  return participants
+    .map((p) => {
+      const points = p.events.reduce((sum, e) => sum + pointsForPayment(e), 0);
+      return {
+        address: p.address,
+        points,
+        level: levelForPoints(points),
+        paymentCount: p.events.length,
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.points - a.points ||
+        b.paymentCount - a.paymentCount ||
+        a.address.localeCompare(b.address),
+    )
+    .slice(0, Math.max(0, limit))
+    .map((entry, i) => ({ ...entry, rank: i + 1 }));
 }

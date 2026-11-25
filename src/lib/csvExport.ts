@@ -62,17 +62,23 @@ export function paymentsToCSV(
 }
 
 /**
+ * Escape a single CSV field: quote when it contains a delimiter, quote,
+ * CR/LF, or leading/trailing whitespace, and double any embedded quotes.
+ */
+export function escapeCsvValue(value: unknown): string {
+  const str = value === null || value === undefined ? "" : String(value);
+  if (str === "") return "";
+  if (/[",\r\n]/.test(str) || /^\s|\s$/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+/**
  * Escape CSV field (handle commas, quotes, newlines)
  */
 function escapeCSVField(field: string): string {
-  if (!field) return "";
-  
-  // If field contains comma, quote, or newline, wrap in quotes and escape quotes
-  if (field.includes(",") || field.includes('"') || field.includes("\n")) {
-    return `"${field.replace(/"/g, '""')}"`;
-  }
-  
-  return field;
+  return escapeCsvValue(field);
 }
 
 /**
@@ -87,6 +93,70 @@ function formatTimestamp(timestamp: number | undefined): string {
   
   // Format as ISO 8601 string
   return date.toISOString();
+}
+
+/** A single CSV data row: column key to cell value. */
+export type CsvRow = Record<string, string | number | boolean | null | undefined>;
+
+/** Options for {@link generateCsv}. */
+export interface GenerateCsvOptions {
+  /** Custom header labels keyed by column key. Defaults to the column keys. */
+  headers?: Record<string, string>;
+  /** Explicit column order. Defaults to the keys of the first row. */
+  columns?: string[];
+}
+
+/**
+ * Build a CSV string from rows, quoting and escaping special characters.
+ */
+export function rowsToCsv(rows: CsvRow[], options: GenerateCsvOptions = {}): string {
+  if (rows.length === 0) return "";
+
+  const columns = options.columns ?? Object.keys(rows[0]);
+  const headerRow = columns.map((column) =>
+    escapeCSVField(options.headers?.[column] ?? column)
+  );
+
+  const lines = [headerRow.join(",")];
+  for (const row of rows) {
+    lines.push(
+      columns
+        .map((column) => {
+          const value = row[column];
+          return escapeCSVField(value === null || value === undefined ? "" : String(value));
+        })
+        .join(",")
+    );
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate a CSV file from rows and trigger a browser download.
+ * Does nothing when there are no rows or when running outside the browser.
+ */
+export function generateCsv(
+  rows: CsvRow[],
+  filename: string,
+  options: GenerateCsvOptions = {}
+): void {
+  if (typeof window === "undefined" || rows.length === 0) return;
+
+  const csv = rowsToCsv(rows, options);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${filename}.csv`);
+  link.style.display = "none";
+
+  document.body.appendChild(link);
+  link.click();
+
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 /**
@@ -257,29 +327,69 @@ export function generateAgingReportFilename(
 }
 
 export interface CsvRow {
-  [key: string]: string | number;
+  [key: string]: string | number | null | undefined;
 }
 
-export function generateCsv(rows: CsvRow[], filename: string): void {
+export interface CsvOptions {
+  /** Column order / selection. Defaults to the keys of the first row. */
+  columns?: readonly string[];
+  /** Optional header row. Defaults to the column names. */
+  headers?: readonly string[];
+  /** Optional footer rows appended after the data rows. */
+  footers?: readonly (readonly (string | number | null | undefined)[])[];
+  /** Line terminator. Defaults to "\n". */
+  lineEnding?: string;
+  /** Prepend a UTF-8 BOM so Excel detects the encoding. Defaults to false. */
+  bom?: boolean;
+}
+
+/**
+ * Escape a single CSV field: quote when it contains a delimiter, quote,
+ * CR/LF, or leading/trailing whitespace, and double any embedded quotes.
+ */
+export function escapeCsvValue(value: unknown): string {
+  const str = value === null || value === undefined ? "" : String(value);
+  if (str === "") return "";
+  if (/[",\r\n]/.test(str) || /^\s|\s$/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+/**
+ * Serialize rows to a valid CSV string (no download side effects).
+ */
+export function rowsToCsv(rows: CsvRow[], options: CsvOptions = {}): string {
+  const columns = options.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
+  if (columns.length === 0) return "";
+
+  const lineEnding = options.lineEnding ?? "\n";
+  const headerRow = options.headers ?? columns;
+  const lines: string[] = [headerRow.map(escapeCsvValue).join(",")];
+
+  for (const row of rows) {
+    lines.push(columns.map((column) => escapeCsvValue(row[column])).join(","));
+  }
+
+  for (const footer of options.footers ?? []) {
+    lines.push(footer.map(escapeCsvValue).join(","));
+  }
+
+  return lines.join(lineEnding);
+}
+
+/**
+ * Build a CSV file from rows and trigger a browser download.
+ */
+export function generateCsv(
+  rows: CsvRow[],
+  filename: string,
+  options: CsvOptions = {}
+): void {
   if (rows.length === 0) return;
 
-  const headers = Object.keys(rows[0]);
-  const csvLines = [
-    headers.join(","),
-    ...rows.map((row) =>
-      headers
-        .map((h) => {
-          const val = row[h];
-          const str = String(val ?? "");
-          return str.includes(",") || str.includes('"') || str.includes("\n")
-            ? `"${str.replace(/"/g, '""')}"`
-            : str;
-        })
-        .join(",")
-    ),
-  ];
-
-  const blob = new Blob([csvLines.join("\n")], {
+  const csv = rowsToCsv(rows, options);
+  const blob = new Blob([options.bom ? `\uFEFF${csv}` : csv], {
     type: "text/csv;charset=utf-8;",
   });
   const url = URL.createObjectURL(blob);

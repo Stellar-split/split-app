@@ -9,10 +9,45 @@
  */
 
 import type { Payment } from "@stellar-split/sdk";
-import { formatAmount } from "@stellar-split/sdk";
 import { getPdfTheme } from "@/lib/pdfTheme";
 
 type PaymentWithMeta = Payment & { timestamp?: number; txHash?: string };
+
+/** Stellar amounts are expressed in stroops (7 decimal places). */
+const STROOPS_PER_UNIT = 10_000_000n;
+
+/**
+ * Format a payment amount as a fixed 7-decimal USDC string.
+ * Accepts bigint stroops, numeric stroops or already-formatted strings.
+ */
+function formatAmount(value: unknown): string {
+  if (typeof value === "bigint") {
+    const negative = value < 0n;
+    const abs = negative ? -value : value;
+    const whole = abs / STROOPS_PER_UNIT;
+    const fraction = (abs % STROOPS_PER_UNIT).toString().padStart(7, "0");
+    return `${negative ? "-" : ""}${whole}.${fraction}`;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return (value / Number(STROOPS_PER_UNIT)).toFixed(7);
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    return value;
+  }
+  return "0.0000000";
+}
+
+/** Convert a payment amount to stroops for totals. */
+function toStroops(value: unknown): bigint {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return BigInt(Math.round(value));
+  }
+  if (typeof value === "string" && /^-?\d+$/.test(value.trim())) {
+    return BigInt(value.trim());
+  }
+  return 0n;
+}
 
 /** Escape untrusted text before interpolating it into the HTML document. */
 function escapeHtml(value: string): string {
@@ -31,10 +66,10 @@ function formatTimestamp(timestamp: number | undefined): string {
   return new Date(ms).toISOString();
 }
 
-/** Sum payment amounts when the SDK exposes them as bigints. */
+/** Sum payment amounts, tolerating bigint or numeric amounts. */
 function sumAmounts(payments: PaymentWithMeta[]): bigint {
   return payments.reduce<bigint>((sum, payment) => {
-    return sum + (typeof payment.amount === "bigint" ? payment.amount : 0n);
+    return sum + toStroops(payment.amount);
   }, 0n);
 }
 
@@ -125,7 +160,7 @@ export function generatePaymentSummaryFilename(invoiceId: string): string {
 }
 
 /** Open the summary document and trigger the browser's print/PDF dialog. */
-export function downloadPaymentSummaryPDF(html: string): void {
+export function downloadPaymentSummaryPDF(html: string, filename?: string): void {
   if (typeof window === "undefined") return;
 
   const blob = new Blob([html], { type: "text/html" });
@@ -138,6 +173,18 @@ export function downloadPaymentSummaryPDF(html: string): void {
       win.close();
     };
   } else {
+    // Popup blocked: fall back to downloading the printable document.
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename ?? "payment-summary.html";
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
     URL.revokeObjectURL(url);
   }
+
+  // `filename` is accepted for API symmetry with the CSV/JSON exporters; the
+  // browser derives the saved PDF name from the document title.
+  void filename;
 }

@@ -448,6 +448,8 @@ export default function InvoiceExportButton({ invoice, total, branding }: Props)
           type="button"
           onClick={handleExport}
           disabled={loading}
+          aria-label="Export PDF"
+          aria-busy={loading}
           className="px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 inline-flex items-center gap-2"
         >
           {loading ? (
@@ -477,6 +479,8 @@ export default function InvoiceExportButton({ invoice, total, branding }: Props)
           className="rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100"
         >
           <option value="json">JSON</option>
+          <option value="csv">CSV</option>
+          <option value="pdf">PDF</option>
           <option value="xml">XML</option>
           <option value="html">HTML</option>
           <option value="custom">Custom</option>
