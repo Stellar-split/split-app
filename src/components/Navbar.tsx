@@ -31,7 +31,7 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === "undefined") return true;
+    if (typeof window === "undefined") return false;
     return window.innerWidth < 640;
   });
   const pathname = usePathname();
@@ -92,8 +92,8 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop nav links — visible on lg and wider */}
-          <nav className="hidden lg:flex items-center gap-1 flex-1" aria-label="Main navigation">
+          {/* Desktop nav links — visible on sm and wider */}
+          <nav className="hidden sm:flex items-center gap-1 flex-1" aria-label="Main navigation">
             {NAV_LINKS.map(({ href, label }) => (
               <Link
                 key={href}
@@ -138,7 +138,7 @@ export default function Navbar() {
             {isMobile && (
               <button
                 ref={hamburgerRef}
-                className="ml-1 flex items-center justify-center h-9 w-9 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors lg:hidden"
+                className="ml-1 flex items-center justify-center h-9 w-9 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors sm:hidden"
                 aria-label="Open menu"
                 aria-expanded={sidebarOpen}
                 aria-controls="mobile-sidebar"
@@ -162,7 +162,7 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* Slide-in sidebar for below lg */}
+      {/* Slide-in sidebar for below sm */}
       <MobileSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

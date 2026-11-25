@@ -7,7 +7,7 @@ import FocusTrap from "@/components/FocusTrap";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/invoice", label: "Invoices" },
+  { href: "/dashboard/invoices", label: "Invoices" },
   { href: "/transactions", label: "Transactions" },
   { href: "/subscriptions", label: "Subscriptions" },
   { href: "/groups", label: "Groups" },
@@ -47,6 +47,8 @@ export default function MobileSidebar({ isOpen, onClose, triggerRef }: MobileSid
     triggerRef.current?.focus();
   };
 
+  if (!isOpen) return null;
+
   return (
     <>
       {/* Backdrop */}
@@ -54,27 +56,23 @@ export default function MobileSidebar({ isOpen, onClose, triggerRef }: MobileSid
         aria-hidden="true"
         onClick={handleClose}
         className={[
-          "fixed inset-0 z-40 bg-black/60 transition-opacity duration-200 lg:hidden",
-          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+          "fixed inset-0 z-40 bg-black/60 transition-opacity duration-200 sm:hidden",
+          "opacity-100 pointer-events-auto",
         ].join(" ")}
       />
 
-      {/* Sidebar panel — always in DOM; CSS transform handles visual show/hide */}
+      {/* Sidebar panel — mounted only while open */}
       <div
         role="dialog"
-        aria-modal={isOpen ? "true" : undefined}
+        aria-modal="true"
         aria-label="Navigation menu"
+        data-testid="mobile-sidebar"
         className={[
-          "fixed inset-y-0 left-0 z-50 w-72 bg-surface-900 border-r border-white/[0.06] flex flex-col",
-          "transition-transform duration-200 ease-in-out lg:hidden",
-          isOpen ? "translate-x-0" : "-translate-x-full",
+          "fixed inset-y-0 left-0 z-50 w-full sm:w-72 bg-surface-900 border-r border-white/[0.06] flex flex-col",
+          "transition-transform duration-200 ease-in-out sm:hidden",
+          "translate-x-0",
         ].join(" ")}
       >
-        {/*
-         * FocusTrap is always mounted but only active when open.
-         * active=false prevents focus stealing on page load so the
-         * hamburger button can be focused and Enter can trigger its click.
-         */}
         <FocusTrap
           active={isOpen}
           onClose={handleClose}
@@ -84,8 +82,8 @@ export default function MobileSidebar({ isOpen, onClose, triggerRef }: MobileSid
           <div className="flex items-center justify-between px-4 py-4 border-b border-white/[0.06]">
             <Link
               href="/"
-              onClick={isOpen ? onClose : undefined}
-              tabIndex={isOpen ? 0 : -1}
+              onClick={onClose}
+              tabIndex={0}
               className="flex items-center gap-2 group"
               aria-label="StellarSplit home"
             >
@@ -100,8 +98,8 @@ export default function MobileSidebar({ isOpen, onClose, triggerRef }: MobileSid
               </span>
             </Link>
             <button
-              onClick={handleClose}
-              tabIndex={isOpen ? 0 : -1}
+              onClick={onClose}
+              tabIndex={0}
               className="flex items-center justify-center h-9 w-9 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
               aria-label="Close navigation menu"
             >
@@ -112,24 +110,20 @@ export default function MobileSidebar({ isOpen, onClose, triggerRef }: MobileSid
           </div>
 
           {/*
-           * Nav is always in the DOM (never conditionally removed).
-           * aria-hidden keeps it out of the accessibility tree while closed so
-           * getByRole('navigation') returns 0 results until the sidebar opens.
-           * After open: aria-hidden=false, sidebar at translate-x-0 (in viewport),
-           * so getByRole finds it and toBeVisible() passes.
+           * Nav is rendered only while the sidebar is open, so it is always
+           * exposed to the accessibility tree when present.
            */}
           <nav
             className="flex-1 overflow-y-auto px-3 py-4"
             aria-label="Mobile navigation"
-            aria-hidden={!isOpen}
           >
             <ul className="flex flex-col gap-1" role="list">
               {NAV_LINKS.map(({ href, label }) => (
                 <li key={href}>
                   <Link
                     href={href}
-                    onClick={isOpen ? onClose : undefined}
-                    tabIndex={isOpen ? 0 : -1}
+                    onClick={onClose}
+                    tabIndex={0}
                     className={[
                       "block px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                       isActive(href)
@@ -146,8 +140,8 @@ export default function MobileSidebar({ isOpen, onClose, triggerRef }: MobileSid
             <div className="mt-4 pt-4 border-t border-white/[0.06]">
               <Link
                 href="/invoice/new"
-                onClick={isOpen ? onClose : undefined}
-                tabIndex={isOpen ? 0 : -1}
+                onClick={onClose}
+                tabIndex={0}
                 className="flex items-center justify-center gap-1.5 h-10 rounded-md bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold transition-colors"
               >
                 <span aria-hidden="true">+</span> New Invoice
