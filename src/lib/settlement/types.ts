@@ -140,6 +140,57 @@ export interface SettlementVerificationResult {
   timingValid: boolean;
   settlementRecord?: SettlementRecord;
   discrepancies: string[];
+  /** On-chain verification details, present when a blockchain client was used. */
+  onChain?: OnChainVerification;
+}
+
+/** Result of verifying a settlement against the Stellar blockchain. */
+export interface OnChainVerification {
+  txHash: string;
+  found: boolean;
+  successful: boolean;
+  ledger?: number;
+  sourceAccount?: string;
+  destinationAccount?: string;
+  amount?: number;
+  asset?: AssetSymbol;
+  memo?: string;
+  checkedAt: number;
+  error?: string;
+}
+
+/** A single entry in the immutable settlement audit trail. */
+export interface SettlementAuditEntry {
+  id: string;
+  settlementId: string;
+  invoiceId: string;
+  action:
+    | 'settlement_requested'
+    | 'settlement_executed'
+    | 'settlement_verified'
+    | 'settlement_failed'
+    | 'on_chain_verified'
+    | 'on_chain_mismatch'
+    | 'on_chain_error';
+  actor: string;
+  timestamp: number;
+  txHash?: string;
+  details?: string;
+}
+
+/** Aggregated blockchain settlement analytics. */
+export interface BlockchainAnalytics {
+  totalSettlements: number;
+  verifiedSettlements: number;
+  failedSettlements: number;
+  onChainVerified: number;
+  onChainMismatched: number;
+  onChainErrors: number;
+  verificationRate: number;
+  totalVolumeByAsset: Record<AssetSymbol, number>;
+  averageLatencyMs: number;
+  averageSettlementFee: number;
+  lastSettlementAt?: number;
 }
 
 export interface SettlementFeeRecord {
