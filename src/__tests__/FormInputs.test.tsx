@@ -63,7 +63,7 @@ describe('FormInputs - aria-describedby', () => {
       render(<Textarea id="notes" label="Notes" error="Too long" />);
       const textarea = screen.getByRole('textbox');
       expect(textarea.getAttribute('aria-describedby')).toBe('notes-error');
-      expect(screen.getByText('Too long')).getAttribute('id').toBe('notes-error');
+      expect(screen.getByText('Too long').getAttribute('id')).toBe('notes-error');
     });
 
     it('sets aria-describedby pointing to helper text', () => {
@@ -83,7 +83,7 @@ describe('FormInputs - aria-describedby', () => {
       render(<Select id="choice" label="Choice" options={options} error="Invalid" />);
       const select = screen.getByRole('combobox');
       expect(select.getAttribute('aria-describedby')).toBe('choice-error');
-      expect(screen.getByText('Invalid')).getAttribute('id').toBe('choice-error');
+      expect(screen.getByText('Invalid').getAttribute('id')).toBe('choice-error');
     });
 
     it('sets aria-describedby pointing to helper text', () => {
@@ -98,7 +98,7 @@ describe('FormInputs - aria-describedby', () => {
       render(<DatePicker id="date" label="Date" error="Invalid date" />);
       const input = screen.getByRole('textbox');
       expect(input.getAttribute('aria-describedby')).toBe('date-error');
-      expect(screen.getByText('Invalid date')).getAttribute('id').toBe('date-error');
+      expect(screen.getByText('Invalid date').getAttribute('id')).toBe('date-error');
     });
 
     it('sets aria-describedby pointing to helper text', () => {
@@ -121,7 +121,7 @@ describe('FormInputs - aria-describedby', () => {
       );
       const button = screen.getByRole('switch');
       expect(button.getAttribute('aria-describedby')).toBe('enabled-error');
-      expect(screen.getByText('Must be enabled')).getAttribute('id').toBe('enabled-error');
+      expect(screen.getByText('Must be enabled').getAttribute('id')).toBe('enabled-error');
     });
 
     it('sets aria-describedby pointing to helper text', () => {
@@ -152,7 +152,7 @@ describe('FormInputs - aria-describedby', () => {
       );
       const checkbox = screen.getByRole('checkbox');
       expect(checkbox.getAttribute('aria-describedby')).toBe('accept-error');
-      expect(screen.getByText('You must accept')).getAttribute('id').toBe('accept-error');
+      expect(screen.getByText('You must accept').getAttribute('id')).toBe('accept-error');
     });
 
     it('sets aria-describedby pointing to helper text', () => {

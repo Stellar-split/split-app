@@ -70,7 +70,7 @@ describe("BrandingForm", () => {
     expect(mockFetchBrandSettings).toHaveBeenCalledWith(ADDRESS);
     expect(screen.getByLabelText("Accent color hex value")).toHaveValue("#4f46e5");
     expect(screen.getByLabelText("Invoice tagline")).toHaveValue("Existing tagline");
-    expect(screen.getByAltText("Your logo")).getAttribute("src").toBe("https://cdn.example.com/logo.png");
+    expect(screen.getByAltText("Your logo")).toHaveAttribute("src", "https://cdn.example.com/logo.png");
   });
 
   it("rejects an unsupported file type with a specific error BEFORE any upload request", async () => {
@@ -105,7 +105,9 @@ describe("BrandingForm", () => {
     await waitFor(() => expect(mockUploadBrandLogo).toHaveBeenCalledTimes(1));
     expect(mockUploadBrandLogo).toHaveBeenCalledWith(ADDRESS, png);
     const previews = await screen.findAllByAltText(/logo/i);
-    expect(previews.some((img) => img.getAttribute("src")?.includes("/api/settings/branding/logo/"))).toBe(true);
+    expect(
+      previews.some((img) => img.getAttribute("src")?.includes("/api/settings/branding/logo/")),
+    ).toBe(true);
   });
 
   it("flags a low-contrast accent color with an inline WCAG warning in real time", async () => {

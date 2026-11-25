@@ -116,7 +116,7 @@ export class StellarAmmLiquidityProvider implements ILiquidityProvider {
 
     // Commit reservation in pool manager
     if (quote.poolId) {
-      const reservation = (this.poolManager as any).reservations?.get?.(quote.quoteId);
+      const reservation = this.poolManager.getReservationByQuoteId(quote.quoteId);
       if (reservation) {
         this.poolManager.commitReservation(reservation.reservationId, request.sourceAmount, quote.destinationAmount);
       }

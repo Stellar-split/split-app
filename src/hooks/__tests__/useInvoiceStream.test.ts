@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 
 // Use vi.hoisted to create the mock function before module resolution
 const mockGetSplitClient = vi.hoisted(() => vi.fn());
@@ -25,12 +25,14 @@ const mockInvoice = {
 
 describe('useInvoiceStream', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     mockGetSplitClient.mockReturnValue({ getInvoice: vi.fn() });
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   it('should fetch initial invoice data', async () => {
@@ -39,7 +41,9 @@ describe('useInvoiceStream', () => {
 
     const { result } = renderHook(() => useInvoiceStream('123'));
 
-    await waitFor(() => expect(result.current.invoice).not.toBeNull());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
 
     expect(result.current.invoice?.id).toBe('123');
     expect(result.current.isConnected).toBe(true);
@@ -51,8 +55,11 @@ describe('useInvoiceStream', () => {
 
     const { result } = renderHook(() => useInvoiceStream('123'));
 
-    await waitFor(() => expect(result.current.error).toBe('Network error'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
 
+    expect(result.current.error).toBe('Network error');
     expect(result.current.invoice).toBeNull();
     expect(result.current.isConnected).toBe(false);
   });
@@ -64,7 +71,9 @@ describe('useInvoiceStream', () => {
     const { result } = renderHook(() => useInvoiceStream('123'));
 
     // Just verify the hook initializes and fetches data
-    await waitFor(() => expect(result.current.invoice).not.toBeNull());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
 
     expect(result.current.invoice?.id).toBe('123');
     expect(fn).toHaveBeenCalledWith('123');
@@ -78,11 +87,16 @@ describe('useInvoiceStream', () => {
 
     const { result } = renderHook(() => useInvoiceStream('123'));
 
-    await waitFor(() => expect(result.current.invoice?.status).toBe('Pending'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.invoice?.status).toBe('Pending');
 
-    await vi.advanceTimersByTimeAsync(3_000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
 
-    await waitFor(() => expect(result.current.latestEvent?.type).toBe('InvoiceReleased'));
+    expect(result.current.latestEvent?.type).toBe('InvoiceReleased');
   });
 
   it('should handle reconnection with exponential backoff', async () => {
@@ -91,12 +105,17 @@ describe('useInvoiceStream', () => {
 
     const { result } = renderHook(() => useInvoiceStream('123'));
 
-    await waitFor(() => expect(result.current.error).toBe('lost'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.error).toBe('lost');
     expect(result.current.isConnected).toBe(false);
 
-    await vi.advanceTimersByTimeAsync(1_000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
 
-    await waitFor(() => expect(result.current.isConnected).toBe(true));
+    expect(result.current.isConnected).toBe(true);
     expect(result.current.invoice?.id).toBe('123');
   });
 
@@ -106,7 +125,10 @@ describe('useInvoiceStream', () => {
     const spy = vi.spyOn(global, 'clearInterval');
     const { result, unmount } = renderHook(() => useInvoiceStream('123'));
 
-    await waitFor(() => expect(result.current.invoice).not.toBeNull());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.invoice).not.toBeNull();
 
     unmount();
     expect(spy).toHaveBeenCalled();
