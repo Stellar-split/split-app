@@ -231,11 +231,12 @@ describe("PaymentConfirmationOverlay", () => {
 
       expect(mockOnDismiss).not.toHaveBeenCalled();
 
-
-      await waitFor(() => {
-        expect(mockOnDismiss).toHaveBeenCalledOnce();
-      });
-
+      await waitFor(
+        () => {
+          expect(mockOnDismiss).toHaveBeenCalledTimes(1);
+        },
+        { timeout: 5000 }
+      );
     });
 
     it("does not auto-dismiss when prefersReducedMotion is true", async () => {

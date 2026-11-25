@@ -3,6 +3,10 @@
 import { useMemo } from "react";
 import { computeGamification, type PaymentEvent } from "@/lib/paymentGamification";
 
+/**
+ * Displays the user's payment level, points, progress to the next level,
+ * streak, payment count and achievement badges.
+ */
 export default function PaymentGamificationPanel({ events }: { events: PaymentEvent[] }) {
   const summary = useMemo(() => computeGamification(events), [events]);
   const percent = Math.round(summary.levelProgress * 100);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import TxHash from "@/components/ui/TxHash";
 import RelativeTime from "@/components/ui/RelativeTime";
 import PayerReputationDisplay from "@/components/PayerReputationDisplay";
@@ -18,6 +18,23 @@ interface RecipientPaymentHistoryProps {
   recipientId: string;
   /** Network for Stellar transaction explorer links */
   network?: "testnet" | "mainnet";
+}
+
+type SortKey = "timestamp" | "amount";
+type SortDirection = "asc" | "desc";
+
+const PAGE_SIZE = 10;
+
+function compareEntries(
+  a: RecipientHistoryEntry,
+  b: RecipientHistoryEntry,
+  key: SortKey
+): number {
+  if (key === "amount") {
+    const diff = Number(a.amount) - Number(b.amount);
+    if (!Number.isNaN(diff) && diff !== 0) return diff;
+  }
+  return Date.parse(a.timestamp) - Date.parse(b.timestamp);
 }
 
 /**
@@ -38,6 +55,9 @@ export default function RecipientPaymentHistory({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("timestamp");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();

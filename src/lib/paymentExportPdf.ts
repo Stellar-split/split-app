@@ -17,22 +17,36 @@ type PaymentWithMeta = Payment & { timestamp?: number; txHash?: string };
 const STROOPS_PER_UNIT = 10_000_000n;
 
 /**
- * Format a payment amount as a fixed 2-decimal USDC string.
- *
- * Implemented locally (rather than relying on the SDK's `formatAmount`) so the
- * PDF export works with plain bigint/number amounts and never throws on
- * malformed input.
+ * Format a payment amount as a fixed 7-decimal USDC string.
+ * Accepts bigint stroops, numeric stroops or already-formatted strings.
  */
-function formatAmount(amount: unknown): string {
-  if (typeof amount === "bigint") {
-    const whole = amount / STROOPS_PER_UNIT;
-    const fraction = (amount % STROOPS_PER_UNIT) / 100_000n;
-    return `${whole}.${fraction.toString().padStart(2, "0")}`;
+function formatAmount(value: unknown): string {
+  if (typeof value === "bigint") {
+    const negative = value < 0n;
+    const abs = negative ? -value : value;
+    const whole = abs / STROOPS_PER_UNIT;
+    const fraction = (abs % STROOPS_PER_UNIT).toString().padStart(7, "0");
+    return `${negative ? "-" : ""}${whole}.${fraction}`;
   }
-  if (typeof amount === "number" && Number.isFinite(amount)) {
-    return (amount / Number(STROOPS_PER_UNIT)).toFixed(2);
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return (value / Number(STROOPS_PER_UNIT)).toFixed(7);
   }
-  return "0.00";
+  if (typeof value === "string" && value.trim() !== "") {
+    return value;
+  }
+  return "0.0000000";
+}
+
+/** Convert a payment amount to stroops for totals. */
+function toStroops(value: unknown): bigint {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return BigInt(Math.round(value));
+  }
+  if (typeof value === "string" && /^-?\d+$/.test(value.trim())) {
+    return BigInt(value.trim());
+  }
+  return 0n;
 }
 
 /** Escape untrusted text before interpolating it into the HTML document. */
@@ -55,11 +69,7 @@ function formatTimestamp(timestamp: number | undefined): string {
 /** Sum payment amounts, tolerating bigint or numeric amounts. */
 function sumAmounts(payments: PaymentWithMeta[]): bigint {
   return payments.reduce<bigint>((sum, payment) => {
-    if (typeof payment.amount === "bigint") return sum + payment.amount;
-    if (typeof payment.amount === "number" && Number.isFinite(payment.amount)) {
-      return sum + BigInt(Math.round(payment.amount));
-    }
-    return sum;
+    return sum + toStroops(payment.amount);
   }, 0n);
 }
 
@@ -163,6 +173,14 @@ export function downloadPaymentSummaryPDF(html: string, filename?: string): void
       win.close();
     };
   } else {
+    // Popup blocked: fall back to downloading the printable document.
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename ?? "payment-summary.html";
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
     URL.revokeObjectURL(url);
   }
 

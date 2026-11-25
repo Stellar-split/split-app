@@ -54,7 +54,24 @@ export default function TaxReportExport({ payments }: Props) {
         <div><dt className="text-gray-500">Gross</dt><dd>{summary.gross}</dd></div>
         <div><dt className="text-gray-500">Fees</dt><dd>{summary.fees}</dd></div>
         <div><dt className="text-gray-500">Net</dt><dd>{summary.net}</dd></div>
+        <div><dt className="text-gray-500">Tax</dt><dd>{summary.tax}</dd></div>
+        <div><dt className="text-gray-500">After tax</dt><dd>{summary.afterTax}</dd></div>
+        <div><dt className="text-gray-500">Exempt gross</dt><dd>{summary.exemptGross}</dd></div>
       </dl>
+      {summary.jurisdictions.length > 0 && (
+        <ul aria-label="Tax by jurisdiction" className="mt-3 space-y-1 text-sm">
+          {summary.jurisdictions.map((j) => (
+            <li key={j.jurisdiction} className="flex justify-between gap-2">
+              <span>
+                {j.name} ({j.jurisdiction}) · {j.ratePercent}%
+              </span>
+              <span>
+                {j.taxable} taxable · {j.tax} tax
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

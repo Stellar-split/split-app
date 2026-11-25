@@ -50,6 +50,19 @@ function formatTs(ts: number) {
   }).format(new Date(ts * 1000));
 }
 
+function sortEvents(events: DisputeEvent[]): DisputeEvent[] {
+  return [...events].sort((a, b) => a.timestamp - b.timestamp);
+}
+
+const EVENT_TYPES: DisputeEvent["type"][] = [
+  "DisputeOpened",
+  "EvidenceSubmitted",
+  "ArbitratorSelected",
+  "VoteCast",
+  "DisputeResolved",
+  "ResolutionEnforced",
+];
+
 /**
  * DisputeTimeline — Chronological timeline of all dispute lifecycle events.
  * Shows dispute opening, evidence submissions, arbitrator votes, and resolution.
@@ -57,27 +70,26 @@ function formatTs(ts: number) {
 export default function DisputeTimeline({ invoiceId, disputeStatus }: Props) {
   const [events, setEvents] = useState<DisputeEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<DisputeEvent["type"] | "all">("all");
 
   useEffect(() => {
     const loadEvents = async () => {
       try {
         // Prefer the persisted dispute record's append-only timeline.
-        const record = await (splitClient as any).getDisputeRecord?.(invoiceId);
+        const client = splitClient as unknown as {
+          getDisputeRecord?: (id: string) => Promise<{ timeline?: DisputeEvent[] } | null>;
+          getDisputeEvents?: (id: string) => Promise<DisputeEvent[] | null>;
+        };
+        const record = await client.getDisputeRecord?.(invoiceId);
         if (record && Array.isArray(record.timeline)) {
-          const sorted = [...record.timeline].sort(
-            (a: DisputeEvent, b: DisputeEvent) => a.timestamp - b.timestamp,
-          );
-          setEvents(sorted);
+          setEvents(sortEvents(record.timeline));
           return;
         }
 
         // Fall back to contract events when no persisted record exists.
-        const log = await (splitClient as any).getDisputeEvents?.(invoiceId);
+        const log = await client.getDisputeEvents?.(invoiceId);
         if (log && Array.isArray(log)) {
-          const sorted = [...log].sort(
-            (a: DisputeEvent, b: DisputeEvent) => a.timestamp - b.timestamp,
-          );
-          setEvents(sorted);
+          setEvents(sortEvents(log));
         }
       } catch (err) {
         console.error("Failed to load dispute events:", err);
@@ -110,25 +122,67 @@ export default function DisputeTimeline({ invoiceId, disputeStatus }: Props) {
     );
   }
 
+  const visibleEvents =
+    activeFilter === "all" ? events : events.filter((e) => e.type === activeFilter);
+
   return (
     <section className="mb-8" aria-labelledby="dispute-timeline-heading">
       <h2 id="dispute-timeline-heading" className="text-lg font-semibold mb-4 text-red-400">
         Dispute Timeline
       </h2>
 
+      <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="Filter dispute events">
+        <button
+          type="button"
+          onClick={() => setActiveFilter("all")}
+          aria-pressed={activeFilter === "all"}
+          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+            activeFilter === "all"
+              ? "border-indigo-500 bg-indigo-500/20 text-indigo-300"
+              : "border-gray-700 text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          All ({events.length})
+        </button>
+        {EVENT_TYPES.map((type) => {
+          const count = events.filter((e) => e.type === type).length;
+          if (count === 0) return null;
+          return (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setActiveFilter(type)}
+              aria-pressed={activeFilter === type}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                activeFilter === type
+                  ? "border-indigo-500 bg-indigo-500/20 text-indigo-300"
+                  : "border-gray-700 text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              {getEventTitle(type)} ({count})
+            </button>
+          );
+        })}
+      </div>
+
       {events.length === 0 ? (
         <p className="text-sm text-gray-500 bg-gray-900/40 border border-gray-700 rounded-lg p-4 text-center">
           No dispute events recorded yet
         </p>
+      ) : visibleEvents.length === 0 ? (
+        <p className="text-sm text-gray-500 bg-gray-900/40 border border-gray-700 rounded-lg p-4 text-center">
+          No events match the selected filter
+        </p>
       ) : (
         <ol className="relative border-l-2 border-gray-700 pl-6 space-y-6">
-          {events.map((event, idx) => {
-            const isLast = idx === events.length - 1;
+          {visibleEvents.map((event, idx) => {
+            const isLast = idx === visibleEvents.length - 1;
+            void isLast;
             const icon = getEventIcon(event.type);
             const color = getEventColor(event.type);
 
             return (
-              <li key={idx} className="relative">
+              <li key={`${event.type}-${event.timestamp}-${idx}`} className="relative">
                 {/* Timeline marker */}
                 <div
                   className={`absolute -left-[1.6rem] top-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm ${color}`}
@@ -264,6 +318,25 @@ export default function DisputeTimeline({ invoiceId, disputeStatus }: Props) {
           })}
         </ol>
       )}
+
+      <div
+        className={`mt-4 flex items-center gap-2 rounded-lg border p-3 text-sm ${
+          disputeStatus.resolved
+            ? "border-green-500/40 bg-green-500/10 text-green-300"
+            : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+        }`}
+        role="status"
+      >
+        <span aria-hidden="true">{disputeStatus.resolved ? "✓" : "⏳"}</span>
+        <span className="font-medium">
+          {disputeStatus.resolved
+            ? `Resolved — ${disputeStatus.outcome === "Refund" ? "Refunded" : "Released"}`
+            : "Awaiting resolution"}
+        </span>
+        <span className="ml-auto text-xs text-gray-400">
+          {disputeStatus.releaseVotes} release · {disputeStatus.refundVotes} refund
+        </span>
+      </div>
     </section>
   );
 }

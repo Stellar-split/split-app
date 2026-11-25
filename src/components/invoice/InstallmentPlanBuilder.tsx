@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import { z } from 'zod';
-import { parseAmount, formatAmount } from '@stellar-split/sdk';
 
 export interface InstallmentMilestone {
   id: string;
@@ -29,10 +28,30 @@ interface Props {
 
 const STEPS = ['amount', 'schedule'] as const;
 
+const DAY_SECONDS = 86400;
+
+/** Formats a numeric amount with up to 7 decimal places, trimming trailing zeros. */
+function formatPlanAmount(value: number): string {
+  return Number(value.toFixed(7)).toString();
+}
+
+/** Converts a unix timestamp (seconds) to a `datetime-local` input value. */
+function toDateTimeLocal(ts: number): string {
+  const date = new Date(ts * 1000);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/**
+ * Builds and validates an installment payment plan: milestone amounts, due-date
+ * schedule, custom terms and a plan summary before saving.
+ */
 export default function InstallmentPlanBuilder({ totalAmount, installments, assetCode, onChange }: Props) {
   const [localMilestones, setLocalMilestones] = useState<InstallmentMilestone[]>(installments);
   const [errors, setErrors] = useState<string[]>([]);
   const [step, setStep] = useState(0);
+  const [termDays, setTermDays] = useState(30);
 
   const sum = useMemo(
     () => localMilestones.reduce((s, m) => s + (Number(m.amount) || 0), 0),
@@ -47,7 +66,11 @@ export default function InstallmentPlanBuilder({ totalAmount, installments, asse
       setErrors(parsed.error.issues.map((i) => i.message));
       return false;
     }
-    if (localMilestones.length > 0 && delta >= 0.0001) {
+    if (localMilestones.length === 0) {
+      setErrors(['Add at least one milestone']);
+      return false;
+    }
+    if (delta >= 0.0001) {
       setErrors([
         `Milestone amounts must sum to ${totalAmount.toFixed(7)} ${assetCode} (current sum: ${sum.toFixed(7)})`,
       ]);
@@ -60,13 +83,37 @@ export default function InstallmentPlanBuilder({ totalAmount, installments, asse
 
   const addMilestone = () => {
     const nextId = `ms_${Date.now()}_${localMilestones.length}`;
-    const lastDue = localMilestones.length > 0 ? localMilestones[localMilestones.length - 1].dueDate + 86400 : Math.floor(Date.now() / 1000) + 86400;
+    const lastDue = localMilestones.length > 0 ? localMilestones[localMilestones.length - 1].dueDate + DAY_SECONDS : Math.floor(Date.now() / 1000) + DAY_SECONDS;
     setLocalMilestones([...localMilestones, {
       id: nextId,
       amount: localMilestones.length === 0 ? Number(totalAmount.toFixed(7)) : 0,
       dueDate: lastDue,
       status: 'upcoming',
     }]);
+  };
+
+  /** Recalculates due dates evenly across the plan term, starting one term from now. */
+  const applySchedule = () => {
+    const count = localMilestones.length;
+    if (count === 0) return;
+    const start = Math.floor(Date.now() / 1000);
+    const interval = Math.max(1, Math.round((termDays * DAY_SECONDS) / count));
+    setLocalMilestones((prev) =>
+      prev.map((m, i) => ({ ...m, dueDate: start + interval * (i + 1) }))
+    );
+  };
+
+  /** Splits the total amount evenly across the current milestones. */
+  const splitEvenly = () => {
+    const count = localMilestones.length;
+    if (count === 0) return;
+    const base = Math.floor((totalAmount / count) * 1e7) / 1e7;
+    setLocalMilestones((prev) =>
+      prev.map((m, i) => ({
+        ...m,
+        amount: i === count - 1 ? Number((totalAmount - base * (count - 1)).toFixed(7)) : base,
+      }))
+    );
   };
 
   const removeMilestone = (idx: number) => {
@@ -90,11 +137,7 @@ export default function InstallmentPlanBuilder({ totalAmount, installments, asse
   };
 
   const handleNext = () => {
-    if (step === 0 && localMilestones.length === 0) {
-      setErrors(['Add at least one milestone']);
-      return;
-    }
-    if (step === 0) validate();
+    if (step === 0 && !validate()) return;
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
@@ -135,6 +178,27 @@ export default function InstallmentPlanBuilder({ totalAmount, installments, asse
                 Add Milestone
               </button>
             </div>
+            {localMilestones.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={splitEvenly} className="min-h-9 px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium transition-colors">
+                  Split Evenly
+                </button>
+                <label className="flex items-center gap-2 text-xs text-gray-400">
+                  Term (days)
+                  <input
+                    type="number"
+                    min="1"
+                    value={termDays}
+                    onChange={(e) => setTermDays(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    className="w-20 min-h-9 bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    aria-label="Plan term in days"
+                  />
+                </label>
+                <button type="button" onClick={applySchedule} className="min-h-9 px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium transition-colors">
+                  Recalculate Schedule
+                </button>
+              </div>
+            )}
             {localMilestones.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-4">No milestones yet. Add one to break this invoice into installments.</p>
             ) : (
@@ -147,7 +211,7 @@ export default function InstallmentPlanBuilder({ totalAmount, installments, asse
                         type="number"
                         step="0.0000001"
                         min="0"
-                        value={m.amount}
+                        value={m.amount === 0 ? '' : m.amount}
                         onChange={(e) => updateMilestone(idx, { amount: parseFloat(e.target.value) || 0 })}
                         className="w-full sm:w-28 min-h-9 bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         aria-label={`Milestone ${idx + 1} amount`}
@@ -164,7 +228,7 @@ export default function InstallmentPlanBuilder({ totalAmount, installments, asse
               </div>
             )}
             <div className="flex items-center justify-between text-xs text-gray-400">
-              <span>Total: {formatAmount(parseAmount(sum.toFixed(7)))} USDC</span>
+              <span>Total: {formatPlanAmount(sum)} {assetCode}</span>
               <span className={delta < 0.0001 ? 'text-green-400' : 'text-red-400'}>
                 {delta < 0.0001 ? '✓ Matches total' : `Δ ${delta.toFixed(7)}`}
               </span>
@@ -185,7 +249,7 @@ export default function InstallmentPlanBuilder({ totalAmount, installments, asse
                     <label className="text-sm text-gray-400 shrink-0">Due</label>
                     <input
                       type="datetime-local"
-                      value={new Date(m.dueDate * 1000).toISOString().slice(0, 16)}
+                      value={toDateTimeLocal(m.dueDate)}
                       onChange={(e) => {
                         const ts = Math.floor(new Date(e.target.value).getTime() / 1000);
                         updateMilestone(idx, { dueDate: ts > 0 ? ts : 0 });
@@ -197,6 +261,18 @@ export default function InstallmentPlanBuilder({ totalAmount, installments, asse
                 ))}
               </div>
             )}
+            <div className="rounded-lg bg-gray-800 border border-gray-700 p-3 text-xs text-gray-400" aria-label="Plan summary">
+              <p className="text-sm font-medium text-gray-300 mb-1">Plan summary</p>
+              <p>{localMilestones.length} installment{localMilestones.length === 1 ? '' : 's'} · {formatPlanAmount(sum)} / {formatPlanAmount(totalAmount)} {assetCode}</p>
+              <p>
+                {localMilestones.length > 0 && localMilestones[0].dueDate > 0
+                  ? `First due ${new Date(localMilestones[0].dueDate * 1000).toLocaleDateString()}`
+                  : 'No due date set'}
+                {localMilestones.length > 1 && localMilestones[localMilestones.length - 1].dueDate > 0
+                  ? ` · Last due ${new Date(localMilestones[localMilestones.length - 1].dueDate * 1000).toLocaleDateString()}`
+                  : ''}
+              </p>
+            </div>
           </div>
         )}
       </div>
