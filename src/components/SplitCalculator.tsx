@@ -1,21 +1,28 @@
-import type { SplitMeta } from "@/lib/api/invoices";
+import type { SplitMeta } from "@/hooks/useSplitCalculator";
+import SplitBuilder from "@/components/invoice/SplitBuilder";
 
 interface SplitCalculatorProps {
   splitMeta?: SplitMeta;
+  onSplitMetaChange?: (meta: SplitMeta) => void;
   readOnly?: boolean;
 }
 
-export default function SplitCalculator({ splitMeta, readOnly }: SplitCalculatorProps) {
+/**
+ * SplitCalculator — thin wrapper around the split builder so invoice pages and
+ * tests share one entry point for editing recipient shares.
+ */
+export default function SplitCalculator({
+  splitMeta,
+  onSplitMetaChange,
+  readOnly,
+}: SplitCalculatorProps) {
   return (
     <div className="split-calculator">
-      <h3>Split Calculator</h3>
-      {splitMeta && (
-        <div>
-          <p>Total: {splitMeta.totalAmount} {splitMeta.assetCode}</p>
-          <p>Recipients: {splitMeta.recipients.length}</p>
-        </div>
-      )}
-      {readOnly && <p className="text-sm text-gray-400">(Read-only)</p>}
+      <SplitBuilder
+        splitMeta={splitMeta}
+        onSplitMetaChange={onSplitMetaChange}
+        readOnly={readOnly}
+      />
     </div>
   );
 }
