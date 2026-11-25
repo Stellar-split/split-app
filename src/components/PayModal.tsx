@@ -15,6 +15,7 @@ import { fetchUsdcBalance, USDC_CONTRACT_ID } from "@/lib/stellar";
 import { saveReceipt } from "@/lib/receiptStore";
 import { apiFetch } from "@/lib/apiClient";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
+import { getActiveNetwork } from "@/lib/networks";
 import type { RateLock } from "@/lib/currency";
 import { getActiveNetwork } from "@/lib/networks";
 

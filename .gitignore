@@ -23,6 +23,9 @@ next-env.d.ts
 coverage/
 **/__snapshots__/
 *.snap
+*testsnapshot*
+testsnapshot*/
+**/testsnapshot*/
 playwright-report/
 test-results/
 junit.xml
