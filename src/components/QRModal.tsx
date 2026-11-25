@@ -47,6 +47,50 @@ export default function QRModal({
   pollingInterval = 2000,
 }: QRModalProps) {
   const firedRef = useRef(false);
+  const callbacksRef = useRef({ onConnected, onClose });
+
+  useEffect(() => {
+    callbacksRef.current = { onConnected, onClose };
+  }, [onConnected, onClose]);
+
+  // Poll the wallet connection while the modal is open and awaiting approval.
+  useEffect(() => {
+    if (!open) {
+      firedRef.current = false;
+      return;
+    }
+    if (status === "session_approved" || status === "timeout" || status === "error") {
+      return;
+    }
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const check = async () => {
+      try {
+        const connected = await isWalletConnected();
+        if (cancelled || firedRef.current) return;
+        if (connected) {
+          firedRef.current = true;
+          callbacksRef.current.onConnected?.();
+          callbacksRef.current.onClose();
+          return;
+        }
+      } catch {
+        // Ignore transient wallet errors and keep polling.
+      }
+      if (!cancelled) {
+        timer = setTimeout(check, pollingInterval);
+      }
+    };
+
+    void check();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [open, status, pollingInterval]);
 
   // Poll wallet connection status while the modal is open and fire
   // onConnected once when a connection change is detected.
