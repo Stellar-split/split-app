@@ -63,6 +63,7 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
         {
           startDate: startDate || undefined,
           endDate: endDate || undefined,
+          invoiceId,
         }
       );
 
@@ -135,6 +136,7 @@ export default function PaymentExport({ invoiceId, payments }: Props) {
             type="button"
             onClick={handleExport}
             disabled={exporting || payments.length === 0}
+            aria-label={`Export payments ${exportFormat.toUpperCase()}`}
             className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-semibold transition-colors"
           >
             {exporting
