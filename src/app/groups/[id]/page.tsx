@@ -21,6 +21,25 @@ interface MemberRow {
 
 const POLL_MS = 5000;
 
+interface LocalContactGroup {
+  id: string;
+  name: string;
+  members: string[];
+  lastActive: number;
+}
+
+/** Read a saved contact group from localStorage by id. */
+function loadLocalGroup(groupId: string): LocalContactGroup | null {
+  try {
+    const groups: LocalContactGroup[] = JSON.parse(
+      localStorage.getItem("contactGroups") || "[]"
+    );
+    return groups.find((g) => g.id === groupId) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default function GroupDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -48,16 +67,20 @@ export default function GroupDetailPage() {
 
   const fetchGroup = useCallback(async () => {
     try {
+      // Local contact groups (created on /groups) are the source of truth for
+      // the group name and member list; on-chain status only adds invoices.
+      const localGroup = loadLocalGroup(groupId);
       const status = await (splitClient as any).getGroupStatus(groupId);
-      if (!status) {
+      if (!status && !localGroup) {
         setMemberRows([]);
         setLoading(false);
         return;
       }
 
-      const memberInvoices: Invoice[] = status.memberInvoices ?? [];
-      const name: string = status.name ?? `Group ${groupId}`;
-      const creatorAddr: string = status.creator ?? memberInvoices[0]?.creator ?? "";
+      const memberInvoices: Invoice[] = status?.memberInvoices ?? [];
+      const name: string =
+        localGroup?.name ?? status?.name ?? `Group ${groupId}`;
+      const creatorAddr: string = status?.creator ?? memberInvoices[0]?.creator ?? "";
 
       let req = 0n;
       let funded = 0n;
@@ -78,6 +101,21 @@ export default function GroupDetailPage() {
           paid: total > 0n && inv.funded >= total,
         };
       });
+
+      // Members without an on-chain invoice still belong to the group.
+      const invoiced = new Set(rows.map((r) => r.address));
+      for (const member of localGroup?.members ?? []) {
+        if (invoiced.has(member)) continue;
+        invoiced.add(member);
+        rows.push({
+          address: member,
+          invoice: null as unknown as Invoice,
+          total: 0n,
+          contributed: 0n,
+          pct: 0,
+          paid: false,
+        });
+      }
 
       setGroupName(name);
       setCreator(creatorAddr);

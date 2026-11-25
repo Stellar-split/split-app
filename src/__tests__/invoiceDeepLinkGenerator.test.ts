@@ -11,101 +11,13 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-
-// Types for the deep-link generator
-interface DeepLinkParams {
-  to: string; // recipient address
-  asset: string; // asset code
-  amount: string; // amount value
-  memo?: string; // optional memo
-}
-
-interface GeneratedLink {
-  url: string;
-  qrCodeDataUrl: string;
-}
-
-// Helper functions for deep-link generation
-export const generateDeepLink = (params: DeepLinkParams): string => {
-  const queryParams = new URLSearchParams();
-  queryParams.set("to", params.to);
-  queryParams.set("asset", params.asset);
-  queryParams.set("amount", params.amount);
-  if (params.memo) {
-    queryParams.set("memo", params.memo);
-  }
-  return `/pay/new?${queryParams.toString()}`;
-};
-
-export const parseDeepLinkParams = (url: string): DeepLinkParams | null => {
-  try {
-    const urlObj = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
-    const params = urlObj.searchParams;
-
-    const to = params.get("to");
-    const asset = params.get("asset");
-    const amount = params.get("amount");
-
-    if (!to || !asset || !amount) {
-      return null;
-    }
-
-    return {
-      to,
-      asset,
-      amount,
-      memo: params.get("memo") || undefined,
-    };
-  } catch {
-    return null;
-  }
-};
-
-export const validateDeepLinkParams = (
-  params: DeepLinkParams
-): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-
-  // Validate address (must be 56 chars and start with G)
-  if (!/^G[A-Z2-7]{55}$/.test(params.to)) {
-    errors.push("Invalid recipient address format");
-  }
-
-  // Validate asset code (1-12 alphanumeric)
-  if (!/^[A-Z0-9]{1,12}$/.test(params.asset)) {
-    errors.push("Invalid asset code format");
-  }
-
-  // Validate amount (positive number)
-  const amount = parseFloat(params.amount);
-  if (isNaN(amount) || amount <= 0) {
-    errors.push("Amount must be a positive number");
-  }
-
-  // Validate amount doesn't exceed max
-  if (amount > 922337203685.4775) {
-    errors.push("Amount exceeds maximum value");
-  }
-
-  // Validate memo if provided (max 28 chars)
-  if (params.memo && params.memo.length > 28) {
-    errors.push("Memo exceeds maximum length of 28 characters");
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-};
-
-export const generateQRCode = async (
-  url: string
-): Promise<string> => {
-  // In real implementation, would use a QR code library. For testing, the
-  // payload URL is embedded so distinct payloads produce distinct codes.
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg"><data>${url}</data></svg>`;
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
-};
+import {
+  generateDeepLink,
+  parseDeepLinkParams,
+  validateDeepLinkParams,
+  generateQRCode,
+  type DeepLinkParams,
+} from "@/lib/invoiceDeepLinkGenerator";
 
 describe("invoiceDeepLinkGenerator", () => {
   const validParams: DeepLinkParams = {

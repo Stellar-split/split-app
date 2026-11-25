@@ -45,12 +45,37 @@ export interface DisputeRecord {
 export type DisputeState = 'Open' | 'Evidence' | 'Voting' | 'Resolved' | 'Enforced';
 export type DisputeOutcome = 'Release' | 'Refund' | 'Settled';
 
-/** Normalize a vote value (string or numeric) to a dispute outcome. */
-export function normalizeVote(vote: string | number): DisputeOutcome | null {
-  if (vote === 1 || vote === '1' || vote === 'Release') return 'Release';
-  if (vote === 0 || vote === '0' || vote === 'Refund') return 'Refund';
-  if (vote === 'Settled') return 'Settled';
+const REGISTRY_KEY = "stellarsplit_arbitrator_registry";
+const DISPUTES_KEY = "stellarsplit_disputes";
+
+const DEFAULT_ARBITRATORS: Arbitrator[] = [
+  {
+    id: "arb-stellar-mediate",
+    name: "StellarMediate",
+    address: "GSTELLARMEDIATEXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    rating: 4.8,
+    resolvedDisputeCount: 42,
+  },
+  {
+    id: "arb-chain-resolve",
+    name: "ChainResolve",
+    address: "GCHAINRESOLVEXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    rating: 4.6,
+    resolvedDisputeCount: 27,
+  },
+];
+
+function getStorage(): Storage | null {
+  try {
+    if (typeof localStorage !== "undefined") return localStorage;
+  } catch {
+    // Access to localStorage may throw in restricted environments.
+  }
   return null;
+}
+
+export function isVotingComplete(data: any): boolean {
+  return false;
 }
 
 /** True when every assigned arbitrator has cast a vote. */
@@ -60,60 +85,91 @@ export function isVotingComplete(data: DisputeRecord): boolean {
   return data.arbitrators.every((arb) => voters.has(arb));
 }
 
-/** True when voting is complete and the resolution has not been enforced yet. */
-export function canEnforceResolution(data: DisputeRecord): boolean {
-  return isVotingComplete(data) && data.state !== 'Enforced';
-}
-
-const REGISTRY_STORAGE_KEY = 'stellarsplit_arbitrator_registry';
-
-const DEFAULT_ARBITRATORS: Arbitrator[] = [
-  {
-    id: 'stellar-mediate',
-    name: 'StellarMediate',
-    address: 'GSTELLARMEDIATEXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-    resolvedDisputeCount: 42,
-  },
-  {
-    id: 'chain-resolve',
-    name: 'ChainResolve',
-    address: 'GCHAINRESOLVEXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-    resolvedDisputeCount: 17,
-  },
-  {
-    id: 'trust-arbiter',
-    name: 'TrustArbiter',
-    address: 'GTRUSTARBITERXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-    resolvedDisputeCount: null,
-  },
-];
-
-/** Read the arbitrator registry from localStorage, falling back to defaults. */
 export function getArbitrators(): Arbitrator[] {
-  if (typeof window === 'undefined' || !window.localStorage) return DEFAULT_ARBITRATORS;
+  const storage = getStorage();
+  if (!storage) return DEFAULT_ARBITRATORS.map((a) => ({ ...a }));
   try {
-    const raw = window.localStorage.getItem(REGISTRY_STORAGE_KEY);
-    if (!raw) return DEFAULT_ARBITRATORS;
+    const raw = storage.getItem(REGISTRY_KEY);
+    if (!raw) return DEFAULT_ARBITRATORS.map((a) => ({ ...a }));
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_ARBITRATORS;
-    return parsed as Arbitrator[];
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed as Arbitrator[];
+    return DEFAULT_ARBITRATORS.map((a) => ({ ...a }));
   } catch {
-    return DEFAULT_ARBITRATORS;
+    return DEFAULT_ARBITRATORS.map((a) => ({ ...a }));
   }
 }
 
-/** Filter the registry by name or address (case-insensitive). */
 export function searchArbitrators(query: string): Arbitrator[] {
   const all = getArbitrators();
-  const q = (query ?? '').trim().toLowerCase();
+  const q = query.trim().toLowerCase();
   if (!q) return all;
   return all.filter(
-    (arb) =>
-      arb.name.toLowerCase().includes(q) || arb.address.toLowerCase().includes(q),
+    (a) =>
+      a.name.toLowerCase().includes(q) || a.address.toLowerCase().includes(q),
   );
 }
 
-/** Look up a single arbitrator by exact address. */
 export function getArbitratorByAddress(address: string): Arbitrator | undefined {
-  return getArbitrators().find((arb) => arb.address === address);
+  return getArbitrators().find((a) => a.address === address);
+}
+
+function readDisputes(): DisputeRecord[] {
+  const storage = getStorage();
+  if (!storage) return [];
+  try {
+    const raw = storage.getItem(DISPUTES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as DisputeRecord[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeDisputes(disputes: DisputeRecord[]): void {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(DISPUTES_KEY, JSON.stringify(disputes));
+  } catch {
+    // Ignore quota / serialization errors.
+  }
+}
+
+export function getDisputesByInvoice(invoiceId: string): DisputeRecord[] {
+  return readDisputes().filter((d) => d.invoiceId === invoiceId);
+}
+
+export function createDispute(input: {
+  invoiceId: string;
+  initiator: string;
+  respondent: string;
+  reason?: string;
+  description?: string;
+  arbitrators?: string[];
+}): DisputeRecord {
+  const dispute: DisputeRecord = {
+    id: `dispute_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    invoiceId: input.invoiceId,
+    state: "Open",
+    reason: input.reason,
+    initiator: input.initiator,
+    timestamp: Date.now(),
+    description: input.description,
+    arbitrators: input.arbitrators ?? [],
+    votes: [],
+    timeline: [
+      {
+        timestamp: Date.now(),
+        description: input.reason ?? "Dispute opened",
+        actor: input.initiator,
+      },
+    ],
+    evidenceLinks: [],
+  };
+
+  const disputes = readDisputes();
+  disputes.push(dispute);
+  writeDisputes(disputes);
+  return dispute;
 }

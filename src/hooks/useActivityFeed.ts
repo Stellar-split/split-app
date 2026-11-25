@@ -64,7 +64,15 @@ export function useActivityFeed(): UseActivityFeedResult {
   const mountedRef = useRef(true);
   const sourceRef = useRef<EventSource | null>(null);
   const reconnectDelayRef = useRef(RECONNECT_BASE_MS);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seenIdsRef = useRef<Set<string>>(new Set());
+
+  const clearReconnectTimer = useCallback(() => {
+    if (reconnectTimerRef.current !== null) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  }, []);
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
@@ -123,19 +131,19 @@ export function useActivityFeed(): UseActivityFeedResult {
       setIsConnected(false);
 
       // Reconnect with exponential backoff
-      setTimeout(() => {
+      clearReconnectTimer();
+      const delay = reconnectDelayRef.current;
+      reconnectDelayRef.current = Math.min(delay * 2, RECONNECT_MAX_MS);
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
         if (mountedRef.current) {
-          reconnectDelayRef.current = Math.min(
-            reconnectDelayRef.current * 2,
-            RECONNECT_MAX_MS,
-          );
           connect();
         }
-      }, reconnectDelayRef.current);
+      }, delay);
     };
 
     sourceRef.current = es;
-  }, []);
+  }, [clearReconnectTimer]);
 
   // Connect on mount, clean up on unmount
   useEffect(() => {
@@ -145,12 +153,13 @@ export function useActivityFeed(): UseActivityFeedResult {
 
     return () => {
       mountedRef.current = false;
+      clearReconnectTimer();
       if (sourceRef.current) {
         sourceRef.current.close();
         sourceRef.current = null;
       }
     };
-  }, [connect]);
+  }, [connect, clearReconnectTimer]);
 
   const markAsRead = useCallback((id: string) => {
     dispatchRead({ type: "mark_read", id });

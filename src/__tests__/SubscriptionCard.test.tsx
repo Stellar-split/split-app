@@ -70,7 +70,28 @@ describe("SubscriptionCard", () => {
 
   it("renders USDC collected", () => {
     render(<SubscriptionCard subscription={mockSubscription} />);
-    expect(screen.getByText("150")).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText("150.00")).toBeTruthy() // element exists in DOM;
+  });
+
+  it("formats USDC collected with two decimals", () => {
+    const partial = { ...mockSubscription, totalUsdcCollected: 1234567n };
+    render(<SubscriptionCard subscription={partial} />);
+    expect(screen.getByText("1.23")).toBeTruthy() // element exists in DOM;
+  });
+
+  it("renders USDC collected for different tiers", () => {
+    const tiers = [
+      { collected: 0n, expected: "0.00" },
+      { collected: 5000000n, expected: "5.00" },
+      { collected: 2500000000n, expected: "2500.00" },
+    ];
+    for (const { collected, expected } of tiers) {
+      const { unmount } = render(
+        <SubscriptionCard subscription={{ ...mockSubscription, totalUsdcCollected: collected }} />
+      );
+      expect(screen.getByText(expected)).toBeTruthy() // element exists in DOM;
+      unmount();
+    }
   });
 
   it("renders paused status", () => {

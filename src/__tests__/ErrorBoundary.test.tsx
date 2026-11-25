@@ -1,11 +1,37 @@
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ErrorBoundary from '@/components/ErrorBoundary';
+
+// next/link renders a plain <a> in tests
+vi.mock('next/link', () => ({
+  __esModule: true,
+  default: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+    <a href={href} {...props}>{children}</a>
+  ),
+}));
+
+// WalletConnect pulls in wallet context/providers that are irrelevant here
+vi.mock('@/components/WalletConnect', () => ({
+  __esModule: true,
+  default: () => <div data-testid="wallet-connect" />,
+}));
+
+// Sentry is not configured in tests
+vi.mock('@sentry/nextjs', () => ({
+  withScope: vi.fn(),
+  captureException: vi.fn(() => 'test-event-id'),
+}));
 
 describe('ErrorBoundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // React logs caught render errors; keep test output clean
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('renders children when no error', () => {
@@ -22,7 +48,7 @@ describe('ErrorBoundary', () => {
       throw new Error('Test error');
     };
 
-    const { container } = render(
+    render(
       <ErrorBoundary>
         <TestComponent />
       </ErrorBoundary>
@@ -72,39 +98,40 @@ describe('ErrorBoundary', () => {
   });
 
   it('shows copied confirmation for 2 seconds', async () => {
-    const mockClipboard = {
-      writeText: vi.fn().mockResolvedValue(undefined),
-    };
-    Object.assign(navigator, { clipboard: mockClipboard });
+    vi.useFakeTimers();
+    try {
+      const mockClipboard = {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      };
+      Object.assign(navigator, { clipboard: mockClipboard });
 
-    const TestComponent = () => {
-      throw new Error('Test error');
-    };
+      const TestComponent = () => {
+        throw new Error('Test error');
+      };
 
-    render(
-      <ErrorBoundary>
-        <TestComponent />
-      </ErrorBoundary>
-    );
+      render(
+        <ErrorBoundary>
+          <TestComponent />
+        </ErrorBoundary>
+      );
 
-    const copyButton = screen.getByText('Copy error details');
-    // Use fireEvent instead of userEvent to avoid hanging with fake timers
-    await act(async () => {
-      fireEvent.click(copyButton);
-      await mockClipboard.writeText.mock.results[0]?.value;
-    });
+      const copyButton = screen.getByText('Copy error details');
+      // Use fireEvent instead of userEvent to avoid hanging with fake timers
+      await act(async () => {
+        fireEvent.click(copyButton);
+        await mockClipboard.writeText.mock.results[0]?.value;
+      });
 
-    await waitFor(() => {
-      expect(screen.getByText('Copied!')).toBeTruthy() // element exists in DOM;
-    });
+      expect(screen.getByText('Copied!')).toBeTruthy();
 
-    act(() => {
-    });
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
 
-    await waitFor(() => {
-      expect(screen.getByText('Copy error details')).toBeTruthy() // element exists in DOM;
-    });
-
+      expect(screen.getByText('Copy error details')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('renders reload and dashboard buttons', () => {

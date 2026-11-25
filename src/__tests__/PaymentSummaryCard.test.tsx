@@ -154,6 +154,8 @@ describe("PaymentSummaryCard", () => {
     expect(screen.getByText(/Payment Summary/i)).toBeTruthy() // element exists in DOM;
     expect(screen.getByText(/1 payment/i)).toBeTruthy() // element exists in DOM;
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("50");
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuemin")).toBe("0");
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuemax")).toBe("100");
   });
 
   test("aggregator subscription wired — new payments applied on poll", async () => {
@@ -186,6 +188,7 @@ describe("PaymentSummaryCard", () => {
     );
     // Progress should reflect 70/100 USDC = 70%
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("70");
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuemax")).toBe("100");
   });
 
   test("top-payer list shows highest payer first", async () => {
@@ -237,6 +240,11 @@ describe("PaymentSummaryCard", () => {
     await waitFor(() => {
       expect(screen.getByText(/Copied!/i)).toBeTruthy() // element exists in DOM;
     });
+
+    // The copy button keeps its accessible name while showing the confirmation
+    expect(
+      screen.getByRole("button", { name: /copy.*reference/i }).getAttribute("aria-label"),
+    ).toBe("Copy reference");
   });
 
   test("copy confirmation disappears after 2 seconds", async () => {
@@ -267,12 +275,15 @@ describe("PaymentSummaryCard", () => {
       expect(screen.getByText(/Copied!/i)).toBeTruthy() // element exists in DOM;
     });
 
-    // Advance time by 2 seconds
+    // Advance time by 2 seconds so the auto-clear timeout fires
     await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2100));
     });
 
     // Message should disappear
-    expect(screen.queryByText(/Copied!/i)).not.toBeTruthy() // element exists in DOM;
+    await waitFor(() =>
+      expect(screen.queryByText(/Copied!/i)).not.toBeTruthy() // element exists in DOM,
+    );
   });
 
   test("polling stops when invoice is Released", async () => {

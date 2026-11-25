@@ -63,6 +63,10 @@ export function recordApprovalDecision(
     throw new Error("cannot approve their own");
   }
 
+  if (request.status !== "pending") {
+    throw new Error("request is not pending");
+  }
+
   const ts = timestamp ?? Date.now();
   const level = request.currentLevel;
   const currentLevelData = request.levels[level];
@@ -73,6 +77,11 @@ export function recordApprovalDecision(
 
   const newDecision = { approver: wallet, decision, comment, timestamp: ts };
   const newEvent = { approver: wallet, decision, comment, timestamp: ts, level };
+
+  const alreadyDecided = currentLevelData.decisions.some((d) => d.approver === wallet);
+  if (alreadyDecided) {
+    throw new Error("already decided");
+  }
 
   const updatedLevels = request.levels.map((l, i) => {
     if (i !== level) return l;
@@ -150,7 +159,8 @@ export function summarizeApprovalAnalytics(requests: ApprovalRequest[]): {
           return sum + (lastEvent.timestamp - r.createdAt) / 1000 / 3600;
         }, 0) / decided.length;
 
-  const approvalRate = total === 0 ? 0 : approved / total;
+  const decidedCount = approved + rejected;
+  const approvalRate = decidedCount === 0 ? 0 : approved / decidedCount;
 
   return { total, pending, approved, rejected, averageDecisionHours, approvalRate };
 }
