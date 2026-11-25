@@ -29,6 +29,26 @@ export interface TaxReportSummary {
   fees: number;
   net: number;
   count: number;
+}
+
+export function filterByTaxYear(
+  payments: TaxablePayment[],
+  year: number
+): TaxablePayment[] {
+  return payments.filter(
+    (p) => new Date(p.paidAt).getUTCFullYear() === year
+  );
+}
+
+export function summarizeTaxYear(
+  payments: TaxablePayment[],
+  year: number
+): TaxReportSummary {
+  const rows = filterByTaxYear(payments, year);
+  const gross = rows.reduce((s, p) => s + p.amount, 0);
+  const fees = rows.reduce((s, p) => s + p.fee, 0);
+  const net = gross - fees;
+  return { year, gross, fees, net, count: rows.length };
   /** Tax computed on the net (gross minus fees) taxable amount. */
   tax: number;
   /** Net amount after fees and tax. */
@@ -140,6 +160,18 @@ function csvCell(value: string | number): string {
 
 export function buildTaxReportCsv(
   payments: TaxablePayment[],
+  year: number
+): string {
+  const header = ["Invoice ID", "Title", "Paid At", "Asset", "Gross", "Fee", "Net"];
+  const rows = filterByTaxYear(payments, year);
+  const lines = rows.map((p) =>
+    [p.invoiceId, p.title, p.paidAt, p.asset, p.amount, p.fee, p.amount - p.fee]
+      .map(csvCell)
+      .join(",")
+  );
+  const s = summarizeTaxYear(payments, year);
+  lines.push(
+    ["TOTAL", "", "", "", s.gross, s.fees, s.net].map(csvCell).join(",")
   year: number,
   jurisdictions: TaxJurisdiction[] = DEFAULT_JURISDICTIONS
 ): string {

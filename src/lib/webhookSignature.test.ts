@@ -1,4 +1,5 @@
 import { computeWebhookSignature } from "./webhookSignature";
+import { describe, it, test, beforeEach, afterEach, expect, vi } from "vitest";
 import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
 import crypto from "crypto";
 
@@ -37,6 +38,8 @@ describe("Webhook Signature", () => {
   it("matches a known HMAC test vector", async () => {
     const secret = "test-secret";
     const payload = JSON.stringify({ event: "invoice.paid", id: "123" });
+
+    const computedSignature = await computeWebhookSignature(secret, payload);
 
     // Compute using the function we are testing
     const computedSignature = await computeWebhookSignature(secret, payload);

@@ -33,6 +33,16 @@ junit.xml
 .DS_Store
 Thumbs.db
 
+# Test artifacts
+coverage/
+**/__snapshots__/
+*.snap
+
+# Generated type declaration
+next-env.d.ts
+
+# Lock file (tracked separately per contributor workflow)
+package-lock.json
 # Logs
 *.log
 npm-debug.log*

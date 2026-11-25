@@ -20,6 +20,8 @@ export async function retryWithBackoff<T>(
     try {
       return await fn();
     } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error(String(error));
       lastError = error instanceof Error ? error : new Error(String(error));
       if (attempt < maxAttempts - 1) {
         onRetry?.(attempt + 1, lastError);
@@ -29,5 +31,6 @@ export async function retryWithBackoff<T>(
     }
   }
 
+  throw lastError || new Error("retryWithBackoff: max attempts reached");
   throw lastError || new Error('retryWithBackoff: max attempts reached');
 }

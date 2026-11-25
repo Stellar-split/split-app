@@ -17,6 +17,7 @@ export class AppError extends Error {
     options: AppErrorOptions | boolean = false
   ) {
     super(message);
+    if (typeof options === "boolean") {
     if (typeof options === 'boolean') {
       this.isNetworkError = options;
     } else {
@@ -33,8 +34,9 @@ export function toAppError(error: unknown): AppError {
     return error;
   }
   if (error instanceof Error) {
-    const isNetworkError = /network|offline|fetch|timeout|connection/i.test(error.message);
-    return new AppError('UNKNOWN_ERROR', error.message, isNetworkError);
+    const isNetworkError =
+      /network|offline|fetch|timeout|connection/i.test(error.message);
+    return new AppError("UNKNOWN_ERROR", error.message, isNetworkError);
   }
-  return new AppError('UNKNOWN_ERROR', String(error), false);
+  return new AppError("UNKNOWN_ERROR", String(error), false);
 }

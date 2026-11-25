@@ -159,6 +159,9 @@ describe("payment processing flow (integration)", () => {
         );
       });
 
+      await waitFor(() =>
+        expect(result.current.state.isSimulating).toBe(false)
+      );
       await waitFor(() => expect(result.current.state.isSimulating).toBe(false));
 
       act(() => {

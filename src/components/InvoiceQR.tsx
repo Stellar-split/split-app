@@ -27,6 +27,9 @@ export default function InvoiceQR({ invoiceId, remainingBalance }: Props) {
     const parsed = parseFloat(amountInput);
     if (amountInput === "" || isNaN(parsed)) {
       setValidationError(amountInput === "" ? null : "Enter a valid number");
+      if (amountInput === "") {
+        setDebouncedAmount(0);
+      }
       return;
     }
     if (parsed < MIN_AMOUNT) {
@@ -46,6 +49,10 @@ export default function InvoiceQR({ invoiceId, remainingBalance }: Props) {
   }, [amountInput, balance]);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const qrPayload =
+    debouncedAmount > 0
+      ? `${origin}/pay/${invoiceId}?amount=${debouncedAmount}`
+      : `${origin}/verify/${invoiceId}`;
   const qrPayload = debouncedAmount > 0
     ? `${origin}/pay/${invoiceId}?amount=${debouncedAmount}`
     : `${origin}/verify/${invoiceId}`;
@@ -85,6 +92,7 @@ export default function InvoiceQR({ invoiceId, remainingBalance }: Props) {
                 max={balance}
                 value={amountInput}
                 onChange={(e) => setAmountInput(e.target.value)}
+                aria-label="Payment amount"
                 className="flex-1 px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <button
@@ -102,6 +110,13 @@ export default function InvoiceQR({ invoiceId, remainingBalance }: Props) {
         )}
 
         <div ref={qrRef} className="bg-white p-2 rounded-lg">
+          <QRCodeCanvas
+            value={qrPayload}
+            size={200}
+            level="H"
+            includeMargin
+            data-testid="qr-canvas"
+          />
           <QRCodeCanvas value={qrPayload} size={200} level="H" includeMargin data-testid="qr-canvas" />
         </div>
         <button

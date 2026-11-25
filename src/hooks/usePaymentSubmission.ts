@@ -32,6 +32,8 @@ interface UsePaymentSubmissionReturn {
   state: PaymentSubmissionState;
   initiateDemoPayment: (
     transactionXdr: string,
+    onConfirm: () => Promise<unknown>,
+    onCancel: () => void
     onConfirm: () => Promise<any>,
     onCancel: () => void,
     options?: InitiatePaymentOptions
@@ -39,6 +41,15 @@ interface UsePaymentSubmissionReturn {
   resetState: () => void;
 }
 
+const INITIAL_STATE: PaymentSubmissionState = {
+  showSimulationPreview: false,
+  isSimulating: false,
+  simulationResult: null,
+  simulationError: null,
+};
+
+export function usePaymentSubmission(): UsePaymentSubmissionReturn {
+  const [state, setState] = useState<PaymentSubmissionState>(INITIAL_STATE);
 /**
  * Returns true when the given rate lock is missing or has expired.
  * A lock is considered expired at or after its `expiresAt` timestamp.
@@ -66,6 +77,9 @@ export function usePaymentSubmission(): UsePaymentSubmissionReturn {
   const initiateDemoPayment = useCallback(
     async (
       transactionXdr: string,
+      onConfirm: () => Promise<unknown>,
+      onCancel: () => void
+    ) => {
       onConfirm: () => Promise<any>,
       onCancel: () => void,
       options?: InitiatePaymentOptions
@@ -97,6 +111,27 @@ export function usePaymentSubmission(): UsePaymentSubmissionReturn {
             onRetry: (attempt, error) => {
               notify({
                 type: "info",
+                message: `Simulation failed (${
+                  toAppError(error).message
+                }). Retrying attempt ${attempt}...`,
+              });
+            },
+          }
+        );
+        if (!result.success && result.error) {
+          setState((prev) => ({
+            ...prev,
+            isSimulating: false,
+            simulationError: result.error ?? "Simulation failed",
+            simulationResult: null,
+          }));
+        } else {
+          setState((prev) => ({
+            ...prev,
+            isSimulating: false,
+            simulationResult: result,
+          }));
+        }
                 message: `Simulation failed (${toAppError(error).message}). Retrying attempt ${attempt}...`,
               });
             },
@@ -113,12 +148,18 @@ export function usePaymentSubmission(): UsePaymentSubmissionReturn {
           ...prev,
           isSimulating: false,
           simulationError: appError.message,
+          simulationResult: null,
         }));
       }
     },
     [notify]
   );
 
+  const resetState = useCallback(() => {
+    setState(INITIAL_STATE);
+  }, []);
+
+  return { state, initiateDemoPayment, resetState };
   const handleProceed = useCallback(
     async (onConfirm: () => Promise<any>) => {
       try {

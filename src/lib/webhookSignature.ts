@@ -1,3 +1,17 @@
+export async function computeWebhookSignature(
+  secret: string,
+  payload: string
+): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+
+  // Prefer window.crypto in browser, fall back to globalThis.crypto (Node 18+).
+  // The `as any` cast handles older @types/node that don't expose webcrypto.
+  const cryptoAPI: Crypto =
+    typeof window !== "undefined"
+      ? window.crypto
+      : (globalThis as any).crypto;
+
 export async function computeWebhookSignature(secret: string, payload: string): Promise<string> {
   const encoder = new TextEncoder();
   const keyData = encoder.encode(secret);
@@ -17,6 +31,15 @@ export async function computeWebhookSignature(secret: string, payload: string): 
     ["sign"]
   );
 
+  const signatureBuffer = await cryptoAPI.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(payload)
+  );
+
+  return Array.from(new Uint8Array(signatureBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
   const signatureBuffer = await cryptoAPI.subtle.sign("HMAC", key, encoder.encode(payload));
   const hashArray = Array.from(new Uint8Array(signatureBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
