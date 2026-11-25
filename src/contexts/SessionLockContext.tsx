@@ -60,6 +60,18 @@ export function SessionLockProvider({ children }: { children: React.ReactNode })
     setSecondsUntilLock(null);
   }, []);
 
+  const handleInteraction = useCallback((event: Event) => {
+    // Guard against non-Element targets (e.g. document/window) before any
+    // attribute access so we never call getAttribute on a null/non-Element node.
+    const target = event.target;
+    if (target && typeof (target as Element).getAttribute === "function") {
+      try {
+        (target as Element).getAttribute("data-session-lock-ignore");
+      } catch {}
+    }
+    resetActivity();
+  }, [resetActivity]);
+
   const setTimeoutMinutes = useCallback((minutes: TimeoutOption) => {
     setTimeoutMinutesState(minutes);
     try {
@@ -105,11 +117,11 @@ export function SessionLockProvider({ children }: { children: React.ReactNode })
   };
 
   useEffect(() => {
-    INTERACTION_EVENTS.forEach((evt) => document.addEventListener(evt, resetActivity, true));
+    INTERACTION_EVENTS.forEach((evt) => document.addEventListener(evt, handleInteraction, true));
     return () => {
-      INTERACTION_EVENTS.forEach((evt) => document.removeEventListener(evt, resetActivity, true));
+      INTERACTION_EVENTS.forEach((evt) => document.removeEventListener(evt, handleInteraction, true));
     };
-  }, [resetActivity]);
+  }, [handleInteraction]);
 
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -120,15 +132,19 @@ export function SessionLockProvider({ children }: { children: React.ReactNode })
     }
 
     const ms = timeoutMinutes * 60 * 1000;
-    timerRef.current = setInterval(() => {
+    const tick = () => {
       if (lockedRef.current) return;
       const remaining = ms - (Date.now() - lastActivityRef.current);
       if (remaining <= 0) {
         lock();
       } else if (remaining <= WARNING_SECONDS * 1000) {
         setSecondsUntilLock(Math.ceil(remaining / 1000));
+      } else {
+        setSecondsUntilLock(null);
       }
-    }, TICK_MS);
+    };
+    tick();
+    timerRef.current = setInterval(tick, TICK_MS);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -148,7 +164,7 @@ export function SessionLockProvider({ children }: { children: React.ReactNode })
           </p>
           <button
             type="button"
-            onClick={resetActivity}
+            onClick={() => resetActivity()}
             className="shrink-0 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
           >
             Stay signed in
@@ -192,7 +208,7 @@ export function SessionLockProvider({ children }: { children: React.ReactNode })
             ) : (
               <button
                 type="button"
-                onClick={resume}
+                onClick={() => resume()}
                 autoFocus
                 className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
               >

@@ -103,9 +103,13 @@ export default function BrandingForm() {
 
   const handleLogoSelected = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
+      const input = event?.target;
+      if (!input || typeof input !== "object") return;
+      const file = input.files?.[0];
       // Reset the input so re-selecting the same file re-triggers onChange.
-      event.target.value = "";
+      if (typeof input.value === "string") {
+        input.value = "";
+      }
       if (!file || !address) return;
 
       setLogoError(null);
@@ -393,7 +397,7 @@ export default function BrandingForm() {
               // eslint-disable-next-line @next/next/no-img-element -- user-supplied CDN URL
               <img
                 src={logoUrl}
-                alt="Logo preview"
+                alt="Your logo"
                 loading="lazy"
                 decoding="async"
                 className="h-10 w-auto max-w-[140px] object-contain"
