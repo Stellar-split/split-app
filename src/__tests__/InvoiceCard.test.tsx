@@ -27,6 +27,13 @@ vi.mock('@/components/StatusBadge', () => ({
 vi.mock('@/components/DeadlineCountdown', () => ({
   default: () => <div data-testid="deadline-countdown" />
 }));
+// AmountDisplay reads the fiat-rate hook, which requires the preferences
+// provider; stub it so the card renders without the full app tree.
+vi.mock('@/components/invoice/AmountDisplay', () => ({
+  default: ({ amount }: { amount: bigint | string }) => (
+    <span data-testid="amount-display">{`${amount}`}</span>
+  ),
+}));
 
 const invoice: Invoice = {
   id: '42',
