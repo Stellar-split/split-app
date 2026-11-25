@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { deleteDraft, getDraft, putDraft, type DraftFormData, type StoredDraft } from "@/lib/offlineDraftDB";
-import { apiFetch } from "@/lib/apiClient";
 
 const AUTOSAVE_INTERVAL_MS = 5_000;
 
@@ -40,7 +39,7 @@ export function useOfflineDraftAutosave(
     if (!draft) return;
 
     try {
-      const serverRes = await apiFetch(
+      const serverRes = await fetch(
         `/api/invoices/drafts?${new URLSearchParams({ userId, draftId })}`
       );
       if (serverRes.ok) {
@@ -56,7 +55,7 @@ export function useOfflineDraftAutosave(
     }
 
     try {
-      const res = await apiFetch("/api/invoices/drafts", {
+      const res = await fetch("/api/invoices/drafts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ draftId, userId, data: draft.data }),
