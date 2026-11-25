@@ -53,7 +53,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# ── Editor ────────────────────────────────────────────────────────────────
+# Editor
 .vscode/
 .idea/
 *.swp
@@ -63,7 +63,7 @@ yarn-error.log*
 *.njsproj
 *.sln
 
-# ── Misc ──────────────────────────────────────────────────────────────────
+# Misc
 .turbo/
 .vercel/
 .cache/
