@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import FocusTrap from "./FocusTrap";
 import { getActiveNetwork } from "@/lib/networks";
 
@@ -25,8 +25,15 @@ export default function TxConfirmModal({
   txSummary,
 }: Props) {
   const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Focus trap and Escape handled by FocusTrap
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   const handleCopy = async () => {
     if (!txHash) return;
@@ -37,7 +44,11 @@ export default function TxConfirmModal({
       // surface feedback so the UI never hangs in a pending state.
     }
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => {
+      setCopied(false);
+      copyTimeoutRef.current = null;
+    }, 2000);
   };
 
   return (
@@ -103,6 +114,7 @@ export default function TxConfirmModal({
                 onClick={handleCopy}
                 className="shrink-0 text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 aria-label="Copy transaction hash"
+                aria-live="polite"
               >
                 {copied ? "Copied!" : "Copy"}
               </button>

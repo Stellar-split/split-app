@@ -479,6 +479,8 @@ export default function InvoiceExportButton({ invoice, total, branding }: Props)
           className="rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100"
         >
           <option value="json">JSON</option>
+          <option value="csv">CSV</option>
+          <option value="pdf">PDF</option>
           <option value="xml">XML</option>
           <option value="html">HTML</option>
           <option value="custom">Custom</option>

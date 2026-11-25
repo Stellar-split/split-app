@@ -82,6 +82,79 @@ function xmlElement(name: string, value: unknown): string {
   return `<${name}>${escapeXml(String(value))}</${name}>`;
 }
 
+function escapeCsv(value: string): string {
+  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function csvExport(data: InvoiceExportData): string {
+  const rows: string[][] = [
+    ['field', 'value'],
+    ['id', data.id],
+    ['creator', data.creator],
+    ['status', data.status],
+    ['token', data.token],
+    ['total', data.total],
+    ['funded', data.funded],
+    ['deadline', data.deadline ?? ''],
+    [],
+    ['recipient_address', 'recipient_amount'],
+    ...data.recipients.map((recipient) => [recipient.address, recipient.amount]),
+    [],
+    ['payment_payer', 'payment_amount'],
+    ...data.payments.map((payment) => [payment.payer, payment.amount]),
+  ];
+  return rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
+}
+
+/** Escapes a value for a PDF text string (WinAnsi-safe, parentheses/backslash escaped). */
+function escapePdfText(value: string): string {
+  return value
+    .replace(/[^\x20-\x7E]/g, '?')
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)');
+}
+
+function pdfExport(data: InvoiceExportData): string {
+  const lines: string[] = [
+    `Invoice ${data.id}`,
+    `Creator: ${data.creator}`,
+    `Status: ${data.status}`,
+    `Token: ${data.token}`,
+    `Total: ${data.total}`,
+    `Funded: ${data.funded}`,
+    `Deadline: ${data.deadline ?? '-'}`,
+    '',
+    'Recipients:',
+    ...data.recipients.map((recipient) => `  ${recipient.address}  ${recipient.amount} ${data.token}`),
+    '',
+    'Payments:',
+    ...data.payments.map((payment) => `  ${payment.payer}  ${payment.amount} ${data.token}`),
+  ];
+
+  const content = ['BT', '/F1 12 Tf', '14 TL', '50 780 Td', ...lines.map((line) => `(${escapePdfText(line)}) Tj T*`), 'ET'].join('\n');
+
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ];
+
+  let pdf = '%PDF-1.4\n';
+  const offsets: number[] = [];
+  objects.forEach((object, index) => {
+    offsets.push(pdf.length);
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  pdf += offsets.map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('');
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  return pdf;
+}
+
 function customExport(data: InvoiceExportData, template: string): string {
   return template.replace(/\{\{([a-zA-Z0-9_.]+)\}\}/g, (placeholder, path: string) => {
     const value = path.split('.').reduce<unknown>((current, key) => {
@@ -164,6 +237,12 @@ export function generateInvoiceExport(
   const data = toInvoiceExportData(invoice, total);
   if (format === 'json') {
     return { content: JSON.stringify(data, null, 2), mimeType: 'application/json;charset=utf-8', extension: 'json' };
+  }
+  if (format === 'csv') {
+    return { content: csvExport(data), mimeType: 'text/csv;charset=utf-8', extension: 'csv' };
+  }
+  if (format === 'pdf') {
+    return { content: pdfExport(data), mimeType: 'application/pdf', extension: 'pdf' };
   }
   if (format === 'xml') {
     return { content: `<?xml version="1.0" encoding="UTF-8"?>\n${xmlElement('invoice', data)}`, mimeType: 'application/xml;charset=utf-8', extension: 'xml' };

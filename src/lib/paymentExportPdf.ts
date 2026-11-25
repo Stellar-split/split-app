@@ -66,7 +66,7 @@ function formatTimestamp(timestamp: number | undefined): string {
   return new Date(ms).toISOString();
 }
 
-/** Sum payment amounts when the SDK exposes them as bigints. */
+/** Sum payment amounts, tolerating bigint or numeric amounts. */
 function sumAmounts(payments: PaymentWithMeta[]): bigint {
   return payments.reduce<bigint>((sum, payment) => {
     return sum + toStroops(payment.amount);
@@ -183,4 +183,8 @@ export function downloadPaymentSummaryPDF(html: string, filename?: string): void
     link.remove();
     URL.revokeObjectURL(url);
   }
+
+  // `filename` is accepted for API symmetry with the CSV/JSON exporters; the
+  // browser derives the saved PDF name from the document title.
+  void filename;
 }
