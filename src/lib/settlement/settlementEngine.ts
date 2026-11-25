@@ -2,6 +2,7 @@ import {
   SettlementRecord,
   SettlementRequest,
   SettlementVerificationResult,
+  BlockchainAnalytics,
 } from './types';
 import {
   LiquidityProviderRegistry,
@@ -19,6 +20,9 @@ import {
   SettlementFeeTracker,
   defaultSettlementFeeTracker,
 } from './settlementFeeTracker';
+import { BlockchainClient, defaultBlockchainClient } from './blockchainClient';
+import { SettlementAuditTrail, defaultSettlementAuditTrail } from './auditTrail';
+import { computeBlockchainAnalytics } from './analytics';
 
 export class SettlementEngine {
   private settlements: Map<string, SettlementRecord> = new Map();
@@ -26,17 +30,23 @@ export class SettlementEngine {
   private quotingSystem: RateQuotingSystem;
   private verifier: SettlementVerifier;
   private feeTracker: SettlementFeeTracker;
+  private blockchainClient: BlockchainClient;
+  private auditTrail: SettlementAuditTrail;
 
   constructor(options?: {
     registry?: LiquidityProviderRegistry;
     quotingSystem?: RateQuotingSystem;
     verifier?: SettlementVerifier;
     feeTracker?: SettlementFeeTracker;
+    blockchainClient?: BlockchainClient;
+    auditTrail?: SettlementAuditTrail;
   }) {
     this.providerRegistry = options?.registry ?? defaultLiquidityProviderRegistry;
     this.quotingSystem = options?.quotingSystem ?? defaultRateQuotingSystem;
     this.verifier = options?.verifier ?? defaultSettlementVerifier;
     this.feeTracker = options?.feeTracker ?? defaultSettlementFeeTracker;
+    this.blockchainClient = options?.blockchainClient ?? defaultBlockchainClient;
+    this.auditTrail = options?.auditTrail ?? defaultSettlementAuditTrail;
   }
 
   /**
@@ -169,7 +179,87 @@ export class SettlementEngine {
     this.settlements.set(settlementId, settlement);
     this.quotingSystem.consumeQuote(quote.quoteId);
 
+    // 7. Record the settlement in the audit trail
+    this.auditTrail.record({
+      settlementId,
+      invoiceId: settlement.invoiceId,
+      action: 'settlement_executed',
+      actor: request.payerAddress,
+      txHash: settlement.txHash,
+      details: `Settled ${settlement.sourceAmount} ${settlement.sourceAsset} -> ${settlement.netDestinationAmount} ${settlement.destinationAsset} via ${settlement.providerId}`,
+    });
+    this.auditTrail.record({
+      settlementId,
+      invoiceId: settlement.invoiceId,
+      action: verification.verified ? 'settlement_verified' : 'settlement_failed',
+      actor: 'settlement-engine',
+      txHash: settlement.txHash,
+      details: verification.discrepancies.join('; ') || undefined,
+    });
+
     return { settlement, verification };
+  }
+
+  /**
+   * Verify a recorded settlement against the Stellar blockchain and append the
+   * outcome to the audit trail.
+   */
+  public async verifySettlementOnChain(
+    settlementId: string
+  ): Promise<SettlementVerificationResult> {
+    const settlement = this.settlements.get(settlementId);
+    if (!settlement) {
+      return {
+        settlementId,
+        verified: false,
+        verifiedAt: Date.now(),
+        txHash: '',
+        proofValid: false,
+        amountValid: false,
+        recipientValid: false,
+        timingValid: false,
+        discrepancies: [`Settlement ${settlementId} not found`],
+      };
+    }
+
+    const verification = await this.verifier.verifyOnChain(settlement, this.blockchainClient);
+
+    if (verification.onChain?.found && verification.verified) {
+      settlement.status = 'verified';
+      settlement.verifiedAt = verification.verifiedAt;
+      this.auditTrail.record({
+        settlementId,
+        invoiceId: settlement.invoiceId,
+        action: 'on_chain_verified',
+        actor: 'blockchain-client',
+        txHash: settlement.txHash,
+        details: `Ledger ${verification.onChain.ledger ?? 'unknown'}`,
+      });
+    } else if (verification.onChain?.found) {
+      this.auditTrail.record({
+        settlementId,
+        invoiceId: settlement.invoiceId,
+        action: 'on_chain_mismatch',
+        actor: 'blockchain-client',
+        txHash: settlement.txHash,
+        details: verification.discrepancies.join('; ') || undefined,
+      });
+    } else {
+      this.auditTrail.record({
+        settlementId,
+        invoiceId: settlement.invoiceId,
+        action: 'on_chain_error',
+        actor: 'blockchain-client',
+        txHash: settlement.txHash,
+        details: verification.onChain?.error ?? 'On-chain verification failed',
+      });
+    }
+
+    return verification;
+  }
+
+  public getAuditTrail(settlementId?: string) {
+    return this.auditTrail.getEntries(settlementId);
   }
 
   public getSettlement(settlementId: string): SettlementRecord | undefined {
@@ -182,6 +272,10 @@ export class SettlementEngine {
 
   public getAllSettlements(): SettlementRecord[] {
     return Array.from(this.settlements.values());
+  }
+
+  public getAnalytics(): BlockchainAnalytics {
+    return computeBlockchainAnalytics(this.getAllSettlements(), this.auditTrail.getEntries());
   }
 
   public verifyExistingSettlement(settlementId: string): SettlementVerificationResult {

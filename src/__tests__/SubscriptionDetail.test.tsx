@@ -129,7 +129,7 @@ describe("SubscriptionDetailClient", () => {
 
   it("renders back link", async () => {
     render(<SubscriptionDetailClient />);
-    const backLink = await screen.findByText("← Subscriptions");
-    expect(backLink.getAttribute("href")).toBe("/subscriptions");
+    const backLink = await screen.findByRole("link", { name: "← Subscriptions" });
+    expect(backLink).toHaveAttribute("href", "/subscriptions");
   });
 });

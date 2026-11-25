@@ -56,6 +56,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   }
 
+  if (action === 'register-device') {
+    const { userId, token, platform } = body;
+    if (!userId || !token) {
+      return NextResponse.json({ error: 'userId and token are required' }, { status: 400 });
+    }
+    registerDeviceToken(userId, token, platform === 'android' ? 'android' : 'web');
+    return NextResponse.json({ registered: true });
+  }
+
   if (action === 'schedule') {
     const schedule = body.schedule as NotificationSchedule | undefined;
     if (!schedule?.id || !schedule?.payload || !schedule?.scheduledAt) {

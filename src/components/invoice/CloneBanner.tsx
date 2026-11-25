@@ -21,7 +21,12 @@ export default function CloneBanner({ sourceId, onDismiss }: Props) {
   return (
     <div className="mb-6 p-4 bg-blue-900/30 border border-blue-700 rounded-lg flex items-start justify-between gap-3">
       <div>
-        <h3 className="font-semibold text-blue-300 mb-1">Cloning Invoice #{sourceId}</h3>
+        <h3 className="font-semibold text-blue-300 mb-1">
+          Cloned from{" "}
+          <a href={`/invoice/${sourceId}`} className="underline hover:text-blue-100">
+            #{sourceId}
+          </a>
+        </h3>
         <p className="text-sm text-blue-200">
           This form has been pre-filled with data from the source invoice. Review and adjust the details before saving to create a new invoice.
         </p>

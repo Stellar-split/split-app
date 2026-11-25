@@ -216,13 +216,18 @@ export default function InvoiceTable({
   const [internalSort, setInternalSort] =
     useState<InvoiceTableSortState>(DEFAULT_SORT);
 
-  const [colVisible, setColVisible] = useState<Record<ColumnKey, boolean>>(() => {
+  const [colVisible, setColVisible] = useState<Record<ColumnKey, boolean>>(DEFAULT_COLUMNS);
+
+  // Restore persisted column visibility after mount (localStorage is not
+  // available during SSR, so this must not run in the initializer).
+  useEffect(() => {
     try {
       const saved = localStorage.getItem("invoiceTableColumns");
-      if (saved) return { ...DEFAULT_COLUMNS, ...JSON.parse(saved) };
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as Partial<Record<ColumnKey, boolean>>;
+      setColVisible((prev) => ({ ...prev, ...parsed }));
     } catch {}
-    return DEFAULT_COLUMNS;
-  });
+  }, []);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const gearRef = useRef<HTMLButtonElement>(null);
@@ -294,7 +299,10 @@ export default function InvoiceTable({
         <div className="relative">
           <button
             ref={gearRef}
+            type="button"
             aria-label="Column settings"
+            aria-haspopup="true"
+            aria-expanded={dropdownOpen}
             onClick={() => setDropdownOpen((o) => !o)}
             className="flex items-center justify-center h-8 w-8 rounded-md text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
@@ -314,6 +322,7 @@ export default function InvoiceTable({
                 >
                   <input
                     type="checkbox"
+                    aria-label={COLUMN_LABELS[col]}
                     checked={colVisible[col]}
                     onChange={() => toggleCol(col)}
                     className="h-3.5 w-3.5 rounded border-gray-600 bg-gray-800 text-indigo-600 focus:ring-indigo-500"

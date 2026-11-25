@@ -64,6 +64,12 @@ const ReputationBadge: React.FC<ReputationBadgeProps> = ({
     return "bg-red-900 text-red-300";
   };
 
+  const getTier = (score: number) => {
+    if (score >= 70) return "High";
+    if (score >= 40) return "Medium";
+    return "Low";
+  };
+
   const getScoreLabel = (score: number) => {
     if (score >= 70) return "High";
     if (score >= 40) return "Medium";
@@ -102,9 +108,13 @@ const ReputationBadge: React.FC<ReputationBadgeProps> = ({
         onMouseLeave={() => setShowTooltip(false)}
         data-testid="reputation-badge"
         aria-label={`Reputation: ${getScoreLabel(reputation.overall)} (${reputation.overall}%)`}
+        aria-describedby="reputation-tier"
       >
         {reputation.overall >= 70 ? "✓" : reputation.overall >= 40 ? "!" : "✕"}
         <span>{reputation.overall}%</span>
+        <span id="reputation-tier" className="sr-only">
+          {getTier(reputation.overall)} tier
+        </span>
       </button>
 
       {showTooltip && (
@@ -465,7 +475,7 @@ describe("ReputationBadge", () => {
 
       await waitFor(() => {
         const badge = screen.getByTestId("reputation-badge");
-        expect(badge.getAttribute("aria-label")).toBe(expect.stringContaining("75%"));
+        expect(badge.getAttribute("aria-label")).toContain("75%");
       });
     });
   });

@@ -95,7 +95,9 @@ describe("BatchPayModal", () => {
     );
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Payment/i });
-    expect(confirmButton.getAttribute("title")).toBe("Connect your wallet to continue"
+    expect(confirmButton).toBeDisabled();
+    expect(confirmButton.getAttribute("title")).toBe(
+      "Connect your wallet to continue"
     );
   });
 
@@ -114,6 +116,7 @@ describe("BatchPayModal", () => {
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Payment/i });
     expect(confirmButton).not.toBeDisabled();
+    expect(confirmButton.getAttribute("title")).toBeNull();
   });
 
   test("enabled Pay All button does not show wallet connection tooltip", () => {
@@ -130,7 +133,8 @@ describe("BatchPayModal", () => {
     );
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Payment/i });
-    expect(confirmButton).not.getAttribute("title").toBe("Connect your wallet to continue"
+    expect(confirmButton.getAttribute("title")).not.toBe(
+      "Connect your wallet to continue"
     );
   });
 
@@ -192,9 +196,6 @@ describe("BatchPayModal", () => {
     expect(mockPayWithNonce).toHaveBeenCalled();
 
     // Verify success message shown
-    await act(async () => {
-      // Wait for success message
-    });
-    expect(screen.getByText(/Batch payment sent!/i)).toBeTruthy() // element exists in DOM;
+    expect(await screen.findByText(/Batch payment sent!/i)).toBeTruthy();
   });
 });

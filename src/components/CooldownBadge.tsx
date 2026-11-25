@@ -1,22 +1,31 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useInterval } from "@/hooks/useInterval";
-import { DeadlineEngine } from "@/lib/cooldown";
+import { DeadlineEngine, type Countdown } from "@/lib/cooldown";
 
 interface Props {
   /** Unix timestamp (seconds) when the cooldown expires, or null for no cooldown. */
   expiresAt: number | null;
 }
 
+const computeCountdown = (expiresAt: number | null): Countdown | null =>
+  expiresAt != null ? DeadlineEngine.getCountdown(expiresAt) : null;
+
 function CooldownBadge({ expiresAt }: Props) {
-  const [countdown, setCountdown] = useState(() =>
-    expiresAt != null ? DeadlineEngine.getCountdown(expiresAt) : null
+  const [countdown, setCountdown] = useState<Countdown | null>(() =>
+    computeCountdown(expiresAt)
   );
+
+  // Recompute immediately whenever the deadline changes (null -> future,
+  // active -> null, or a replaced deadline) instead of waiting for a tick.
+  useEffect(() => {
+    setCountdown(computeCountdown(expiresAt));
+  }, [expiresAt]);
 
   useInterval(
     () => {
-      setCountdown(expiresAt != null ? DeadlineEngine.getCountdown(expiresAt) : null);
+      setCountdown(computeCountdown(expiresAt));
     },
     expiresAt != null && countdown != null ? 1000 : null
   );

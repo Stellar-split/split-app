@@ -8,13 +8,14 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { parseMentions, notifyMention } from "@/lib/notifications";
 import { renderCommentText } from "@/components/CommentSection";
+import { StrKey } from "@stellar/stellar-sdk";
 
 // ---------------------------------------------------------------------------
 // Valid 56-char Stellar addresses (G + 55 uppercase alphanumeric chars).
 // ---------------------------------------------------------------------------
-const ADDR_A = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN1";
-const ADDR_B = "GBVVJJFUR2ZIQFGKGP7BVLPGW3ZVEZG2BGCJM6LAQZWBPKWU3S2WBXM2";
-const SELF   = "GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGMXQBIDTJYKDJSWPBHSTHL";
+const ADDR_A = StrKey.encodeEd25519PublicKey(Buffer.alloc(32, 1));
+const ADDR_B = StrKey.encodeEd25519PublicKey(Buffer.alloc(32, 2));
+const SELF   = StrKey.encodeEd25519PublicKey(Buffer.alloc(32, 3));
 
 // ---------------------------------------------------------------------------
 // parseMentions
@@ -92,7 +93,7 @@ describe("renderCommentText", () => {
 // ---------------------------------------------------------------------------
 
 describe("notifyMention", () => {
-  let NotificationSpy: jest.Mock;
+  let NotificationSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     NotificationSpy = vi.fn();
@@ -105,7 +106,7 @@ describe("notifyMention", () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   test("does NOT notify when mentionedAddress === commenterAddress (self-mention)", () => {
