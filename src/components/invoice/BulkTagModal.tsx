@@ -43,10 +43,19 @@ export default function BulkTagModal({
   const [submitting, setSubmitting] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstFocusRef = useRef<HTMLDivElement>(null);
+  // Guards against double submits before React re-renders with `submitting`.
+  const inFlightRef = useRef(false);
+  // Tracks whether the modal is still mounted so state updates after the
+  // parent unmounts it (onClose) don't warn or leak.
+  const mountedRef = useRef(true);
 
   // Focus trap: return focus to the dialog on mount
   useEffect(() => {
+    mountedRef.current = true;
     firstFocusRef.current?.focus();
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   // Close on Escape
@@ -59,8 +68,9 @@ export default function BulkTagModal({
   }, [onClose]);
 
   const handleConfirm = useCallback(async () => {
-    if (tags.length === 0 || submitting) return;
+    if (tags.length === 0 || submitting || inFlightRef.current) return;
 
+    inFlightRef.current = true;
     setSubmitting(true);
 
     // 1. Optimistic update — parent updates the list immediately
@@ -87,7 +97,8 @@ export default function BulkTagModal({
         err instanceof Error ? err.message : "Failed to apply tags to invoices"
       );
     } finally {
-      setSubmitting(false);
+      inFlightRef.current = false;
+      if (mountedRef.current) setSubmitting(false);
     }
   }, [tags, submitting, selectedIds, onOptimisticUpdate, onRollback, onClose, onError]);
 
@@ -98,6 +109,7 @@ export default function BulkTagModal({
       aria-modal="true"
       role="dialog"
       aria-labelledby="bulk-tag-modal-title"
+      data-testid="bulk-tag-backdrop"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

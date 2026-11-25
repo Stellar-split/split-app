@@ -1,4 +1,5 @@
 import { SettlementRecord, SettlementVerificationResult } from './types';
+import type { BlockchainClient } from './blockchainClient';
 
 export class SettlementVerifier {
   /**
@@ -89,6 +90,48 @@ export class SettlementVerifier {
       timingValid: isTimingValid,
       settlementRecord: record,
       discrepancies,
+    };
+  }
+
+  /**
+   * Verify a settlement against the Stellar blockchain (Horizon) and merge the
+   * on-chain result into the local verification result.
+   */
+  public async verifyOnChain(
+    record: SettlementRecord,
+    client: BlockchainClient
+  ): Promise<SettlementVerificationResult> {
+    const local = this.verifySettlement(record);
+    const onChain = await client.verifyTransaction(record.txHash);
+
+    const discrepancies = [...local.discrepancies];
+    if (!onChain.found) {
+      discrepancies.push(onChain.error ?? `Transaction ${record.txHash} not found on chain`);
+    } else {
+      if (!onChain.successful) {
+        discrepancies.push(`On-chain transaction ${record.txHash} failed`);
+      }
+      if (onChain.destinationAccount && onChain.destinationAccount !== record.recipientAddress) {
+        discrepancies.push(
+          `On-chain destination ${onChain.destinationAccount} does not match recipient ${record.recipientAddress}`
+        );
+      }
+      if (onChain.amount !== undefined) {
+        const tolerance = Math.max(0.0001, record.netDestinationAmount * 0.001);
+        if (Math.abs(onChain.amount - record.netDestinationAmount) > tolerance) {
+          discrepancies.push(
+            `On-chain amount ${onChain.amount} does not match net destination ${record.netDestinationAmount}`
+          );
+        }
+      }
+    }
+
+    return {
+      ...local,
+      verified: local.verified && onChain.found && onChain.successful && discrepancies.length === 0,
+      verifiedAt: Date.now(),
+      discrepancies,
+      onChain,
     };
   }
 }

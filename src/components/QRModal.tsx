@@ -22,7 +22,7 @@ type QRModalProps = {
   onCopied?: () => void;
   onRetry?: () => void;
   onConnected?: () => void;
-  /** Delay in ms between wallet connection polls. Defaults to 2000ms. */
+  /** Delay in ms between wallet connection status polls. Defaults to 2000. */
   pollingInterval?: number;
 };
 
@@ -91,6 +91,40 @@ export default function QRModal({
       if (timer) clearTimeout(timer);
     };
   }, [open, status, pollingInterval]);
+
+  // Poll wallet connection status while the modal is open and fire
+  // onConnected once when a connection change is detected.
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+    let wasConnected = false;
+
+    const check = async () => {
+      let connected = false;
+      try {
+        connected = await isWalletConnected();
+      } catch {
+        connected = false;
+      }
+      if (cancelled) return;
+      if (connected && !wasConnected && !firedRef.current) {
+        firedRef.current = true;
+        onConnected?.();
+      }
+      wasConnected = connected;
+    };
+
+    void check();
+    const timer = setInterval(() => {
+      void check();
+    }, pollingInterval);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [open, pollingInterval, onConnected]);
 
   // Close the modal once the parent reports a successful session approval.
   useEffect(() => {

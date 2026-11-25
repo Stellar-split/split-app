@@ -95,6 +95,70 @@ function formatTimestamp(timestamp: number | undefined): string {
   return date.toISOString();
 }
 
+/** A single CSV data row: column key to cell value. */
+export type CsvRow = Record<string, string | number | boolean | null | undefined>;
+
+/** Options for {@link generateCsv}. */
+export interface GenerateCsvOptions {
+  /** Custom header labels keyed by column key. Defaults to the column keys. */
+  headers?: Record<string, string>;
+  /** Explicit column order. Defaults to the keys of the first row. */
+  columns?: string[];
+}
+
+/**
+ * Build a CSV string from rows, quoting and escaping special characters.
+ */
+export function rowsToCsv(rows: CsvRow[], options: GenerateCsvOptions = {}): string {
+  if (rows.length === 0) return "";
+
+  const columns = options.columns ?? Object.keys(rows[0]);
+  const headerRow = columns.map((column) =>
+    escapeCSVField(options.headers?.[column] ?? column)
+  );
+
+  const lines = [headerRow.join(",")];
+  for (const row of rows) {
+    lines.push(
+      columns
+        .map((column) => {
+          const value = row[column];
+          return escapeCSVField(value === null || value === undefined ? "" : String(value));
+        })
+        .join(",")
+    );
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate a CSV file from rows and trigger a browser download.
+ * Does nothing when there are no rows or when running outside the browser.
+ */
+export function generateCsv(
+  rows: CsvRow[],
+  filename: string,
+  options: GenerateCsvOptions = {}
+): void {
+  if (typeof window === "undefined" || rows.length === 0) return;
+
+  const csv = rowsToCsv(rows, options);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${filename}.csv`);
+  link.style.display = "none";
+
+  document.body.appendChild(link);
+  link.click();
+
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 /**
  * Download CSV file
  */
