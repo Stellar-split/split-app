@@ -24,7 +24,9 @@ async function initWalletConnectKit() {
 
   try {
     const { getStellarWalletKit } = await import("@/lib/walletconnect-kit-stub");
-    walletConnectKit = getStellarWalletKit() as any;
+    const kit = getStellarWalletKit();
+    if (!kit) throw new Error("WalletConnect project id is not configured");
+    walletConnectKit = kit;
     return walletConnectKit;
   } catch {
     throw new Error("WalletConnect kit not available");
@@ -139,6 +141,8 @@ export async function disconnectWalletConnect(): Promise<void> {
     await (kit as any).disconnect();
   } catch {
     // Ignore errors on disconnect
+  } finally {
+    walletConnectKit = null;
   }
 }
 

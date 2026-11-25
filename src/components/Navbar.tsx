@@ -40,7 +40,12 @@ export default function Navbar() {
   const hamburgerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(false);
+    };
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -137,7 +142,7 @@ export default function Navbar() {
               <span aria-hidden="true">+</span> New Invoice
             </Link>
 
-            {/* Hamburger button — visible below sm (640px) */}
+            {/* Hamburger button — visible below lg (1024px) */}
             {isMobile && (
               <button
                 ref={hamburgerRef}
@@ -167,7 +172,7 @@ export default function Navbar() {
 
       {/* Slide-in sidebar for below sm */}
       <MobileSidebar
-        isOpen={sidebarOpen}
+        isOpen={sidebarOpen && isMobile}
         onClose={() => setSidebarOpen(false)}
         triggerRef={hamburgerRef}
       />
