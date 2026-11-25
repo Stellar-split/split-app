@@ -127,7 +127,19 @@ vi.mock('@stellar/stellar-sdk', () => ({
   Networks: { PUBLIC_NETWORK_PASSPHRASE: 'Public Global Stellar Network ; September 2015' },
   StrKey: {
     isValidEd25519PublicKey: () => true,
-    encodeEd25519PublicKey: (buffer) => 'GTEST',
+    // Produce a deterministic, valid 56-char Stellar public key (G + 55 base32
+    // chars) derived from the buffer so tests that round-trip real addresses
+    // (e.g. mention parsing) work, while isValid* stays lenient for the many
+    // component tests that pass literal placeholders like 'GTEST'.
+    encodeEd25519PublicKey: (buffer) => {
+      const bytes = Buffer.from(buffer);
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      let out = 'G';
+      for (let i = 0; i < 55; i++) {
+        out += alphabet[bytes[i % bytes.length] % alphabet.length];
+      }
+      return out;
+    },
     decodeEd25519PublicKey: (key) => Buffer.alloc(32),
     encodeContract: (buffer) => 'CTEST',
     decodeContract: (key) => Buffer.alloc(32),
