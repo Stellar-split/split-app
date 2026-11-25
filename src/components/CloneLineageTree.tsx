@@ -99,7 +99,10 @@ function NodeCard({
       }`}
       aria-current={isCurrent ? "page" : undefined}
     >
-      <span className="font-mono text-xs text-gray-400">#{invoice.id}</span>
+      <span className="font-mono text-xs text-gray-400">
+        #{invoice.id}
+        {isCurrent && <span className="sr-only"> (current)</span>}
+      </span>
       <span className="capitalize text-xs mt-0.5">{invoice.status}</span>
     </Link>
   );
