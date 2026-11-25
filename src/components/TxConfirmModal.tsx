@@ -30,7 +30,12 @@ export default function TxConfirmModal({
 
   const handleCopy = async () => {
     if (!txHash) return;
-    await navigator.clipboard.writeText(txHash);
+    try {
+      await navigator.clipboard?.writeText(txHash);
+    } catch {
+      // Clipboard unavailable (insecure context / denied permission) — still
+      // surface feedback so the UI never hangs in a pending state.
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -56,6 +61,7 @@ export default function TxConfirmModal({
             {awaitingDevice ? "Confirm on your Ledger device" : `✓ ${action} confirmed`}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-200 text-xl leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             aria-label="Close"
@@ -93,6 +99,7 @@ export default function TxConfirmModal({
             <div className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2 mb-4">
               <span className="font-mono text-xs text-gray-200 break-all flex-1">{txHash}</span>
               <button
+                type="button"
                 onClick={handleCopy}
                 className="shrink-0 text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 aria-label="Copy transaction hash"
@@ -106,6 +113,7 @@ export default function TxConfirmModal({
                 href={`${EXPLORER_BASE}/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="View on Stellar Expert"
                 className="block w-full text-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 View on Stellar Expert ↗

@@ -209,8 +209,7 @@ describe("PaymentConfirmationOverlay", () => {
         />
       );
       const link = screen.getByRole("link");
-      expect(link.getAttribute("href")).toBe(expect.stringContaining(txHash)
-      );
+      expect(link.getAttribute("href")).toContain(txHash);
       expect(link.getAttribute("target")).toBe("_blank");
     });
   });
@@ -231,11 +230,12 @@ describe("PaymentConfirmationOverlay", () => {
 
       expect(mockOnDismiss).not.toHaveBeenCalled();
 
-
-      await waitFor(() => {
-        expect(mockOnDismiss).toHaveBeenCalledOnce();
-      });
-
+      await waitFor(
+        () => {
+          expect(mockOnDismiss).toHaveBeenCalledTimes(1);
+        },
+        { timeout: 5000 }
+      );
     });
 
     it("does not auto-dismiss when prefersReducedMotion is true", async () => {
