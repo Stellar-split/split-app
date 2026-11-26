@@ -13,7 +13,7 @@ describe("StatusBadge", () => {
   test("applies correct color class based on status", () => {
     render(<StatusBadge status="Released" />);
     const badge = screen.getByRole("status");
-    expect(badge).toHaveClass('bg-green-500/20'), "text-green-400";
+    expect(badge).toHaveClass('bg-green-500/20', 'text-green-400');
   });
 
   test("renders icon when available", () => {
@@ -86,19 +86,19 @@ describe("StatusBadge", () => {
 
   test("applies correct size classes", () => {
     const { rerender } = render(<StatusBadge status="Pending" size="sm" />);
-    expect(screen.getByRole("status")).toHaveClass('text-xs'), "px-2", "py-0.5";
+    expect(screen.getByRole("status")).toHaveClass('text-xs', 'px-2', 'py-0.5');
 
     rerender(<StatusBadge status="Pending" size="md" />);
-    expect(screen.getByRole("status")).toHaveClass('text-sm'), "px-3", "py-1";
+    expect(screen.getByRole("status")).toHaveClass('text-sm', 'px-3', 'py-1');
 
     rerender(<StatusBadge status="Pending" size="lg" />);
-    expect(screen.getByRole("status")).toHaveClass('text-base'), "px-4", "py-1.5";
+    expect(screen.getByRole("status")).toHaveClass('text-base', 'px-4', 'py-1.5');
   });
 
   test("badge is focusable with tabIndex", () => {
     render(<StatusBadge status="Pending" />);
     const badge = screen.getByRole("status");
-    expect(badge.getAttribute("tabIndex")).toBe("0");
+    expect(badge.getAttribute("tabindex")).toBe("0");
   });
 
   test("all status types render without error", () => {

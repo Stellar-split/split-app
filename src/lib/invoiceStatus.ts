@@ -1,14 +1,17 @@
 import { getMilestones } from "./invoiceMilestones";
 import { getDisputesByInvoice } from "./arbitrators";
 
-export const STATUS_CONFIG: Record<string, { color: string; label: string; icon?: string }> = {
-  Pending: { color: 'blue', label: 'Pending' },
-  Funded: { color: 'green', label: 'Funded' },
-  Released: { color: 'green', label: 'Released' },
-  Refunded: { color: 'red', label: 'Refunded' },
-  Cancelled: { color: 'gray', label: 'Cancelled' },
-  Disputed: { color: 'yellow', label: 'Disputed' },
-  Archived: { color: 'gray', label: 'Archived' },
+export const STATUS_CONFIG: Record<string, { color: string; label: string; icon: string; description: string }> = {
+  Pending: { color: 'blue', label: 'Pending', icon: '⏳', description: 'Awaiting funding from the payer.' },
+  Active: { color: 'blue', label: 'Active', icon: '🔄', description: 'Invoice is active and awaiting completion.' },
+  Funded: { color: 'green', label: 'Funded', icon: '💰', description: 'Invoice has been fully funded.' },
+  Released: { color: 'green', label: 'Released', icon: '✓', description: 'Funds have been released to the recipient.' },
+  Refunded: { color: 'red', label: 'Refunded', icon: '↩', description: 'Funds have been refunded to the payer.' },
+  Cancelled: { color: 'gray', label: 'Cancelled', icon: '✕', description: 'Invoice was cancelled.' },
+  Disputed: { color: 'yellow', label: 'Disputed', icon: '⚠', description: 'Invoice is under dispute.' },
+  Frozen: { color: 'gray', label: 'Frozen', icon: '🧊', description: 'Invoice is frozen pending resolution.' },
+  Archived: { color: 'gray', label: 'Archived', icon: '📦', description: 'Invoice has been archived.' },
+  Expired: { color: 'red', label: 'Expired', icon: '⏰', description: 'Invoice deadline has passed.' },
 };
 
 export type InvoiceStatus =
