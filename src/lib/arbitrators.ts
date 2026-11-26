@@ -74,8 +74,15 @@ function getStorage(): Storage | null {
   return null;
 }
 
-export function isVotingComplete(data: any): boolean {
-  return false;
+/** Normalizes a vote cast as either a number (1 = Release, 0 = Refund) or a string into its canonical outcome label. */
+export function normalizeVote(vote: string | number): "Release" | "Refund" {
+  if (typeof vote === "number") return vote === 1 ? "Release" : "Refund";
+  return vote === "Release" ? "Release" : "Refund";
+}
+
+/** True when a dispute has reached a final outcome and is ready to be enforced on-chain. */
+export function canEnforceResolution(data: DisputeRecord): boolean {
+  return data.state === "Resolved" && data.outcome !== undefined;
 }
 
 /** True when every assigned arbitrator has cast a vote. */

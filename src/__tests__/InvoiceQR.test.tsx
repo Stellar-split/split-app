@@ -1,12 +1,5 @@
 import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
 import React from "react";
-import {
-  render,
-  screen,
-  fireEvent,
-  act,
-  cleanup,
-} from "@testing-library/react";
 import { render, screen, fireEvent, act, cleanup } from "@testing-library/react";
 import InvoiceQR, { clampAmount, MIN_AMOUNT } from "@/components/InvoiceQR";
 
@@ -52,16 +45,13 @@ describe("clampAmount", () => {
 describe("InvoiceQR component", () => {
   test("renders without amount input when no remainingBalance", () => {
     render(<InvoiceQR invoiceId="test-123" />);
-    expect(screen.queryByLabelText(/payment amount/i)).not.toBeTruthy(); // element exists in DOM;
-    expect(screen.getByTestId("qr-canvas")).toBeTruthy(); // element exists in DOM;
-    expect(screen.queryByLabelText(/payment amount/i)).not.toBeTruthy() // element exists in DOM;
-    expect(screen.getByTestId("qr-canvas")).toBeTruthy() // element exists in DOM;
+    expect(screen.queryByLabelText(/payment amount/i)).not.toBeTruthy();
+    expect(screen.getByTestId("qr-canvas")).toBeTruthy();
   });
 
   test("shows amount input when remainingBalance is provided", () => {
     render(<InvoiceQR invoiceId="test-123" remainingBalance={100} />);
-    expect(screen.getByLabelText(/payment amount/i)).toBeTruthy(); // element exists in DOM;
-    expect(screen.getByLabelText(/payment amount/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByLabelText(/payment amount/i)).toBeTruthy();
   });
 
   test("defaults amount to remaining balance", () => {
@@ -74,16 +64,14 @@ describe("InvoiceQR component", () => {
     render(<InvoiceQR invoiceId="test-123" remainingBalance={100} />);
     const input = screen.getByLabelText(/payment amount/i);
     fireEvent.change(input, { target: { value: "200" } });
-    expect(screen.getByText(/maximum is 100/i)).toBeTruthy(); // element exists in DOM;
-    expect(screen.getByText(/maximum is 100/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/maximum is 100/i)).toBeTruthy();
   });
 
   test("shows validation error for amount below minimum", () => {
     render(<InvoiceQR invoiceId="test-123" remainingBalance={100} />);
     const input = screen.getByLabelText(/payment amount/i);
     fireEvent.change(input, { target: { value: "0" } });
-    expect(screen.getByText(/minimum amount/i)).toBeTruthy(); // element exists in DOM;
-    expect(screen.getByText(/minimum amount/i)).toBeTruthy() // element exists in DOM;
+    expect(screen.getByText(/minimum amount/i)).toBeTruthy();
   });
 
   test("QR regenerates with debounced amount", () => {
@@ -107,18 +95,12 @@ describe("InvoiceQR component", () => {
     act(() => {
       vi.advanceTimersByTime(300);
     });
-    expect(
-      screen.getByTestId("qr-canvas").getAttribute("data-value")
-    ).toContain("amount=25");
     expect(screen.getByTestId("qr-canvas").getAttribute("data-value")).toContain("amount=25");
 
     fireEvent.change(input, { target: { value: "40" } });
     act(() => {
       vi.advanceTimersByTime(300);
     });
-    expect(
-      screen.getByTestId("qr-canvas").getAttribute("data-value")
-    ).toContain("amount=40");
     expect(screen.getByTestId("qr-canvas").getAttribute("data-value")).toContain("amount=40");
   });
 
@@ -131,8 +113,6 @@ describe("InvoiceQR component", () => {
       vi.advanceTimersByTime(300);
     });
 
-    const value =
-      screen.getByTestId("qr-canvas").getAttribute("data-value") ?? "";
     const value = screen.getByTestId("qr-canvas").getAttribute("data-value") ?? "";
     expect(value).toContain("/verify/test-123");
     expect(value).not.toContain("amount=");
@@ -140,9 +120,6 @@ describe("InvoiceQR component", () => {
 
   test("Full button resets to remaining balance", () => {
     render(<InvoiceQR invoiceId="test-123" remainingBalance={100} />);
-    const input = screen.getByLabelText(
-      /payment amount/i
-    ) as HTMLInputElement;
     const input = screen.getByLabelText(/payment amount/i) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "25" } });
     fireEvent.click(screen.getByText("Full"));

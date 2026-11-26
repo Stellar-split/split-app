@@ -39,6 +39,7 @@ export interface BadgeCount {
 const analyticsEvents: NotificationAnalyticsEvent[] = [];
 const schedules = new Map<string, NotificationSchedule>();
 const badgeCounts = new Map<string, BadgeCount>();  // keyed by userId/walletAddress
+const deviceTokens = new Map<string, { token: string; platform: "android" | "web" }[]>();
 
 /**
  * Build a deep link URL for a given route and params.
@@ -154,6 +155,27 @@ export function clearBadgeCount(userId: string): void {
 }
 
 /**
+ * Register a push notification device token for a user, replacing any
+ * existing registration for the same token.
+ */
+export function registerDeviceToken(
+  userId: string,
+  token: string,
+  platform: "android" | "web"
+): void {
+  const existing = (deviceTokens.get(userId) ?? []).filter((d) => d.token !== token);
+  existing.push({ token, platform });
+  deviceTokens.set(userId, existing);
+}
+
+/**
+ * Get all registered device tokens for a user.
+ */
+export function getDeviceTokens(userId: string): { token: string; platform: "android" | "web" }[] {
+  return deviceTokens.get(userId) ?? [];
+}
+
+/**
  * Track a notification analytics event.
  */
 export function trackNotificationEvent(event: NotificationAnalyticsEvent): void {
@@ -184,4 +206,5 @@ export function __resetMobileNotificationStoreForTests(): void {
   analyticsEvents.length = 0;
   schedules.clear();
   badgeCounts.clear();
+  deviceTokens.clear();
 }

@@ -231,17 +231,23 @@ describe("useActivityFeed", () => {
   });
 
   it("reconnects on error with exponential backoff", () => {
-    renderHook(() => useActivityFeed());
+    vi.useFakeTimers();
+    try {
+      renderHook(() => useActivityFeed());
 
-    act(() => {
-      MockEventSource.instances[0].simulateError();
-    });
+      act(() => {
+        MockEventSource.instances[0].simulateError();
+      });
 
-    expect(MockEventSource.instances).toHaveLength(1);
+      expect(MockEventSource.instances).toHaveLength(1);
 
-    act(() => {
-    });
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
 
-    expect(MockEventSource.instances).toHaveLength(2);
+      expect(MockEventSource.instances).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

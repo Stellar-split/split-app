@@ -97,18 +97,24 @@ describe("#923 Session management", () => {
     const { id } = mod.createSession("GCAROL");
 
     // Advance past the timeout
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + (mod.SESSION_TIMEOUT_SECONDS + 1) * 1000);
 
     expect(mod.getSession(id)).toBeNull();
+    vi.useRealTimers();
   });
 
   it("touchSession updates lastActivity", () => {
     const record = mod.createSession("GDAVE");
     const before = record.lastActivity;
     // Small sleep via fake timers
+    vi.useFakeTimers();
+    vi.setSystemTime(before + 1000);
     const touched = mod.touchSession(record.id);
     expect(touched).toBe(true);
     const updated = mod.getSession(record.id);
     expect(updated!.lastActivity).toBeGreaterThan(before);
+    vi.useRealTimers();
   });
 
   it("destroySession removes the session", () => {
@@ -214,7 +220,10 @@ describe("#924 API token authentication", () => {
 
   it("verifyAccessToken returns null for an expired token", () => {
     const token = mod.issueAccessToken("GCAROL", ["read"]);
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + (mod.ACCESS_TOKEN_TTL_SECONDS + 1) * 1000);
     expect(mod.verifyAccessToken(token)).toBeNull();
+    vi.useRealTimers();
   });
 
   it("revokeAccessToken invalidates a valid token", () => {
@@ -442,13 +451,15 @@ describe("#926 Security audit logging", () => {
     const sizeBefore = mod.getLogSize();
 
     // Advance time past retention
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + retentionMs + 1000);
 
     // Add a fresh entry
     mod.logSecurityEvent({ eventType: "auth.logout", actor: "GN" });
 
     const removed = mod.purgeExpiredLogs();
     expect(removed).toBeGreaterThanOrEqual(sizeBefore);
-
+    vi.useRealTimers();
   });
 
   it("getRetentionMs defaults to 90 days", () => {

@@ -53,9 +53,6 @@ export default function InvoiceQR({ invoiceId, remainingBalance }: Props) {
     debouncedAmount > 0
       ? `${origin}/pay/${invoiceId}?amount=${debouncedAmount}`
       : `${origin}/verify/${invoiceId}`;
-  const qrPayload = debouncedAmount > 0
-    ? `${origin}/pay/${invoiceId}?amount=${debouncedAmount}`
-    : `${origin}/verify/${invoiceId}`;
 
   const handleDownload = () => {
     const canvas = qrRef.current?.querySelector("canvas") as HTMLCanvasElement;
@@ -117,7 +114,6 @@ export default function InvoiceQR({ invoiceId, remainingBalance }: Props) {
             includeMargin
             data-testid="qr-canvas"
           />
-          <QRCodeCanvas value={qrPayload} size={200} level="H" includeMargin data-testid="qr-canvas" />
         </div>
         <button
           type="button"

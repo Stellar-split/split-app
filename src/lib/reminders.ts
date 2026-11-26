@@ -7,9 +7,48 @@
  * suppression/opt-out, multi-channel dispatch and engagement metrics.
  */
 
-import { sendPaymentReceiptEmail } from "./paymentReceiptEmailer";
 import { sendPushNotification } from "./pushNotifications";
 import { addNotification } from "./notifications";
+
+/**
+ * Sends a plain reminder email via Resend. Distinct from the payment-receipt
+ * emailer (which is for a different, already-paid-invoice template) — a
+ * reminder is sent before payment, with a custom subject/message per
+ * escalation level, so it needs a generic send rather than that fixed template.
+ */
+async function sendReminderEmail(params: {
+  to: string;
+  subject: string;
+  message: string;
+}): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.log(
+      `[Email] RESEND_API_KEY not configured — skipping reminder email to ${params.to}`
+    );
+    return;
+  }
+
+  const fromAddress = process.env.EMAIL_FROM ?? "noreply@stellarsplit-dapp.vercel.app";
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: fromAddress,
+      to: [params.to],
+      subject: params.subject,
+      html: `<p>${params.message}</p>`,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Resend API error ${res.status}: ${errText}`);
+  }
+}
 
 export interface Reminder {
   invoiceId: string;
@@ -281,17 +320,15 @@ export async function dispatchReminder(
         if (!options.recipientEmail) {
           results.email = false;
         } else {
-          await sendPaymentReceiptEmail({
+          await sendReminderEmail({
             to: options.recipientEmail,
-            invoiceId,
             subject: `Payment reminder — invoice #${invoiceId}`,
             message,
           });
           results.email = true;
         }
       } else if (channel === "push") {
-        await sendPushNotification({
-          title: `Payment reminder — invoice #${invoiceId}`,
+        await sendPushNotification(`Payment reminder — invoice #${invoiceId}`, {
           body: message,
         });
         results.push = true;

@@ -173,6 +173,7 @@ describe("payment processing flow (integration)", () => {
         isSimulating: false,
         simulationResult: null,
         simulationError: null,
+        rateLockExpired: false,
       });
     });
   });

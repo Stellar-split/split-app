@@ -31,6 +31,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@stellar-split/sdk", () => ({
   truncateAddress: (addr: string) =>
     addr.length > 10 ? `${addr.slice(0, 4)}…${addr.slice(-4)}` : addr,
+  formatAmount: (amount: bigint) => (Number(amount) / 1e7).toFixed(7),
 }));
 
 // ─── next/link mock ─────────────────────────────────────────────────────────

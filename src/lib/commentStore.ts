@@ -25,6 +25,17 @@ export type CommentEvent =
 const commentsByInvoice = new Map<string, StoredComment[]>();
 const reactionsByComment = new Map<string, Map<AllowedEmoji, Set<string>>>();
 const emittersByInvoice = new Map<string, EventEmitter>();
+const lastCreatedAtByInvoice = new Map<string, number>();
+
+/** Monotonically increasing per-invoice timestamp, so comments added in the
+ * same millisecond still sort and page unambiguously by `createdAt` alone. */
+function nextCreatedAt(invoiceId: string): number {
+  const now = Date.now();
+  const last = lastCreatedAtByInvoice.get(invoiceId) ?? 0;
+  const ts = Math.max(now, last + 1);
+  lastCreatedAtByInvoice.set(invoiceId, ts);
+  return ts;
+}
 
 function getEmitter(invoiceId: string): EventEmitter {
   let emitter = emittersByInvoice.get(invoiceId);
@@ -63,7 +74,7 @@ export function addComment(invoiceId: string, authorAddress: string, text: strin
     invoiceId,
     authorAddress,
     text,
-    createdAt: Date.now(),
+    createdAt: nextCreatedAt(invoiceId),
   };
   const list = commentsByInvoice.get(invoiceId) ?? [];
   list.push(comment);
@@ -176,4 +187,5 @@ export function __resetCommentStoreForTests(): void {
     emitter.removeAllListeners();
   }
   emittersByInvoice.clear();
+  lastCreatedAtByInvoice.clear();
 }

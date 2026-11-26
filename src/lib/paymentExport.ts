@@ -201,7 +201,7 @@ export function exportPayments(
 
   switch (format) {
     case 'csv': {
-      const csv = paymentsToCSV(filtered as unknown as Record<string, unknown>[]);
+      const csv = paymentsToCSV(filtered as unknown as PaymentWithMeta[]);
       triggerDownload(csv, filename, 'text/csv;charset=utf-8;');
       return csv;
     }

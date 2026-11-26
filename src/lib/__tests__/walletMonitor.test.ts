@@ -3,7 +3,7 @@ import * as freighter from "../freighter";
 
 vi.mock("../freighter");
 vi.mock("../ledger", () => ({
-  getLedgerStatus: vi.fn().mockResolvedValue({ connected: false, publicKey: null }),
+  getLedgerStatus: vi.fn().mockResolvedValue({ status: "disconnected" }),
   LedgerError: Error,
 }));
 

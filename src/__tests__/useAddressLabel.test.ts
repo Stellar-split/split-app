@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { resolveAddressLabel } from "@/hooks/useAddressLabel";
+import { resolveFederationAddress } from "@/lib/stellar";
 
 describe("useAddressLabel / resolveAddressLabel", () => {
   beforeEach(() => {
@@ -13,15 +14,9 @@ describe("useAddressLabel / resolveAddressLabel", () => {
   });
 
   it("derives label for federation addresses (user*domain.com)", async () => {
-    vi.mock("@stellar/stellar-sdk", () => ({
-      Federation: {
-        Server: {
-          resolve: vi.fn().mockResolvedValue({
-            account_id: "G12345678901234567890123456789012345678901234567890123456",
-          }),
-        },
-      },
-    }));
+    vi.mocked(resolveFederationAddress).mockResolvedValueOnce({
+      account_id: "G12345678901234567890123456789012345678901234567890123456",
+    } as any);
 
     const result = await resolveAddressLabel("alice*stellar.org");
     expect(result).toBe("Alice");

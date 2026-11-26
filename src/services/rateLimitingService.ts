@@ -157,7 +157,10 @@ function checkLeakyBucket(policy: RateLimitPolicy, now: number): RateLimitCheckR
 
   const elapsed = now - state.lastDrain;
   const drainRate = policy.limit / policy.windowMs;
-  const drained = elapsed * drainRate;
+  // Only whole leaked units free up capacity — sub-unit drains from a few
+  // milliseconds of real time between back-to-back calls must not nudge a
+  // full bucket back under its limit.
+  const drained = Math.floor(elapsed * drainRate);
   state.leakyCount = Math.max(0, state.leakyCount - drained);
   state.lastDrain = now;
 

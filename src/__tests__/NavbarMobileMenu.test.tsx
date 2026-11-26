@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Navbar from "@/components/Navbar";
 
@@ -39,13 +39,6 @@ vi.mock("@/components/GlobalSearch", () => ({
   default: () => <div data-testid="global-search">Search</div>,
 }));
 
-vi.mock("@/components/layout/MobileSidebar", () => ({
-  __esModule: true,
-  default: ({ isOpen }: { isOpen: boolean }) => (
-    isOpen ? <div data-testid="mobile-sidebar">Mobile Menu</div> : null
-  ),
-}));
-
 describe("Navbar Mobile Menu", () => {
   beforeEach(() => {
     global.innerWidth = 640;
@@ -71,9 +64,10 @@ describe("Navbar Mobile Menu", () => {
     global.innerWidth = 768;
     render(<Navbar />);
 
-    expect(screen.getByText("Dashboard")).toBeTruthy() // element exists in DOM;
-    expect(screen.getByText("Subscriptions")).toBeTruthy() // element exists in DOM;
-    expect(screen.getByText("Groups")).toBeTruthy() // element exists in DOM;
+    const nav = within(screen.getByRole("navigation", { name: /main navigation/i }));
+    expect(nav.getByText("Dashboard")).toBeTruthy() // element exists in DOM;
+    expect(nav.getByText("Subscriptions")).toBeTruthy() // element exists in DOM;
+    expect(nav.getByText("Groups")).toBeTruthy() // element exists in DOM;
   });
 
   it("opens mobile menu when hamburger is clicked", async () => {
@@ -132,12 +126,13 @@ describe("Navbar Mobile Menu", () => {
     await user.click(hamburgerButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Dashboard")).toBeTruthy() // element exists in DOM;
-      expect(screen.getByText("Subscriptions")).toBeTruthy() // element exists in DOM;
-      expect(screen.getByText("Groups")).toBeTruthy() // element exists in DOM;
-      expect(screen.getByText("Contacts")).toBeTruthy() // element exists in DOM;
-      expect(screen.getByText("Recipients")).toBeTruthy() // element exists in DOM;
-      expect(screen.getByText("Leaderboard")).toBeTruthy() // element exists in DOM;
+      const sidebar = within(screen.getByTestId("mobile-sidebar"));
+      expect(sidebar.getByText("Dashboard")).toBeTruthy() // element exists in DOM;
+      expect(sidebar.getByText("Subscriptions")).toBeTruthy() // element exists in DOM;
+      expect(sidebar.getByText("Groups")).toBeTruthy() // element exists in DOM;
+      expect(sidebar.getByText("Contacts")).toBeTruthy() // element exists in DOM;
+      expect(sidebar.getByText("Recipients")).toBeTruthy() // element exists in DOM;
+      expect(sidebar.getByText("Leaderboard")).toBeTruthy() // element exists in DOM;
     });
   });
 
@@ -149,7 +144,8 @@ describe("Navbar Mobile Menu", () => {
     const hamburgerButton = screen.getByRole("button", { name: /menu/i });
     await user.click(hamburgerButton);
 
-    const dashboardLink = screen.getByRole("link", { name: /dashboard/i });
+    const sidebar = within(screen.getByTestId("mobile-sidebar"));
+    const dashboardLink = sidebar.getByRole("link", { name: /dashboard/i });
     await user.click(dashboardLink);
 
     await waitFor(() => {
@@ -167,7 +163,8 @@ describe("Navbar Mobile Menu", () => {
     global.innerWidth = 768;
     fireEvent.resize(window);
 
-    const horizontalLinks = screen.getByText("Dashboard");
+    const nav = within(screen.getByRole("navigation", { name: /main navigation/i }));
+    const horizontalLinks = nav.getByText("Dashboard");
     expect(horizontalLinks).toBeTruthy() // element exists in DOM;
   });
 

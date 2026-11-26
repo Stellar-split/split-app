@@ -22,19 +22,19 @@ describe("setBulkReminders — partial failure reporting", () => {
   });
 
   it("reports failure individually when localStorage throws for one invoice", () => {
-    const original = Storage.prototype.setItem;
+    const original = window.localStorage.setItem;
     let callCount = 0;
-    Storage.prototype.setItem = vi.fn(function (key, value) {
+    window.localStorage.setItem = vi.fn(function (key, value) {
       callCount++;
       if (callCount === 2) {
         throw new Error("QuotaExceededError");
       }
-      return original.call(this, key, value);
+      return original.call(window.localStorage, key, value);
     });
 
     const results = setBulkReminders(["a", "b", "c"], FUTURE_DATE);
 
-    Storage.prototype.setItem = original;
+    window.localStorage.setItem = original;
 
     const failed = results.filter((r) => !r.success);
     const succeeded = results.filter((r) => r.success);

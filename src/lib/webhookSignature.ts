@@ -11,14 +11,6 @@ export async function computeWebhookSignature(
     typeof window !== "undefined"
       ? window.crypto
       : (globalThis as any).crypto;
-
-export async function computeWebhookSignature(secret: string, payload: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-
-  // Use crypto from global context (works in Browser and Node.js 18+)
-  // as any: globalThis.crypto is typed as Crypto in Node 19+ but may lack typings in older Node @types
-  const cryptoAPI = typeof window !== "undefined" ? window.crypto : (globalThis as any).crypto;
   if (!cryptoAPI || !cryptoAPI.subtle) {
     throw new Error("Web Crypto API is not available in this environment.");
   }
@@ -40,7 +32,4 @@ export async function computeWebhookSignature(secret: string, payload: string): 
   return Array.from(new Uint8Array(signatureBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  const signatureBuffer = await cryptoAPI.subtle.sign("HMAC", key, encoder.encode(payload));
-  const hashArray = Array.from(new Uint8Array(signatureBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }

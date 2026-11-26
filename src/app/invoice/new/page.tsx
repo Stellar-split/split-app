@@ -46,7 +46,6 @@ import DraftCollaborationPanel from "@/components/DraftCollaborationPanel";
 import {
   createApprovalRequest,
   getApprovalPolicy,
-  notifyApprovalUsers,
   saveApprovalRequests,
   getApprovalRequests,
   shouldRequireApproval,
@@ -716,7 +715,20 @@ function NewInvoiceForm() {
 
       if (shouldRequireApproval(approvalAmount, policy)) {
         const invoiceTitle = `Invoice for ${recipients[0]?.address ?? "recipient"}`;
-        const approvalRequest = createApprovalRequest(invoiceTitle, approvalAmount);
+        const approvalRequest = createApprovalRequest(
+          {
+            owner: creator,
+            title: invoiceTitle,
+            amount: approvalAmount,
+            payload: {
+              recipients: recipients.map((r) => ({ address: r.address, amount: r.amount })),
+              token,
+              deadline: deadlineFromDays(deadlineDays),
+            },
+          },
+          policy,
+          Date.now(),
+        );
         const existingRequests = await getApprovalRequests();
         saveApprovalRequests([approvalRequest, ...existingRequests]);
         discardDraft();

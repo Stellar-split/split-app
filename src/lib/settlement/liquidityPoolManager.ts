@@ -377,7 +377,7 @@ export class LiquidityPoolManager {
     for (const [id, res] of Array.from(this.reservations.entries())) {
       if (res.status === 'active' && res.expiresAt < now) {
         this.releaseReservation(id);
-        res.status === 'expired';
+        res.status = 'expired';
         cleanedCount++;
       }
     }

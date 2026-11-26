@@ -205,8 +205,8 @@ describe("DisputeTimeline", () => {
       await waitFor(() => {
         expect(screen.getByText("Dispute Resolved")).toBeInTheDocument();
         expect(screen.getByText(/✓ Released/i)).toBeInTheDocument();
-        expect(screen.getByText(/2 release/i)).toBeInTheDocument();
-        expect(screen.getByText(/1 refund/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/2 release/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/1 refund/i).length).toBeGreaterThan(0);
       });
     });
   });

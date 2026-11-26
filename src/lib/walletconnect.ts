@@ -390,34 +390,19 @@ export async function connectWalletConnect(
   activePublicKey = publicKey;
   setStatus('connecting', { publicKey });
 
+  // client.pair() requires a uri from an existing pairing proposal — it can't
+  // mint a new one, so a fresh pairing topic/uri is created via the core
+  // client's pairing API directly.
+  const core = (client as unknown as { core: { pairing: { create: () => Promise<{ uri: string }> } } }).core;
   const uri = await withRetry(
     async () => {
-      const { uri: pairingUri } = await withTimeout(
-        client.pair({
-          uri: undefined as unknown as string,
-        }).catch(() => {
-          // pair() with undefined uri is not supported; use core pairing below.
-          throw new Error('pairing requires a uri');
-        }),
-        proposalTimeoutMs,
-        'Session proposal',
-      );
-      return pairingUri;
+      const pairing = await withTimeout(core.pairing.create(), proposalTimeoutMs, 'Pairing creation');
+      return pairing.uri;
     },
-    0,
+    maxRetries,
     retryDelayMs,
-    'Session proposal',
-  ).catch(async () => {
-    // Fallback: create a pairing topic directly via the core client.
-    const core = (client as unknown as { core: { pairing: { create: () => Promise<{ uri: string }> } } }).core;
-    const pairing = await withRetry(
-      () => withTimeout(core.pairing.create(), proposalTimeoutMs, 'Pairing creation'),
-      maxRetries,
-      retryDelayMs,
-      'Pairing creation',
-    );
-    return pairing.uri;
-  });
+    'Pairing creation',
+  );
 
   return { uri, publicKey };
 }
@@ -473,8 +458,13 @@ export async function signWithWalletConnect(xdr: string): Promise<SignResult> {
   try {
     const signedXdr = await withRetry(
       async () => {
+        // FIXME: `client` is typed as IWeb3Wallet (WalletConnect's wallet-side
+        // SDK), which has no `.request()` — that's a dApp-side SignClient
+        // method. This cast only unblocks the build; the underlying SDK
+        // mismatch needs a real fix (likely swapping to @walletconnect/sign-client
+        // for the request-sending path) before this signing flow can work at runtime.
         const response = await withTimeout(
-          client.request({
+          (client as unknown as { request: (args: unknown) => Promise<unknown> }).request({
             topic: session.topic,
             chainId: STELLAR_CHAIN,
             request: {

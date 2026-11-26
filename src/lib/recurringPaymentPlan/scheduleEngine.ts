@@ -4,6 +4,7 @@ import type {
   DueExecution,
   PlanExecutionRecord,
   ScheduledPaymentItem,
+  PlanStatus,
 } from '@/types/recurringPaymentPlan';
 import { calculateCycleAmount } from './amountEngine';
 
@@ -239,7 +240,7 @@ export function executePayment(
   const updatedExecutions = [...plan.executions, executionRecord];
   const subsequentCycle = nextCycle + 1;
   let nextDate: number | null = calculateScheduledDateForCycle(plan, subsequentCycle);
-  let status = plan.status;
+  let status: PlanStatus = plan.status;
 
   if (plan.maxCycles !== null && plan.maxCycles !== undefined && nextCycle >= plan.maxCycles) {
     status = 'completed';

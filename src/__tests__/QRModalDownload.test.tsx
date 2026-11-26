@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, test, beforeEach, afterEach, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import QRModal from "@/components/QRModal";
 
@@ -25,6 +25,7 @@ describe("Issue #600: QRModal Download QR Code", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   it("should render QR modal when open is true", () => {
@@ -231,6 +232,7 @@ describe("Issue #600: QRModal Download QR Code", () => {
 
     const { isWalletConnected } = await import("@/lib/freighter");
 
+    vi.useFakeTimers();
     render(
       <QRModal
         open={true}
@@ -241,10 +243,11 @@ describe("Issue #600: QRModal Download QR Code", () => {
       />
     );
 
-
-    await waitFor(() => {
-      expect(isWalletConnected).toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
     });
+
+    expect(isWalletConnected).toHaveBeenCalled();
   });
 
   it("should call onConnected when wallet becomes connected", async () => {
@@ -254,6 +257,7 @@ describe("Issue #600: QRModal Download QR Code", () => {
     const { isWalletConnected } = await import("@/lib/freighter");
     vi.mocked(isWalletConnected).mockResolvedValueOnce(true);
 
+    vi.useFakeTimers();
     render(
       <QRModal
         open={true}
@@ -264,10 +268,11 @@ describe("Issue #600: QRModal Download QR Code", () => {
       />
     );
 
-
-    await waitFor(() => {
-      expect(onConnected).toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
     });
+
+    expect(onConnected).toHaveBeenCalled();
   });
 
   it("should stop polling when modal is closed", async () => {

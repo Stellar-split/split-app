@@ -17,7 +17,6 @@ import { apiFetch } from "@/lib/apiClient";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { getActiveNetwork } from "@/lib/networks";
 import type { RateLock } from "@/lib/currency";
-import { getActiveNetwork } from "@/lib/networks";
 
 const STELLAR_EXPERT_BASE =
   getActiveNetwork().explorerTxBase;

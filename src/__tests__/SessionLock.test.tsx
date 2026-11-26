@@ -89,8 +89,7 @@ test("resume unlocks the session", () => {
     </SessionLockProvider>,
   );
 
-  act(() => {
-  });
+  advance(TIMEOUT_MS + 1000);
   expect(screen.getByTestId("locked").textContent).toBe("true");
 
   fireEvent.click(screen.getByTestId("resume"));
@@ -106,8 +105,7 @@ test("disabled state (null timeout) skips locking entirely", () => {
 
   fireEvent.click(screen.getByTestId("set-null"));
 
-  act(() => {
-  });
+  advance(TIMEOUT_MS + 1000);
 
   expect(screen.getByTestId("locked").textContent).toBe("false");
 });
@@ -130,8 +128,7 @@ test("lock overlay shows Resume button", () => {
     </SessionLockProvider>,
   );
 
-  act(() => {
-  });
+  advance(TIMEOUT_MS + 1000);
 
   expect(screen.getByText("Session Locked")).toBeTruthy() // element exists in DOM;
   expect(screen.getAllByText("Resume").length).toBeGreaterThanOrEqual(1);
@@ -144,8 +141,7 @@ test("warns during the last minute before locking", () => {
     </SessionLockProvider>,
   );
 
-  act(() => {
-  });
+  advance(TIMEOUT_MS - 30_000);
 
   expect(screen.getByText(/Your session will lock in \d+s/)).toBeTruthy() // element exists in DOM;
   fireEvent.click(screen.getByText("Stay signed in"));
@@ -161,8 +157,7 @@ test("locking clears the cached wallet session", () => {
     </SessionLockProvider>,
   );
 
-  act(() => {
-  });
+  advance(TIMEOUT_MS + 1000);
 
   expect(screen.getByTestId("locked").textContent).toBe("true");
   expect(sessionStorage.getItem("stellarsplit_wallet")).toBeNull();
@@ -176,8 +171,7 @@ test("requires biometrics to unlock when enabled", () => {
     </SessionLockProvider>,
   );
 
-  act(() => {
-  });
+  advance(TIMEOUT_MS + 1000);
 
   expect(screen.getByText("Unlock with biometrics")).toBeTruthy() // element exists in DOM;
   expect(screen.getByText("Disconnect wallet")).toBeTruthy() // element exists in DOM;

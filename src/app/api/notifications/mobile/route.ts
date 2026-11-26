@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import {
   sendMobileNotification,
+  registerDeviceToken,
   scheduleNotification,
   getPendingSchedules,
   getDueSchedules,

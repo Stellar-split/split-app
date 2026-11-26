@@ -166,68 +166,6 @@ function customExport(data: InvoiceExportData, template: string): string {
   });
 }
 
-function escapeCsv(value: string): string {
-  return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
-}
-
-function csvExport(data: InvoiceExportData): string {
-  const rows: string[][] = [
-    ['field', 'value'],
-    ['id', data.id],
-    ['creator', data.creator],
-    ['status', data.status],
-    ['token', data.token],
-    ['total', data.total],
-    ['funded', data.funded],
-    ['deadline', data.deadline ?? ''],
-    [],
-    ['recipient_address', 'recipient_amount'],
-    ...data.recipients.map((recipient) => [recipient.address, recipient.amount]),
-    [],
-    ['payment_payer', 'payment_amount'],
-    ...data.payments.map((payment) => [payment.payer, payment.amount]),
-  ];
-  return rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
-}
-
-function pdfExport(data: InvoiceExportData): string {
-  const lines = [
-    `Invoice ${data.id}`,
-    `Creator: ${data.creator}`,
-    `Status: ${data.status}`,
-    `Token: ${data.token}`,
-    `Total: ${data.total} ${data.token}`,
-    `Funded: ${data.funded} ${data.token}`,
-    `Deadline: ${data.deadline ?? 'none'}`,
-    '',
-    'Recipients:',
-    ...data.recipients.map((recipient) => `  ${recipient.address}  ${recipient.amount} ${data.token}`),
-    '',
-    'Payments:',
-    ...data.payments.map((payment) => `  ${payment.payer}  ${payment.amount} ${data.token}`),
-  ];
-  const escapePdfText = (value: string) => value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-  const content = ['BT', '/F1 12 Tf', '14 TL', '50 780 Td', ...lines.map((line) => `(${escapePdfText(line)}) Tj T*`), 'ET'].join('\n');
-  const objects = [
-    '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
-    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-  ];
-  let pdf = '%PDF-1.4\n';
-  const offsets: number[] = [];
-  objects.forEach((object, index) => {
-    offsets.push(pdf.length);
-    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
-  });
-  const xrefOffset = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  pdf += offsets.map((offset) => `${offset.toString().padStart(10, '0')} 00000 n \n`).join('');
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-  return pdf;
-}
-
 export function generateInvoiceExport(
   invoice: Invoice,
   total: bigint,
@@ -259,12 +197,6 @@ export function generateInvoiceExport(
       mimeType: 'text/html;charset=utf-8',
       extension: 'html',
     };
-  }
-  if (format === 'csv') {
-    return { content: csvExport(data), mimeType: 'text/csv;charset=utf-8', extension: 'csv' };
-  }
-  if (format === 'pdf') {
-    return { content: pdfExport(data), mimeType: 'application/pdf', extension: 'pdf' };
   }
   return { content: customExport(data, customTemplate), mimeType: 'text/plain;charset=utf-8', extension: 'txt' };
 }

@@ -115,10 +115,10 @@ describe("SplitCalculator sliders", () => {
     const onChange = vi.fn();
     renderBuilder([line("GAAA1", 50), line("GBBB2", 50)], onChange);
 
-    expect(screen.getByTestId("split-sum-bar")).getAttribute("data-state").toBe("valid");
+    expect(screen.getByTestId("split-sum-bar").getAttribute("data-state")).toBe("valid");
 
     fireEvent.change(sliders()[0], { target: { value: "51" } });
-    expect(screen.getByTestId("split-sum-bar")).getAttribute("data-state").toBe("over");
+    expect(screen.getByTestId("split-sum-bar").getAttribute("data-state")).toBe("over");
     expect(
       screen.getByText(/share percentages must sum to 100%/i)
     ).toBeTruthy() // element exists in DOM;

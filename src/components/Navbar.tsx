@@ -41,7 +41,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 1024;
+      const mobile = window.innerWidth < 640;
       setIsMobile(mobile);
       if (!mobile) setSidebarOpen(false);
     };

@@ -21,9 +21,9 @@ describe("InstallmentPlanBuilder", () => {
     const onChange = vi.fn();
     render(<InstallmentPlanBuilder {...defaultProps} onChange={onChange} />);
     await userEvent.click(screen.getByRole("button", { name: /add milestone/i }));
-    const inputs = screen.getAllByRole("spinbutton");
-    await userEvent.clear(inputs[0]);
-    await userEvent.type(inputs[0], "1000");
+    const amountInput = screen.getByLabelText(/Milestone 1 amount/i);
+    await userEvent.clear(amountInput);
+    await userEvent.type(amountInput, "1000");
     const nextBtn = screen.getByRole("button", { name: /next/i });
     await userEvent.click(nextBtn);
     const saveBtn = screen.getByRole("button", { name: /save plan/i });
@@ -35,9 +35,9 @@ describe("InstallmentPlanBuilder", () => {
     const onChange = vi.fn();
     render(<InstallmentPlanBuilder {...defaultProps} onChange={onChange} />);
     await userEvent.click(screen.getByRole("button", { name: /add milestone/i }));
-    const inputs = screen.getAllByRole("spinbutton");
-    await userEvent.clear(inputs[0]);
-    await userEvent.type(inputs[0], "500");
+    const amountInput = screen.getByLabelText(/Milestone 1 amount/i);
+    await userEvent.clear(amountInput);
+    await userEvent.type(amountInput, "500");
     const nextBtn = screen.getByRole("button", { name: /next/i });
     await userEvent.click(nextBtn);
     expect(screen.getByRole("alert")).toHaveTextContent(/must sum to/i);

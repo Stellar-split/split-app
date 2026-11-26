@@ -4,6 +4,7 @@ import type {
   PlanModificationRecord,
   PlanIntervalConfig,
   PlanAmountConfig,
+  PlanStatus,
 } from '@/types/recurringPaymentPlan';
 import { validateAmountConfig } from './amountEngine';
 import { calculateScheduledDateForCycle } from './scheduleEngine';
@@ -186,7 +187,7 @@ export function modifyPlan(
   }
 
   // Check if modified maxCycles or endDate immediately concludes plan
-  let status = plan.status;
+  let status: PlanStatus = plan.status;
   if (updates.maxCycles !== undefined && updates.maxCycles !== null && plan.currentCycle >= updates.maxCycles) {
     status = 'completed';
     updatedNextDate = null;

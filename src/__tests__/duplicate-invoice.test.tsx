@@ -164,11 +164,13 @@ vi.mock("@/components/CursorOverlay", () => ({
 vi.mock("@/components/PresencePill", () => ({
   __esModule: true,
   default: () => null,
+  PresencePill: () => null,
 }));
 
 vi.mock("@/components/ReconnectionBanner", () => ({
   __esModule: true,
   default: () => null,
+  ReconnectionBanner: () => null,
 }));
 
 describe("NewInvoicePage — URL pre-fill (clone mode)", () => {

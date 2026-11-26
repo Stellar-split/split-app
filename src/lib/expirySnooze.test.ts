@@ -62,6 +62,8 @@ describe("expirySnooze", () => {
 
   it("should calculate time remaining correctly", () => {
     const now = new Date();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
     const dueDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000); // 2d 5h from now
 
     const time = getTimeRemaining(dueDate);
@@ -69,6 +71,7 @@ describe("expirySnooze", () => {
     expect(time.isOverdue).toBe(false);
     expect(time.days).toBe(2);
     expect(time.hours).toBe(5);
+    vi.useRealTimers();
   });
 
   it("should detect overdue invoices", () => {

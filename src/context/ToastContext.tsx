@@ -2,10 +2,6 @@ import React, { createContext, useContext } from "react";
 
 export interface Toast {
   type: "info" | "warning" | "error" | "success";
-import React, { createContext, useContext } from 'react';
-
-export interface Toast {
-  type: 'info' | 'warning' | 'error' | 'success';
   message: string;
 }
 
@@ -16,16 +12,9 @@ export interface ToastContextValue {
 
 export const ToastContext = createContext<ToastContextValue | null>(null);
 
-export function ToastProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const notify = (toast: Toast) => {
-    console.log("[Toast]", toast);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const notify = (toast: Toast) => {
-    console.log('[Toast]', toast);
+    console.log("[Toast]", toast);
   };
 
   const showToast = (toast: Toast) => {
@@ -43,7 +32,6 @@ export function useToast(): ToastContextValue {
   const context = useContext(ToastContext);
   if (!context) {
     throw new Error("useToast must be used within a ToastProvider");
-    throw new Error('useToast must be used within a ToastProvider');
   }
   return context;
 }

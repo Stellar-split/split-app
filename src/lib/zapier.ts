@@ -6,4 +6,3 @@ export async function sendToZapier(webhookUrl: string, payload: unknown) {
   if (!res.ok) throw new Error(`Zapier delivery failed: ${res.status}`);
   return res;
 }
-EOF

@@ -5,7 +5,6 @@ import { simulateTransaction, SimulationResult } from "@/lib/simulateTx";
 import { retryWithBackoff } from "@/lib/retryWithBackoff";
 import { toAppError } from "@/lib/appError";
 import { useToast } from "@/context/ToastContext";
-import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 
 /** Minimal rate lock shape needed to detect expiry. */
 export interface PaymentRateLock {
@@ -33,8 +32,6 @@ interface UsePaymentSubmissionReturn {
   initiateDemoPayment: (
     transactionXdr: string,
     onConfirm: () => Promise<unknown>,
-    onCancel: () => void
-    onConfirm: () => Promise<any>,
     onCancel: () => void,
     options?: InitiatePaymentOptions
   ) => Promise<void>;
@@ -46,10 +43,9 @@ const INITIAL_STATE: PaymentSubmissionState = {
   isSimulating: false,
   simulationResult: null,
   simulationError: null,
+  rateLockExpired: false,
 };
 
-export function usePaymentSubmission(): UsePaymentSubmissionReturn {
-  const [state, setState] = useState<PaymentSubmissionState>(INITIAL_STATE);
 /**
  * Returns true when the given rate lock is missing or has expired.
  * A lock is considered expired at or after its `expiresAt` timestamp.
@@ -63,24 +59,13 @@ export function isRateLockExpired(
 }
 
 export function usePaymentSubmission(): UsePaymentSubmissionReturn {
-  const [state, setState] = useState<PaymentSubmissionState>({
-    showSimulationPreview: false,
-    isSimulating: false,
-    simulationResult: null,
-    simulationError: null,
-    rateLockExpired: false,
-  });
-
+  const [state, setState] = useState<PaymentSubmissionState>(INITIAL_STATE);
   const { notify } = useToast();
-  const { enqueue } = useOfflineQueue();
 
   const initiateDemoPayment = useCallback(
     async (
       transactionXdr: string,
       onConfirm: () => Promise<unknown>,
-      onCancel: () => void
-    ) => {
-      onConfirm: () => Promise<any>,
       onCancel: () => void,
       options?: InitiatePaymentOptions
     ) => {
@@ -132,16 +117,6 @@ export function usePaymentSubmission(): UsePaymentSubmissionReturn {
             simulationResult: result,
           }));
         }
-                message: `Simulation failed (${toAppError(error).message}). Retrying attempt ${attempt}...`,
-              });
-            },
-          }
-        );
-        setState((prev) => ({
-          ...prev,
-          isSimulating: false,
-          simulationResult: result,
-        }));
       } catch (error) {
         const appError = toAppError(error);
         setState((prev) => ({
@@ -160,86 +135,4 @@ export function usePaymentSubmission(): UsePaymentSubmissionReturn {
   }, []);
 
   return { state, initiateDemoPayment, resetState };
-  const handleProceed = useCallback(
-    async (onConfirm: () => Promise<any>) => {
-      try {
-        await retryWithBackoff(() => onConfirm(), {
-          onRetry: (attempt, error) => {
-            notify({
-              type: "info",
-              message: `Payment failed (${toAppError(error).message}). Retrying attempt ${attempt}...`,
-            });
-          },
-        });
-        resetState();
-      } catch (error) {
-        const appError = toAppError(error);
-        if (appError.isNetworkError) {
-          enqueue({ type: "payment", execute: onConfirm });
-          notify({
-            type: "warning",
-            message: "Connection lost. Payment queued and will retry when you're back online.",
-          });
-        } else {
-          setState((prev) => ({
-            ...prev,
-            simulationError: appError.message,
-          }));
-        }
-      }
-    },
-    [notify, enqueue]
-  );
-
-  const handleCancel = useCallback((onCancel: () => void) => {
-    onCancel();
-    resetState();
-  }, []);
-
-  const handleSkip = useCallback(
-    async (onConfirm: () => Promise<any>) => {
-      try {
-        await retryWithBackoff(() => onConfirm(), {
-          onRetry: (attempt, error) => {
-            notify({
-              type: "info",
-              message: `Payment failed (${toAppError(error).message}). Retrying attempt ${attempt}...`,
-            });
-          },
-        });
-        resetState();
-      } catch (error) {
-        const appError = toAppError(error);
-        if (appError.isNetworkError) {
-          enqueue({ type: "payment", execute: onConfirm });
-          notify({
-            type: "warning",
-            message: "Connection lost. Payment queued and will retry when you're back online.",
-          });
-        } else {
-          setState((prev) => ({
-            ...prev,
-            simulationError: appError.message,
-          }));
-        }
-      }
-    },
-    [notify, enqueue]
-  );
-
-  const resetState = useCallback(() => {
-    setState({
-      showSimulationPreview: false,
-      isSimulating: false,
-      simulationResult: null,
-      simulationError: null,
-      rateLockExpired: false,
-    });
-  }, []);
-
-  return {
-    state,
-    initiateDemoPayment,
-    resetState,
-  };
 }

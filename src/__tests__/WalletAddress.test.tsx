@@ -30,7 +30,7 @@ describe('WalletAddress', () => {
       value: { writeText },
     });
 
-    render(<WalletAddress address={ADDR} />);
+    render(<WalletAddress address={ADDR} showCopy />);
 
     await user.click(screen.getByRole('button', { name: /copy/i }));
 

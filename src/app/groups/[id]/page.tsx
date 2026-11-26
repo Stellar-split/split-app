@@ -55,6 +55,7 @@ export default function GroupDetailPage() {
   const [allFunded, setAllFunded] = useState(false);
   const [deadline, setDeadline] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payTarget, setPayTarget] = useState<{ invoice: Invoice; total: bigint } | null>(null);
 
@@ -73,9 +74,11 @@ export default function GroupDetailPage() {
       const status = await (splitClient as any).getGroupStatus(groupId);
       if (!status && !localGroup) {
         setMemberRows([]);
+        setNotFound(true);
         setLoading(false);
         return;
       }
+      setNotFound(false);
 
       const memberInvoices: Invoice[] = status?.memberInvoices ?? [];
       const name: string =
@@ -196,7 +199,9 @@ export default function GroupDetailPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
         <Link href="/groups" className="text-indigo-400 hover:text-indigo-300 text-sm mb-6 inline-block">&larr; Back to groups</Link>
         <div className="text-center py-12 bg-gray-800 border border-gray-700 rounded-lg">
-          <p className="text-gray-400 mb-4">This group has no invoices yet.</p>
+          <p className="text-gray-400 mb-4">
+            {notFound ? "Group not found." : "No members in this group."}
+          </p>
           <Link href="/invoice/new" className="inline-block px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors">
             Create Invoice
           </Link>
@@ -234,15 +239,23 @@ export default function GroupDetailPage() {
               )}
             </p>
           </div>
-          {/* Creator-only: Release Funds */}
-          {isCreator && allFunded && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={handleReleaseFunds}
-              className="min-h-10 px-5 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-sm font-semibold transition-colors"
+              onClick={() => router.push("/invoice/new")}
+              className="min-h-10 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors"
             >
-              Release Funds
+              Create Invoice for Group
             </button>
-          )}
+            {/* Creator-only: Release Funds */}
+            {isCreator && allFunded && (
+              <button
+                onClick={handleReleaseFunds}
+                className="min-h-10 px-5 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-sm font-semibold transition-colors"
+              >
+                Release Funds
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Progress bar */}
@@ -287,7 +300,8 @@ export default function GroupDetailPage() {
               {memberRows.map((row) => (
                 <tr key={row.address} className="border-b border-gray-700/50 hover:bg-gray-750 transition-colors">
                   <td className="px-6 py-3 font-mono text-sm text-gray-300">
-                    {truncateAddress(row.address)}
+                    <span title={row.address}>{truncateAddress(row.address)}</span>
+                    <span className="sr-only">{row.address}</span>
                   </td>
                   <td className="px-6 py-3 text-right font-mono">{formatAmount(row.contributed)} USDC</td>
                   <td className="px-6 py-3 text-right font-mono">{formatAmount(row.total)} USDC</td>

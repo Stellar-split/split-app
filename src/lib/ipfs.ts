@@ -3,9 +3,9 @@ export async function uploadToIPFS(file: File): Promise<string> {
     throw new Error('File size exceeds 10MB limit');
   }
 
-  const supportedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'application/json'];
+  const supportedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'application/json', 'text/plain'];
   if (!supportedTypes.includes(file.type)) {
-    throw new Error('Unsupported file type');
+    throw new Error('File type not supported');
   }
 
   const formData = new FormData();
@@ -17,11 +17,17 @@ export async function uploadToIPFS(file: File): Promise<string> {
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
-  const response = await fetch(`${process.env.NEXT_PUBLIC_IPFS_URL || 'https://ipfs.io'}/upload`, {
-    method: 'POST',
-    body: formData,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${process.env.NEXT_PUBLIC_IPFS_URL || 'https://ipfs.io'}/upload`, {
+      method: 'POST',
+      body: formData,
+      headers,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to upload file to IPFS: ${message}`);
+  }
 
   if (!response.ok) {
     throw new Error(`IPFS upload failed with status ${response.status}`);

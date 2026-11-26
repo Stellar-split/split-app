@@ -131,14 +131,14 @@ describe('analyticsReporting', () => {
     });
 
     it('calls onExport with CSV data when export CSV button clicked', () => {
-      const onExport = jest.fn();
+      const onExport = vi.fn();
       render(<AnalyticsReporting events={sampleEvents} onExport={onExport} />);
       fireEvent.click(screen.getByText('Export CSV'));
       expect(onExport).toHaveBeenCalledWith('csv', expect.stringContaining('id,userId'));
     });
 
     it('calls onExport with JSON data when export JSON button clicked', () => {
-      const onExport = jest.fn();
+      const onExport = vi.fn();
       render(<AnalyticsReporting events={sampleEvents} onExport={onExport} />);
       fireEvent.click(screen.getByText('Export JSON'));
       expect(onExport).toHaveBeenCalledWith('json', expect.stringContaining('['));

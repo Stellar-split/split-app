@@ -70,7 +70,11 @@ describe("BrandingForm", () => {
     expect(mockFetchBrandSettings).toHaveBeenCalledWith(ADDRESS);
     expect(screen.getByLabelText("Accent color hex value")).toHaveValue("#4f46e5");
     expect(screen.getByLabelText("Invoice tagline")).toHaveValue("Existing tagline");
-    expect(screen.getByAltText("Your logo")).toHaveAttribute("src", "https://cdn.example.com/logo.png");
+    const logoImages = screen.getAllByAltText("Your logo");
+    expect(logoImages.length).toBeGreaterThan(0);
+    for (const img of logoImages) {
+      expect(img).toHaveAttribute("src", "https://cdn.example.com/logo.png");
+    }
   });
 
   it("rejects an unsupported file type with a specific error BEFORE any upload request", async () => {

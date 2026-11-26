@@ -76,7 +76,7 @@ describe("StatusTimeline", () => {
     const invoice = createMockInvoice({ funded: 100_000_000n });
     render(<StatusTimeline invoice={invoice} total={100_000_000n} />);
 
-    expect(screen.getByText("Fully Funded")).toBeTruthy() // element exists in DOM;
+    expect(screen.getAllByText("Fully Funded").length).toBeGreaterThan(0);
   });
 
   test("displays Funds Released event when status is Released", () => {

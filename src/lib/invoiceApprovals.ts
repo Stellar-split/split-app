@@ -4,6 +4,61 @@ export interface ApprovalPolicy {
   levels: string[][];
 }
 
+export type InvoiceApprovalRequest = ApprovalRequest;
+
+const APPROVAL_REQUESTS_KEY = "stellarsplit_approval_requests";
+const APPROVAL_POLICY_KEY = "stellarsplit_approval_policy";
+
+const DEFAULT_APPROVAL_POLICY: ApprovalPolicy = {
+  enabled: false,
+  minimumAmount: 0,
+  levels: [],
+};
+
+function getStorage(): Storage | null {
+  try {
+    if (typeof localStorage !== "undefined") return localStorage;
+  } catch {
+    // Access to localStorage may throw in restricted environments.
+  }
+  return null;
+}
+
+/** Reads the configured invoice approval policy, falling back to a disabled default. */
+export async function getApprovalPolicy(): Promise<ApprovalPolicy> {
+  const storage = getStorage();
+  if (!storage) return DEFAULT_APPROVAL_POLICY;
+  try {
+    const raw = storage.getItem(APPROVAL_POLICY_KEY);
+    return raw ? { ...DEFAULT_APPROVAL_POLICY, ...JSON.parse(raw) } : DEFAULT_APPROVAL_POLICY;
+  } catch {
+    return DEFAULT_APPROVAL_POLICY;
+  }
+}
+
+/** Reads all persisted approval requests, most recently created first. */
+export async function getApprovalRequests(): Promise<ApprovalRequest[]> {
+  const storage = getStorage();
+  if (!storage) return [];
+  try {
+    const raw = storage.getItem(APPROVAL_REQUESTS_KEY);
+    return raw ? (JSON.parse(raw) as ApprovalRequest[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Persists the full list of approval requests. */
+export function saveApprovalRequests(requests: ApprovalRequest[]): void {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(APPROVAL_REQUESTS_KEY, JSON.stringify(requests));
+  } catch {
+    // Storage may be full or unavailable; the request is still returned to the caller.
+  }
+}
+
 export interface ApprovalRequest {
   id: string;
   invoiceId: string;

@@ -4,12 +4,12 @@
  */
 
 import { getFreighterPublicKey } from "./freighter";
-import { getLedgerStatus, LedgerStatus } from "./ledger";
+import { getLedgerStatus, LedgerConnectionStatus } from "./ledger";
 
 export interface WalletState {
   publicKey: string | null;
   isConnected: boolean;
-  ledger?: LedgerStatus;
+  ledger?: LedgerConnectionStatus;
 }
 
 export type WalletCallback = (state: WalletState) => void;
@@ -17,7 +17,7 @@ export type WalletCallback = (state: WalletState) => void;
 let pollingInterval: NodeJS.Timeout | null = null;
 let ledgerPollingInterval: NodeJS.Timeout | null = null;
 let lastKnownAddress: string | null = null;
-let lastLedgerStatus: LedgerStatus | null = null;
+let lastLedgerStatus: LedgerConnectionStatus | null = null;
 const callbacks: Set<WalletCallback> = new Set();
 
 export function subscribeToWalletChanges(callback: WalletCallback): () => void {
@@ -72,20 +72,20 @@ export function startLedgerPolling(
       const status = await getLedgerStatus();
       const changed =
         !lastLedgerStatus ||
-        lastLedgerStatus.connected !== status.connected ||
+        lastLedgerStatus.status !== status.status ||
         lastLedgerStatus.publicKey !== status.publicKey;
 
       if (changed) {
         lastLedgerStatus = status;
         notifySubscribers({
           publicKey: status.publicKey ?? lastKnownAddress,
-          isConnected: status.connected || !!lastKnownAddress,
+          isConnected: status.status === "connected" || !!lastKnownAddress,
           ledger: status,
         });
       }
     } catch {
-      if (lastLedgerStatus?.connected) {
-        lastLedgerStatus = { connected: false, publicKey: null };
+      if (lastLedgerStatus?.status === "connected") {
+        lastLedgerStatus = { status: "disconnected" };
         notifySubscribers({
           publicKey: lastKnownAddress,
           isConnected: !!lastKnownAddress,
@@ -105,7 +105,7 @@ export function stopLedgerPolling(): void {
   }
 }
 
-export function getLastLedgerStatus(): LedgerStatus | null {
+export function getLastLedgerStatus(): LedgerConnectionStatus | null {
   return lastLedgerStatus;
 }
 

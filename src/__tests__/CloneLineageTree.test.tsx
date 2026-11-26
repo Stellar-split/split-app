@@ -145,7 +145,7 @@ describe("CloneLineageTree component", () => {
   test("current invoice node has aria-current=page", async () => {
     render(<CloneLineageTree invoiceId="3" />);
     await waitFor(() =>
-      expect(screen.getByRole("link", { name: /#3/i })).getAttribute("aria-current").toBe("page")
+      expect(screen.getByRole("link", { name: /#3/i }).getAttribute("aria-current")).toBe("page")
     );
   });
 

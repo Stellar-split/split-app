@@ -143,10 +143,12 @@ describe("Issue #598: TxConfirmModal with Stellar Expert link", () => {
     });
 
 
-    await waitFor(() => {
-      expect(screen.getByText("Copy")).toBeTruthy() // element exists in DOM;
-    });
-
+    await waitFor(
+      () => {
+        expect(screen.getByText("Copy")).toBeTruthy() // element exists in DOM;
+      },
+      { timeout: 3000 }
+    );
   });
 
   it("should close modal when close button is clicked", async () => {

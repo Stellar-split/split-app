@@ -16,9 +16,16 @@ export interface BuildCSPOptions {
    */
   allowFraming?: boolean;
   frameOrigin?: string | null;
+  /** Extra origins (e.g. analytics/backup webhook endpoints) to allow in connect-src. */
+  connectSrc?: string[];
+  /** When set, adds a report-uri directive so CSP violations are reported there. */
+  reportUri?: string;
 }
 
-export function buildCSP(nonce: string, { allowFraming = false, frameOrigin }: BuildCSPOptions = {}): string {
+export function buildCSP(
+  nonce: string,
+  { allowFraming = false, frameOrigin, connectSrc, reportUri }: BuildCSPOptions = {}
+): string {
   const frameAncestors = frameOrigin === null
     ? "'none'"
     : frameOrigin ?? (allowFraming ? "*" : "'none'");
@@ -26,6 +33,7 @@ export function buildCSP(nonce: string, { allowFraming = false, frameOrigin }: B
     "'self'",
     process.env.NEXT_PUBLIC_RPC_URL || "https://soroban-testnet.stellar.org",
     process.env.NEXT_PUBLIC_IPFS_GATEWAY || "https://ipfs.io",
+    ...(connectSrc ?? []),
   ].filter(Boolean);
   const directives = [
     `default-src 'self'`,
@@ -40,6 +48,10 @@ export function buildCSP(nonce: string, { allowFraming = false, frameOrigin }: B
     `frame-ancestors ${frameAncestors}`,
     `upgrade-insecure-requests`,
   ];
+
+  if (reportUri) {
+    directives.push(`report-uri ${reportUri}`);
+  }
 
   return directives.join("; ");
 }

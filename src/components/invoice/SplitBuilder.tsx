@@ -306,21 +306,22 @@ export default function SplitBuilder({
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  ref={(el) => {
-                    handleRefs.current[index] = el;
-                  }}
-                  data-testid={`drag-handle-${index}`}
-                  aria-label={`Reorder recipient ${index + 1}`}
-                  aria-roledescription="sortable"
-                  onMouseDown={() => handleDragStart(index)}
-                  onKeyDown={(e) => handleHandleKeyDown(index, e)}
-                  disabled={readOnly}
-                  className="cursor-grab text-gray-500 hover:text-gray-300 transition-colors disabled:cursor-not-allowed"
-                >
-                  ⠿
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    ref={(el) => {
+                      handleRefs.current[index] = el;
+                    }}
+                    data-testid={`drag-handle-${index}`}
+                    aria-label={`Reorder recipient ${index + 1}`}
+                    aria-roledescription="sortable"
+                    onMouseDown={() => handleDragStart(index)}
+                    onKeyDown={(e) => handleHandleKeyDown(index, e)}
+                    className="cursor-grab text-gray-500 hover:text-gray-300 transition-colors disabled:cursor-not-allowed"
+                  >
+                    ⠿
+                  </button>
+                )}
                 <span className="text-xs font-medium text-gray-400">Recipient #{index + 1}</span>
               </div>
               {!readOnly && (

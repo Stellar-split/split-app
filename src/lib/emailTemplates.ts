@@ -8,4 +8,3 @@ export function renderTemplate(id: string, vars: Record<string, unknown>) {
   for (const [k, v] of Object.entries(vars)) body = body.replace(new RegExp(`{{${k}}}`, "g"), String(v));
   return { subject: t.subject, body };
 }
-EOF

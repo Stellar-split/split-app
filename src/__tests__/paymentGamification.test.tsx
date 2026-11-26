@@ -70,8 +70,10 @@ describe("computeGamification", () => {
   });
 
   it("reports full progress at the top level", () => {
-    const events = Array.from({ length: 60 }, (_, i) =>
-      ev(`2026-01-${String((i % 28) + 1).padStart(2, "0")}`, { amount: 1000, onTime: true }),
+    // 35 points/event max (10 base + 5 on-time + 20 amount-bonus cap), so 150
+    // events comfortably clears the 5000-point Legend threshold.
+    const events = Array.from({ length: 150 }, (_, i) =>
+      ev(`2026-${String(Math.floor(i / 28) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`, { amount: 1000, onTime: true }),
     );
     const s = computeGamification(events);
     expect(s.level.name).toBe("Legend");
@@ -89,11 +91,11 @@ describe("PaymentGamificationPanel", () => {
     );
     expect(screen.getByText("Level 1: Starter")).toBeTruthy() // element exists in DOM;
     expect(screen.getByText("32 points")).toBeTruthy() // element exists in DOM;
-    expect(screen.getByRole("progressbar")).getAttribute("aria-valuenow").toBe("64");
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("64");
     expect(screen.getByText("18 points to Contributor")).toBeTruthy() // element exists in DOM;
     const badge = screen.getByText("First payment").closest("li");
     expect(badge.getAttribute("data-earned")).toBe("true");
-    expect(screen.getByText("Regular").closest("li")).getAttribute("data-earned").toBe("false");
+    expect(screen.getByText("Regular").closest("li").getAttribute("data-earned")).toBe("false");
   });
 
   it("shows the empty state for no payments", () => {

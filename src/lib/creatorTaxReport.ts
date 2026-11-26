@@ -31,24 +31,7 @@ export interface TaxReportSummary {
   count: number;
 }
 
-export function filterByTaxYear(
-  payments: TaxablePayment[],
-  year: number
-): TaxablePayment[] {
-  return payments.filter(
-    (p) => new Date(p.paidAt).getUTCFullYear() === year
-  );
-}
-
-export function summarizeTaxYear(
-  payments: TaxablePayment[],
-  year: number
-): TaxReportSummary {
-  const rows = filterByTaxYear(payments, year);
-  const gross = rows.reduce((s, p) => s + p.amount, 0);
-  const fees = rows.reduce((s, p) => s + p.fee, 0);
-  const net = gross - fees;
-  return { year, gross, fees, net, count: rows.length };
+export interface TaxYearSummary extends TaxReportSummary {
   /** Tax computed on the net (gross minus fees) taxable amount. */
   tax: number;
   /** Net amount after fees and tax. */
@@ -117,7 +100,7 @@ export function summarizeTaxYear(
   payments: TaxablePayment[],
   year: number,
   jurisdictions: TaxJurisdiction[] = DEFAULT_JURISDICTIONS
-): TaxReportSummary {
+): TaxYearSummary {
   const rows = filterByTaxYear(payments, year);
   const gross = round2(rows.reduce((s, p) => s + p.amount, 0));
   const fees = round2(rows.reduce((s, p) => s + p.fee, 0));
@@ -172,20 +155,12 @@ export function buildTaxReportCsv(
   const s = summarizeTaxYear(payments, year);
   lines.push(
     ["TOTAL", "", "", "", s.gross, s.fees, s.net].map(csvCell).join(",")
-  year: number,
-  jurisdictions: TaxJurisdiction[] = DEFAULT_JURISDICTIONS
-): string {
-  const header = ["Invoice ID", "Title", "Paid At", "Asset", "Gross", "Fee", "Net"];
-  const lines = filterByTaxYear(payments, year).map((p) =>
-    [p.invoiceId, p.title, p.paidAt, p.asset, p.amount, p.fee, p.amount - p.fee].map(csvCell).join(",")
   );
-  const s = summarizeTaxYear(payments, year, jurisdictions);
-  lines.push(["TOTAL", "", "", "", s.gross, s.fees, s.net].map(csvCell).join(","));
   return [header.join(","), ...lines].join("\n");
 }
 
-/** A tax jurisdiction with the rate applied to a creator's net income. */
-export interface TaxJurisdiction {
+/** A tax jurisdiction with a flat rate applied to a creator's net income (fraction, e.g. 0.075 = 7.5%) — a separate, percent-vs-fraction jurisdiction model from `TaxJurisdiction` above, used only by the per-asset/flat-rate helpers below. */
+export interface FlatRateJurisdiction {
   /** Stable identifier, e.g. `US-CA`. */
   code: string;
   /** Human readable name used in reports. */
@@ -194,15 +169,15 @@ export interface TaxJurisdiction {
   rate: number;
 }
 
-/** A tax year summary with jurisdiction tax applied. */
-export interface JurisdictionTaxSummary extends TaxReportSummary {
+/** A tax year summary with a flat jurisdiction rate applied. */
+export interface FlatRateJurisdictionTaxSummary extends TaxReportSummary {
   jurisdiction: string;
   jurisdictionName: string;
   taxableBase: number;
   taxOwed: number;
 }
 
-export const DEFAULT_JURISDICTIONS: TaxJurisdiction[] = [
+export const DEFAULT_FLAT_RATE_JURISDICTIONS: FlatRateJurisdiction[] = [
   { code: "NONE", name: "No tax jurisdiction", rate: 0 },
   { code: "US", name: "United States", rate: 0.24 },
   { code: "EU", name: "European Union", rate: 0.2 },
@@ -229,11 +204,11 @@ export function summarizeTaxYearByAsset(
   return result;
 }
 
-/** Applies a jurisdiction's rate to a tax year summary. */
-export function calculateJurisdictionTax(
+/** Applies a flat jurisdiction rate to a tax year summary. */
+export function calculateFlatRateJurisdictionTax(
   summary: TaxReportSummary,
-  jurisdiction: TaxJurisdiction,
-): JurisdictionTaxSummary {
+  jurisdiction: FlatRateJurisdiction,
+): FlatRateJurisdictionTaxSummary {
   return {
     ...summary,
     jurisdiction: jurisdiction.code,
@@ -243,24 +218,24 @@ export function calculateJurisdictionTax(
   };
 }
 
-/** Calculates tax for every jurisdiction (defaults to the built-in set). */
-export function calculateTaxAcrossJurisdictions(
+/** Calculates flat-rate tax for every jurisdiction (defaults to the built-in set). */
+export function calculateFlatRateTaxAcrossJurisdictions(
   payments: TaxablePayment[],
   year: number,
-  jurisdictions: TaxJurisdiction[] = DEFAULT_JURISDICTIONS,
-): JurisdictionTaxSummary[] {
+  jurisdictions: FlatRateJurisdiction[] = DEFAULT_FLAT_RATE_JURISDICTIONS,
+): FlatRateJurisdictionTaxSummary[] {
   const summary = summarizeTaxYear(payments, year);
-  return jurisdictions.map((j) => calculateJurisdictionTax(summary, j));
+  return jurisdictions.map((j) => calculateFlatRateJurisdictionTax(summary, j));
 }
 
-/** Builds a CSV report with one row per jurisdiction for a tax year. */
-export function buildJurisdictionTaxCsv(
+/** Builds a CSV report with one row per jurisdiction for a tax year, using the flat-rate jurisdiction set. */
+export function buildFlatRateJurisdictionTaxCsv(
   payments: TaxablePayment[],
   year: number,
-  jurisdictions: TaxJurisdiction[] = DEFAULT_JURISDICTIONS,
+  jurisdictions: FlatRateJurisdiction[] = DEFAULT_FLAT_RATE_JURISDICTIONS,
 ): string {
   const header = ["Jurisdiction", "Name", "Year", "Gross", "Fees", "Net", "Taxable Base", "Tax Owed"];
-  const lines = calculateTaxAcrossJurisdictions(payments, year, jurisdictions).map((s) =>
+  const lines = calculateFlatRateTaxAcrossJurisdictions(payments, year, jurisdictions).map((s) =>
     [s.jurisdiction, s.jurisdictionName, s.year, s.gross, s.fees, s.net, s.taxableBase, s.taxOwed]
       .map(csvCell)
       .join(","),

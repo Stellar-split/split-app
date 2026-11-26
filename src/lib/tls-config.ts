@@ -1,4 +1,5 @@
 import https from 'https';
+import http from 'http';
 import fs from 'fs';
 import path from 'path';
 
@@ -65,7 +66,7 @@ export class TLSManager {
     };
   }
 
-  createServer(requestListener: https.RequestListener): https.Server {
+  createServer(requestListener: http.RequestListener): https.Server {
     if (!this.config.enabled) {
       throw new Error('TLS is not enabled');
     }

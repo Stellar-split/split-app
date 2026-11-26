@@ -13,9 +13,11 @@ Object.assign(navigator, {
 describe('useCopyToClipboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
+    vi.useRealTimers();
   });
 
   test('copy sets copied to true and resets after 2 seconds', async () => {
@@ -31,6 +33,7 @@ describe('useCopyToClipboard', () => {
     expect(result.current.copied).toBe(true);
 
     act(() => {
+      vi.advanceTimersByTime(2000);
     });
 
     expect(result.current.copied).toBe(false);
