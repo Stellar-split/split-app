@@ -176,21 +176,21 @@ export default function GlobalSearch({ invoices, publicKey }: Props) {
       <button
         onClick={openSearch}
         aria-label="Open search (Ctrl+K)"
-        className="hidden sm:flex items-center gap-2 h-8 px-3 rounded-md bg-white/[0.06] hover:bg-white/[0.1] text-slate-400 hover:text-white text-small transition-colors border border-white/[0.06]"
+        className="hidden sm:flex items-center gap-2 h-8 px-3 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-small transition-colors border border-slate-700"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5" />
           <path d="M10.5 10.5l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
         <span className="hidden md:inline">Search</span>
-        <kbd className="hidden md:inline text-xs bg-white/[0.06] px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
+        <kbd className="hidden md:inline text-xs bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
       </button>
 
       {/* Mobile icon-only trigger */}
       <button
         onClick={openSearch}
         aria-label="Open search"
-        className="flex sm:hidden items-center justify-center h-9 w-9 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+        className="flex sm:hidden items-center justify-center h-9 w-9 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5" />

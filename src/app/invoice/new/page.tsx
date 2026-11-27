@@ -1400,7 +1400,7 @@ function NewInvoiceForm() {
         {draftOffline && (
           <span
             role="status"
-            className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400"
+            className="inline-flex items-center gap-1 rounded-full font-semibold text-xs px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400"
           >
             ⚠ Offline — drafts save locally
           </span>
