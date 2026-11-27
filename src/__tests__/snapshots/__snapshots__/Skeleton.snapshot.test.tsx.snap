@@ -1,0 +1,64 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Skeleton snapshots > renders SkeletonCard 1`] = `
+<div>
+  <div
+    class="bg-gray-100 dark:bg-gray-900 rounded-xl p-4 sm:p-5"
+  >
+    <div
+      class="flex items-center justify-between mb-3"
+    >
+      <div
+        class="skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded h-4 w-24"
+      />
+      <div
+        class="skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded h-4 w-16 rounded-full"
+      />
+    </div>
+    <div
+      class="skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded h-3 w-28 mb-3"
+    />
+    <div
+      class="flex gap-1 mb-3"
+    >
+      <div
+        class="skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded h-5 w-20"
+      />
+      <div
+        class="skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded h-5 w-20"
+      />
+    </div>
+    <div
+      class="skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded h-2 w-full"
+    />
+    <div
+      class="flex justify-between mt-1"
+    >
+      <div
+        class="skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded h-3 w-24"
+      />
+      <div
+        class="skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded h-3 w-20"
+      />
+    </div>
+    <div
+      class="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-800"
+    >
+      <div
+        class="skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded h-3 w-14"
+      />
+      <div
+        class="skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded h-3 w-16"
+      />
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Skeleton snapshots > renders the base Skeleton primitive 1`] = `
+<div>
+  <div
+    class="skeleton-shimmer bg-gray-200 dark:bg-gray-700 rounded h-4 w-24"
+  />
+</div>
+`;

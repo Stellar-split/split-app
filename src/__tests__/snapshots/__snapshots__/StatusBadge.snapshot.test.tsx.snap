@@ -1,0 +1,235 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`StatusBadge snapshots > renders every status variant consistently 1`] = `
+<div
+  aria-label="Status: Pending — Awaiting funding from the payer."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-blue-500/20 text-blue-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    ⏳
+  </span>
+  <span>
+    Pending
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders every status variant consistently 2`] = `
+<div
+  aria-label="Status: Active — Invoice is active and awaiting completion."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-blue-500/20 text-blue-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    🔄
+  </span>
+  <span>
+    Active
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders every status variant consistently 3`] = `
+<div
+  aria-label="Status: Funded — Invoice has been fully funded."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-green-500/20 text-green-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    💰
+  </span>
+  <span>
+    Funded
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders every status variant consistently 4`] = `
+<div
+  aria-label="Status: Released — Funds have been released to the recipient."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-green-500/20 text-green-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    ✓
+  </span>
+  <span>
+    Released
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders every status variant consistently 5`] = `
+<div
+  aria-label="Status: Refunded — Funds have been refunded to the payer."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-red-500/20 text-red-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    ↩
+  </span>
+  <span>
+    Refunded
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders every status variant consistently 6`] = `
+<div
+  aria-label="Status: Disputed — Invoice is under dispute."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-yellow-500/20 text-yellow-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    ⚠
+  </span>
+  <span>
+    Disputed
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders every status variant consistently 7`] = `
+<div
+  aria-label="Status: Frozen — Invoice is frozen pending resolution."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-gray-500/20 text-gray-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    🧊
+  </span>
+  <span>
+    Frozen
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders every status variant consistently 8`] = `
+<div
+  aria-label="Status: Archived — Invoice has been archived."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-gray-500/20 text-gray-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    📦
+  </span>
+  <span>
+    Archived
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders every status variant consistently 9`] = `
+<div
+  aria-label="Status: Expired — Invoice deadline has passed."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-red-500/20 text-red-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    ⏰
+  </span>
+  <span>
+    Expired
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders every status variant consistently 10`] = `
+<div
+  aria-label="Status: Cancelled — Invoice was cancelled."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-gray-500/20 text-gray-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    ✕
+  </span>
+  <span>
+    Cancelled
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders the default (md) size 1`] = `
+<div
+  aria-label="Status: Pending — Awaiting funding from the payer."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-blue-500/20 text-blue-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    ⏳
+  </span>
+  <span>
+    Pending
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders the lg size with a custom description 1`] = `
+<div
+  aria-label="Status: Released — Test"
+  class="inline-flex items-center gap-1 rounded-full font-medium text-base px-4 py-1.5 bg-green-500/20 text-green-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    ✓
+  </span>
+  <span>
+    Released
+  </span>
+</div>
+`;
+
+exports[`StatusBadge snapshots > renders the sm size 1`] = `
+<div
+  aria-label="Status: Funded — Invoice has been fully funded."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-xs px-2 py-0.5 bg-green-500/20 text-green-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    💰
+  </span>
+  <span>
+    Funded
+  </span>
+</div>
+`;

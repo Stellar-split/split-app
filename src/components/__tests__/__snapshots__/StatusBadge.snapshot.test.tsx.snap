@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`StatusBadge (snapshot) > renders a Pending badge consistently 1`] = `
+<div
+  aria-label="Status: Pending — Awaiting funding from the payer."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-sm px-3 py-1 bg-blue-500/20 text-blue-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    ⏳
+  </span>
+  <span>
+    Pending
+  </span>
+</div>
+`;
+
+exports[`StatusBadge (snapshot) > renders a Released badge at lg size consistently 1`] = `
+<div
+  aria-label="Status: Released — Funds have been released to the recipient."
+  class="inline-flex items-center gap-1 rounded-full font-medium text-base px-4 py-1.5 bg-green-500/20 text-green-400"
+  role="status"
+  tabindex="0"
+>
+  <span
+    aria-hidden="true"
+  >
+    ✓
+  </span>
+  <span>
+    Released
+  </span>
+</div>
+`;
